@@ -26,149 +26,184 @@ body{font-family:'Fraunces',Georgia,serif;background:var(--cream);color:var(--br
 a{text-decoration:none;color:inherit}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,247,242,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(61,43,31,0.08);padding:0 6%}
-.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:68px}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-logo img{width:34px;height:34px;object-fit:contain}
-.nav-logo span{font-family:'Inter',sans-serif;font-size:17px;font-weight:600;color:var(--brown);letter-spacing:-0.02em}
-.nav-links{display:flex;align-items:center;gap:36px}
-.nav-links a{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:var(--brown-mid);letter-spacing:0em;transition:color 0.2s}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,247,242,0.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(61,43,31,0.08);padding:0 5%}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.nav-logo img{width:38px;height:38px;object-fit:contain}
+.nav-logo span{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:var(--brown);letter-spacing:-0.03em}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:var(--brown-mid);transition:color 0.2s}
 .nav-links a:hover{color:var(--teal)}
-.nav-cta{background:var(--teal)!important;color:var(--white)!important;padding:9px 22px!important;border-radius:100px;font-weight:500!important;transition:background 0.2s!important}
+.nav-cta{background:var(--teal)!important;color:var(--white)!important;padding:8px 18px!important;border-radius:100px;font-weight:500!important;white-space:nowrap}
 .nav-cta:hover{background:var(--teal-dark)!important}
 
+/* hamburger — hidden on desktop */
+.nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--brown);border-radius:2px;transition:all 0.2s}
+.mobile-menu{display:none;position:fixed;top:60px;left:0;right:0;background:var(--cream);border-bottom:1px solid rgba(61,43,31,0.08);padding:16px 5% 20px;flex-direction:column;gap:0;z-index:99}
+.mobile-menu a{font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);padding:14px 0;border-bottom:1px solid rgba(61,43,31,0.06)}
+.mobile-menu a:last-child{border-bottom:none;margin-top:8px;background:var(--teal);color:var(--white)!important;text-align:center;padding:13px;border-radius:100px;font-weight:500}
+.mobile-menu.open{display:flex}
+
 /* PAGES */
-.page{display:none;min-height:100vh;padding-top:68px}
+.page{display:none;min-height:100vh;padding-top:60px}
 .page.active{display:block}
 
 /* ── HOME ── */
-.hero{position:relative;overflow:hidden;background:var(--teal);min-height:94vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 6% 0}
-.hero-blob{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(1000px,92%);aspect-ratio:1;background:var(--cream);border-radius:50% 50% 0 0;z-index:1}
-.hero-content{position:relative;z-index:2;max-width:760px}
-.hero-tag{display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);border:1px solid var(--teal-mid);padding:5px 14px;border-radius:100px;margin-bottom:28px}
-.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block}
-.hero-content h1{font-size:clamp(2.8rem,5.5vw,4.4rem);line-height:1.1;color:var(--brown);font-weight:400;letter-spacing:-0.02em;margin-bottom:22px}
+.hero{position:relative;overflow:hidden;background:var(--teal);display:flex;align-items:flex-start;justify-content:center;text-align:center;padding:56px 6% 0;min-height:88vh}
+.hero-blob{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(1000px,95%);aspect-ratio:1;background:var(--cream);border-radius:50% 50% 0 0;z-index:1}
+.hero-content{position:relative;z-index:2;max-width:700px;width:100%}
+.hero-tag{display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);border:1px solid var(--teal-mid);padding:5px 14px;border-radius:100px;margin-bottom:24px}
+.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;flex-shrink:0}
+.hero-content h1{font-size:clamp(2.4rem,6vw,4.2rem);line-height:1.1;color:var(--brown);font-weight:400;letter-spacing:-0.02em;margin-bottom:20px}
 .hero-content h1 em{font-style:italic;color:var(--teal)}
-.hero-sub{font-family:'Inter',sans-serif;font-size:17px;color:var(--brown-mid);max-width:500px;margin:0 auto 40px;line-height:1.7;font-weight:400}
-.btn-primary{display:inline-block;background:var(--brown);color:var(--white);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;padding:14px 36px;border-radius:100px;letter-spacing:-0.01em;transition:background 0.2s,transform 0.15s;cursor:pointer}
+.hero-sub{font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);max-width:460px;margin:0 auto 36px;line-height:1.75}
+.btn-primary{display:inline-block;background:var(--brown);color:var(--white);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;padding:14px 34px;border-radius:100px;letter-spacing:-0.01em;transition:background 0.2s,transform 0.15s;cursor:pointer}
 .btn-primary:hover{background:var(--teal);transform:translateY(-1px)}
-.hero-social-proof{margin-top:32px;font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);padding-bottom:64px}
+.hero-social-proof{margin-top:20px;font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);padding-bottom:56px}
 .hero-social-proof strong{color:var(--teal);font-weight:600}
 
 /* Stats */
-.stats-bar{background:var(--brown);padding:32px 6%}
-.stats-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center}
-.stat-item .stat-num{font-size:26px;font-weight:400;color:var(--white);letter-spacing:-0.02em}
-.stat-item .stat-label{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.55);margin-top:5px;letter-spacing:0.02em}
+.stats-bar{background:var(--brown);padding:28px 5%}
+.stats-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center}
+.stat-item .stat-num{font-size:22px;font-weight:400;color:var(--white);letter-spacing:-0.02em}
+.stat-item .stat-label{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:0.02em}
 .stat-divider{border-left:1px solid rgba(255,255,255,0.1)}
 
 /* Section base */
-.section{padding:88px 6%}
+.section{padding:72px 5%}
 .section-inner{max-width:1160px;margin:0 auto}
-.section-tag{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--terra);margin-bottom:14px;font-weight:500}
-.section-title{font-size:clamp(2rem,3.5vw,2.8rem);color:var(--brown);margin-bottom:16px;line-height:1.2;font-weight:400;letter-spacing:-0.02em}
-.section-sub{font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);max-width:520px;line-height:1.75;margin-bottom:52px}
+.section-tag{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--terra);margin-bottom:12px;font-weight:600}
+.section-title{font-size:clamp(1.9rem,3.5vw,2.8rem);color:var(--brown);margin-bottom:14px;line-height:1.15;font-weight:400;letter-spacing:-0.02em}
+.section-sub{font-family:'Inter',sans-serif;font-size:15px;color:var(--brown-mid);max-width:500px;line-height:1.75;margin-bottom:44px}
 
 /* Steps */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--cream-mid);border-radius:20px;overflow:hidden}
-.step-card{background:var(--white);padding:32px 28px}
-.step-card:first-child{border-radius:20px 0 0 20px}
-.step-card:last-child{border-radius:0 20px 20px 0}
-.step-num{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--teal);letter-spacing:0.08em;margin-bottom:20px;text-transform:uppercase}
-.step-card h3{font-size:17px;font-weight:400;color:var(--brown);margin-bottom:10px;letter-spacing:-0.01em}
-.step-card p{font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.65}
-@media(max-width:780px){.steps{grid-template-columns:1fr 1fr}.step-card:first-child{border-radius:20px 0 0 0}.step-card:last-child{border-radius:0 0 20px 0}}
+.step-card{background:var(--white);padding:28px 24px}
+.step-num{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--teal);letter-spacing:0.08em;margin-bottom:16px;text-transform:uppercase}
+.step-card h3{font-size:16px;font-weight:400;color:var(--brown);margin-bottom:8px;letter-spacing:-0.01em}
+.step-card p{font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.6}
 
-/* Features bento */
-.bento{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:16px}
-.bento-card{border-radius:24px;padding:36px;position:relative;overflow:hidden}
+/* Bento */
+.bento{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bento-card{border-radius:22px;padding:32px}
 .bento-card.teal{background:var(--teal);color:var(--white)}
 .bento-card.terra{background:var(--terra);color:var(--white)}
 .bento-card.cream{background:var(--brown-light);color:var(--brown)}
 .bento-card.dark{background:var(--brown);color:var(--white)}
-.bento-card.wide{grid-column:1/-1}
-.bento-label{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;opacity:0.6;margin-bottom:12px}
-.bento-card h3{font-size:22px;font-weight:400;line-height:1.25;margin-bottom:10px;letter-spacing:-0.01em}
+.bento-label{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;opacity:0.6;margin-bottom:10px}
+.bento-card h3{font-size:20px;font-weight:400;line-height:1.25;margin-bottom:10px;letter-spacing:-0.01em}
 .bento-card p{font-family:'Inter',sans-serif;font-size:14px;line-height:1.7;opacity:0.8}
-@media(max-width:640px){.bento{grid-template-columns:1fr}.bento-card.wide{grid-column:1}}
 
 /* Testimonial */
-.testimonial-section{background:var(--brown);padding:80px 6%;text-align:center}
-.testimonial-section blockquote{max-width:620px;margin:0 auto;font-size:clamp(1.2rem,2.5vw,1.5rem);color:var(--cream);line-height:1.65;font-weight:300;font-style:italic}
-.testimonial-section cite{display:block;margin-top:24px;font-family:'Inter',sans-serif;font-size:13px;color:rgba(250,247,242,0.5);font-style:normal;letter-spacing:0.04em;text-transform:uppercase}
+.testimonial-section{background:var(--brown);padding:72px 5%;text-align:center}
+.testimonial-section blockquote{max-width:580px;margin:0 auto;font-size:clamp(1.15rem,2.5vw,1.45rem);color:var(--cream);line-height:1.65;font-weight:300;font-style:italic}
+.testimonial-section cite{display:block;margin-top:22px;font-family:'Inter',sans-serif;font-size:12px;color:rgba(250,247,242,0.45);font-style:normal;letter-spacing:0.06em;text-transform:uppercase}
 
 /* CTA banner */
-.cta-banner{background:var(--teal);padding:88px 6%;text-align:center}
-.cta-banner h2{font-size:clamp(1.8rem,3.2vw,2.8rem);color:var(--white);margin-bottom:16px;font-weight:400;letter-spacing:-0.02em}
-.cta-banner p{font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,0.75);margin-bottom:36px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.7}
-.btn-light{display:inline-block;background:var(--white);color:var(--brown);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;padding:14px 36px;border-radius:100px;cursor:pointer;transition:transform 0.15s,opacity 0.15s;letter-spacing:-0.01em}
-.btn-light:hover{transform:translateY(-1px);opacity:0.92}
+.cta-banner{background:var(--teal);padding:80px 5%;text-align:center}
+.cta-banner h2{font-size:clamp(1.7rem,3vw,2.6rem);color:var(--white);margin-bottom:14px;font-weight:400;letter-spacing:-0.02em}
+.cta-banner p{font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,0.75);margin-bottom:32px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.7}
+.btn-light{display:inline-block;background:var(--white);color:var(--brown);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;padding:14px 34px;border-radius:100px;cursor:pointer;transition:transform 0.15s;letter-spacing:-0.01em}
+.btn-light:hover{transform:translateY(-1px)}
 
 /* ── ABOUT ── */
-.about-hero{background:var(--brown);padding:80px 6% 72px}
-.about-hero-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1.4fr;gap:80px;align-items:center}
-.about-title-block h1{font-size:clamp(2.4rem,4.5vw,3.6rem);color:var(--cream);font-weight:400;line-height:1.15;letter-spacing:-0.02em}
-.about-title-block .tagline{font-family:'Inter',sans-serif;font-size:14px;color:rgba(250,247,242,0.5);margin-top:16px;letter-spacing:0.04em;text-transform:uppercase}
-.about-intro p{font-family:'Inter',sans-serif;font-size:17px;color:rgba(250,247,242,0.82);line-height:1.85;font-weight:400}
-.about-body{padding:72px 6%;max-width:1160px;margin:0 auto}
-.about-pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:48px 0}
-.pillar{background:var(--white);border-radius:16px;padding:28px}
-.pillar-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);margin-bottom:16px}
-.pillar h3{font-size:17px;color:var(--brown);margin-bottom:8px;font-weight:400;letter-spacing:-0.01em}
-.pillar p{font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.65}
-.about-mission{background:var(--teal);border-radius:24px;padding:48px;margin:24px 0}
-.about-mission h2{font-size:24px;color:var(--white);margin-bottom:12px;font-weight:400;letter-spacing:-0.01em}
+.about-hero{background:var(--brown);padding:64px 5% 60px}
+.about-hero-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1.3fr;gap:64px;align-items:center}
+.about-title-block h1{font-size:clamp(2.2rem,4vw,3.4rem);color:var(--cream);font-weight:400;line-height:1.15;letter-spacing:-0.02em}
+.about-title-block .tagline{font-family:'Inter',sans-serif;font-size:13px;color:rgba(250,247,242,0.45);margin-top:14px;letter-spacing:0.06em;text-transform:uppercase}
+.about-intro p{font-family:'Inter',sans-serif;font-size:16px;color:rgba(250,247,242,0.8);line-height:1.85}
+.about-body{padding:64px 5%;max-width:1160px;margin:0 auto}
+.about-pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:40px 0}
+.pillar{background:var(--white);border-radius:16px;padding:24px}
+.pillar-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);margin-bottom:14px}
+.pillar h3{font-size:16px;color:var(--brown);margin-bottom:6px;font-weight:400;letter-spacing:-0.01em}
+.pillar p{font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.6}
+.about-mission{background:var(--teal);border-radius:22px;padding:40px;margin:16px 0}
+.about-mission h2{font-size:22px;color:var(--white);margin-bottom:10px;font-weight:400;letter-spacing:-0.01em}
 .about-mission p{font-family:'Inter',sans-serif;font-size:15px;color:rgba(255,255,255,0.8);line-height:1.8}
-@media(max-width:700px){.about-hero-inner{grid-template-columns:1fr;gap:32px}.about-pillars{grid-template-columns:1fr}}
 
 /* ── FEATURES ── */
-.features-hero{background:var(--cream-mid);padding:80px 6% 64px;border-bottom:1px solid var(--brown-light)}
+.features-hero{background:var(--cream-mid);padding:64px 5%;border-bottom:1px solid var(--brown-light)}
 .features-hero-inner{max-width:1160px;margin:0 auto}
-.features-hero h1{font-size:clamp(2.2rem,4.5vw,3.4rem);color:var(--brown);margin-bottom:16px;font-weight:400;letter-spacing:-0.02em;max-width:560px}
-.features-hero p{font-family:'Inter',sans-serif;font-size:17px;color:var(--brown-mid);max-width:480px;line-height:1.75}
-.features-body{padding:72px 6%;max-width:1160px;margin:0 auto}
-.feature-row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-bottom:88px}
+.features-hero h1{font-size:clamp(2rem,4vw,3.2rem);color:var(--brown);margin-bottom:14px;font-weight:400;letter-spacing:-0.02em;max-width:520px}
+.features-hero p{font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);max-width:460px;line-height:1.75}
+.features-body{padding:64px 5%;max-width:1160px;margin:0 auto}
+.feature-row{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-bottom:80px}
 .feature-row.reverse{direction:rtl}
 .feature-row.reverse>*{direction:ltr}
-.feature-visual{border-radius:24px;overflow:hidden;background:var(--white);padding:32px;border:1px solid var(--brown-light);min-height:260px;display:flex;flex-direction:column;justify-content:space-between;gap:16px}
-.feature-text .tag{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--terra);margin-bottom:12px;font-weight:600}
-.feature-text h2{font-size:clamp(1.6rem,2.5vw,2rem);color:var(--brown);margin-bottom:12px;line-height:1.25;font-weight:400;letter-spacing:-0.02em}
+.feature-visual{border-radius:22px;background:var(--white);padding:28px;border:1px solid var(--brown-light);display:flex;flex-direction:column;gap:14px}
+.feature-text .tag{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--terra);margin-bottom:10px;font-weight:600}
+.feature-text h2{font-size:clamp(1.5rem,2.5vw,2rem);color:var(--brown);margin-bottom:10px;line-height:1.25;font-weight:400;letter-spacing:-0.02em}
 .feature-text p{font-family:'Inter',sans-serif;font-size:15px;color:var(--brown-mid);line-height:1.8}
-.feature-bullets{margin-top:20px;list-style:none}
-.feature-bullets li{font-family:'Inter',sans-serif;font-size:14px;color:var(--brown-mid);padding:5px 0 5px 20px;position:relative}
-.feature-bullets li::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:var(--teal)}
-.mock-bar{height:6px;border-radius:3px;background:var(--cream-mid);margin:6px 0;overflow:hidden}
+.feature-bullets{margin-top:16px;list-style:none}
+.feature-bullets li{font-family:'Inter',sans-serif;font-size:14px;color:var(--brown-mid);padding:4px 0 4px 18px;position:relative}
+.feature-bullets li::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.mock-bar{height:6px;border-radius:3px;background:var(--cream-mid);margin:4px 0;overflow:hidden}
 .mock-bar-fill{height:100%;border-radius:3px;background:var(--teal)}
 .mock-label{font-family:'Inter',sans-serif;font-size:12px;color:var(--brown-mid);margin-bottom:2px}
-.mock-chat-bubble{border-radius:16px;padding:11px 15px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.55;max-width:88%}
+.mock-chat-bubble{border-radius:14px;padding:10px 14px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.55;max-width:88%}
 .bubble-ai{background:var(--teal-light);color:var(--brown)}
 .bubble-user{background:var(--terra-light);color:var(--brown);margin-left:auto}
 .mock-chat{display:flex;flex-direction:column;gap:6px}
-@media(max-width:700px){.feature-row{grid-template-columns:1fr}.feature-row.reverse{direction:ltr}}
 
 /* ── WAITLIST ── */
-.waitlist-hero{background:var(--teal);padding:80px 6% 64px;text-align:center}
-.waitlist-hero h1{font-size:clamp(2.2rem,4.5vw,3.4rem);color:var(--white);margin-bottom:16px;font-weight:400;letter-spacing:-0.02em}
-.waitlist-hero p{font-family:'Inter',sans-serif;font-size:17px;color:rgba(255,255,255,0.8);max-width:460px;margin:0 auto;line-height:1.7}
-.waitlist-body{max-width:700px;margin:0 auto;padding:64px 6%}
-.typeform-embed-wrapper{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid var(--brown-light);margin-bottom:40px}
-.waitlist-perks{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.perk{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--brown-light)}
-.perk-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);margin-bottom:14px}
-.perk h4{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--brown);margin-bottom:4px}
-.perk p{font-family:'Inter',sans-serif;font-size:13px;color:var(--brown-mid);line-height:1.55}
-@media(max-width:500px){.waitlist-perks{grid-template-columns:1fr}}
+.waitlist-hero{background:var(--teal);padding:64px 5%;text-align:center}
+.waitlist-hero h1{font-size:clamp(2rem,4vw,3.2rem);color:var(--white);margin-bottom:14px;font-weight:400;letter-spacing:-0.02em}
+.waitlist-hero p{font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,0.8);max-width:420px;margin:0 auto;line-height:1.7}
+.waitlist-body{max-width:960px;margin:0 auto;padding:56px 5%}
+.typeform-embed-wrapper{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--brown-light);margin-bottom:32px}
+.waitlist-perks{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.perk{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--brown-light)}
+.perk-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);margin-bottom:12px}
+.perk h4{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--brown);margin-bottom:3px}
+.perk p{font-family:'Inter',sans-serif;font-size:12px;color:var(--brown-mid);line-height:1.5}
 
 /* FOOTER */
-footer{background:var(--brown);padding:44px 6%}
-.footer-inner{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
-.footer-logo{display:flex;align-items:center;gap:10px}
-.footer-logo img{width:28px;height:28px;object-fit:contain;filter:brightness(0) invert(1)}
-.footer-logo span{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:var(--white);letter-spacing:-0.02em}
-.footer-links{display:flex;gap:28px}
-.footer-links a{font-family:'Inter',sans-serif;font-size:13px;color:rgba(255,255,255,0.45);transition:color 0.2s}
-.footer-links a:hover{color:rgba(255,255,255,0.85)}
-.footer-copy{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.25);width:100%;margin-top:4px}
+footer{background:var(--brown);padding:40px 5%}
+.footer-inner{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+.footer-logo{display:flex;align-items:center;gap:9px}
+.footer-logo img{width:26px;height:26px;object-fit:contain;filter:brightness(0) invert(1)}
+.footer-logo span{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:var(--white);letter-spacing:-0.02em}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-family:'Inter',sans-serif;font-size:13px;color:rgba(255,255,255,0.4);transition:color 0.2s}
+.footer-links a:hover{color:rgba(255,255,255,0.8)}
+.footer-copy{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.22);width:100%;margin-top:4px}
+
+/* ── MOBILE ── */
+@media(max-width:680px){
+  .nav-links{display:none}
+  .nav-hamburger{display:flex}
+
+  .hero{padding:48px 5% 0;min-height:auto}
+  .hero-blob{width:100%;border-radius:48% 48% 0 0}
+  .hero-content h1{font-size:2.4rem}
+  .hero-sub{font-size:15px}
+  .hero-social-proof{padding-bottom:48px}
+
+  .stats-inner{grid-template-columns:1fr;gap:16px;text-align:left}
+  .stat-divider{border-left:none;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px}
+
+  .steps{grid-template-columns:1fr;border-radius:16px}
+  .step-card{padding:22px 20px}
+
+  .bento{grid-template-columns:1fr}
+  .bento-card{padding:26px}
+
+  .about-hero-inner{grid-template-columns:1fr;gap:24px}
+  .about-pillars{grid-template-columns:1fr}
+
+  .feature-row{grid-template-columns:1fr;gap:28px;margin-bottom:52px}
+  .feature-row.reverse{direction:ltr}
+
+  .waitlist-perks{grid-template-columns:1fr}
+
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:16px}
+  .footer-links{gap:16px}
+
+  .cta-banner{padding:56px 5%}
+  .testimonial-section{padding:56px 5%}
+}
 </style>
 </head>
 <body>
@@ -185,12 +220,20 @@ footer{background:var(--brown);padding:44px 6%}
       <a href="#" onclick="showPage('features')">How it works</a>
       <a href="#" onclick="showPage('waitlist')" class="nav-cta">Get early access</a>
     </div>
+    <div class="nav-hamburger" onclick="toggleMenu()" id="hamburger">
+      <span></span><span></span><span></span>
+    </div>
   </div>
 </nav>
 
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#" onclick="navTo('about')">About</a>
+  <a href="#" onclick="navTo('features')">How it works</a>
+  <a href="#" onclick="navTo('waitlist')">Get early access</a>
+</div>
+
 <!-- ══ HOME ══ -->
 <div id="page-home" class="page active">
-
   <section class="hero">
     <div class="hero-blob"></div>
     <div class="hero-content">
@@ -216,26 +259,10 @@ footer{background:var(--brown);padding:44px 6%}
       <h2 class="section-title">From data to clarity, in four steps</h2>
       <p class="section-sub">No more Googling symptoms at midnight. BioWellth turns complex health signals into clear, actionable guidance.</p>
       <div class="steps">
-        <div class="step-card">
-          <div class="step-num">01</div>
-          <h3>Share your data</h3>
-          <p>Connect your cycle, sleep, activity, nutrition, and optional lab results — all in one place.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">02</div>
-          <h3>AI finds the patterns</h3>
-          <p>Our AI looks across all your data together, not in silos, to identify root causes and connections.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">03</div>
-          <h3>Get your guide</h3>
-          <p>Receive personalised daily coaching, insights, and answers through chat, voice, or your dashboard.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">04</div>
-          <h3>Advocate for yourself</h3>
-          <p>Know what to ask your doctor, what to test next, and how to track your progress over time.</p>
-        </div>
+        <div class="step-card"><div class="step-num">01</div><h3>Share your data</h3><p>Connect your cycle, sleep, activity, nutrition, and optional lab results — all in one place.</p></div>
+        <div class="step-card"><div class="step-num">02</div><h3>AI finds the patterns</h3><p>Our AI looks across all your data together, not in silos, to identify root causes and connections.</p></div>
+        <div class="step-card"><div class="step-num">03</div><h3>Get your guide</h3><p>Receive personalised daily coaching, insights, and answers through chat, voice, or your dashboard.</p></div>
+        <div class="step-card"><div class="step-num">04</div><h3>Advocate for yourself</h3><p>Know what to ask your doctor, what to test next, and how to track your progress over time.</p></div>
       </div>
     </div>
   </section>
@@ -246,26 +273,10 @@ footer{background:var(--brown);padding:44px 6%}
       <h2 class="section-title">Holistic. Intelligent.<br/>Designed for women.</h2>
       <p class="section-sub">An AI health mentor that actually knows you — not generic advice, but guidance built on your unique patterns.</p>
       <div class="bento">
-        <div class="bento-card teal">
-          <div class="bento-label">AI companion</div>
-          <h3>Chat &amp; Voice Companion</h3>
-          <p>Ask about symptoms, nutrition, stress, or hormones — get personalised, contextual guidance any time of day.</p>
-        </div>
-        <div class="bento-card cream">
-          <div class="bento-label">Daily coaching</div>
-          <h3>Wellness Coaching That Moves With Your Cycle</h3>
-          <p>Actionable steps every day — nutrition, supplements, activity, and testing — tailored to your cycle phase and goals.</p>
-        </div>
-        <div class="bento-card dark">
-          <div class="bento-label">Self-advocacy</div>
-          <h3>Advocate for Yourself</h3>
-          <p>Know exactly what to ask your doctor, what patterns to flag, and how to interpret your own results with confidence.</p>
-        </div>
-        <div class="bento-card terra">
-          <div class="bento-label">Biomarker lens</div>
-          <h3>Holistic Data View</h3>
-          <p>Cycle, sleep, nutrition, activity, and biomarkers — combined with a functional health lens focused on root causes, not isolated symptoms.</p>
-        </div>
+        <div class="bento-card teal"><div class="bento-label">AI companion</div><h3>Chat &amp; Voice Companion</h3><p>Ask about symptoms, nutrition, stress, or hormones — get personalised, contextual guidance any time of day.</p></div>
+        <div class="bento-card cream"><div class="bento-label">Daily coaching</div><h3>Wellness Coaching That Moves With Your Cycle</h3><p>Actionable steps every day — nutrition, supplements, activity, and testing — tailored to your cycle phase and goals.</p></div>
+        <div class="bento-card dark"><div class="bento-label">Self-advocacy</div><h3>Advocate for Yourself</h3><p>Know exactly what to ask your doctor, what patterns to flag, and how to interpret your results with confidence.</p></div>
+        <div class="bento-card terra"><div class="bento-label">Biomarker lens</div><h3>Holistic Data View</h3><p>Cycle, sleep, nutrition, activity, and biomarkers — combined with a functional health lens focused on root causes.</p></div>
       </div>
     </div>
   </section>
@@ -280,151 +291,96 @@ footer{background:var(--brown);padding:44px 6%}
     <p>Join 500+ women taking back control of their health with AI-powered insights built for them.</p>
     <a href="#" onclick="showPage('waitlist')" class="btn-light">Join the early access waitlist</a>
   </section>
-
 </div>
 
 <!-- ══ ABOUT ══ -->
 <div id="page-about" class="page">
-
   <section class="about-hero">
     <div class="about-hero-inner">
-      <div class="about-title-block">
-        <h1>About BioWellth</h1>
-        <p class="tagline">Built by women, for women</p>
-      </div>
-      <div class="about-intro">
-        <p>At BioWellth, we believe women deserve a health system that actually sees them. Not a tracker. Not a search engine. A companion — one that connects the dots between your hormones, sleep, nutrition, emotions, and lifestyle so you can finally see the bigger picture of your health.</p>
-      </div>
+      <div class="about-title-block"><h1>About BioWellth</h1><p class="tagline">Built by women, for women</p></div>
+      <div class="about-intro"><p>At BioWellth, we believe women deserve a health system that actually sees them. Not a tracker. Not a search engine. A companion — one that connects the dots between your hormones, sleep, nutrition, emotions, and lifestyle so you can finally see the bigger picture of your health.</p></div>
     </div>
   </section>
-
   <div class="about-body">
-    <h2 style="font-size:clamp(1.8rem,3vw,2.4rem);color:var(--brown);margin-bottom:16px;font-weight:400;letter-spacing:-0.02em">Why we built this</h2>
-    <p style="font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);line-height:1.85;max-width:680px">Women's health has been systematically under-researched and under-resourced. Symptoms get dismissed. Lab results get declared "normal" with no follow-up. Most wellness tools were built on data from men. BioWellth exists to change that — starting with Indian women who navigate a uniquely complex intersection of lifestyle, culture, and healthcare.</p>
-
+    <h2 style="font-size:clamp(1.7rem,3vw,2.2rem);color:var(--brown);margin-bottom:14px;font-weight:400;letter-spacing:-0.02em">Why we built this</h2>
+    <p style="font-family:'Inter',sans-serif;font-size:15px;color:var(--brown-mid);line-height:1.85;max-width:640px">Women's health has been systematically under-researched and under-resourced. Symptoms get dismissed. Lab results get declared "normal" with no follow-up. Most wellness tools were built on data from men. BioWellth exists to change that — starting with Indian women who navigate a uniquely complex intersection of lifestyle, culture, and healthcare.</p>
     <div class="about-pillars">
       <div class="pillar"><div class="pillar-dot"></div><h3>Holistic</h3><p>We look at the full picture — not just one biomarker or one symptom, but the patterns across your whole life.</p></div>
       <div class="pillar"><div class="pillar-dot"></div><h3>Personalised</h3><p>Your body is not average. Our AI learns your unique rhythms and tailors every insight specifically to you.</p></div>
       <div class="pillar"><div class="pillar-dot"></div><h3>Empowering</h3><p>We give you knowledge and language so you can advocate for yourself in every health conversation.</p></div>
     </div>
-
     <div class="about-mission">
       <h2>Our mission</h2>
       <p>To make personalised, intelligent, women-first wellness accessible to every woman — so she can understand her body, trust her instincts, and take control of her health with clarity and confidence.</p>
     </div>
-
-    <div style="margin-top:52px;text-align:center">
-      <a href="#" onclick="showPage('waitlist')" class="btn-primary">Join the waitlist</a>
-    </div>
+    <div style="margin-top:48px;text-align:center"><a href="#" onclick="showPage('waitlist')" class="btn-primary">Join the waitlist</a></div>
   </div>
-
 </div>
 
 <!-- ══ FEATURES ══ -->
 <div id="page-features" class="page">
-
   <section class="features-hero">
     <div class="features-hero-inner">
       <div class="section-tag">How it works</div>
-      <h1>One platform. Every signal.<br/>Completely personal.</h1>
-      <p>BioWellth connects all your health data and turns it into clear, personalised guidance — so you can stop guessing and start understanding.</p>
+      <h1 style="font-size:clamp(2rem,4vw,3.2rem);color:var(--brown);margin-bottom:14px;font-weight:400;letter-spacing:-0.02em;max-width:520px">One platform. Every signal. Completely personal.</h1>
+      <p style="font-family:'Inter',sans-serif;font-size:16px;color:var(--brown-mid);max-width:440px;line-height:1.75">BioWellth connects all your health data and turns it into clear, personalised guidance — so you can stop guessing and start understanding.</p>
     </div>
   </section>
-
   <div class="features-body">
-
     <div class="feature-row">
       <div class="feature-text">
         <div class="tag">Biomarker integration</div>
         <h2>Your labs, finally explained</h2>
         <p>Connect your blood test results and we translate them into contextual insights — not just "normal" or "abnormal" but what they actually mean for your energy, mood, hormones, and cycle.</p>
-        <ul class="feature-bullets">
-          <li>Thyroid, iron, vitamin D, hormones, and more</li>
-          <li>Functional ranges, not just clinical ranges</li>
-          <li>Trend tracking over time</li>
-        </ul>
+        <ul class="feature-bullets"><li>Thyroid, iron, vitamin D, hormones, and more</li><li>Functional ranges, not just clinical ranges</li><li>Trend tracking over time</li></ul>
       </div>
       <div class="feature-visual">
-        <div>
-          <div class="mock-label">Ferritin (iron stores)</div>
-          <div class="mock-bar"><div class="mock-bar-fill" style="width:38%"></div></div>
-          <div class="mock-label" style="font-size:11px;color:var(--terra)">38 ng/mL — functionally low for your activity level</div>
-        </div>
-        <div>
-          <div class="mock-label">Vitamin D</div>
-          <div class="mock-bar"><div class="mock-bar-fill" style="width:55%;background:var(--terra)"></div></div>
-          <div class="mock-label" style="font-size:11px;color:var(--brown-mid)">42 ng/mL — within range, watch trend</div>
-        </div>
-        <div>
-          <div class="mock-label">TSH (thyroid)</div>
-          <div class="mock-bar"><div class="mock-bar-fill" style="width:72%"></div></div>
-          <div class="mock-label" style="font-size:11px;color:var(--teal)">2.1 mIU/L — optimal</div>
-        </div>
+        <div><div class="mock-label">Ferritin (iron stores)</div><div class="mock-bar"><div class="mock-bar-fill" style="width:38%"></div></div><div class="mock-label" style="font-size:11px;color:var(--terra)">38 ng/mL — functionally low for your activity level</div></div>
+        <div><div class="mock-label">Vitamin D</div><div class="mock-bar"><div class="mock-bar-fill" style="width:55%;background:var(--terra)"></div></div><div class="mock-label" style="font-size:11px;color:var(--brown-mid)">42 ng/mL — within range, watch trend</div></div>
+        <div><div class="mock-label">TSH (thyroid)</div><div class="mock-bar"><div class="mock-bar-fill" style="width:72%"></div></div><div class="mock-label" style="font-size:11px;color:var(--teal)">2.1 mIU/L — optimal</div></div>
       </div>
     </div>
-
     <div class="feature-row reverse">
       <div class="feature-text">
         <div class="tag">AI companion</div>
         <h2>Ask anything, any time</h2>
-        <p>Your AI companion knows your health history, your cycle, your patterns. Ask it why you're tired at 3pm, what to eat in your luteal phase, or how to interpret a result — and get an answer that makes sense for you.</p>
-        <ul class="feature-bullets">
-          <li>Chat or voice interface</li>
-          <li>Context-aware, not generic</li>
-          <li>Remembers your history across sessions</li>
-        </ul>
+        <p>Your AI companion knows your health history, your cycle, your patterns. Ask it why you're tired at 3pm, what to eat in your luteal phase, or how to interpret a result.</p>
+        <ul class="feature-bullets"><li>Chat or voice interface</li><li>Context-aware, not generic</li><li>Remembers your history across sessions</li></ul>
       </div>
       <div class="feature-visual">
         <div class="mock-chat">
           <div class="mock-chat-bubble bubble-user">Why am I so exhausted in the second half of my cycle?</div>
-          <div class="mock-chat-bubble bubble-ai">Based on your recent data, your progesterone rises in the luteal phase and your sleep quality drops by ~18%. Combined with your iron being on the lower end, this creates a real energy dip. Here's what tends to help...</div>
+          <div class="mock-chat-bubble bubble-ai">Based on your data, your progesterone rises in the luteal phase and your sleep quality drops by ~18%. Combined with your iron being on the lower end, this creates a real energy dip...</div>
           <div class="mock-chat-bubble bubble-user">What should I eat differently?</div>
-          <div class="mock-chat-bubble bubble-ai">Focus on iron-rich foods with vitamin C this week — lentils, spinach, and a squeeze of lemon. Your body absorbs it better in this phase.</div>
+          <div class="mock-chat-bubble bubble-ai">Focus on iron-rich foods with vitamin C — lentils, spinach, and a squeeze of lemon. Your body absorbs it better in this phase.</div>
         </div>
       </div>
     </div>
-
     <div class="feature-row">
       <div class="feature-text">
         <div class="tag">Daily coaching</div>
         <h2>Guidance that moves with your cycle</h2>
         <p>Every day you get a personalised wellness check-in — what to prioritise, what to track, and what to tweak. Built around your cycle phase, your data, and your goals.</p>
-        <ul class="feature-bullets">
-          <li>Nutrition, movement, and recovery cues</li>
-          <li>Supplement and testing reminders</li>
-          <li>Doctor visit prep — what to ask, what to flag</li>
-        </ul>
+        <ul class="feature-bullets"><li>Nutrition, movement, and recovery cues</li><li>Supplement and testing reminders</li><li>Doctor visit prep — what to ask, what to flag</li></ul>
       </div>
-      <div class="feature-visual" style="gap:14px">
-        <div style="background:var(--teal-light);border-radius:14px;padding:16px">
-          <div style="font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--teal);font-weight:600;margin-bottom:8px">Today · Day 19 · Luteal phase</div>
-          <div style="font-family:'Inter',sans-serif;font-size:14px;color:var(--brown);line-height:1.6">Prioritise magnesium-rich foods today. Your sleep data shows you're waking earlier this week — common in your luteal phase.</div>
-        </div>
-        <div style="background:var(--terra-light);border-radius:14px;padding:16px">
-          <div style="font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--terra);font-weight:600;margin-bottom:8px">This week's focus</div>
-          <div style="font-family:'Inter',sans-serif;font-size:14px;color:var(--brown);line-height:1.6">You're due for a ferritin retest. Book it in the first week of your next cycle for the most accurate reading.</div>
-        </div>
+      <div class="feature-visual">
+        <div style="background:var(--teal-light);border-radius:12px;padding:14px"><div style="font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--teal);font-weight:600;margin-bottom:6px">Today · Day 19 · Luteal phase</div><div style="font-family:'Inter',sans-serif;font-size:13px;color:var(--brown);line-height:1.6">Prioritise magnesium-rich foods today. Your sleep data shows you're waking earlier — common in your luteal phase.</div></div>
+        <div style="background:var(--terra-light);border-radius:12px;padding:14px"><div style="font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--terra);font-weight:600;margin-bottom:6px">This week's focus</div><div style="font-family:'Inter',sans-serif;font-size:13px;color:var(--brown);line-height:1.6">You're due for a ferritin retest. Book it in the first week of your next cycle for the most accurate reading.</div></div>
       </div>
     </div>
-
-    <div style="text-align:center;padding:16px 0 48px">
-      <a href="#" onclick="showPage('waitlist')" class="btn-primary">Get early access</a>
-    </div>
+    <div style="text-align:center;padding:0 0 40px"><a href="#" onclick="showPage('waitlist')" class="btn-primary">Get early access</a></div>
   </div>
-
 </div>
 
 <!-- ══ WAITLIST ══ -->
 <div id="page-waitlist" class="page">
-
   <section class="waitlist-hero">
     <h1>Tired of being told you're fine?</h1>
     <p>Join 500+ women getting early access to BioWellth — the AI wellness companion built to actually understand you.</p>
   </section>
-
   <div class="waitlist-body">
     <div class="typeform-embed-wrapper">
-      <iframe src="https://form.typeform.com/to/t0eULTZa" style="width:100%;height:520px;border:none" allow="camera; microphone; autoplay; encrypted-media;"></iframe>
+      <iframe src="https://form.typeform.com/to/t0eULTZa" style="width:100%;height:580px;border:none" allow="camera; microphone; autoplay; encrypted-media;"></iframe>
     </div>
     <div class="waitlist-perks">
       <div class="perk"><div class="perk-dot"></div><h4>Priority access</h4><p>Be first through the door when we launch.</p></div>
@@ -433,16 +389,12 @@ footer{background:var(--brown);padding:44px 6%}
       <div class="perk"><div class="perk-dot"></div><h4>Community access</h4><p>Join our private early adopter community.</p></div>
     </div>
   </div>
-
 </div>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div class="footer-logo">
-      <img src="https://biowellth.github.io/biowellthwebsite/logo.png"/>
-      <span>BioWellth</span>
-    </div>
+    <div class="footer-logo"><img src="https://biowellth.github.io/biowellthwebsite/logo.png"/><span>BioWellth</span></div>
     <div class="footer-links">
       <a href="#">Privacy policy</a>
       <a href="#">Terms</a>
@@ -457,6 +409,16 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   window.scrollTo(0,0);
+  closeMenu();
+}
+function toggleMenu(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMenu(){
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+function navTo(id){
+  showPage(id);
 }
 document.querySelectorAll('a[href="#"]').forEach(a=>{
   a.addEventListener('click',e=>e.preventDefault());
