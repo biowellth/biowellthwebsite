@@ -50,8 +50,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,247,242,
 .page.active{display:block}
 
 /* ── HOME ── */
-.hero{position:relative;overflow:hidden;background:var(--teal);display:flex;align-items:center;justify-content:center;text-align:center;padding:72px 6% 80px;min-height:auto}
-.hero-blob{position:absolute;bottom:-30%;left:50%;transform:translateX(-50%);width:min(1100px,120%);aspect-ratio:1;background:var(--cream);border-radius:50% 50% 0 0;z-index:1}
+.hero{position:relative;overflow:hidden;background:var(--teal);display:flex;align-items:center;justify-content:center;text-align:center;padding:56px 6% 80px;min-height:auto}
+.hero-blob{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(1100px,200%);aspect-ratio:1;background:var(--cream);border-radius:50% 50% 0 0;z-index:1}
 .hero-content{position:relative;z-index:2;max-width:700px;width:100%}
 .hero-tag{display:inline-flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);border:1px solid var(--teal-mid);padding:5px 14px;border-radius:100px;margin-bottom:24px}
 .hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;flex-shrink:0}
@@ -175,11 +175,11 @@ footer{background:var(--brown);padding:40px 5%}
   .nav-links{display:none}
   .nav-hamburger{display:flex}
 
-  .hero{padding:48px 5% 0;min-height:auto}
-  .hero-blob{width:100%;border-radius:48% 48% 0 0}
+  .hero{padding:40px 5% 64px;min-height:calc(100vh - 60px)}
+  .hero-blob{width:200%;border-radius:50% 50% 0 0;bottom:0}
   .hero-content h1{font-size:2.4rem}
-  .hero-sub{font-size:15px}
-  .hero-social-proof{padding-bottom:48px}
+  .hero-sub{font-size:15px;margin-bottom:28px}
+  .hero-social-proof{padding-bottom:0}
 
   .stats-inner{grid-template-columns:1fr;gap:16px;text-align:left}
   .stat-divider{border-left:none;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px}
@@ -237,7 +237,7 @@ footer{background:var(--brown);padding:40px 5%}
   <section class="hero">
     <div class="hero-blob"></div>
     <div class="hero-content">
-      <div class="hero-tag">Now in early access</div>
+      <div class="hero-tag">Women's health, reimagined</div>
       <h1>Your body speaks.<br/><em>We help you listen.</em></h1>
       <p class="hero-sub">BioWellth connects your biomarkers, cycle, sleep, and nutrition into one AI-powered picture — so you finally understand what your body is telling you.</p>
       <a href="#" onclick="showPage('waitlist')" class="btn-primary">Join the waitlist</a>
