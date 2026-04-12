@@ -3,8 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>BioWellth India</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<title>BioWellth India: Functional Health Intelligence for Indian Women</title>
+<meta name="description" content="BioWellth tests 200+ biomarkers your standard checkup misses, reads results against functional ranges, and tracks what changes. Built for Indian women."/>
+<meta property="og:title" content="BioWellth India: Being told you're fine is not the same as being well."/>
+<meta property="og:description" content="200+ biomarkers. Functional interpretation. Longitudinal tracking. Built for Indian women."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://mybiowellth.com"/>
+<meta property="og:image" content="https://biowellth.github.io/biowellthwebsite/logo.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="BioWellth India"/>
+<meta name="twitter:description" content="Functional health intelligence for Indian women. 200+ biomarkers, at-home collection, AI interpretation."/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -18,13 +27,19 @@
   --coral-light:#FAF0ED;
   --coral-dark:#BC6550;
   --brown:#47372B;
-  --brown-mid:#7A6054;
+  --brown-mid:#6B5047;
   --brown-light:#EDE4DA;
   --white:#FFFFFF;
   --off-white:#FDFBF8;
 }
 html{scroll-behavior:smooth;overflow-x:hidden}
-body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6;overflow-x:hidden}
+/* Focus visible */
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.skip-link{position:absolute;top:-100px;left:16px;background:var(--teal);color:var(--white);padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;z-index:9999;transition:top 0.2s}
+.skip-link:focus{top:16px}
+
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6;overflow-x:hidden}
 a{text-decoration:none;color:inherit}
 h1,h2,h3,h4{font-family:'Plus Jakarta Sans',sans-serif}
 
@@ -35,12 +50,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 .nav-logo img{width:46px;height:46px;object-fit:contain}
 .nav-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.03em}
 .nav-links{display:flex;align-items:center;gap:28px}
-.nav-links a{font-size:14px;font-weight:400;color:var(--brown-mid);transition:color 0.2s}
+.nav-links a{font-size:14px;font-weight:400;color:var(--brown-mid);transition:color 0.2s;position:relative;padding-bottom:2px}.nav-links a:not(.nav-cta)::after{content:"";position:absolute;bottom:0;left:0;width:0;height:1.5px;background:var(--teal);transition:width 0.25s ease;border-radius:1px}.nav-links a:not(.nav-cta):hover::after{width:100%}
 .nav-links a:hover{color:var(--teal)}
 .nav-cta{background:var(--teal)!important;color:var(--white)!important;padding:9px 20px!important;border-radius:100px;font-weight:500!important;white-space:nowrap;transition:background 0.2s!important}
 .nav-cta:hover{background:var(--teal-dark)!important}
 .nav-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
-.nav-hamburger span{display:block;width:22px;height:2px;background:var(--brown);border-radius:2px;transition:all 0.2s}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--brown);border-radius:2px;transition:transform 0.25s ease,opacity 0.2s ease}.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}.nav-hamburger.open span:nth-child(2){opacity:0}.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .mobile-menu{display:none;position:fixed;top:62px;left:0;right:0;background:var(--cream);border-bottom:1px solid rgba(71,55,43,0.08);padding:16px 5% 20px;flex-direction:column;gap:0;z-index:99}
 .mobile-menu a{font-size:16px;color:var(--brown-mid);padding:14px 0;border-bottom:1px solid rgba(71,55,43,0.06)}
 .mobile-menu a:last-child{border-bottom:none;margin-top:8px;background:var(--teal);color:var(--white)!important;text-align:center;padding:13px;border-radius:100px;font-weight:500}
@@ -49,14 +64,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 /* PAGES */
 .page{display:none;min-height:100vh;padding-top:62px}
 .page.active{display:block}
+/* Page transitions */
+@keyframes pageFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pageFadeIn 0.25s cubic-bezier(0.22,1,0.36,1) both}
+
 
 /* ── BUTTONS ── */
 .btn-primary{display:inline-block;background:var(--brown);color:var(--white);font-size:15px;font-weight:500;padding:14px 32px;border-radius:100px;letter-spacing:-0.01em;transition:background 0.2s,transform 0.15s;cursor:pointer}
-.btn-primary:hover{background:var(--teal);transform:translateY(-1px)}
+.btn-primary:hover{background:var(--teal);transform:translateY(-2px);box-shadow:0 8px 24px rgba(12,142,107,0.25)}.btn-primary:active{transform:translateY(0)}
 .btn-teal{display:inline-block;background:var(--teal);color:var(--white);font-size:15px;font-weight:500;padding:14px 32px;border-radius:100px;letter-spacing:-0.01em;transition:background 0.2s,transform 0.15s;cursor:pointer}
-.btn-teal:hover{background:var(--teal-dark);transform:translateY(-1px)}
+.btn-teal:hover{background:var(--teal-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(12,142,107,0.3)}.btn-teal:active{transform:translateY(0)}
 .btn-light{display:inline-block;background:var(--white);color:var(--brown);font-size:15px;font-weight:500;padding:14px 32px;border-radius:100px;cursor:pointer;transition:transform 0.15s;letter-spacing:-0.01em}
-.btn-light:hover{transform:translateY(-1px)}
+.btn-light:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(71,55,43,0.15)}.btn-light:active{transform:translateY(0)}
 
 /* Section base */
 .section{padding:80px 5%}
@@ -98,17 +117,54 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 .hero-bar-fill.watch{background:#F0C97A}
 .hero-insight{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px;color:rgba(250,248,244,0.65);line-height:1.6}
 .hero-insight strong{color:var(--teal-mid);font-weight:500}
+/* Grain texture */
+.hero-grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.07;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");background-size:200px 200px}
+
+/* Sub-page hero entrances */
+@keyframes subHeroUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.about-hero .section-tag{animation:heroFadeIn 0.4s 0.05s ease both}
+.about-hero h1{animation:subHeroUp 0.65s 0.15s cubic-bezier(0.22,1,0.36,1) both}
+.about-hero-sub{animation:subHeroUp 0.6s 0.28s cubic-bezier(0.22,1,0.36,1) both}
+.features-page-hero .section-tag{animation:heroFadeIn 0.4s 0.05s ease both}
+.features-page-hero h1{animation:subHeroUp 0.65s 0.15s cubic-bezier(0.22,1,0.36,1) both}
+.features-page-hero p{animation:subHeroUp 0.6s 0.28s cubic-bezier(0.22,1,0.36,1) both}
+.waitlist-hero h1{animation:subHeroUp 0.65s 0.1s cubic-bezier(0.22,1,0.36,1) both}
+.waitlist-hero p{animation:subHeroUp 0.6s 0.22s cubic-bezier(0.22,1,0.36,1) both}
+/* Blob drift animations */
+@keyframes blobDrift1{0%,100%{transform:translateX(0) translateY(0) scale(1)}33%{transform:translateX(30px) translateY(-20px) scale(1.04)}66%{transform:translateX(-20px) translateY(15px) scale(0.97)}}
+@keyframes blobDrift2{0%,100%{transform:translateX(0) translateY(0) scale(1)}33%{transform:translateX(-25px) translateY(20px) scale(0.96)}66%{transform:translateX(20px) translateY(-15px) scale(1.03)}}
+@keyframes blobDrift3{0%,100%{transform:translateX(0) translateY(0)}50%{transform:translateX(15px) translateY(-10px)}}
+.hero::before{animation:blobDrift1 18s ease-in-out infinite}
+.hero::after{animation:blobDrift2 22s ease-in-out infinite}
+.hero-blob3{animation:blobDrift3 14s ease-in-out infinite}
+
+/* Scroll reveal */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.reveal{opacity:0}.reveal.visible{animation:fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) forwards}
+.reveal-delay-1{animation-delay:0.08s}.reveal-delay-2{animation-delay:0.16s}.reveal-delay-3{animation-delay:0.24s}.reveal-delay-4{animation-delay:0.32s}
+.reveal-fade{opacity:0}.reveal-fade.visible{animation:fadeIn 0.5s ease forwards}
+
+/* Hero entrance */
+@keyframes heroSlideUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:translateY(0)}}
+@keyframes heroFadeIn{from{opacity:0}to{opacity:1}}
+.hero-eyebrow{animation:heroFadeIn 0.5s 0.1s ease both}
+.hero h1{animation:heroSlideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both}
+.hero-sub{animation:heroSlideUp 0.7s 0.38s cubic-bezier(0.22,1,0.36,1) both}
+.btn-teal,.hero-tagline{animation:heroFadeIn 0.5s 0.56s ease both}
+.hero-card{animation:heroSlideUp 0.8s 0.3s cubic-bezier(0.22,1,0.36,1) both}
+
 
 
 /* Data integration section */
 .data-section{background:var(--white);padding:80px 5%}
 .data-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-.data-card{border-radius:22px;padding:32px;border:1px solid var(--brown-light)}
+.data-card{border-radius:22px;padding:32px;border:1px solid var(--brown-light);transition:transform 0.2s ease,box-shadow 0.2s ease}.data-card:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(71,55,43,0.1)}
 .data-card.data-a{background:var(--teal-light)}
 .data-card.data-b{background:var(--cream-mid)}
 .data-card.data-c{background:var(--coral-light);border-color:rgba(212,124,101,0.2)}
 .data-card.data-d{background:var(--brown-light)}
-.data-icon{font-size:28px;margin-bottom:12px;display:block}
+.data-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0}.data-icon svg{width:22px;height:22px;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;fill:none}.data-a .data-icon{background:rgba(12,142,107,0.15)}.data-a .data-icon svg{stroke:var(--teal)}.data-b .data-icon{background:rgba(71,55,43,0.08)}.data-b .data-icon svg{stroke:var(--brown-mid)}.data-c .data-icon{background:rgba(212,124,101,0.15)}.data-c .data-icon svg{stroke:var(--coral)}.data-d .data-icon{background:rgba(71,55,43,0.08)}.data-d .data-icon svg{stroke:var(--brown-mid)}
 .data-card-label{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--brown-mid);opacity:0.6;margin-bottom:8px}
 .data-card.data-a .data-card-label{color:var(--teal-dark)}
 .data-card.data-c .data-card-label{color:var(--coral-dark)}
@@ -134,7 +190,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 
 /* Problem section */
 .problem-section{background:var(--cream);padding:80px 5%}
-.problem-inner{max-width:1160px;margin:0 auto}
+.problem-inner{max-width:1160px;margin:0 auto;position:relative}
 .problem-grid{display:grid;grid-template-columns:1fr;gap:0;margin-top:0}
 .problem-text{}
 .problem-quote{background:var(--brown);border-radius:20px;padding:36px;position:relative}
@@ -149,17 +205,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 
 /* How it works: steps */
 .steps-section{background:var(--off-white);padding:80px 5%}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--cream-mid);border-radius:22px;overflow:hidden;margin-top:0}
-.step-card{background:var(--white);padding:32px 24px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--cream-mid);border-radius:22px;margin-top:0;padding:2px}
+.step-card{background:var(--white);padding:32px 24px;transition:transform 0.2s ease,box-shadow 0.2s ease;border-radius:20px}.step-card:hover{transform:translateY(-5px);box-shadow:0 16px 44px rgba(71,55,43,0.13)}
 .step-num{font-size:10px;font-weight:700;color:var(--teal);letter-spacing:0.1em;margin-bottom:20px;text-transform:uppercase}
 .step-icon{width:40px;height:40px;border-radius:10px;background:var(--teal-light);display:flex;align-items:center;justify-content:center;margin-bottom:16px}.step-icon svg{width:20px;height:20px;stroke:var(--teal);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .step-card h3{font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px;letter-spacing:-0.02em}
 .step-card p{font-size:13px;color:var(--brown-mid);line-height:1.65}
 
+
+/* Asymmetric stat accent */
+.problem-stat-accent{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(5rem,14vw,11rem);font-weight:700;color:var(--teal);opacity:0.08;line-height:1;letter-spacing:-0.04em;position:absolute;right:-2%;top:50%;transform:translateY(-50%);pointer-events:none;user-select:none;white-space:nowrap}
+.problem-inner{max-width:1160px;margin:0 auto;position:relative}
 /* Who it's for */
 .who-section{background:var(--cream);padding:80px 5%}
 .who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.who-card{border-radius:20px;padding:32px}
+.who-card{border-radius:20px;padding:32px;transition:transform 0.2s ease,box-shadow 0.2s ease}.who-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(71,55,43,0.14)}
 .who-card.a{background:var(--brown);color:var(--white)}
 .who-card.b{background:var(--teal);color:var(--white)}
 .who-card.c{background:var(--coral-light);color:var(--brown);border:1px solid rgba(212,124,101,0.2)}
@@ -171,7 +231,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 .features-section{background:var(--off-white);padding:80px 5%}
 .bento{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .bento-tall{grid-row:span 2}
-.bento-card{border-radius:22px;padding:32px}
+.bento-card{border-radius:22px;padding:32px;transition:transform 0.22s ease,box-shadow 0.22s ease}.bento-card:hover{transform:translateY(-3px);box-shadow:0 14px 44px rgba(71,55,43,0.12)}
 .bento-card.teal{background:var(--teal);color:var(--white)}
 .bento-card.coral{background:var(--coral);color:var(--white)}
 .bento-card.cream{background:var(--brown-light);color:var(--brown)}
@@ -227,7 +287,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,
 .story-card p{font-size:14px;color:var(--brown);line-height:1.7}
 .story-card.card-b p{color:var(--teal-dark)}
 .about-pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
-.pillar{background:var(--white);border-radius:18px;padding:28px}
+.pillar{background:var(--white);border-radius:18px;padding:28px;transition:transform 0.2s ease,box-shadow 0.2s ease}.pillar:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(71,55,43,0.09)}
 .pillar-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);margin-bottom:16px}
 .pillar h3{font-size:16px;color:var(--brown);margin-bottom:6px;font-weight:700;letter-spacing:-0.02em}
 .pillar p{font-size:13px;color:var(--brown-mid);line-height:1.65}
@@ -299,9 +359,9 @@ footer{background:var(--brown);padding:44px 5%}
 .footer-logo img{width:44px;height:44px;object-fit:contain;filter:brightness(0) invert(1)}
 .footer-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.02em}
 .footer-links{display:flex;gap:24px;flex-wrap:wrap}
-.footer-links a{font-size:13px;color:rgba(255,255,255,0.38);transition:color 0.2s}
+.footer-links a{font-size:13px;color:rgba(255,255,255,0.58);transition:color 0.2s}
 .footer-links a:hover{color:rgba(255,255,255,0.8)}
-.footer-copy{font-size:12px;color:rgba(255,255,255,0.2);width:100%;margin-top:4px}
+.footer-copy{font-size:12px;color:rgba(255,255,255,0.45);width:100%;margin-top:4px}
 
 /* ── MOBILE ── */
 @media(max-width:768px){
@@ -385,6 +445,14 @@ footer{background:var(--brown);padding:44px 5%}
   .footer-links{gap:14px}
 }
 
+
+/* Respect reduced motion preference */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
+  .reveal{opacity:1!important}
+  .reveal-fade{opacity:1!important}
+  .hero-eyebrow,.hero h1,.hero-sub,.btn-teal,.hero-tagline,.hero-card{animation:none!important;opacity:1!important;transform:none!important}
+}
 @media(max-width:480px){
   .hero h1{font-size:2rem}
   .about-hero h1{font-size:2rem}
@@ -397,9 +465,10 @@ footer{background:var(--brown);padding:44px 5%}
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to content</a>
 
 <!-- NAV -->
-<nav>
+<nav role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
     <a class="nav-logo" href="#" onclick="showPage('home')">
       <img src="https://biowellth.github.io/biowellthwebsite/logo.png" alt="BioWellth"/>
@@ -410,9 +479,9 @@ footer{background:var(--brown);padding:44px 5%}
       <a href="#" onclick="showPage('features')">How it works</a>
       <a href="#" onclick="showPage('waitlist')" class="nav-cta">Get early access</a>
     </div>
-    <div class="nav-hamburger" onclick="toggleMenu()" id="hamburger">
+    <button class="nav-hamburger" onclick="toggleMenu()" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
-    </div>
+    </button>
   </div>
 </nav>
 
@@ -423,11 +492,13 @@ footer{background:var(--brown);padding:44px 5%}
 </div>
 
 <!-- ══ HOME ══ -->
+<main id="main-content">
 <div id="page-home" class="page active">
 
   <!-- Hero -->
   <section class="hero">
     <div class="hero-blob3"></div>
+    <div class="hero-grain" aria-hidden="true"></div>
     <div class="hero-inner">
       <div class="hero-left">
         <div class="hero-eyebrow">Built for Indian women</div>
@@ -485,8 +556,9 @@ footer{background:var(--brown);padding:44px 5%}
   <!-- Problem -->
   <section class="problem-section">
     <div class="problem-inner">
-      <div class="section-tag">The problem</div>
-      <h2 class="section-title">Indian healthcare tells women<br/>they're fine. They often aren't.</h2>
+      <div class="problem-stat-accent" aria-hidden="true">1 in 3</div>
+      <div class="section-tag reveal">The problem</div>
+      <h2 class="section-title reveal reveal-delay-1">Indian healthcare tells women<br/>they're fine. They often aren't.</h2>
       <div class="problem-grid">
         <div class="problem-text">
           <div class="problem-point"><div class="problem-dot"></div><p><strong>Critical markers are routinely skipped.</strong> Ferritin, free thyroid hormones, key sex hormones: absent from most standard panels. Your GP isn't testing what matters.</p></div>
@@ -500,31 +572,31 @@ footer{background:var(--brown);padding:44px 5%}
   <!-- How it works -->
   <section class="steps-section">
     <div class="section-inner">
-      <div class="section-tag">How it works</div>
-      <h2 class="section-title">From blood panel to clarity,<br/>in four steps</h2>
+      <div class="section-tag reveal">How it works</div>
+      <h2 class="section-title reveal reveal-delay-1">From blood panel to clarity,<br/>in four steps</h2>
       <p class="section-sub">Comprehensive testing, functional interpretation, AI-powered guidance. Built to show you what your standard checkup never will.</p>
       <div class="steps">
-        <div class="step-card">
+        <div class="step-card reveal">
           <div class="step-num">01</div>
-          <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-13-7-13z"/></svg></div>
+          <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-13-7-13z"/></svg></div>
           <h3>Comprehensive panel</h3>
           <p>Choose your plan and book at-home collection. We test 200+ female-specific markers, including ferritin, free thyroid hormones, and sex hormones that most checkups skip entirely.</p>
         </div>
-        <div class="step-card">
+        <div class="step-card reveal reveal-delay-1">
           <div class="step-num">02</div>
-          <div class="step-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/><path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
+          <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M3 12h3M18 12h3M12 3v3M12 18v3"/><path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
           <h3>Functional interpretation</h3>
           <p>Your results are read against optimal ranges, not just the clinical floor. Our AI identifies where you are on the spectrum between "not sick" and genuinely well.</p>
         </div>
-        <div class="step-card">
+        <div class="step-card reveal reveal-delay-2">
           <div class="step-num">03</div>
-          <div class="step-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
           <h3>AI companion</h3>
           <p>Ask questions, understand your results, and get personalised guidance. Your companion knows your full picture: biomarkers, symptoms, cycle, and lifestyle.</p>
         </div>
-        <div class="step-card">
+        <div class="step-card reveal reveal-delay-3">
           <div class="step-num">04</div>
-          <div class="step-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+          <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
           <h3>Track over time</h3>
           <p>Longitudinal tracking connects patterns across months, not just snapshots. See trends in your markers, symptoms, and cycle before they become a diagnosis.</p>
         </div>
@@ -536,12 +608,12 @@ footer{background:var(--brown);padding:44px 5%}
   <!-- Data integration -->
   <section class="data-section">
     <div class="section-inner">
-      <div class="section-tag">The full picture</div>
-      <h2 class="section-title">Health is not one number.<br/>We read all of them.</h2>
+      <div class="section-tag reveal">The full picture</div>
+      <h2 class="section-title reveal reveal-delay-1">Health is not one number.<br/>We read all of them.</h2>
       <p class="section-sub">Most platforms track one thing. BioWellth builds a complete picture from four distinct data streams, so the patterns that matter actually become visible.</p>
       <div class="data-grid">
-        <div class="data-card data-a">
-          <div class="data-icon">🩸</div>
+        <div class="data-card data-a reveal">
+          <div class="data-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2C12 2 5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13z"/></svg></div>
           <div class="data-card-label">Blood biomarkers</div>
           <h3>What your blood actually says</h3>
           <p>200+ markers across hormones, thyroid, iron, inflammation, metabolic function, and vitamins. Read against functional ranges, not population averages.</p>
@@ -551,8 +623,8 @@ footer{background:var(--brown);padding:44px 5%}
             <li>Vitamin D, B12, folate, magnesium</li>
           </ul>
         </div>
-        <div class="data-card data-b">
-          <div class="data-icon">⌚</div>
+        <div class="data-card data-b reveal reveal-delay-1">
+          <div class="data-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="7" y="7" width="10" height="10" rx="5"/><path d="M9 14l1.5-3 2 4 1.5-3"/><path d="M9 4l.5-2h5l.5 2M9 20l.5 2h5l-.5-2"/></svg></div>
           <div class="data-card-label">Wearable data</div>
           <h3>What your body does while you're not watching</h3>
           <p>Sleep quality, HRV, resting heart rate, skin temperature, and activity patterns from devices you already own. The patterns that emerge overnight often explain the symptoms you notice during the day.</p>
@@ -562,8 +634,8 @@ footer{background:var(--brown);padding:44px 5%}
             <li>Skin temperature and cycle signals</li>
           </ul>
         </div>
-        <div class="data-card data-c">
-          <div class="data-icon">📓</div>
+        <div class="data-card data-c reveal reveal-delay-2">
+          <div class="data-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></div>
           <div class="data-card-label">Lived experience</div>
           <h3>What only you can report</h3>
           <p>Symptoms, energy levels, mood, cycle patterns, and how you actually feel day to day. This is the data no test can collect. It's also the data that most often gets dismissed in a standard appointment.</p>
@@ -573,8 +645,8 @@ footer{background:var(--brown);padding:44px 5%}
             <li>Gut, skin, and pain patterns</li>
           </ul>
         </div>
-        <div class="data-card data-d">
-          <div class="data-icon">🌿</div>
+        <div class="data-card data-d reveal reveal-delay-3">
+          <div class="data-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 3l-6.5 6.5"/><path d="M17 3c0 0-9 0-12 6s3 12 3 12c5-1 9-5 9-12V3z"/></svg></div>
           <div class="data-card-label">Environmental factors</div>
           <h3>What's happening around you</h3>
           <p>Air quality, water quality, pollution exposure, and seasonal environmental load. Where you live affects how your body functions. Most health platforms ignore this entirely.</p>
@@ -597,21 +669,21 @@ footer{background:var(--brown);padding:44px 5%}
   <!-- Who it's for -->
   <section class="who-section">
     <div class="section-inner">
-      <div class="section-tag">Who it's for</div>
-      <h2 class="section-title">Three women. One platform.</h2>
+      <div class="section-tag reveal">Who it's for</div>
+      <h2 class="section-title reveal reveal-delay-1">Three women. One platform.</h2>
       <p class="section-sub">Three different women, one gap in the system.</p>
       <div class="who-grid">
-        <div class="who-card a">
+        <div class="who-card a reveal">
           <div class="who-label">The dismissed</div>
           <h3>You've been told your results are normal. You know something is wrong.</h3>
           <p>Years of fatigue, hair loss, cycle problems, and every test coming back "fine." BioWellth tests what wasn't being tested, and reads it differently.</p>
         </div>
-        <div class="who-card b">
+        <div class="who-card b reveal reveal-delay-1">
           <div class="who-label">The early mover</div>
           <h3>You feel okay today. Your data says something different.</h3>
           <p>No symptoms yet, but your biomarkers are quietly drifting in the wrong direction. The window to act is now, before a chronic illness becomes the story.</p>
         </div>
-        <div class="who-card c">
+        <div class="who-card c reveal reveal-delay-2">
           <div class="who-label">The curious</div>
           <h3>You want a real picture of your biology before something goes wrong.</h3>
           <p>Not reactive healthcare. A complete, ongoing understanding of your own body so you can make decisions from data, not guesswork.</p>
@@ -623,8 +695,8 @@ footer{background:var(--brown);padding:44px 5%}
   <!-- Features bento -->
   <section class="features-section">
     <div class="section-inner">
-      <div class="section-tag">What you get</div>
-      <h2 class="section-title">Testing that covers<br/>the full picture.</h2>
+      <div class="section-tag reveal">What you get</div>
+      <h2 class="section-title reveal reveal-delay-1">Testing that covers<br/>the full picture.</h2>
       <p class="section-sub">Because most women in India have never seen what a comprehensive result actually looks like.</p>
       <div class="bento">
         <div class="bento-card teal bento-tall">
@@ -678,7 +750,7 @@ footer{background:var(--brown);padding:44px 5%}
 
   <!-- Testimonial -->
   <section class="testimonial-section">
-    <blockquote>"I felt completely fine. BioWellth's panel showed I was clearly on track for serious chronic illness: low ferritin, suboptimal thyroid, inflammatory markers climbing. None of it showed up in my last standard checkup."</blockquote>
+    <blockquote class="reveal-fade">"I felt completely fine. BioWellth's panel showed I was clearly on track for serious chronic illness: low ferritin, suboptimal thyroid, inflammatory markers climbing. None of it showed up in my last standard checkup."</blockquote>
     <cite>Beta tester, Bengaluru</cite>
   </section>
 
@@ -745,7 +817,7 @@ footer{background:var(--brown);padding:44px 5%}
   <div class="features-body">
 
     <div class="feature-row">
-      <div class="feature-text">
+      <div class="feature-text reveal">
         <span class="tag">Comprehensive panels</span>
         <h2>200+ markers, including everything standard tests skip</h2>
         <p>Most standard checkups test 15 to 20 markers, miss critical sex hormones, and don't include free thyroid hormones at all. Our female-specific panel covers what actually matters. At-home collection, no clinic visit required.</p>
@@ -765,7 +837,7 @@ footer{background:var(--brown);padding:44px 5%}
     </div>
 
     <div class="feature-row reverse">
-      <div class="feature-text">
+      <div class="feature-text reveal">
         <span class="tag">Functional interpretation</span>
         <h2>Optimal ranges, not just clinical thresholds</h2>
         <p>Clinical reference ranges are set to identify disease in a broad population. They won't tell you whether you're actually thriving. BioWellth reads your results against functional optimal ranges, explains what each marker actually means, and connects them to your symptoms and cycle.</p>
@@ -786,7 +858,7 @@ footer{background:var(--brown);padding:44px 5%}
     </div>
 
     <div class="feature-row">
-      <div class="feature-text">
+      <div class="feature-text reveal">
         <span class="tag">Longitudinal tracking</span>
         <h2>Patterns across months, not snapshots</h2>
         <p>A single blood test is a photograph. Longitudinal tracking is a film. BioWellth combines biomarkers, symptoms, cycle, and lifestyle data over time. The patterns that emerge are ones no single appointment could reveal.</p>
@@ -807,7 +879,7 @@ footer{background:var(--brown);padding:44px 5%}
     </div>
 
     <div class="feature-row reverse">
-      <div class="feature-text">
+      <div class="feature-text reveal">
         <span class="tag">AI companion</span>
         <h2>Ask anything, get a real answer</h2>
         <p>Your AI companion knows your full history: markers, cycle, symptoms, lifestyle patterns. Ask it anything: why you feel a certain way, what a result means, how to prepare for a specialist appointment.</p>
@@ -848,35 +920,82 @@ footer{background:var(--brown);padding:44px 5%}
   </div>
 </div>
 
+</main>
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div class="footer-logo"><img src="https://biowellth.github.io/biowellthwebsite/logo.png" alt="BioWellth"/><span>BioWellth</span></div>
+    <div class="footer-logo"><img src="https://biowellth.github.io/biowellthwebsite/logo.png" alt="BioWellth logo"/><span>BioWellth</span></div>
     <div class="footer-links">
-      <a href="#">Privacy policy</a>
-      <a href="#">Terms</a>
+      <a href="#" aria-label="Privacy policy">Privacy policy</a>
+      <a href="#" aria-label="Terms of service">Terms</a>
       <a href="/cdn-cgi/l/email-protection#a7d4d2d7d7c8d5d3e7cadec5cec8d0c2cbcbd3cf89c4c8ca"><span class="__cf_email__" data-cfemail="384b4d4848574a4c7855415a51574f5d54544c50165b5755">[email&#160;protected]</span></a>
     </div>
     <div class="footer-copy">© 2026 BioWellth India. All rights reserved. · Being told you're fine is not the same as being well.</div>
   </div>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  const page = document.getElementById('page-'+id);
+  page.classList.add('active');
   window.scrollTo(0,0);
   closeMenu();
+  setTimeout(()=>observeReveals(),50);
+  // aria-current on active nav link
+  document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a=>{
+    a.removeAttribute('aria-current');
+    const onclick = a.getAttribute('onclick')||'';
+    if(onclick.includes("'"+id+"'") || onclick.includes('"'+id+'"')){
+      a.setAttribute('aria-current','page');
+    }
+  });
 }
 function toggleMenu(){
-  document.getElementById('mobileMenu').classList.toggle('open');
+  const menu = document.getElementById('mobileMenu');
+  const btn = document.getElementById('hamburger');
+  const isOpen = menu.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  btn.setAttribute('aria-expanded', isOpen);
 }
 function closeMenu(){
   document.getElementById('mobileMenu').classList.remove('open');
+  const btn = document.getElementById('hamburger');
+  btn.classList.remove('open');
+  btn.setAttribute('aria-expanded','false');
 }
 function navTo(id){showPage(id)}
+
 document.querySelectorAll('a[href="#"]').forEach(a=>{
   a.addEventListener('click',e=>e.preventDefault());
+});
+
+// IntersectionObserver for scroll reveals
+function observeReveals(){
+  const els = document.querySelectorAll('.reveal:not(.visible), .reveal-fade:not(.visible)');
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
+  els.forEach(el=>obs.observe(el));
+}
+
+// Animate hero bar fills on load
+function animateHeroBars(){
+  document.querySelectorAll('.hero-bar-fill').forEach(bar=>{
+    const w = bar.style.width;
+    bar.style.width = '0';
+    setTimeout(()=>{bar.style.width=w;}, 700);
+  });
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  observeReveals();
+  animateHeroBars();
 });
 </script>
 </body>
