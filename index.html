@@ -802,8 +802,8 @@ footer{background:var(--brown);padding:40px 5%}
       <span>BioWellth</span>
     </div>
     <div class="footer-links">
-      <a href="#" onclick="showPage('privacy')">Privacy policy</a>
-      <a href="#" onclick="showPage('terms')">Terms</a>
+      <a href="#" onclick="showPage('privacy')">Privacy Policy</a>
+      <a href="#" onclick="showPage('terms')">Terms & Conditions</a>
       <a href="/cdn-cgi/l/email-protection#295a5c5959465b5d6944504b40465e4c45455d41074a4644"><span class="__cf_email__" data-cfemail="b1c2c4c1c1dec3c5f1dcc8d3d8dec6d4ddddc5d99fd2dedc">[email&#160;protected]</span></a>
     </div>
     <div class="footer-disclaimer">BioWellth is not a medical provider. We don't diagnose, treat, or replace your doctor. We give you smarter information so you can have better conversations with them.</div>
@@ -854,4 +854,11 @@ window.addEventListener('scroll',function(){
 
 /* Scroll reveal */
 var obs=new IntersectionObserver(function(entries){
-  entries.forEach(function
+  entries.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
+  });
+},{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.reveal-fade').forEach(function(el){obs.observe(el);});
+</script>
+</body>
+</html>
