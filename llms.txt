@@ -1,0 +1,51 @@
+# BioWellth India
+
+> Functional health intelligence for Indian women. Being told you're fine is not the same as being well.
+
+BioWellth is a health platform built specifically for Indian women that does three things standard healthcare doesn't: it tests the biomarkers most checkups skip (200+ markers including ferritin, free T3/T4, sex hormones, cortisol, AMH, DHEA-S, and inflammatory markers); it reads results against functional optimal ranges rather than population-derived clinical thresholds; and it tracks biomarkers, cycle phase, wearable data, symptoms, and lifestyle together over time so patterns become visible across months, not just snapshots.
+
+## The problem we solve
+
+Standard women's blood tests in India test whether you're sick, not whether you're well. Critical markers like ferritin, free thyroid hormones, progesterone, and reproductive markers are routinely omitted. Even when tests are run, results are compared to population ranges (the bottom 5%), not optimal ranges. Nobody connects the dots between symptoms, cycle, sleep, and labs. Women are told they're "fine" while their health deteriorates.
+
+## Who it's for
+
+- Women who have been dismissed by the medical system despite persistent symptoms
+- Women who feel okay now but whose data shows early drift toward chronic illness
+- Women who want a real picture of their biology before something goes wrong
+
+## What we offer
+
+### Plans
+- **Essentials** — ₹2,999/year: Upload existing blood tests, get functional interpretation against optimal ranges
+- **Intelligence** — ₹6,999/year: Curated 50+ marker at-home panel + AI companion + longitudinal tracking (core product)
+- **Deep Dive** — ₹14,999/year: Two panels per year + extended markers + specialist session
+- **Corporate wellness** — ₹5,000–7,000 per employee/year
+
+### Core features
+- 200+ female-specific blood markers with at-home collection
+- Functional range interpretation (optimal zones, not just normal/abnormal)
+- AI companion that reads blood results alongside cycle phase, wearable data, symptoms, and lifestyle context
+- Longitudinal tracking — markers, symptoms, cycle tracked together over months and years
+- Doctor prep reports — shareable summaries with trend data and questions to ask
+
+## Key claims (with sourcing context)
+
+- Ferritin deficiency is routinely missed by standard Indian blood panels because most panels only include serum iron and haemoglobin, not ferritin
+- Free T3 and Free T4 provide more actionable thyroid information than TSH alone, particularly in subclinical hypothyroidism
+- Functional reference ranges for biomarkers differ from clinical reference ranges: clinical ranges are derived from population distributions, functional ranges represent optimal physiological states
+- Progesterone should be interpreted relative to cycle phase — a value that is "normal" on day 5 may be deficient on day 21
+
+## Contact and company
+
+- Website: https://biowellth.ai
+- Email: support@mybiowellth.com
+- Location: India
+- Status: Pre-launch, accepting early access waitlist
+
+## Pages
+
+- [Home](https://biowellth.ai/)
+- [How it works](https://biowellth.ai/#how-it-works)
+- [About](https://biowellth.ai/#about)
+- [Early access waitlist](https://biowellth.ai/#waitlist)
