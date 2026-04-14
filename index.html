@@ -117,6 +117,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 a{text-decoration:none;color:inherit}
 h1,h2,h3,h4{font-family:'Plus Jakarta Sans',sans-serif}
 :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
+[id]{scroll-margin-top:72px}
 
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:transparent;backdrop-filter:blur(0);border-bottom:1px solid transparent;padding:0 5%;transition:all 0.35s ease}
@@ -188,15 +189,7 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .rd1{animation-delay:0.06s}.rd2{animation-delay:0.12s}.rd3{animation-delay:0.18s}.rd4{animation-delay:0.24s}
 
 /* SECTION DIVIDERS */
-.section-divider{max-width:1100px;margin:0 auto;height:1px;background:var(--brown-light)}
-
-/* INSIGHT STRIP */
-.insight-strip{background:var(--brown);padding:48px 5%}
-.insight-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:0}
-.insight-item{flex:1;text-align:center;padding:0 24px}
-.insight-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:700;color:var(--white);letter-spacing:-0.03em;line-height:1.1}
-.insight-label{font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.4}
-.insight-divider{width:1px;height:52px;background:rgba(255,255,255,0.12);flex-shrink:0}
+.section-divider{max-width:1100px;margin:0 auto;height:1px;background:rgba(71,55,43,0.12)}
 
 /* HOW IT WORKS */
 .how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;position:relative}
@@ -322,8 +315,6 @@ footer{background:var(--brown);padding:40px 5%}
   .strip-item:nth-last-child(-n+2){border-bottom:none}
   .how-steps{grid-template-columns:1fr;gap:32px}
   .how-step{padding:0}
-  .insight-inner{flex-direction:column;gap:24px}
-  .insight-divider{width:48px;height:1px}
   .mock-grid{grid-template-columns:1fr;gap:28px}
   .mock-grid.reverse{direction:ltr}
   .who-cards{grid-template-columns:1fr}
@@ -544,8 +535,7 @@ footer{background:var(--brown);padding:40px 5%}
 <section class="section" style="background:var(--cream)">
   <div class="section-inner">
     <div class="section-tag reveal">Who it's for</div>
-    <h2 class="section-title reveal rd1">You probably recognise yourself here</h2>
-    <p class="section-sub reveal rd2"></p>
+    <h2 class="section-title reveal rd1" style="margin-bottom:32px">You probably recognise yourself here</h2>
     <div class="who-cards">
       <div class="who-card w-a reveal">
         <div class="who-label">Dismissed</div>
