@@ -299,13 +299,6 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .privacy-note svg{flex-shrink:0;margin-top:2px}
 .privacy-note p{font-size:13px;color:var(--brown-mid);line-height:1.6}
 
-/* LEGAL PAGES */
-.legal-page{max-width:720px;margin:0 auto;padding:48px 5% 80px}
-.legal-page .legal-title{font-size:clamp(1.8rem,3vw,2.4rem);color:var(--brown);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px}
-.legal-updated{font-size:13px;color:var(--brown-mid);margin-bottom:40px}
-.legal-page h3{font-size:16px;font-weight:700;color:var(--brown);margin-top:32px;margin-bottom:8px;letter-spacing:-0.02em}
-.legal-page p{font-size:15px;color:var(--brown-mid);line-height:1.8}
-
 /* FOOTER */
 footer{background:var(--brown);padding:40px 5%}
 .footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
@@ -628,73 +621,6 @@ footer{background:var(--brown);padding:40px 5%}
   </div>
 </div><!-- /page-early-access -->
 
-<!-- PRIVACY POLICY -->
-<div id="page-privacy" class="page" style="padding-top:62px">
-  <div class="legal-page">
-    <h2 class="legal-title">Privacy Policy</h2>
-    <p class="legal-updated">Last updated: April 2026</p>
-
-    <h3>What we collect</h3>
-    <p>When you sign up for early access, we collect your name, email address, city, and age range. If you upload blood test reports, we store those files securely. If you connect a wearable through Apple Health or Android Health Connect, we receive the health data you choose to share (sleep, HRV, cycle, activity). We also collect information you log directly, like symptoms and energy levels.</p>
-
-    <h3>How we use it</h3>
-    <p>Your data is used to provide functional interpretation of your blood work, power the AI companion, and generate gap analysis and test recommendations. We also use aggregated, anonymised data to improve our algorithms. We never use your personal health data for advertising or marketing.</p>
-
-    <h3>Who we share it with</h3>
-    <p>Nobody. We don't sell, rent, or share your personal health data with third parties. We don't share it with advertisers, data brokers, or anyone else. The only exception is if we're legally required to by Indian law.</p>
-
-    <h3>How we protect it</h3>
-    <p>Your reports and health data are encrypted in transit and at rest. Access is restricted to the systems that need it to provide your results. We don't store payment information (we use third-party payment processors).</p>
-
-    <h3>Your rights</h3>
-    <p>You can request a copy of all data we hold about you. You can ask us to delete everything at any time. You can withdraw consent for data processing. You can disconnect wearable integrations at any time. To exercise any of these rights, email support@mybiowellth.com.</p>
-
-    <h3>Cookies</h3>
-    <p>We use essential cookies to keep the site working. We use analytics to understand how people use the site. We don't use advertising cookies or tracking pixels.</p>
-
-    <h3>Changes</h3>
-    <p>If we change this policy, we'll update this page and notify you by email if the changes are significant.</p>
-
-    <h3>Contact</h3>
-    <p>Questions about your data? Email support@mybiowellth.com.</p>
-  </div>
-</div>
-
-<!-- TERMS -->
-<div id="page-terms" class="page" style="padding-top:62px">
-  <div class="legal-page">
-    <h2 class="legal-title">Terms &amp; Conditions</h2>
-    <p class="legal-updated">Last updated: April 2026</p>
-
-    <h3>What BioWellth is</h3>
-    <p>BioWellth is a health information platform. We provide functional interpretation of blood test results, AI-powered health insights, and gap analysis showing which markers may be missing from your existing tests. We are not a medical provider. We don't diagnose, treat, or cure any condition.</p>
-
-    <h3>What BioWellth is not</h3>
-    <p>Nothing on this platform is medical advice. Our interpretations, AI companion responses, and recommendations are informational only. They are not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider before making any health decisions based on information from BioWellth.</p>
-
-    <h3>Your account</h3>
-    <p>You're responsible for keeping your login credentials secure. You must be at least 18 years old to use BioWellth. By creating an account, you confirm that the information you provide is accurate.</p>
-
-    <h3>Your data</h3>
-    <p>You own your health data. By uploading blood test reports or connecting wearable data, you grant us permission to process that data to provide our services. You can revoke this permission and delete your data at any time. See our Privacy Policy for full details.</p>
-
-    <h3>Acceptable use</h3>
-    <p>Don't use BioWellth to upload data that isn't yours without the other person's explicit consent. Don't attempt to reverse-engineer, copy, or redistribute our functional reference ranges or AI models. Don't use automated tools to scrape or access the platform.</p>
-
-    <h3>Limitation of liability</h3>
-    <p>BioWellth is provided "as is" during the early access period. We make no guarantees about the accuracy or completeness of our interpretations. We are not liable for any health decisions you make based on information from the platform. Our total liability is limited to the amount you've paid us (during early access, that's zero).</p>
-
-    <h3>Changes</h3>
-    <p>We may update these terms as BioWellth evolves. We'll notify you of significant changes by email. Continued use after changes constitutes acceptance.</p>
-
-    <h3>Governing law</h3>
-    <p>These terms are governed by the laws of India. Any disputes will be resolved in the courts of Chennai, Tamil Nadu.</p>
-
-    <h3>Contact</h3>
-    <p>Questions? Email support@mybiowellth.com.</p>
-  </div>
-</div>
-
 <footer>
   <div class="footer-inner">
     <div class="footer-logo">
@@ -702,8 +628,8 @@ footer{background:var(--brown);padding:40px 5%}
       <span>BioWellth</span>
     </div>
     <div class="footer-links">
-      <a href="#" onclick="showPage('privacy')">Privacy Policy</a>
-      <a href="#" onclick="showPage('terms')">Terms &amp; Conditions</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms &amp; Conditions</a>
       <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>
     </div>
     <div class="footer-disclaimer">BioWellth is not a medical provider. We don't diagnose, treat, or replace your doctor. We give you smarter information so you can have better conversations with them.</div>
