@@ -173,15 +173,13 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .page.active{display:block}
 
 /* EARLY ACCESS PAGE */
-.ea-hero{background:var(--teal);padding:120px 5% 48px;text-align:center;position:relative;overflow:hidden}
+.ea-hero{background:var(--teal);padding:72px 5% 20px;text-align:center;position:relative;overflow:hidden}
 .ea-hero::before{content:'';position:absolute;top:-40%;right:-10%;width:500px;height:500px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none}
-.ea-hero h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2rem,4vw,3rem);color:var(--white);font-weight:700;letter-spacing:-0.03em;margin-bottom:14px;position:relative;z-index:1}
-.ea-hero p{font-size:16px;color:rgba(255,255,255,0.75);max-width:460px;margin:0 auto;line-height:1.8;position:relative;z-index:1}
-.ea-body{max-width:1100px;margin:0 auto;padding:48px 5% 64px}
+.ea-hero h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.4rem,2.5vw,1.8rem);color:var(--white);font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;position:relative;z-index:1}
+.ea-hero p{font-size:14px;color:rgba(255,255,255,0.75);max-width:460px;margin:0 auto;line-height:1.7;position:relative;z-index:1}
+.ea-body{max-width:1100px;margin:0 auto;padding:24px 5% 64px}
 .ea-form{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--brown-light);margin-bottom:36px}
 .ea-form iframe{width:100%;height:620px;border:none;display:block}
-.ea-form-mobile{display:none}
-.ea-mobile-btn{width:100%;padding:18px 32px;font-size:17px;border:none;cursor:pointer}
 .ea-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:0}
 
 /* SECTION BASE */
@@ -339,7 +337,8 @@ footer{background:var(--brown);padding:40px 5%}
   .ea-hero{order:1;padding:28px 5% 24px}
   .ea-hero h2{font-size:1.4rem;margin-bottom:6px}
   .ea-hero p{font-size:14px;line-height:1.6}
-  .ea-form-mobile{display:block;order:2;margin-top:32px;margin-bottom:24px;text-align:center}
+  .ea-form{order:2}
+  .ea-form iframe{height:480px}
   .ea-perks{order:3;grid-template-columns:1fr}
   .ea-body>.privacy-note{order:4}
   .waitlist-perks{grid-template-columns:1fr}
@@ -624,11 +623,8 @@ footer{background:var(--brown);padding:40px 5%}
       <h2>100 founding members. Free access.</h2>
       <p>Full access to everything we're building. Your feedback shapes what comes next.</p>
     </section>
-    <div class="ea-form ea-form-desktop">
+    <div class="ea-form">
       <iframe src="https://form.typeform.com/to/CQMuZTe1" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
-    </div>
-    <div class="ea-form-mobile">
-      <button data-tf-popup="CQMuZTe1" data-tf-size="100" class="btn-teal ea-mobile-btn">Open early access form</button>
     </div>
     <div class="ea-perks">
       <div class="perk">
@@ -719,6 +715,5 @@ var obs=new IntersectionObserver(function(entries){
 },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
 </script>
-<script src="https://embed.typeform.com/next/embed.js"></script>
 </body>
 </html>
