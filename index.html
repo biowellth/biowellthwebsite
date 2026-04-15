@@ -180,7 +180,6 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .ea-body{max-width:1100px;margin:0 auto;padding:48px 5% 64px}
 .ea-form{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--brown-light);margin-bottom:36px}
 .ea-form iframe{width:100%;height:620px;border:none;display:block}
-.ea-mobile-cta{display:none;text-align:center;padding:32px 20px;background:var(--white);border-radius:22px;border:1px solid var(--brown-light);margin-bottom:36px}
 .ea-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:0}
 
 /* SECTION BASE */
@@ -334,11 +333,14 @@ footer{background:var(--brown);padding:40px 5%}
   .mock-grid{grid-template-columns:1fr;gap:28px}
   .mock-grid.reverse{direction:ltr}
   .who-cards{grid-template-columns:1fr}
-  .ea-desktop{display:none}
-  .ea-mobile-cta{display:block}
-  .ea-perks{grid-template-columns:1fr}
-  .ea-form iframe{height:480px}
-  .ea-hero{padding:100px 5% 40px}
+  .ea-body{display:flex;flex-direction:column;padding-top:70px;padding-bottom:32px}
+  .ea-hero{order:2;padding:20px 5% 16px}
+  .ea-hero h2{font-size:1.3rem;margin-bottom:6px}
+  .ea-hero p{font-size:14px}
+  .ea-form{order:1;margin-bottom:12px;border-radius:14px}
+  .ea-form iframe{height:calc(100vh - 86px);min-height:520px}
+  .ea-perks{order:3;grid-template-columns:1fr}
+  .ea-body>.privacy-note{order:4}
   .waitlist-perks{grid-template-columns:1fr}
   .waitlist-embed iframe{height:480px}
   .footer-inner{flex-direction:column;align-items:flex-start}
@@ -616,16 +618,13 @@ footer{background:var(--brown);padding:40px 5%}
 
 <!-- EARLY ACCESS -->
 <div id="page-early-access" class="page">
-  <section class="ea-hero">
-    <h2>100 founding members. Free access.</h2>
-    <p>Full access to everything we're building. Your feedback shapes what comes next.</p>
-  </section>
   <div class="ea-body">
-    <div class="ea-form ea-desktop">
+    <section class="ea-hero">
+      <h2>100 founding members. Free access.</h2>
+      <p>Full access to everything we're building. Your feedback shapes what comes next.</p>
+    </section>
+    <div class="ea-form">
       <iframe src="https://form.typeform.com/to/CQMuZTe1" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
-    </div>
-    <div class="ea-mobile-cta">
-      <a class="btn-teal" data-tf-popup="CQMuZTe1" data-tf-size="100" style="display:inline-block;text-align:center;width:100%">Open early access form</a>
     </div>
     <div class="ea-perks">
       <div class="perk">
@@ -667,7 +666,6 @@ footer{background:var(--brown);padding:40px 5%}
   </div>
 </footer>
 
-<script src="https://embed.typeform.com/next/embed.js"></script>
 <script>
 /* Page switching */
 function showPage(id){
