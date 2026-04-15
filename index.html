@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
 <link rel="canonical" href="https://biowellth.ai/"/>
 <meta property="og:title" content="BioWellth: Your doctor said normal. You're still exhausted."/>
-<meta property="og:description" content="Upload your existing blood tests. We'll show you what your doctor's report didn't. 100 founding member spots."/>
+<meta property="og:description" content="Upload your blood tests. We read them against functional ranges, flag what's missing, and tell you what to test next. Built for Indian women."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://biowellth.ai/"/>
 <meta property="og:image" content="https://biowellth.ai/og-image.png"/>
@@ -68,7 +68,7 @@
       "name":"What is functional interpretation of blood tests?",
       "acceptedAnswer":{
         "@type":"Answer",
-        "text":"Standard lab reference ranges flag disease by covering the bottom 5% of the population. Functional ranges are narrower and identify sub-optimal markers earlier, showing where you fall between not-sick and genuinely well. BioWellth reads your existing blood work against functional ranges used in integrative medicine."
+        "text":"Clinical reference ranges cover roughly 95% of the tested population, so you only get flagged if you're near the bottom or top 2.5%. Functional ranges, used in integrative and functional medicine practice, are narrower and focus on where people tend to feel and function best. They are based on expert consensus, not randomized clinical trials. BioWellth reads existing blood work against these functional ranges."
       }
     },
     {
@@ -84,7 +84,7 @@
       "name":"Is ferritin of 28 normal?",
       "acceptedAnswer":{
         "@type":"Answer",
-        "text":"Standard lab ranges typically flag ferritin below 12-15 ng/mL. However, functional practitioners consider levels below 50 ng/mL sub-optimal for active women, particularly those with heavy periods or high physical activity. A ferritin of 28 is technically in range but may contribute to fatigue, hair loss, and brain fog."
+        "text":"Standard lab ranges typically list the female ferritin reference range as roughly 10-150 ng/mL. However, Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when haemoglobin is normal. Functional medicine commonly targets 70-100 ng/mL for women with heavy periods or high activity levels. A ferritin of 28 is inside the clinical range but functionally low."
       }
     },
     {
@@ -226,6 +226,11 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 
 /* DIRECT ANSWERS (GEO) */
 .direct-answer{font-size:14px;color:var(--brown);line-height:1.7;margin-bottom:12px;font-weight:500}
+
+/* FOUNDER QUOTE */
+.founder-quote{border-left:3px solid var(--teal);padding-left:20px;margin:20px 0 0;font-style:italic}
+.founder-quote p{font-size:14px;color:var(--brown);line-height:1.75;margin-bottom:10px}
+.founder-quote p:last-child{margin-bottom:0}
 
 /* FOUNDER CREDIT */
 .founder-credit{font-size:13px;color:var(--brown-mid);margin-top:14px;font-style:italic}
@@ -370,7 +375,7 @@ footer{background:var(--brown);padding:40px 5%}
   <div class="hero-inner">
     <div class="hero-badge">Built for Indian women</div>
     <h1>Your doctor said your tests were normal.<br/><em>You're still exhausted.</em></h1>
-    <p class="hero-sub">Most women's blood work gets a glance and a "you're fine." Upload yours. We'll read it against functional ranges, connect it to your cycle and sleep data, give you real insights into what's going on, and tell you what to test next.</p>
+    <p class="hero-sub">Upload your existing blood work. We read it against functional ranges used in integrative medicine, connect it to your cycle and wearable data, and tell you what's worth testing next. Not a replacement for your doctor. A way to walk into the next appointment knowing what to ask.</p>
     <div class="hero-btns">
       <a href="#" onclick="showPage('early-access')" class="btn-teal">Get early access · 100 spots</a>
       <a href="#how" class="btn-outline">How it works</a>
@@ -426,25 +431,26 @@ footer{background:var(--brown);padding:40px 5%}
         <div class="mock-tag">What it looks like</div>
         <div class="mock-text">
           <h2>This is a real result. The lab said it was normal.</h2>
-          <p class="direct-answer">Standard lab ranges flag the bottom 5% of the population. Functional ranges are narrower and show whether you're optimally well, not just not-sick. A ferritin of 28 ng/mL is "in range" on most Indian lab reports but functionally low for active women.</p>
-          <p>Ferritin at 28. Technically "in range." But for a woman who is really active and has heavy periods, it's nowhere close to optimal. Your lab report won't tell you that.</p>
+          <p class="direct-answer">Clinical reference ranges are statistical. They cover roughly 95% of the tested population, so you only get flagged if you're near the bottom or top 2.5% (Mayo Clinic). Functional ranges, used in integrative and functional medicine practice, are narrower and focus on where people tend to feel and function best. They're not RCT-validated the way clinical thresholds are.</p>
+          <p>Ferritin is a useful example. Most Indian lab reports list the female reference range as roughly 10 to 150 ng/mL. Functional medicine commonly targets 70 to 100 ng/mL for women with heavy periods or high activity levels. Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when haemoglobin is still normal.</p>
+          <p>A ferritin of 28 ng/mL sits inside the clinical range but is functionally low for a woman.</p>
         </div>
       </div>
       <div class="mock-visual reveal rd1">
         <div>
           <div class="mock-label">Ferritin (iron stores)</div>
           <div class="mock-bar"><div class="mock-bar-fill fill-coral" style="width:28%"></div></div>
-          <div class="mock-note low">28 ng/mL · functionally low. Standard range calls this normal.</div>
+          <div class="mock-note low">28 ng/mL · Inside clinical range (10 to 150). Functionally low; integrative medicine targets 70 to 100. (Cleveland Clinic; IFM)</div>
         </div>
         <div>
           <div class="mock-label">TSH (thyroid)</div>
           <div class="mock-bar"><div class="mock-bar-fill fill-teal" style="width:65%"></div></div>
-          <div class="mock-note ok">2.1 mIU/L · within functional range</div>
+          <div class="mock-note ok">2.1 mIU/L · Inside clinical (0.4 to 4.5) and functional targets (1.0 to 2.5). TSH alone doesn't show what's reaching your cells. (ATA; NIH)</div>
         </div>
         <div>
-          <div class="mock-label">Vitamin D</div>
+          <div class="mock-label">Vitamin D (25-OH)</div>
           <div class="mock-bar"><div class="mock-bar-fill fill-amber" style="width:42%"></div></div>
-          <div class="mock-note watch">32 ng/mL · suboptimal for Indian women</div>
+          <div class="mock-note watch">32 ng/mL · Above the 20 ng/mL deficiency cut-off. ICMR-NIN reports widespread insufficiency in Indian women; functional targets 40 to 60. (Endocrine Society; ICMR-NIN)</div>
         </div>
         <div>
           <div class="mock-label" style="color:var(--coral);font-weight:600">⚑ Not tested</div>
@@ -472,9 +478,9 @@ footer{background:var(--brown);padding:40px 5%}
       <div style="direction:ltr" class="mock-visual reveal rd1">
         <div class="chat-mock">
           <div class="chat-bubble bubble-user">I've been waking up with headaches every morning this week. Is something off?</div>
-          <div class="chat-bubble bubble-ai">A few things are lining up. Your Apple Health data shows your sleep quality dropped 30% this week and you're waking around 4am most nights. AQI in your area has been above 150 for the last five days, which can trigger headaches and disrupt sleep on its own. On top of that, your last blood work showed your ferritin at 32, which is on the lower end. Low iron plus poor air quality plus broken sleep is a combination worth paying attention to.</div>
+          <div class="chat-bubble bubble-ai">A few things are lining up. Your Apple Health data shows sleep quality dropped 30% this week, with wake-ups around 4am most nights. AQI in your area has been above 150 for five straight days. That level of PM2.5 exposure has been linked to headaches and sleep disruption in WHO air-quality reviews. Your last blood work showed ferritin at 32 ng/mL, on the lower end functionally. Any one of these on its own can nudge how you feel. Together, it's a pattern worth watching.</div>
           <div class="chat-bubble bubble-user">What should I do?</div>
-          <div class="chat-bubble bubble-ai">Short term, keeping windows closed and using an air purifier while AQI stays elevated. Your ferritin is worth retesting since it was borderline three months ago. If it's still dropping, that's a conversation to have with your doctor about iron supplementation and checking for underlying causes.</div>
+          <div class="chat-bubble bubble-ai">Short term, keep windows closed and run an air purifier while AQI stays high. Retest ferritin. It was borderline three months ago, and if it's dropping, that's a conversation to have with your doctor about iron supplementation and checking for underlying causes. This is information, not a prescription.</div>
         </div>
       </div>
     </div>
@@ -491,8 +497,12 @@ footer{background:var(--brown);padding:40px 5%}
         <div class="mock-tag">Gap analysis</div>
         <div class="mock-text">
           <h2>Your last checkup probably didn't test for any of these.</h2>
-          <p class="direct-answer">Standard Indian health checkups typically include CBC, lipid panel, blood sugar, liver and kidney function, and TSH. They rarely include ferritin, free T3, free T4, progesterone, cortisol, hsCRP, or DHEA-S, which are the markers that explain fatigue, cycle issues, brain fog, and inflammation.</p>
-          <p>My mother spent three years exhausted. Every checkup said she was fine. Nobody tested ferritin. Nobody checked hsCRP. She had fibroids and high estradiol causing heavy bleeding, draining her iron stores. Underneath that, chronic inflammation nobody looked for because nobody ran the right tests. That's what we do. We flag the low ferritin, yes. But we also try to dig deeper into why it's low. Someone should've asked these questions three years earlier.</p>
+          <p class="direct-answer">Standard Indian "executive" or "master" health check packages typically include CBC, lipid panel, fasting glucose/HbA1c, liver and kidney panels, and TSH. Markers like ferritin, Free T3, Free T4, progesterone, morning cortisol, hsCRP, and DHEA-S are usually separate add-ons and rarely bundled by default. And that's just a handful of examples. We look at over 245 markers across 21 categories.</p>
+          <p>Those are the markers most relevant to fatigue, cycle symptoms, brain fog, and low-grade inflammation. They're the ones we flag as gaps.</p>
+          <div class="founder-quote">
+            <p>My mother was tired for three years before we figured out why. Every checkup came back "normal." Nobody ran ferritin. Nobody ran hsCRP. Her haemoglobin kept looking fine, so nothing got flagged. Meanwhile her iron stores had quietly emptied out, and underneath that, chronic inflammation that nobody looked for because nobody ran the right tests. By afternoon she was barely functioning. When we finally got ferritin and hsCRP run, the answers were sitting right there. None of it was hidden. It just wasn't looked for.</p>
+            <p>That's what this is. We flag the low ferritin. We also ask why it's low. Someone should have asked three years earlier.</p>
+          </div>
           <p class="founder-credit"><a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener">Aditi Pillai</a>, Founder</p>
         </div>
       </div>
@@ -513,23 +523,23 @@ footer{background:var(--brown);padding:40px 5%}
           <div class="gap-items">
             <div class="gap-item">
               <div class="gap-item-name">Free T3 &amp; Free T4</div>
-              <div class="gap-item-why">Your doctor probably tested TSH. That's the screening test. Free T3 and T4 show what's actually reaching your cells. You can have a "normal" TSH and still feel terrible.</div>
+              <div class="gap-item-why">TSH is the first-line screening test. It tells you how hard your pituitary is pushing your thyroid, not what's actually circulating. Free T3 and Free T4 show the hormones reaching your cells. TSH can sit inside the reference range while Free T3 runs low in a subset of thyroid dysfunction. Worth running if you've had "normal TSH" reports and still feel off. (NIH StatPearls; American Thyroid Association)</div>
             </div>
             <div class="gap-item">
               <div class="gap-item-name">Ferritin</div>
-              <div class="gap-item-why">Your haemoglobin can look perfectly fine while your iron stores are already running on empty. Ferritin catches that months before it shows up anywhere else.</div>
+              <div class="gap-item-why">Your haemoglobin can look perfectly fine while your iron stores are already running on empty. Ferritin catches that months before it shows up anywhere else. (Cleveland Clinic)</div>
             </div>
             <div class="gap-item">
               <div class="gap-item-name">Progesterone (luteal phase)</div>
-              <div class="gap-item-why">Has to be drawn between day 19 and 22 of your cycle or the number's meaningless. Almost never included in standard panels. Explains the PMS, the broken sleep, the anxiety in the second half of your cycle.</div>
+              <div class="gap-item-why">Timing matters. Progesterone peaks roughly 7 days after ovulation, so the test should be drawn in the mid-luteal phase, about 7 days before your next expected period. For a 28-day cycle that's around days 20 to 23; for a 32-day cycle closer to day 25. A value drawn outside that window doesn't tell you much. It's rarely bundled in standard panels. (ACOG; NIH)</div>
             </div>
             <div class="gap-item">
               <div class="gap-item-name">hsCRP</div>
-              <div class="gap-item-why">Inflammation marker. If it's elevated, your fatigue might not be about iron or thyroid at all. It might be chronic low-grade inflammation that nobody's looked for.</div>
+              <div class="gap-item-why">A general marker for systemic inflammation. An elevated hsCRP means inflammation is present. It doesn't say where it's coming from. Common drivers include infection, autoimmune activity, visceral fat, and chronic stress. If hsCRP is high and your iron and thyroid are fine, it's a signal to keep looking, not a diagnosis on its own. (Mayo Clinic; AHA)</div>
             </div>
             <div class="gap-item">
               <div class="gap-item-name">Cortisol (AM)</div>
-              <div class="gap-item-why">Your baseline stress hormone. If it's off, it explains the 3pm energy crash, the weight that won't shift, and the sleep that doesn't feel restful. Standard panels don't check it.</div>
+              <div class="gap-item-why">Your core stress hormone, highest in the morning and lowest at night. Morning cortisol typically runs 6 to 23 µg/dL on clinical labs; functional medicine looks for the pattern, rhythm and ratios, more than any single number. Chronically high or flat cortisol rhythms are linked to broken sleep, afternoon energy crashes, and stubborn weight, though it's rarely the only factor. Standard check-ups in India don't include it by default. (Endocrine Society; NIH)</div>
             </div>
           </div>
           <div class="gap-cta-strip">
@@ -558,21 +568,28 @@ footer{background:var(--brown);padding:40px 5%}
       <div class="who-card w-b reveal rd1">
         <div class="who-label">Curious</div>
         <h3>"I got my blood work back. The report says normal. What does that actually mean?"</h3>
-        <p>"Normal" means you're not in the worst 5% of the population. That's it. You want to know if you're actually well, not just not-sick-enough-to-flag. That's a fair thing to want.</p>
+        <p>"Normal" means you're not in the bottom 2.5% of the tested population. That's it. You want to know if you're actually well, not just not-sick-enough-to-flag. That's a fair thing to want.</p>
       </div>
       <div class="who-card w-c reveal rd2">
         <div class="who-label">Ahead of it</div>
         <h3>"I don't have symptoms yet. I just want to know."</h3>
-        <p>Some of the most important things we've found in early testing were in women who felt completely fine. Markers quietly drifting the wrong way, the kind of shift that takes two or three years to become a symptom.</p>
+        <p>Some of the most important shifts happen in people who feel completely fine. Markers quietly drifting the wrong way, the kind of drift that takes two or three years to become a symptom.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- TESTIMONIAL -->
+<!-- TESTIMONIAL / PRE-LAUNCH -->
 <section class="testimonial">
-  <blockquote class="reveal">"I'd had three checkups in two years. Every one said normal. BioWellth looked at the same reports and showed me my TSH was 'in range' but my free T3 was low, my vitamin D was at 19, and progesterone and cortisol had never been tested at all. I took their test list to my gynaecologist. She ran everything. Turned out the thyroid was driving the brain fog and fatigue the whole time."</blockquote>
-  <cite>Anjali, 31, product manager, Chennai</cite>
+  <blockquote class="reveal">We're pre-launch. We're not going to put up testimonials we don't have yet.<br/><br/>If you're one of the first 100 and this changes a conversation with your doctor, we'd love to tell your story here. With your name, only if you want it up.</blockquote>
+</section>
+
+<!-- WHAT THIS IS AND ISN'T -->
+<section class="section" style="background:var(--cream)">
+  <div class="section-inner" style="max-width:720px">
+    <div class="section-tag reveal">What this is and isn't</div>
+    <p style="font-size:15px;color:var(--brown-mid);line-height:1.8" class="reveal rd1">BioWellth is educational. We interpret existing test reports against functional ranges used in integrative medicine practice. We don't diagnose, treat, or prescribe. Functional ranges are narrower than clinical ranges and are based on expert consensus in functional and integrative medicine, not randomized clinical trials. Always discuss your results with a licensed clinician before acting on them.</p>
+  </div>
 </section>
 
 <!-- CTA -->
@@ -586,7 +603,10 @@ footer{background:var(--brown);padding:40px 5%}
 <div style="max-width:800px;margin:0 auto;padding:40px 5%">
   <div class="privacy-note">
     <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--teal)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div>
     <p>Your health data is yours. We don't sell it, share it with third parties, or use it for advertising. Ever. Your reports are encrypted, access is private, and you can delete everything at any time. We're building a health tool, not a data business.</p>
+    <p style="font-size:12px;color:var(--brown-mid);margin-top:8px">Full data-handling details and your rights under India's DPDP Act, 2023 are in our <a href="/privacy.html" style="color:var(--teal);text-decoration:underline">Privacy Policy</a>.</p>
+    </div>
   </div>
 </div>
 </div><!-- /page-home -->
