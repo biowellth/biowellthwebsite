@@ -140,8 +140,8 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 
 /* HERO */
 .hero{background:var(--brown);padding:120px 5% 100px;position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center}
-.hero::before{content:'';position:absolute;top:-30%;right:-10%;width:680px;height:680px;border-radius:50%;background:rgba(12,142,107,0.18);animation:drift1 20s ease-in-out infinite;pointer-events:none}
-.hero::after{content:'';position:absolute;bottom:-25%;left:-6%;width:560px;height:560px;border-radius:50%;background:rgba(212,124,101,0.2);animation:drift2 24s ease-in-out infinite;pointer-events:none}
+.hero::before{content:'';position:absolute;top:-30%;right:-10%;width:680px;height:680px;border-radius:50%;background:rgba(12,142,107,0.18);animation:drift1 20s ease-in-out infinite;pointer-events:none;backface-visibility:hidden}
+.hero::after{content:'';position:absolute;bottom:-25%;left:-6%;width:560px;height:560px;border-radius:50%;background:rgba(212,124,101,0.2);animation:drift2 24s ease-in-out infinite;pointer-events:none;backface-visibility:hidden}
 .hero-grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.06;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
 @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.03)}}
 @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,15px) scale(0.97)}}
@@ -324,6 +324,7 @@ footer{background:var(--brown);padding:40px 5%}
 /* MOBILE */
 @media(max-width:768px){
   .hero{padding:100px 5% 72px;min-height:auto}
+  .hero::before,.hero::after{display:none}
   .hero h1{font-size:2.2rem}
   .strip-inner{grid-template-columns:1fr 1fr;gap:0}
   .strip-item{border-right:none;border-bottom:1px solid rgba(255,255,255,0.1);padding:18px 12px}
