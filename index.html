@@ -199,6 +199,14 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 /* SECTION DIVIDERS */
 .section-divider{max-width:1100px;margin:0 auto;height:1px;background:rgba(71,55,43,0.12)}
 
+/* WHY DIFFERENT */
+.why-section{background:var(--cream);padding:56px 5%}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:0}
+.why-card{padding:24px 0;border-top:2px solid var(--teal)}
+.why-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown);margin-bottom:8px;letter-spacing:-0.02em}
+.why-card p{font-size:14px;color:var(--brown-mid);line-height:1.7}
+@media(max-width:768px){.why-grid{grid-template-columns:1fr;gap:8px}.why-card{padding:18px 0}}
+
 /* HOW IT WORKS */
 .how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;position:relative}
 .how-step{padding:0 28px 0 0}
@@ -400,6 +408,27 @@ footer{background:var(--brown);padding:40px 5%}
     <div class="strip-item"><div class="strip-num">Gap analysis</div><div class="strip-label">Know what to test next</div></div>
   </div>
 </div>
+
+<!-- WHY THIS IS DIFFERENT -->
+<section class="why-section">
+  <div class="section-inner">
+    <div class="section-tag reveal">Why this isn't just another health platform</div>
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <h3>Built for women's hormonal biology</h3>
+        <p>Your results shift with your cycle. We account for that. Progesterone on day 7 means something completely different than progesterone on day 21. Most platforms ignore this entirely.</p>
+      </div>
+      <div class="why-card reveal rd1">
+        <h3>Functional ranges, not clinical thresholds</h3>
+        <p>Clinical ranges tell you if you're sick enough to flag. Functional ranges, used in integrative medicine, tell you if you're actually well. We use the latter.</p>
+      </div>
+      <div class="why-card reveal rd2">
+        <h3>Blood, cycle, and symptoms read together</h3>
+        <p>A ferritin reading means more when you can see your sleep has been declining and your cycle got heavier. We connect those signals instead of treating each one as a separate problem.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- HOW IT WORKS -->
 <section class="section" style="background:var(--off-white)" id="how">
