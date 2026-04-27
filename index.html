@@ -263,8 +263,16 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .gap-items{display:flex;flex-direction:column;gap:0}
 .gap-item{padding:10px 0;border-bottom:1px solid var(--cream-mid)}
 .gap-item:last-child{border-bottom:none}
-.gap-item-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:3px;letter-spacing:-0.01em}
-.gap-item-why{font-size:12px;color:var(--brown-mid);line-height:1.55}
+.gap-item-header{display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;gap:12px}
+.gap-item-header:hover .gap-item-name{color:var(--teal)}
+.gap-item-left{flex:1;min-width:0}
+.gap-item-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:3px;letter-spacing:-0.01em;transition:color 0.2s}
+.gap-item-hook{font-size:12px;color:var(--brown-mid);line-height:1.55}
+.gap-item-toggle{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;color:var(--brown-mid);font-size:14px;transition:transform 0.25s ease}
+.gap-item.open .gap-item-toggle{transform:rotate(180deg)}
+.gap-item-detail{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.gap-item.open .gap-item-detail{max-height:300px}
+.gap-item-why{font-size:12px;color:var(--brown-mid);line-height:1.55;padding-top:8px}
 .gap-cta-strip{display:flex;align-items:center;gap:8px;margin-top:14px;padding:12px 16px;background:var(--teal-light);border-radius:10px;font-size:13px;font-weight:600;color:var(--teal-dark)}
 
 /* AI CHAT MOCK */
@@ -272,6 +280,9 @@ nav.scrolled .nav-logo span{color:var(--brown)}
 .chat-bubble{border-radius:14px;padding:12px 16px;font-size:13px;line-height:1.65;max-width:90%}
 .bubble-ai{background:var(--teal-light);color:var(--brown)}
 .bubble-user{background:var(--coral-light);color:var(--brown);margin-left:auto}
+.chat-separator{display:flex;align-items:center;gap:12px;margin:20px 0}
+.chat-sep-line{flex:1;height:1px;background:var(--cream-mid)}
+.chat-sep-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);white-space:nowrap}
 
 /* WHO */
 .who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -390,7 +401,7 @@ footer{background:var(--brown);padding:40px 5%}
   <div class="hero-inner">
     <div class="hero-badge">Built for women</div>
     <h1>Your doctor said your tests were normal.<br/><em>You're still exhausted.</em></h1>
-    <p class="hero-sub">Upload your existing blood work. We read it against functional ranges used in integrative medicine, connect it to your cycle and wearable data, and tell you what's worth testing next. Not a replacement for your doctor. A way to walk into the next appointment knowing what to ask.</p>
+    <p class="hero-sub">Upload your existing blood work. We read it against women's functional ranges used in integrative medicine, adjusted for your cycle phase, your hormones, and where you are in life, and tell you what's worth testing next. Connect your wearable and cycle data for the full picture. A way to walk into your next appointment knowing what to ask.</p>
     <div class="hero-btns">
       <a href="#" onclick="showPage('early-access')" class="btn-teal">Get early access · 100 spots</a>
       <a href="#how" class="btn-outline">How it works</a>
@@ -402,7 +413,7 @@ footer{background:var(--brown);padding:40px 5%}
 <!-- STRIP -->
 <div class="strip">
   <div class="strip-inner">
-    <div class="strip-item"><div class="strip-num">Functional ranges</div><div class="strip-label">Not just "normal"</div></div>
+    <div class="strip-item"><div class="strip-num">Women's functional ranges</div><div class="strip-label">Not just "normal"</div></div>
     <div class="strip-item"><div class="strip-num">AI companion</div><div class="strip-label">Ask anything about your results</div></div>
     <div class="strip-item"><div class="strip-num">Wearable sync</div><div class="strip-label">Apple Health + Health Connect</div></div>
     <div class="strip-item"><div class="strip-num">Gap analysis</div><div class="strip-label">Know what to test next</div></div>
@@ -506,12 +517,21 @@ footer{background:var(--brown);padding:40px 5%}
       <div style="direction:ltr" class="reveal">
         <div class="mock-tag">AI companion</div>
         <div class="mock-text">
-          <h2>"I keep waking up with headaches. Is something off?"</h2>
+          <h2>Ask anything about your results. Get an answer that actually uses your data.</h2>
           <p class="direct-answer">BioWellth's AI companion connects your blood work, wearable data, symptoms, and environmental factors like air quality to surface patterns a single data source would miss.</p>
           <p>The kind of question you Google at midnight and get 47 conflicting answers. Our AI has your blood work, your sleep data, your local AQI, and what you've been logging. It reads them together.</p>
         </div>
       </div>
       <div style="direction:ltr" class="mock-visual reveal rd1">
+        <div class="chat-mock">
+          <div class="chat-bubble bubble-user">My vitamin D is 24. My doctor said it's borderline. Should I be supplementing?</div>
+          <div class="chat-bubble bubble-ai">24 ng/mL is technically inside the clinical range, but functionally that's low, especially in Chennai where UVB exposure drops during monsoon and most indoor lifestyles limit sun time. Functional targets are above 50 ng/mL. Given the fatigue and low mood you've been logging, it's worth discussing D3 + K2 supplementation with your doctor. K2 helps direct calcium properly. This is information to bring to your next appointment, not a prescription.</div>
+        </div>
+        <div class="chat-separator">
+          <span class="chat-sep-line"></span>
+          <span class="chat-sep-label">With wearable + environment data connected</span>
+          <span class="chat-sep-line"></span>
+        </div>
         <div class="chat-mock">
           <div class="chat-bubble bubble-user">I've been waking up with headaches every morning this week. Is something off?</div>
           <div class="chat-bubble bubble-ai">A few things are lining up. Your Apple Health data shows sleep quality dropped 30% this week, with wake-ups around 4am most nights. AQI in your area has been above 150 for five straight days. That level of PM2.5 exposure has been linked to headaches and sleep disruption in WHO air-quality reviews. Your last blood work showed ferritin at 32 ng/mL, on the lower end functionally. Any one of these on its own can nudge how you feel. Together, it's a pattern worth watching.</div>
@@ -533,7 +553,7 @@ footer{background:var(--brown);padding:40px 5%}
         <div class="mock-tag">Gap analysis</div>
         <div class="mock-text">
           <h2>Your last checkup probably didn't test for any of these.</h2>
-          <p class="direct-answer">Standard Indian "executive" or "master" health check packages typically include CBC, lipid panel, fasting glucose/HbA1c, liver and kidney panels, and TSH. Markers like ferritin, Free T3, Free T4, progesterone, morning cortisol, hsCRP, and DHEA-S are usually separate add-ons and rarely bundled by default. And that's just a handful of examples. We look at over 245 markers across 21 categories.</p>
+          <p class="direct-answer">Standard Indian "executive" or "master" health check packages typically include CBC, lipid panel, fasting glucose/HbA1c, liver and kidney panels, and TSH. Markers like ferritin, Free T3, Free T4, progesterone, morning cortisol, hsCRP, and DHEA-S are usually separate add-ons and rarely bundled by default. And that's just a handful of examples. We look at over 170 markers across 21 categories.</p>
           <p>Those are the markers most relevant to fatigue, cycle symptoms, brain fog, and low-grade inflammation. They're the ones we flag as gaps.</p>
           <div class="founder-quote">
             <p>My mother was tired for three years before we figured out why. Every checkup came back "normal." Nobody ran ferritin. Nobody ran hsCRP. Her haemoglobin kept looking fine, so nothing got flagged. Meanwhile her iron stores had quietly emptied out, and underneath that, chronic inflammation that nobody looked for because nobody ran the right tests. By afternoon she was barely functioning. When we finally got ferritin and hsCRP run, the answers were sitting right there. None of it was hidden. It just wasn't looked for.</p>
@@ -557,30 +577,70 @@ footer{background:var(--brown);padding:40px 5%}
           <div class="gap-divider"></div>
           <div class="gap-list-label">Key missing markers</div>
           <div class="gap-items">
-            <div class="gap-item">
-              <div class="gap-item-name">Free T3 &amp; Free T4</div>
-              <div class="gap-item-why">TSH is the first-line screening test. It tells you how hard your pituitary is pushing your thyroid, not what's actually circulating. Free T3 and Free T4 show the hormones reaching your cells. TSH can sit inside the reference range while Free T3 runs low in a subset of thyroid dysfunction. Worth running if you've had "normal TSH" reports and still feel off. (NIH StatPearls; American Thyroid Association)</div>
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">Free T3 &amp; Free T4</div>
+                  <div class="gap-item-hook">TSH is the screening test. It tells you how hard your pituitary is pushing, not what's actually reaching your cells.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">Free T3 and Free T4 show the hormones actually reaching your cells. TSH can sit inside the reference range while Free T3 runs low in a subset of thyroid dysfunction. Worth running if you've had "normal TSH" reports and still feel off. (NIH StatPearls; American Thyroid Association)</div>
+              </div>
             </div>
-            <div class="gap-item">
-              <div class="gap-item-name">Ferritin</div>
-              <div class="gap-item-why">Your haemoglobin can look perfectly fine while your iron stores are already running on empty. Ferritin catches that months before it shows up anywhere else. (Cleveland Clinic)</div>
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">Ferritin</div>
+                  <div class="gap-item-hook">Your haemoglobin can look perfectly fine while your iron stores are already running on empty.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">Ferritin catches depleted iron stores months before it shows up in haemoglobin. Levels below 30 ng/mL are considered functionally low even if technically "in range." It's the most commonly missed marker in standard women's panels. (Cleveland Clinic)</div>
+              </div>
             </div>
-            <div class="gap-item">
-              <div class="gap-item-name">Progesterone (luteal phase)</div>
-              <div class="gap-item-why">Timing matters. Progesterone peaks roughly 7 days after ovulation, so the test should be drawn in the mid-luteal phase, about 7 days before your next expected period. For a 28-day cycle that's around days 20 to 23; for a 32-day cycle closer to day 25. A value drawn outside that window doesn't tell you much. It's rarely bundled in standard panels. (ACOG; NIH)</div>
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">Progesterone (luteal phase)</div>
+                  <div class="gap-item-hook">Timing matters. A value drawn outside the luteal window doesn't tell you much.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">Progesterone peaks roughly 7 days after ovulation, so the test should be drawn in the mid-luteal phase, about 7 days before your next expected period. For a 28-day cycle that's around days 20 to 23; for a 32-day cycle closer to day 25. It's rarely bundled in standard panels. (ACOG; NIH)</div>
+              </div>
             </div>
-            <div class="gap-item">
-              <div class="gap-item-name">hsCRP</div>
-              <div class="gap-item-why">A general marker for systemic inflammation. An elevated hsCRP means inflammation is present. It doesn't say where it's coming from. Common drivers include infection, autoimmune activity, visceral fat, and chronic stress. If hsCRP is high and your iron and thyroid are fine, it's a signal to keep looking, not a diagnosis on its own. (Mayo Clinic; AHA)</div>
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">hsCRP</div>
+                  <div class="gap-item-hook">A general marker for systemic inflammation. It tells you something's off, not what's causing it.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">An elevated hsCRP means inflammation is present. It doesn't say where it's coming from. Common drivers include infection, autoimmune activity, visceral fat, and chronic stress. If hsCRP is high and your iron and thyroid are fine, it's a signal to keep looking, not a diagnosis on its own. (Mayo Clinic; AHA)</div>
+              </div>
             </div>
-            <div class="gap-item">
-              <div class="gap-item-name">Cortisol (AM)</div>
-              <div class="gap-item-why">Your core stress hormone, highest in the morning and lowest at night. Morning cortisol typically runs 6 to 23 µg/dL on clinical labs; functional medicine looks for the pattern, rhythm and ratios, more than any single number. Chronically high or flat cortisol rhythms are linked to broken sleep, afternoon energy crashes, and stubborn weight, though it's rarely the only factor. Standard check-ups in India don't include it by default. (Endocrine Society; NIH)</div>
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">Cortisol (AM)</div>
+                  <div class="gap-item-hook">Your core stress hormone. Standard checkups in India don't include it by default.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">Morning cortisol typically runs 6 to 23 µg/dL on clinical labs; functional medicine looks for the pattern, rhythm and ratios, more than any single number. Chronically high or flat cortisol rhythms are linked to broken sleep, afternoon energy crashes, and stubborn weight, though it's rarely the only factor. (Endocrine Society; NIH)</div>
+              </div>
             </div>
           </div>
           <div class="gap-cta-strip">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <span>Generate a test request list for your doctor →</span>
+            <span>We generate a test request list you can bring to your doctor</span>
           </div>
         </div>
       </div>
@@ -670,8 +730,8 @@ footer{background:var(--brown);padding:40px 5%}
       </div>
       <div class="perk">
         <div class="perk-dot"></div>
-        <h4>Founding member rates</h4>
-        <p>Founding members get the lowest price we'll ever offer when BioWellth opens publicly.</p>
+        <h4>Your data stays yours</h4>
+        <p>Encrypted, never sold, DPDP Act compliant. You own it.</p>
       </div>
     </div>
     <div class="privacy-note" style="margin-top:24px">
