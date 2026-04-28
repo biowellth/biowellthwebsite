@@ -3,102 +3,195 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Privacy Policy | BioWellth</title>
-<meta name="description" content="How BioWellth handles your health data. What we collect, how we use it, who we share it with (nobody), and your rights."/>
-<link rel="icon" href="/favicon.ico" sizes="48x48"/>
-<link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32"/>
-<link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16"/>
-<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<title>Privacy Policy — BioWellth India</title>
+<meta name="description" content="How BioWellth collects, uses, protects, and deletes your personal and health data. Written in plain language under India's DPDP Act, 2023."/>
+<meta name="robots" content="noindex"/>
 <link rel="canonical" href="https://biowellth.ai/privacy.html"/>
-<meta name="robots" content="index, follow"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="shortcut icon" href="/favicon.ico"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--cream:#FAF8F4;--teal:#0C8E6B;--teal-dark:#097A5B;--brown:#47372B;--brown-mid:#6B5047;--brown-light:#EDE4DA;--white:#FFFFFF}
-body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6}
-a{text-decoration:none;color:inherit}
-h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,248,244,0.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(71,55,43,0.07);padding:0 5%}
-.nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:62px}
-.nav-logo{display:flex;align-items:center;gap:9px}
-.nav-logo img{width:44px;height:44px;object-fit:contain}
-.nav-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.03em}
-.nav-back{font-size:14px;color:var(--brown-mid);transition:color 0.2s;display:flex;align-items:center;gap:6px}
-.nav-back:hover{color:var(--teal)}
-.legal-page{max-width:720px;margin:0 auto;padding:110px 5% 80px}
-.legal-page h1{font-size:clamp(1.8rem,3vw,2.4rem);color:var(--brown);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px}
-.legal-updated{font-size:13px;color:var(--brown-mid);margin-bottom:40px}
-.legal-page h2{font-size:16px;font-weight:700;color:var(--brown);margin-top:32px;margin-bottom:8px;letter-spacing:-0.02em}
-.legal-page p{font-size:15px;color:var(--brown-mid);line-height:1.8}
-footer{background:var(--brown);padding:40px 5%}
-.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-.footer-logo{display:flex;align-items:center;gap:9px}
-.footer-logo img{width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1)}
-.footer-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.02em}
-.footer-links{display:flex;gap:20px}
-.footer-links a{font-size:13px;color:rgba(255,255,255,0.45);transition:color 0.2s}
-.footer-links a:hover{color:rgba(255,255,255,0.8)}
-.footer-disclaimer{font-size:11px;color:rgba(255,255,255,0.35);width:100%;margin-top:12px;line-height:1.5;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
-.footer-copy{font-size:12px;color:rgba(255,255,255,0.25);width:100%;margin-top:4px}
-@media(max-width:768px){.footer-inner{flex-direction:column;align-items:flex-start}}
+:root{
+  --cream:#FAF8F4;
+  --teal:#0C8E6B;
+  --teal-dark:#097A5B;
+  --teal-light:#E3F5EE;
+  --coral:#D47C65;
+  --brown:#47372B;
+  --brown-mid:#6B5047;
+  --brown-light:#EDE4DA;
+  --white:#FFFFFF;
+}
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.7}
+a{color:var(--teal);text-decoration:underline}
+a:hover{color:var(--teal-dark)}
+h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
+
+.policy-header{background:var(--brown);padding:100px 5% 48px;text-align:center}
+.policy-header h1{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--white);font-weight:700;margin-bottom:8px}
+.policy-header p{font-size:14px;color:rgba(250,248,244,0.5)}
+
+.policy-body{max-width:720px;margin:0 auto;padding:48px 5% 80px}
+.policy-body h2{font-size:18px;font-weight:700;color:var(--brown);margin-top:40px;margin-bottom:12px;padding-top:24px;border-top:1px solid var(--brown-light)}
+.policy-body h2:first-of-type{border-top:none;padding-top:0;margin-top:0}
+.policy-body p{font-size:15px;color:var(--brown-mid);margin-bottom:14px;line-height:1.8}
+.policy-body ul{margin:8px 0 16px 20px;list-style:disc}
+.policy-body ul li{font-size:14px;color:var(--brown-mid);line-height:1.7;margin-bottom:6px}
+.policy-body strong{color:var(--brown);font-weight:600}
+
+.policy-callout{background:var(--teal-light);border-radius:12px;padding:20px 24px;margin:24px 0;font-size:14px;color:var(--brown);line-height:1.7}
+.policy-callout strong{color:var(--teal-dark)}
+
+.policy-nav{background:var(--cream);padding:16px 5%;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--brown-light)}
+.policy-nav-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+.policy-nav a{font-size:14px;font-weight:500;color:var(--teal);text-decoration:none}
+.policy-nav a:hover{text-decoration:underline}
+.policy-nav span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+
+.policy-footer{background:var(--brown);padding:32px 5%;text-align:center}
+.policy-footer p{font-size:12px;color:rgba(250,248,244,0.4)}
+.policy-footer a{color:rgba(250,248,244,0.6)}
+
+@media(max-width:480px){
+  .policy-header{padding:80px 5% 32px}
+  .policy-body{padding:32px 5% 56px}
+  .policy-body h2{font-size:16px}
+}
 </style>
 </head>
 <body>
-<nav>
-  <div class="nav-inner">
-    <a class="nav-logo" href="/">
-      <img src="https://biowellth.ai/logo.png" alt="BioWellth"/>
-      <span>BioWellth</span>
-    </a>
-    <a href="/" class="nav-back">
-      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
-    </a>
+
+<nav class="policy-nav">
+  <div class="policy-nav-inner">
+    <span>BioWellth</span>
+    <a href="https://biowellth.ai">← Back to site</a>
   </div>
 </nav>
 
-<div class="legal-page">
+<div class="policy-header">
   <h1>Privacy Policy</h1>
-  <p class="legal-updated">Last updated: April 2026</p>
-
-  <h2>What we collect</h2>
-  <p>When you sign up for early access, we collect your name, email address, city, and age range. If you upload blood test reports, we store those files securely. If you connect a wearable through Apple Health or Android Health Connect, we receive the health data you choose to share (sleep, HRV, cycle, activity). We also collect information you log directly, like symptoms and energy levels.</p>
-
-  <h2>How we use it</h2>
-  <p>Your data is used to provide functional interpretation of your blood work, power the AI companion, and generate gap analysis and test recommendations. We also use aggregated, anonymised data to improve our algorithms. We never use your personal health data for advertising or marketing.</p>
-
-  <h2>Who we share it with</h2>
-  <p>Nobody. We don't sell, rent, or share your personal health data with third parties. We don't share it with advertisers, data brokers, or anyone else. The only exception is if we're legally required to by Indian law.</p>
-
-  <h2>How we protect it</h2>
-  <p>Your reports and health data are encrypted in transit and at rest. Access is restricted to the systems that need it to provide your results. We don't store payment information (we use third-party payment processors).</p>
-
-  <h2>Your rights</h2>
-  <p>You can request a copy of all data we hold about you. You can ask us to delete everything at any time. You can withdraw consent for data processing. You can disconnect wearable integrations at any time. To exercise any of these rights, email support@mybiowellth.com.</p>
-
-  <h2>Cookies</h2>
-  <p>We use essential cookies to keep the site working. We use analytics to understand how people use the site. We don't use advertising cookies or tracking pixels.</p>
-
-  <h2>Changes</h2>
-  <p>If we change this policy, we'll update this page and notify you by email if the changes are significant.</p>
-
-  <h2>Contact</h2>
-  <p>Questions about your data? Email support@mybiowellth.com.</p>
+  <p>Last updated April 2026</p>
 </div>
 
-<footer>
-  <div class="footer-inner">
-    <div class="footer-logo"><img src="https://biowellth.ai/logo.png" alt="BioWellth"/><span>BioWellth</span></div>
-    <div class="footer-links">
-      <a href="/privacy.html">Privacy Policy</a>
-      <a href="/terms.html">Terms &amp; Conditions</a>
-      <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>
-    </div>
-    <div class="footer-disclaimer">BioWellth is not a medical provider. We don't diagnose, treat, or replace your doctor. We give you smarter information so you can have better conversations with them.</div>
-    <div class="footer-copy">© 2026 BioWellth India. All rights reserved. · Founded by <a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.45);text-decoration:underline">Aditi Pillai</a></div>
-  </div>
-</footer>
+<div class="policy-body">
+
+<div class="policy-callout">
+  <strong>Plain-language summary.</strong> We collect only what we need to give you functional health insights. We never sell your data. We never share it with advertisers. You can delete everything at any time. This policy explains the details. It still needs formal legal review, and we'll update it before we begin processing health data for our founding members.
+</div>
+
+<h2>Who we are</h2>
+<p>BioWellth India ("BioWellth," "we," "us") is a functional health intelligence platform. We are the Data Fiduciary under India's Digital Personal Data Protection Act, 2023 (the "DPDP Act"). That means we decide what personal data is collected and why, and we are responsible for protecting it.</p>
+<p>If you have questions about this policy or want to exercise any of your rights, email us at <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
+
+<h2>What personal data we collect and why</h2>
+<p>We collect different types of data for specific purposes. We only collect what is necessary for each purpose.</p>
+
+<p><strong>Account and contact information</strong></p>
+<p>Your name, email address, phone number, city, and age range. We collect this when you sign up for early access or create an account.</p>
+<ul>
+  <li>Purpose: to create your account, communicate with you about the service, and send updates you've opted into</li>
+</ul>
+
+<p><strong>Blood test reports</strong></p>
+<p>PDF or image files of your existing blood work that you upload to the platform.</p>
+<ul>
+  <li>Purpose: to provide functional interpretation of your results, generate gap analysis, and create test request lists</li>
+</ul>
+
+<p><strong>Wearable and health device data</strong></p>
+<p>If you choose to connect Apple Health or Android Health Connect, we receive the data categories you select. This may include sleep stages, heart rate variability (HRV), skin temperature, activity, and cycle tracking data.</p>
+<ul>
+  <li>Purpose: to read your blood work alongside lifestyle and cycle signals for a more complete picture</li>
+</ul>
+
+<p><strong>Self-reported data</strong></p>
+<p>Symptoms, energy levels, mood, cycle patterns, and other information you log directly in the app.</p>
+<ul>
+  <li>Purpose: to provide personalised AI companion responses and track patterns over time</li>
+</ul>
+
+<p><strong>Usage data</strong></p>
+<p>How you interact with the platform, which pages you visit, and basic device information (browser type, screen size). We do not use advertising cookies or tracking pixels.</p>
+<ul>
+  <li>Purpose: to understand how people use the site and improve the experience</li>
+</ul>
+
+<h2>How we obtain your consent</h2>
+<p>Under the DPDP Act, we process your personal data based on your consent. When you sign up, we ask for your consent clearly and separately for each type of processing. You will see exactly what you are agreeing to before you agree to it.</p>
+<p>Consent is voluntary. You can use parts of the service without consenting to everything. For example, you can upload blood work without connecting a wearable.</p>
+<p>You can withdraw consent at any time by emailing <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a> or through your account settings. When you withdraw consent, we will stop processing that data and direct any processors we work with to do the same. Withdrawal does not affect any processing that happened before you withdrew.</p>
+
+<h2>Who has access to your data</h2>
+<p>We do not sell, rent, or share your personal health data with third parties. We do not share it with advertisers or data brokers.</p>
+<p>The only parties who may access your data are listed here.</p>
+<ul>
+  <li><strong>Our infrastructure providers</strong> who host and process data on our behalf (Data Processors under the DPDP Act). They are contractually bound to DPDP-equivalent protections and cannot use your data for their own purposes.</li>
+  <li><strong>Payment processors</strong> if you make a purchase. We do not store payment card information ourselves.</li>
+  <li><strong>Indian law enforcement or regulatory authorities</strong> if we are legally compelled to disclose data under applicable Indian law.</li>
+</ul>
+<p>We do not transfer personal data to any country that is on the Central Government's restricted list under the DPDP Act. If our infrastructure providers store data outside India, we will disclose which countries and ensure equivalent protections are in place.</p>
+
+<h2>How we protect your data</h2>
+<p>We implement reasonable security safeguards as required under Section 8(5) of the DPDP Act.</p>
+<ul>
+  <li>All data is encrypted in transit (TLS) and at rest</li>
+  <li>Access to personal data is restricted to systems and personnel that need it to provide the service</li>
+  <li>We conduct periodic reviews of our security practices</li>
+  <li>Blood test reports and health data are stored separately from account information</li>
+</ul>
+
+<h2>Data breach notification</h2>
+<p>If we become aware of a personal data breach that is likely to cause you harm, we will notify the Data Protection Board of India within 72 hours as required under the DPDP Act. We will also inform you as soon as reasonably possible, explaining what happened, what data was affected, and what steps we are taking.</p>
+
+<h2>How long we keep your data</h2>
+<p>We keep your personal data only as long as it is needed for the purpose it was collected.</p>
+<ul>
+  <li><strong>Account data</strong> is retained while your account is active. If you delete your account, we erase it within 30 days.</li>
+  <li><strong>Blood test reports and health data</strong> are retained while your account is active, so you can track trends over time. Deleted within 30 days of account deletion or upon your request.</li>
+  <li><strong>Usage data</strong> is aggregated and anonymised within 12 months. Once anonymised, it is no longer personal data.</li>
+  <li><strong>Legal and regulatory records</strong> may be retained longer where Indian law requires it (for example, financial transaction records under the Income Tax Act).</li>
+</ul>
+<p>When data is no longer needed and no legal retention requirement applies, we delete it.</p>
+
+<h2>Your rights under the DPDP Act</h2>
+<p>As a Data Principal, you have the following rights.</p>
+<ul>
+  <li><strong>Right to access.</strong> You can request a summary of the personal data we hold about you and how we are processing it.</li>
+  <li><strong>Right to correction.</strong> You can ask us to correct any personal data that is inaccurate or incomplete.</li>
+  <li><strong>Right to erasure.</strong> You can ask us to delete all personal data we hold about you. We will do so within 30 days, unless a legal obligation requires us to retain it.</li>
+  <li><strong>Right to withdraw consent.</strong> You can withdraw consent for any or all processing at any time.</li>
+  <li><strong>Right to grievance redressal.</strong> If you believe we have not handled your data properly, you can raise a complaint with us. If you are not satisfied with our response, you have the right to file a complaint with the Data Protection Board of India.</li>
+  <li><strong>Right to nominate.</strong> You may nominate another individual to exercise your data rights on your behalf in the event of your death or incapacity.</li>
+</ul>
+<p>To exercise any of these rights, email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>. We will respond within 30 days.</p>
+
+<h2>Children's data</h2>
+<p>BioWellth is designed for adults. We do not knowingly collect personal data from anyone under the age of 18. If we learn that we have collected data from a minor without verifiable parental consent, we will delete it promptly. If you believe a minor has provided us with personal data, please email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
+
+<h2>Aggregated and anonymised data</h2>
+<p>We use aggregated, anonymised data to improve our algorithms and understand health patterns at a population level. This data cannot be traced back to any individual. It is not personal data under the DPDP Act and is not subject to the rights described above.</p>
+
+<h2>Cookies</h2>
+<p>We use essential cookies to keep the site working (session management, security). We use basic analytics to understand how people use the site. We do not use advertising cookies, tracking pixels, or third-party marketing trackers.</p>
+
+<h2>Changes to this policy</h2>
+<p>If we make significant changes to this policy, we will update this page and notify you by email before the changes take effect. Minor clarifications or formatting changes may be made without notice. The "last updated" date at the top of this page always reflects the most recent version.</p>
+
+<h2>Contact</h2>
+<p>Questions about your data or want to exercise any of your rights? Email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
+
+<p>If you are not satisfied with our response, you may file a complaint with the Data Protection Board of India once it is operational under the DPDP Act, 2023.</p>
+
+<p style="margin-top:40px;font-size:13px;color:var(--brown-mid);font-style:italic">This privacy policy has been written to reflect the requirements of India's Digital Personal Data Protection Act, 2023 and the Draft DPDP Rules, 2025. It has not yet been reviewed by a qualified legal professional. We recommend completing a formal legal review before processing personal health data from users.</p>
+
+</div>
+
+<div class="policy-footer">
+  <p>© 2026 BioWellth India. All rights reserved.<br/><a href="https://biowellth.ai">biowellth.ai</a></p>
+</div>
+
 </body>
 </html>
