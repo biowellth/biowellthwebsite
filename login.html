@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>BioWellth · Founding members</title>
+<link rel="icon" href="/favicon.ico"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#FAF8F4; --cream-mid:#F2EDE3;
+  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
+  --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB;
+  --white:#FFFFFF;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{width:100%;max-width:420px}
+.brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:28px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;color:var(--white);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
+.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
+.card{background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:36px 32px;box-shadow:0 30px 80px -20px rgba(71,55,43,0.12)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
+.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal)}
+h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--brown);letter-spacing:-0.03em;line-height:1.2;margin-bottom:8px}
+.sub{font-size:14px;color:var(--brown-mid);line-height:1.65;margin-bottom:26px}
+label{display:block;font-size:13px;font-weight:600;color:var(--brown);margin-bottom:7px;margin-top:16px}
+label:first-of-type{margin-top:0}
+input{width:100%;font-family:inherit;font-size:15px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:11px;padding:12px 14px;transition:border-color .15s,background .15s}
+input:focus{outline:none;border-color:var(--teal);background:var(--white)}
+.btn{width:100%;margin-top:24px;background:var(--teal);color:var(--white);font-family:inherit;font-size:15px;font-weight:600;padding:14px;border:none;border-radius:100px;cursor:pointer;transition:background .2s,transform .12s}
+.btn:hover{background:var(--teal-dark);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.toggle{text-align:center;font-size:14px;color:var(--brown-mid);margin-top:22px}
+.toggle a{color:var(--teal);font-weight:600;text-decoration:none;cursor:pointer}
+.toggle a:hover{text-decoration:underline}
+.msg{font-size:14px;line-height:1.55;border-radius:11px;padding:12px 14px;margin-top:18px;display:none}
+.msg.err{display:block;background:var(--coral-light);color:var(--coral-dark);border:1px solid #EAC9BF}
+.msg.ok{display:block;background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal-soft)}
+.foot{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:22px;line-height:1.6}
+.foot a{color:var(--brown-mid);text-decoration:underline}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-mark">B</div>
+    <div class="brand-name">BioWellth</div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">Founding members</div>
+
+    <!-- CREATE ACCOUNT -->
+    <div id="signup-view">
+      <h1>Create your account</h1>
+      <p class="sub">Use the email address you were invited with. Founding member access only.</p>
+      <label for="su-name">Your name</label>
+      <input id="su-name" type="text" autocomplete="name" placeholder="Priya Sharma"/>
+      <label for="su-email">Email</label>
+      <input id="su-email" type="email" autocomplete="email" placeholder="you@email.com"/>
+      <label for="su-pass">Choose a password</label>
+      <input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
+      <button class="btn" id="su-btn">Create account</button>
+      <div class="toggle">Already have an account? <a id="to-login">Sign in</a></div>
+    </div>
+
+    <!-- SIGN IN -->
+    <div id="login-view" class="hidden">
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to see your results.</p>
+      <label for="li-email">Email</label>
+      <input id="li-email" type="email" autocomplete="email" placeholder="you@email.com"/>
+      <label for="li-pass">Password</label>
+      <input id="li-pass" type="password" autocomplete="current-password" placeholder="Your password"/>
+      <button class="btn" id="li-btn">Sign in</button>
+      <div class="toggle">First time here? <a id="to-signup">Create your account</a></div>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="foot">
+    By continuing you agree to our <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   PASTE YOUR TWO VALUES HERE  (Supabase > Project Settings > API)
+   Both are safe to keep in front-end code.
+   ───────────────────────────────────────────────────────────── */
+const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
+/* ───────────────────────────────────────────────────────────── */
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const APP = "/app.html";   // where to send people once they're in
+
+const $ = (id) => document.getElementById(id);
+const msg = $("msg");
+function show(type, text){ msg.className = "msg " + type; msg.textContent = text; }
+function clearMsg(){ msg.className = "msg"; msg.textContent = ""; }
+
+// If they're already signed in, skip straight to the app.
+sb.auth.getSession().then(({ data }) => { if (data.session) location.replace(APP); });
+
+// View toggling (invite link can use ?mode=login to open sign-in)
+const params = new URLSearchParams(location.search);
+if (params.get("mode") === "login") swapTo("login");
+$("to-login").onclick  = () => swapTo("login");
+$("to-signup").onclick = () => swapTo("signup");
+function swapTo(view){
+  clearMsg();
+  $("signup-view").classList.toggle("hidden", view !== "signup");
+  $("login-view").classList.toggle("hidden", view === "signup");
+}
+
+// CREATE ACCOUNT
+$("su-btn").onclick = async () => {
+  clearMsg();
+  const name  = $("su-name").value.trim();
+  const email = $("su-email").value.trim();
+  const pass  = $("su-pass").value;
+  if (!name)            return show("err", "Please enter your name.");
+  if (!email)           return show("err", "Please enter your email.");
+  if (pass.length < 8)  return show("err", "Password needs at least 8 characters.");
+
+  $("su-btn").disabled = true; $("su-btn").textContent = "Creating account…";
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass, options: { data: { full_name: name } }
+  });
+  $("su-btn").disabled = false; $("su-btn").textContent = "Create account";
+
+  if (error){
+    const m = (error.message || "").toLowerCase();
+    if (m.includes("already registered") || m.includes("already been registered"))
+      return show("err", "This email already has an account. Try signing in instead.");
+    // the database gate refuses non-invited emails (surfaces as a generic db error)
+    if (m.includes("database") || error.status === 500)
+      return show("err", "We couldn't create an account with that email. Please use the exact address you were invited with.");
+    return show("err", error.message);
+  }
+  if (data.session){ location.replace(APP); }
+  else { show("ok", "Account created. You can now sign in."); swapTo("login"); }
+};
+
+// SIGN IN
+$("li-btn").onclick = async () => {
+  clearMsg();
+  const email = $("li-email").value.trim();
+  const pass  = $("li-pass").value;
+  if (!email || !pass) return show("err", "Enter your email and password.");
+
+  $("li-btn").disabled = true; $("li-btn").textContent = "Signing in…";
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  $("li-btn").disabled = false; $("li-btn").textContent = "Sign in";
+
+  if (error) return show("err", "Email or password is incorrect.");
+  location.replace(APP);
+};
+
+// Enter key submits the visible form
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  if (!$("signup-view").classList.contains("hidden")) $("su-btn").click();
+  else $("li-btn").click();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>BioWellth · Your dashboard</title>
+<link rel="icon" href="/favicon.ico"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#FAF8F4; --teal:#0C8E6B; --teal-dark:#097A5B; --teal-light:#E3F5EE;
+  --coral:#D47C65; --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --white:#FFFFFF;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);min-height:100vh}
+/* hidden until the session check passes, so protected content never flashes */
+body{visibility:hidden}
+body.ready{visibility:visible}
+.topbar{background:var(--white);border-bottom:1px solid var(--brown-light);padding:0 24px;position:sticky;top:0}
+.topbar-inner{max-width:1100px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;color:var(--white);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px}
+.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
+.logout{font-size:13px;color:var(--brown-mid);font-weight:600;background:none;border:none;cursor:pointer;padding:8px 14px;border-radius:100px}
+.logout:hover{background:var(--cream);color:var(--brown)}
+.main{max-width:1100px;margin:0 auto;padding:56px 24px}
+.card{background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:40px;max-width:560px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
+h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.03em;margin-bottom:12px}
+h1 em{font-style:italic;color:var(--teal);font-weight:400}
+p{font-size:15px;color:var(--brown-mid);line-height:1.7}
+.who{margin-top:18px;font-size:14px;color:var(--brown)}
+.who strong{font-weight:600}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><div class="brand-mark">B</div><div class="brand-name">BioWellth</div></div>
+    <button class="logout" id="logout">Sign out</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="eyebrow">Founding members</div>
+    <h1>You're in. <em>This is where your dashboard will live.</em></h1>
+    <p>Auth is working. The real upload flow and your results will be built into this page next.</p>
+    <div class="who" id="who"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ─── same two values as login.html ─── */
+const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
+/* ───────────────────────────────────── */
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// THE GUARD: no session => bounce to login. Runs before the page shows.
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (!data.session){ location.replace("/login.html?mode=login"); return; }
+  const u = data.session.user;
+  const name = u.user_metadata && u.user_metadata.full_name;
+  document.getElementById("who").innerHTML =
+    "Signed in as <strong>" + (name ? name + " · " : "") + u.email + "</strong>";
+  document.body.classList.add("ready");
+})();
+
+document.getElementById("logout").onclick = async () => {
+  await sb.auth.signOut();
+  location.replace("/login.html");
+};
+</script>
+</body>
+</html>
