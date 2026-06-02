@@ -164,6 +164,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./score-engine.js"></script>
 <script>
 /* same two values as login.html */
 const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
@@ -181,6 +182,9 @@ let USER = null, pollTimer = null;
      priorities:[ { title, marker, finding, action, severity:"low"|"monitor"|"watch" } ],
      quietly_working: [ { title, note } ]
    }
+   NOTE: vitality.score and vitality.band are IGNORED on the reveal — they are
+   computed client-side from report_markers via score-engine.js. Confidence,
+   headline, systems, priorities, quietly_working flow through unchanged.
 */
 
 function showView(name){
@@ -194,9 +198,9 @@ function showView(name){
   USER = data.session.user;
   document.body.classList.add("ready");
   const { data: latest } = await sb.from("results")
-    .select("payload").eq("user_id", USER.id)
+    .select("report_id, payload").eq("user_id", USER.id)
     .order("created_at",{ascending:false}).limit(1).maybeSingle();
-  if(latest && latest.payload){ renderReveal(latest.payload); showView("reveal"); }
+  if(latest && latest.payload){ await renderReveal(latest.payload, latest.report_id); showView("reveal"); }
   else { showView("upload"); }
 })();
 
@@ -241,18 +245,31 @@ function pollForResult(reportId){
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
     if(data && data.payload){
       clearInterval(pollTimer);
-      renderReveal(data.payload);
+      await renderReveal(data.payload, reportId);
       showView("reveal");
     }
   }, 3000);
 }
 
-function renderReveal(p){
+async function renderReveal(p, reportId){
   const v = p.vitality || {};
-  const score = (typeof v.score==="number") ? v.score : null;
+
+  // Deterministic vitality score from this report's markers (score-engine.js).
+  // Overrides the model's score and band; everything else in payload is kept.
+  let score = null, band = "Your results";
+  if (reportId) {
+    const { data: rows } = await sb.from("report_markers")
+      .select("marker_key, value, unit").eq("report_id", reportId);
+    const raw = (rows || []).map(r => ({ name: r.marker_key, value: r.value, unit: r.unit }));
+    const enriched = buildEnriched(raw);
+    if (enriched.length) {
+      score = calculateScore(enriched);
+      band  = scoreToBand(score);
+    }
+  }
   $("score-num").textContent = score!==null ? score : "\u2013";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
-  $("band").textContent = v.band || "Your results";
+  $("band").textContent = band;
   $("headline").textContent = p.headline || "";
   $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
 
