@@ -1,6 +1,5 @@
 /* score-engine.js
-   Shared by app.html (reveal) and dashboard (1).html (full dashboard).
-   Single source of truth for functional ranges and the deterministic vitality score.
+   Loaded by dashboard.html. Single source of truth for functional ranges and the deterministic vitality score.
    Loaded as a plain <script src>; everything attaches to window. */
 
 const FUNCTIONAL_RANGES = {
