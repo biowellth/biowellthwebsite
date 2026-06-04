@@ -22,7 +22,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 body.ready{visibility:visible}
 .mono{font-family:'JetBrains Mono',monospace}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
-.topbar{background:var(--white);border-bottom:1px solid var(--brown-light);padding:0 24px;position:sticky;top:0;z-index:50}
+.topbar{background:var(--white);border-bottom:1px solid var(--brown-light);padding:0 24px;position:sticky;top:0;z-index:70}
 .topbar-inner{max-width:1100px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:10px}
 .brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;color:var(--white);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px}
@@ -99,17 +99,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .phone{position:relative;width:100%;max-width:none;height:100dvh;overflow:hidden;
   background:transparent;box-shadow:none}
 /* reveal is full-bleed on desktop; no phone frame */
-#view-reveal .segments{position:absolute;top:16px;left:18px;right:18px;display:flex;gap:6px;z-index:40}
+#view-reveal .segments{position:absolute;top:60px;left:0;right:0;display:flex;gap:6px;z-index:40;
+  padding:14px max(24px,calc((100% - 760px) / 2)) 12px;background:var(--cream)}
 #view-reveal .seg{flex:1;height:3px;border-radius:3px;background:var(--brown-light);overflow:hidden}
 #view-reveal .seg i{display:block;height:100%;width:0;background:var(--brown-mid);border-radius:3px;transition:width .35s ease}
 #view-reveal .seg.done i{width:100%}
-#view-reveal .skip{position:absolute;top:33px;right:18px;z-index:45;font-family:'JetBrains Mono',monospace;
+#view-reveal .skip{position:absolute;top:68px;right:24px;z-index:45;font-family:'JetBrains Mono',monospace;
   font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-mid);
   background:none;border:none;cursor:pointer;opacity:.55;padding:6px}
 #view-reveal .skip:hover{opacity:1}
 #view-reveal .deck{position:absolute;inset:0;z-index:10}
 #view-reveal .card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
-  padding:80px max(40px,calc((100% - 760px) / 2)) 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
+  padding:104px max(40px,calc((100% - 760px) / 2)) 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
   transition:opacity .42s ease,transform .42s ease,visibility 0s linear .42s;pointer-events:none}
 #view-reveal .card.active{opacity:1;visibility:visible;transform:none;
   transition:opacity .42s ease,transform .42s ease;pointer-events:auto}
@@ -187,20 +188,20 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .lever-row .nm{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:15px;color:var(--brown)}
 #view-reveal .lever-row .cn{font-size:13.5px;line-height:1.5;color:var(--brown-mid);margin-top:3px}
 #view-reveal .closing{margin-top:20px;font-size:14.5px;line-height:1.55;color:var(--brown);font-style:italic;border-top:1px solid var(--brown-light);padding-top:15px}
-#view-reveal .priolist{margin-top:22px;display:flex;flex-direction:column;gap:12px}
-#view-reveal .prio-card{display:flex;gap:16px;align-items:center;border-radius:16px;padding:18px 20px;
+#view-reveal .priolist{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+#view-reveal .prio-card{display:flex;gap:16px;align-items:center;border-radius:15px;padding:15px 18px;
   background:var(--teal-soft);border:1px solid var(--teal-light)}
 #view-reveal .prio-card.t-coral{background:var(--coral-light);border-color:#F0DAD2}
 #view-reveal .prio-card.t-amber{background:var(--amber-light);border-color:#F0E3C2}
 #view-reveal .prio-card.t-teal{background:var(--teal-soft);border-color:var(--teal-light)}
-#view-reveal .prio-card .pnum{flex:none;width:44px;text-align:center;font-family:'JetBrains Mono',monospace;
-  font-weight:600;font-size:38px;line-height:1;letter-spacing:-.04em;color:var(--teal-dark)}
+#view-reveal .prio-card .pnum{flex:none;width:42px;text-align:center;font-family:'JetBrains Mono',monospace;
+  font-weight:600;font-size:34px;line-height:1;letter-spacing:-.04em;color:var(--teal-dark)}
 #view-reveal .prio-card.t-coral .pnum{color:var(--coral-dark)}
 #view-reveal .prio-card.t-amber .pnum{color:var(--orange-dark)}
 #view-reveal .prio-card.t-teal .pnum{color:var(--teal-dark)}
 #view-reveal .prio-card .pbody{min-width:0}
-#view-reveal .prio-card .ph{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16.5px;line-height:1.32;color:var(--brown)}
-#view-reveal .prio-card .pone{font-size:13.5px;line-height:1.45;color:var(--brown-mid);margin-top:4px}
+#view-reveal .prio-card .ph{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;line-height:1.3;color:var(--brown);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #view-reveal .nav{position:absolute;left:0;right:0;bottom:0;z-index:42;display:flex;align-items:center;justify-content:space-between;
   gap:12px;padding:16px max(24px,calc((100% - 760px) / 2)) 22px;background:linear-gradient(to top,var(--off-white) 62%,rgba(253,251,248,0))}
 #view-reveal .navbtn{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;border-radius:13px;
@@ -257,7 +258,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   <div id="view-processing" class="hidden">
     <div class="spinner"></div>
     <h1>Reading your report</h1>
-    <p>We're pulling out every marker and reading it against women's functional ranges. This usually takes a few minutes.</p>
+    <p>We are reading every result and comparing it against healthy ranges built for women. This usually takes a minute or two.</p>
     <div class="proc-file" id="proc-file"></div>
   </div>
 
@@ -306,13 +307,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     </div>
 
     <div class="disclaimer">
-      <strong>This is educational, not a diagnosis.</strong> We interpret your report against functional ranges used in integrative medicine. We don't diagnose, treat, or prescribe. Always discuss your results with a licensed clinician before acting on them.
+      <strong>This is educational, not a diagnosis.</strong> We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.
     </div>
 
     <div class="replay-row">
       <button class="replay-btn" id="btn-replay">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/></svg>
-        Replay the reveal
+        Walk through my results again
       </button>
     </div>
   </div>
@@ -545,7 +546,7 @@ function buildDeck(p, reportId){
     '<section class="card card--hero">' +
       '<div class="eyebrow stag">Your results, read differently</div>' +
       '<h1 class="display h-hero stag">Here is what your body is telling us.</h1>' +
-      '<p class="sub stag">Read for how well you are, not just whether something is wrong. We start with the good news.</p>' +
+      '<p class="sub stag">This looks at how well you are, not just whether something is wrong. We will start with the good news.</p>' +
     '</section>'
   );
 
@@ -577,11 +578,11 @@ function buildDeck(p, reportId){
           '<div class="num"><b id="rd-ringNum">' + (showComposite ? '0' : '') + '</b><span>Vitality</span></div>' +
         '</div>' +
         '<div class="bandlabel stag" id="rd-bandLabel">' + esc(bandLabel || ' ') + '</div>' +
-        '<p class="bandcopy stag">This is a single read across your systems, weighted by how much each one shapes how you feel day to day.</p>' +
+        '<p class="bandcopy stag">This is one score for your whole body. The parts that affect how you feel the most count for more.</p>' +
         (visibility != null
           ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
           : '') +
-        '<p class="caveat stag">The more you test over time, the sharper this gets. Founding member preview, functional ranges are guidance and still under clinical review.</p>' +
+        '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our medical team.</p>' +
       '</div>' +
     '</section>'
   );
@@ -608,18 +609,18 @@ function buildDeck(p, reportId){
     beats.push(
       '<section class="card">' +
         '<div class="eyebrow brown stag">What to track next</div>' +
-        '<h1 class="display h-lg stag">Coverage looks solid across the board.</h1>' +
-        '<p class="sub stag">The next layer is following these markers over time, so we can see how each one moves panel to panel.</p>' +
+        '<h1 class="display h-lg stag">This test covered almost everything.</h1>' +
+        '<p class="sub stag">The next step is to keep testing over time, so we can see how your numbers change from one report to the next.</p>' +
       '</section>'
     );
   } else {
     const visText = visibility != null ? visibility + '% of the picture' : 'most of the picture';
     beats.push(
       '<section class="card">' +
-        '<div class="eyebrow brown stag">What this panel did not show</div>' +
+        '<div class="eyebrow brown stag">What this test did not show</div>' +
         '<h1 class="display h-lg stag">' + esc(lowCover.displayName) + ' is your biggest blank right now.</h1>' +
-        '<p class="sub stag">Your panel did not fully cover ' + esc(lowCover.displayName) + '.</p>' +
-        '<p class="sub stag">Filling that in is what would take you from <strong>' + esc(visText) + '</strong> to nearly all of it, and what lets us track real change as you retest.</p>' +
+        '<p class="sub stag">Your test did not fully cover ' + esc(lowCover.displayName) + '.</p>' +
+        '<p class="sub stag">Adding it would take you from <strong>' + esc(visText) + '</strong> to nearly the whole picture, and let us see real change the next time you test.</p>' +
       '</section>'
     );
   }
@@ -627,7 +628,7 @@ function buildDeck(p, reportId){
   // Beat 5: Foundations (lead, levers, closing)
   beats.push(
     '<section class="card">' +
-      '<div class="eyebrow stag">The ground it all rests on</div>' +
+      '<div class="eyebrow stag">The basics it all rests on</div>' +
       (f.lead
         ? '<p class="sub stag" style="margin-top:0;color:var(--brown);font-size:17.5px">' + esc(f.lead) + '</p>'
         : '') +
@@ -648,11 +649,11 @@ function buildDeck(p, reportId){
     '<section class="card">' +
       '<div class="eyebrow stag">Your full picture is ready</div>' +
       (priCount > 0
-        ? '<h1 class="display h-lg stag">' + priCount + ' ' + priWord + ', in the order to take them.</h1>'
+        ? '<h1 class="display h-lg stag">' + priCount + ' ' + priWord + ', in the order to work on them.</h1>'
         : '<h1 class="display h-lg stag">Everything is laid out and ready.</h1>') +
       (priCount > 0
-        ? '<p class="sub stag">Everything quietly working for you is in there too, along with what to test next. Here they are, in order.</p>'
-        : '<p class="sub stag">Everything quietly working for you is in there too, along with what to test next. It is all waiting in your dashboard.</p>') +
+        ? '<p class="sub stag">Everything that is going well for you is in there too, along with what to test next. Here they are, in order.</p>'
+        : '<p class="sub stag">Everything that is going well for you is in there too, along with what to test next. It is all waiting in your dashboard.</p>') +
     '</section>'
   );
 
@@ -671,13 +672,9 @@ function buildDeck(p, reportId){
         '<h1 class="display h-lg stag">Here is where to start.</h1>' +
         '<div class="priolist">' +
         p.priorities.map((pr, i) => {
-          const lever = (pr.action_layer && pr.action_layer.primary_lever) || '';
-          const one = lever || pr.why_this_matters || '';
           return '<div class="prio-card ' + toneFor(pr, i) + ' stag" style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's">' +
             '<div class="pnum">' + (i+1) + '</div>' +
-            '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div>' +
-              (one ? '<div class="pone">' + esc(one) + '</div>' : '') +
-            '</div>' +
+            '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
           '</div>';
         }).join('') +
         '</div>' +
@@ -711,7 +708,7 @@ function buildDeck(p, reportId){
     paintSegs();
     back.classList.toggle('hide', n===0);
     next.innerHTML = (n===BEATS-1)
-      ? 'See my dashboard <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+      ? 'Go to Dashboard <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
       : ((n===0 ? 'Begin' : 'Next') + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>');
     if(cards[n].dataset.beatKind === 'ring' && !ringDone) animateRing();
   }
