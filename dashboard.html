@@ -174,17 +174,22 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id)=>document.getElementById(id);
 let USER = null, pollTimer = null;
 
-/* CONTRACT: the Edge Function writes this exact shape into results.payload
+/* CONTRACT: v1.3 payload shape written by process-report:
    {
-     vitality:  { score: 0-100, band: "string", confidence: "string" },
+     vitality:  { composite, band:{key,label}, confidence, visibility,
+                  display:{show_composite, mode} },
      headline:  "one-line narrative",
-     systems:   [ { name, status: "optimal"|"watch"|"low" } ],
-     priorities:[ { title, marker, finding, action, severity:"low"|"monitor"|"watch" } ],
-     quietly_working: [ { title, note } ]
+     systems:   [ { system_id, display_name, display_group, status, summary_line } ],
+     priorities:[ { rank, headline, system_id, severity,
+                    primary_markers:[{display_name, value, unit}],
+                    why_this_matters, the_connection,
+                    action_layer:{primary_lever}, trajectory_promise } ],
+     quietly_working: [ { finding, implication } ],
+     foundations: { lead, levers:[{display_name, connection}], closing }
    }
-   NOTE: vitality.score and vitality.band are IGNORED on the reveal — they are
-   computed client-side from report_markers via score-engine.js. Confidence,
-   headline, systems, priorities, quietly_working flow through unchanged.
+   The deterministic vitality score is computed server-side by the engine
+   (vitality.composite, vitality.band.label). The reveal renders that value
+   directly; no client-side recomputation. foundations is unused by the reveal.
 */
 
 function showView(name){
@@ -254,53 +259,59 @@ function pollForResult(reportId){
 async function renderReveal(p, reportId){
   const v = p.vitality || {};
 
-  // Deterministic vitality score from this report's markers (score-engine.js).
-  // Overrides the model's score and band; everything else in payload is kept.
-  let score = null, band = "Your results";
-  if (reportId) {
-    const { data: rows } = await sb.from("report_markers")
-      .select("marker_key, value, unit").eq("report_id", reportId);
-    const raw = (rows || []).map(r => ({ name: r.marker_key, value: r.value, unit: r.unit }));
-    const enriched = buildEnriched(raw);
-    if (enriched.length) {
-      score = calculateScore(enriched);
-      band  = scoreToBand(score);
-    }
-  }
-  $("score-num").textContent = score!==null ? score : "\u2013";
+  // Vitality ring reads the engine-computed score stored in this report's
+  // payload \u2014 not a client-side recomputation, so the ring matches what was
+  // saved. display.show_composite=false hides the number; band label stays.
+  const showComposite = v.display ? v.display.show_composite !== false : true;
+  const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
+  const bandLabel = (v.band && v.band.label) || "Your results";
+  $("score-num").textContent = score!==null ? score : "";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
-  $("band").textContent = band;
-  $("headline").textContent = p.headline || "";
+  $("band").textContent = bandLabel;
+  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ");
   $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
 
   const sys = Array.isArray(p.systems)?p.systems:[];
   $("systems-wrap").classList.toggle("hidden", sys.length===0);
   $("systems").innerHTML = sys.map(s=>{
     const st = (s.status||"optimal").toLowerCase();
-    return '<span class="pill '+st+'">'+esc(s.name)+'</span>';
+    return '<span class="pill '+st+'">'+esc(s.display_name||s.system_id||"")+'</span>';
   }).join("");
 
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
     const sev = (x.severity||"low").toLowerCase();
+    const rank = (typeof x.rank === "number" ? x.rank : (i+1));
+    const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
+    const markerLine = pm
+      ? [pm.display_name, pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
+      : "";
+    const lever = (x.action_layer && x.action_layer.primary_lever) || "";
     return '<div class="prio sev-'+sev+'">'+
-      '<div class="prio-top"><span class="prio-rank">'+String(i+1).padStart(2,"0")+'</span>'+
-      '<span class="prio-title">'+esc(x.title||"")+'</span>'+
-      (x.marker?'<span class="prio-marker">'+esc(x.marker)+'</span>':'')+'</div>'+
-      (x.finding?'<div class="prio-finding">'+esc(x.finding)+'</div>':'')+
-      (x.action?'<div class="prio-action">'+esc(x.action)+'</div>':'')+
+      '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
+      '<span class="prio-title">'+esc(x.headline||"")+'</span>'+
+      (markerLine?'<span class="prio-marker">'+esc(markerLine)+'</span>':'')+'</div>'+
+      (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
+      (x.the_connection?'<div class="prio-finding">'+esc(x.the_connection)+'</div>':'')+
+      (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
+      (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'')+
     '</div>';
   }).join("");
 
   const q = Array.isArray(p.quietly_working)?p.quietly_working:[];
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
   $("quiet").innerHTML = q.map(x=>
-    '<div class="quiet"><div class="quiet-title">'+esc(x.title||"")+'</div>'+
-    (x.note?'<div class="quiet-note">'+esc(x.note)+'</div>':'')+'</div>'
+    '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
+    (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
   ).join("");
 }
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+// esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
+function esc(s){
+  return String(s==null?"":s)
+    .replace(/ \u2014 /g, ", ")
+    .replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});
+}
 </script>
 </body>
 </html>
