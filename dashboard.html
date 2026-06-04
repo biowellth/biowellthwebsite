@@ -638,15 +638,15 @@ function markerRowHTML(mk){
 function anatomyOf(name){
   const s = (name||'').toLowerCase();
   const has = (...w)=> w.some(x => s.includes(x));
-  if(has('cognit','brain','neuro'))               return {x:50, y:9,  side:'R'};
-  if(has('thyroid'))                              return {x:50, y:21, side:'R'};
-  if(has('cardio','heart','lipid','cholesterol')) return {x:49, y:35, side:'L'};
-  if(has('liver','hepat'))                        return {x:46, y:47, side:'L'};
-  if(has('pancrea'))                              return {x:52, y:50, side:'R'};
-  if(has('adrenal','cortisol'))                   return {x:47, y:52, side:'L'};
-  if(has('kidney','renal','egfr','creatinin'))    return {x:54, y:55, side:'R'};
-  if(has('urinaly','urine','bladder'))            return {x:50, y:64, side:'L'};
-  if(has('sex','reproduct','estrogen','hormone','fsh','progest','testoster','ovar','uter')) return {x:50, y:68, side:'R'};
+  if(has('cognit','brain','neuro'))               return {x:50, y:7,  side:'R'};
+  if(has('thyroid'))                              return {x:50, y:20, side:'R'};
+  if(has('cardio','heart','lipid','cholesterol')) return {x:50, y:28, side:'L'};
+  if(has('liver','hepat'))                        return {x:45, y:39, side:'L'};
+  if(has('pancrea'))                              return {x:53, y:44, side:'R'};
+  if(has('adrenal','cortisol'))                   return {x:46, y:46, side:'L'};
+  if(has('kidney','renal','egfr','creatinin'))    return {x:55, y:49, side:'R'};
+  if(has('urinaly','urine','bladder'))            return {x:50, y:55, side:'L'};
+  if(has('sex','reproduct','estrogen','hormone','fsh','progest','testoster','ovar','uter')) return {x:50, y:58, side:'R'};
   return null;
 }
 const ST_COLOR = {'s-good':'#0C8E6B','s-watch':'#D4A94A','s-flag':'#D47C65','s-none':'#D9CDBE'};
