@@ -642,11 +642,11 @@ function anatomyOf(name){
   if(has('thyroid'))                              return {x:50, y:20, side:'R'};
   if(has('cardio','heart','lipid','cholesterol')) return {x:50, y:28, side:'L'};
   if(has('liver','hepat'))                        return {x:45, y:38, side:'L'};
-  if(has('pancrea'))                              return {x:53, y:41, side:'R'};
+  if(has('pancrea'))                              return {x:53, y:39, side:'R'};
   if(has('adrenal','cortisol'))                   return {x:46, y:43, side:'L'};
-  if(has('kidney','renal','egfr','creatinin'))    return {x:55, y:46, side:'R'};
+  if(has('kidney','renal','egfr','creatinin'))    return {x:55, y:44, side:'R'};
   if(has('urinaly','urine','bladder'))            return {x:50, y:51, side:'L'};
-  if(has('sex','reproduct','estrogen','hormone','fsh','progest','testoster','ovar','uter')) return {x:50, y:54, side:'R'};
+  if(has('sex','reproduct','estrogen','hormone','fsh','progest','testoster','ovar','uter')) return {x:54, y:52, side:'R'};
   return null;
 }
 const ST_COLOR = {'s-good':'#0C8E6B','s-watch':'#D4A94A','s-flag':'#D47C65','s-none':'#D9CDBE'};
