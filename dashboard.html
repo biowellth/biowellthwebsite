@@ -648,7 +648,7 @@ function buildDeck(p, reportId){
         '<div class="eyebrow coral stag">Your priorities, in order</div>' +
         '<h1 class="display h-lg stag">Here is where to start.</h1>' +
         p.priorities.map((pr, i) => (
-          '<div class="prio-row stag">' +
+          '<div class="prio-row stag" style="animation-delay:' + (0.3 + i*0.22).toFixed(2) + 's">' +
             '<div class="pnum">' + (i+1) + '</div>' +
             '<div class="ptext"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
           '</div>'
