@@ -280,7 +280,181 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./score-engine.js"></script>
+<script>
+/* same two values as login.html */
+const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id)=>document.getElementById(id);
+let USER = null, pollTimer = null;
+
+/* CONTRACT: v1.3 payload shape written by process-report:
+   {
+     vitality:  { composite, band:{key,label}, confidence, visibility,
+                  display:{show_composite, mode} },
+     headline:  "one-line narrative",
+     systems:   [ { system_id, display_name, display_group, status, summary_line } ],
+     priorities:[ { rank, headline, system_id, severity,
+                    primary_markers:[{display_name, value, unit}],
+                    why_this_matters, the_connection,
+                    action_layer:{primary_lever}, trajectory_promise } ],
+     quietly_working: [ { finding, implication } ],
+     foundations: { lead, levers:[{display_name, connection}], closing }
+   }
+   The deterministic vitality score is computed server-side by the engine.
+   The dashboard view renders composite + band.label directly. The gated
+   reveal deck reads the same payload (composite, band, visibility, pills,
+   priorities[0], quietly_working, foundations) and shows once per upload,
+   stamping reports.reveal_seen_at on exit.
+*/
+
+function showView(name){
+  ["upload","processing","reveal","dashboard"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
+  $("btn-new").classList.toggle("hidden", name!=="dashboard");
+}
+
+(async ()=>{
+  const { data } = await sb.auth.getSession();
+  if(!data.session){ location.replace("/login.html?mode=login"); return; }
+  USER = data.session.user;
+  document.body.classList.add("ready");
+
+  // Gate: latest report tells us (a) reveal_seen_at, (b) the id to read
+  // payload from and to stamp against.
+  const { data: report } = await sb.from("reports")
+    .select("id, reveal_seen_at")
+    .eq("user_id", USER.id)
+    .order("created_at",{ascending:false}).limit(1).maybeSingle();
+  if(!report){ showView("upload"); return; }
+
+  const { data: result } = await sb.from("results")
+    .select("payload").eq("report_id", report.id).limit(1).maybeSingle();
+  if(!result || !result.payload){ showView("upload"); return; }
+
+  await renderDashboard(result.payload, report.id);
+  if(report.reveal_seen_at == null){
+    buildDeck(result.payload, report.id);
+    showView("reveal");
+  } else {
+    showView("dashboard");
+  }
+})();
+
+$("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
+$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); showView("upload"); };
+
+const dz = $("dropzone"), fileInput = $("file");
+dz.onclick = ()=>fileInput.click();
+dz.ondragover = e=>{e.preventDefault();dz.classList.add("drag");};
+dz.ondragleave = ()=>dz.classList.remove("drag");
+dz.ondrop = e=>{e.preventDefault();dz.classList.remove("drag"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);};
+fileInput.onchange = ()=>{ if(fileInput.files[0]) handleFile(fileInput.files[0]); };
+
+async function handleFile(file){
+  const msg = $("upload-msg"); msg.className="msg"; msg.textContent="";
+  if(file.type!=="application/pdf"){ msg.className="msg err"; msg.textContent="Please upload a PDF."; return; }
+  if(file.size > 20*1024*1024){ msg.className="msg err"; msg.textContent="That file is over 20 MB. Try a smaller PDF."; return; }
+  $("proc-file").innerHTML = "Reading <strong>"+esc(file.name)+"</strong>";
+  showView("processing");
+  try{
+    const path = USER.id + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]/g,"_");
+    const up = await sb.storage.from("reports").upload(path, file, { contentType:"application/pdf" });
+    if(up.error) throw up.error;
+    const ins = await sb.from("reports")
+      .insert({ user_id: USER.id, file_path: path, status: "uploaded" })
+      .select("id").single();
+    if(ins.error) throw ins.error;
+    const reportId = ins.data.id;
+    try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId } }); }catch(_){}
+    pollForResult(reportId);
+  }catch(err){
+    showView("upload");
+    const msg = $("upload-msg"); msg.className="msg err";
+    msg.textContent = "Upload failed: " + (err.message||"please try again.");
+  }
+}
+
+function pollForResult(reportId){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    const { data } = await sb.from("results")
+      .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
+    if(data && data.payload){
+      clearInterval(pollTimer);
+      // Fresh report: reveal_seen_at is null by definition, so always run
+      // through the deck first. Stamping on exit moves the user to the
+      // dashboard view.
+      await renderDashboard(data.payload, reportId);
+      buildDeck(data.payload, reportId);
+      showView("reveal");
+    }
+  }, 3000);
+}
+
+async function renderDashboard(p, reportId){
+  const v = p.vitality || {};
+
+  // Vitality ring reads the engine-computed score stored in this report's
+  // payload \u2014 not a client-side recomputation, so the ring matches what was
+  // saved. display.show_composite=false hides the number; band label stays.
+  const showComposite = v.display ? v.display.show_composite !== false : true;
+  const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
+  const bandLabel = (v.band && v.band.label) || "Your results";
+  $("score-num").textContent = score!==null ? score : "";
+  $("score-ring").style.setProperty("--p", score!==null ? score : 0);
+  $("band").textContent = bandLabel;
+  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-");
+  $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
+
+  const sys = Array.isArray(p.systems)?p.systems:[];
+  $("systems-wrap").classList.toggle("hidden", sys.length===0);
+  $("systems").innerHTML = sys.map(s=>{
+    const st = (s.status||"optimal").toLowerCase();
+    return '<span class="pill '+st+'">'+esc(s.display_name||s.system_id||"")+'</span>';
+  }).join("");
+
+  const pr = Array.isArray(p.priorities)?p.priorities:[];
+  $("prios-wrap").classList.toggle("hidden", pr.length===0);
+  $("prios").innerHTML = pr.map((x,i)=>{
+    const sev = (x.severity||"low").toLowerCase();
+    const rank = (typeof x.rank === "number" ? x.rank : (i+1));
+    const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
+    const markerLine = pm
+      ? [pm.display_name, pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
+      : "";
+    const lever = (x.action_layer && x.action_layer.primary_lever) || "";
+    return '<div class="prio sev-'+sev+'">'+
+      '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
+      '<span class="prio-title">'+esc(x.headline||"")+'</span>'+
+      (markerLine?'<span class="prio-marker">'+esc(markerLine)+'</span>':'')+'</div>'+
+      (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
+      (x.the_connection?'<div class="prio-finding">'+esc(x.the_connection)+'</div>':'')+
+      (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
+      (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'')+
+    '</div>';
+  }).join("");
+
+  const q = Array.isArray(p.quietly_working)?p.quietly_working:[];
+  $("quiet-wrap").classList.toggle("hidden", q.length===0);
+  $("quiet").innerHTML = q.map(x=>
+    '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
+    (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
+  ).join("");
+}
+// esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
+// Two-pass: ' \u2014 ' (space-flanked) becomes ', '; any remaining bare \u2014
+// becomes '-' so compound usages don't lose a glyph.
+function esc(s){
+  return String(s==null?"":s)
+    .replace(/ \u2014 /g, ", ")
+    .replace(/\u2014/g, "-")
+    .replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});
+}
+
 
 // ────────────────────────────────────────────────────────────────────────
 // REVEAL DECK (gated, shows once per upload).
@@ -526,180 +700,6 @@ async function stampSeen(reportId){
     console.warn('reveal stamp failed:', e);
   }
   showView('dashboard');
-}
-</script>
-<script src="./score-engine.js"></script>
-<script>
-/* same two values as login.html */
-const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const $ = (id)=>document.getElementById(id);
-let USER = null, pollTimer = null;
-
-/* CONTRACT: v1.3 payload shape written by process-report:
-   {
-     vitality:  { composite, band:{key,label}, confidence, visibility,
-                  display:{show_composite, mode} },
-     headline:  "one-line narrative",
-     systems:   [ { system_id, display_name, display_group, status, summary_line } ],
-     priorities:[ { rank, headline, system_id, severity,
-                    primary_markers:[{display_name, value, unit}],
-                    why_this_matters, the_connection,
-                    action_layer:{primary_lever}, trajectory_promise } ],
-     quietly_working: [ { finding, implication } ],
-     foundations: { lead, levers:[{display_name, connection}], closing }
-   }
-   The deterministic vitality score is computed server-side by the engine.
-   The dashboard view renders composite + band.label directly. The gated
-   reveal deck reads the same payload (composite, band, visibility, pills,
-   priorities[0], quietly_working, foundations) and shows once per upload,
-   stamping reports.reveal_seen_at on exit.
-*/
-
-function showView(name){
-  ["upload","processing","reveal","dashboard"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
-  // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
-  $("btn-new").classList.toggle("hidden", name!=="dashboard");
-}
-
-(async ()=>{
-  const { data } = await sb.auth.getSession();
-  if(!data.session){ location.replace("/login.html?mode=login"); return; }
-  USER = data.session.user;
-  document.body.classList.add("ready");
-
-  // Gate: latest report tells us (a) reveal_seen_at, (b) the id to read
-  // payload from and to stamp against.
-  const { data: report } = await sb.from("reports")
-    .select("id, reveal_seen_at")
-    .eq("user_id", USER.id)
-    .order("created_at",{ascending:false}).limit(1).maybeSingle();
-  if(!report){ showView("upload"); return; }
-
-  const { data: result } = await sb.from("results")
-    .select("payload").eq("report_id", report.id).limit(1).maybeSingle();
-  if(!result || !result.payload){ showView("upload"); return; }
-
-  await renderDashboard(result.payload, report.id);
-  if(report.reveal_seen_at == null){
-    buildDeck(result.payload, report.id);
-    showView("reveal");
-  } else {
-    showView("dashboard");
-  }
-})();
-
-$("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
-$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); showView("upload"); };
-
-const dz = $("dropzone"), fileInput = $("file");
-dz.onclick = ()=>fileInput.click();
-dz.ondragover = e=>{e.preventDefault();dz.classList.add("drag");};
-dz.ondragleave = ()=>dz.classList.remove("drag");
-dz.ondrop = e=>{e.preventDefault();dz.classList.remove("drag"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);};
-fileInput.onchange = ()=>{ if(fileInput.files[0]) handleFile(fileInput.files[0]); };
-
-async function handleFile(file){
-  const msg = $("upload-msg"); msg.className="msg"; msg.textContent="";
-  if(file.type!=="application/pdf"){ msg.className="msg err"; msg.textContent="Please upload a PDF."; return; }
-  if(file.size > 20*1024*1024){ msg.className="msg err"; msg.textContent="That file is over 20 MB. Try a smaller PDF."; return; }
-  $("proc-file").innerHTML = "Reading <strong>"+esc(file.name)+"</strong>";
-  showView("processing");
-  try{
-    const path = USER.id + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]/g,"_");
-    const up = await sb.storage.from("reports").upload(path, file, { contentType:"application/pdf" });
-    if(up.error) throw up.error;
-    const ins = await sb.from("reports")
-      .insert({ user_id: USER.id, file_path: path, status: "uploaded" })
-      .select("id").single();
-    if(ins.error) throw ins.error;
-    const reportId = ins.data.id;
-    try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId } }); }catch(_){}
-    pollForResult(reportId);
-  }catch(err){
-    showView("upload");
-    const msg = $("upload-msg"); msg.className="msg err";
-    msg.textContent = "Upload failed: " + (err.message||"please try again.");
-  }
-}
-
-function pollForResult(reportId){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(async ()=>{
-    const { data } = await sb.from("results")
-      .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
-    if(data && data.payload){
-      clearInterval(pollTimer);
-      // Fresh report: reveal_seen_at is null by definition, so always run
-      // through the deck first. Stamping on exit moves the user to the
-      // dashboard view.
-      await renderDashboard(data.payload, reportId);
-      buildDeck(data.payload, reportId);
-      showView("reveal");
-    }
-  }, 3000);
-}
-
-async function renderDashboard(p, reportId){
-  const v = p.vitality || {};
-
-  // Vitality ring reads the engine-computed score stored in this report's
-  // payload \u2014 not a client-side recomputation, so the ring matches what was
-  // saved. display.show_composite=false hides the number; band label stays.
-  const showComposite = v.display ? v.display.show_composite !== false : true;
-  const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
-  const bandLabel = (v.band && v.band.label) || "Your results";
-  $("score-num").textContent = score!==null ? score : "";
-  $("score-ring").style.setProperty("--p", score!==null ? score : 0);
-  $("band").textContent = bandLabel;
-  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-");
-  $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
-
-  const sys = Array.isArray(p.systems)?p.systems:[];
-  $("systems-wrap").classList.toggle("hidden", sys.length===0);
-  $("systems").innerHTML = sys.map(s=>{
-    const st = (s.status||"optimal").toLowerCase();
-    return '<span class="pill '+st+'">'+esc(s.display_name||s.system_id||"")+'</span>';
-  }).join("");
-
-  const pr = Array.isArray(p.priorities)?p.priorities:[];
-  $("prios-wrap").classList.toggle("hidden", pr.length===0);
-  $("prios").innerHTML = pr.map((x,i)=>{
-    const sev = (x.severity||"low").toLowerCase();
-    const rank = (typeof x.rank === "number" ? x.rank : (i+1));
-    const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
-    const markerLine = pm
-      ? [pm.display_name, pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
-      : "";
-    const lever = (x.action_layer && x.action_layer.primary_lever) || "";
-    return '<div class="prio sev-'+sev+'">'+
-      '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
-      '<span class="prio-title">'+esc(x.headline||"")+'</span>'+
-      (markerLine?'<span class="prio-marker">'+esc(markerLine)+'</span>':'')+'</div>'+
-      (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
-      (x.the_connection?'<div class="prio-finding">'+esc(x.the_connection)+'</div>':'')+
-      (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
-      (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'')+
-    '</div>';
-  }).join("");
-
-  const q = Array.isArray(p.quietly_working)?p.quietly_working:[];
-  $("quiet-wrap").classList.toggle("hidden", q.length===0);
-  $("quiet").innerHTML = q.map(x=>
-    '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
-    (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
-  ).join("");
-}
-// esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
-// Two-pass: ' \u2014 ' (space-flanked) becomes ', '; any remaining bare \u2014
-// becomes '-' so compound usages don't lose a glyph.
-function esc(s){
-  return String(s==null?"":s)
-    .replace(/ \u2014 /g, ", ")
-    .replace(/\u2014/g, "-")
-    .replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});
 }
 </script>
 </body>
