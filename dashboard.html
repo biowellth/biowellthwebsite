@@ -15,6 +15,7 @@
   --amber:#D4A94A; --amber-light:#FAF3E0;
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
   --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
+  --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;visibility:hidden}
@@ -87,6 +88,106 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
 .msg.err{display:block;background:var(--coral-light);color:var(--coral-dark)}
+
+/* REVEAL DECK (gated, shows once per upload).
+   CSS ported from reveal.html. Body styles applied to #view-reveal so the
+   deck only takes over the viewport while active; .eyebrow scoped under
+   #view-reveal to avoid clashing with the upload-card pill above. */
+#view-reveal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(120% 80% at 50% -10%,var(--teal-soft) 0%,rgba(240,249,245,0) 55%),
+    radial-gradient(120% 80% at 50% 110%,var(--coral-soft) 0%,rgba(252,245,242,0) 55%),var(--cream)}
+#view-reveal .phone{position:relative;width:100%;max-width:430px;height:100dvh;max-height:920px;overflow:hidden;
+  background:var(--off-white);box-shadow:var(--shadow)}
+@media(min-width:480px){#view-reveal .phone{border-radius:34px;height:880px;border:1px solid var(--brown-light)}}
+#view-reveal .segments{position:absolute;top:16px;left:18px;right:18px;display:flex;gap:6px;z-index:40}
+#view-reveal .seg{flex:1;height:3px;border-radius:3px;background:var(--brown-light);overflow:hidden}
+#view-reveal .seg i{display:block;height:100%;width:0;background:var(--brown-mid);border-radius:3px;transition:width .35s ease}
+#view-reveal .seg.done i{width:100%}
+#view-reveal .skip{position:absolute;top:33px;right:18px;z-index:45;font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brown-mid);
+  background:none;border:none;cursor:pointer;opacity:.55;padding:6px}
+#view-reveal .skip:hover{opacity:1}
+#view-reveal .deck{position:absolute;inset:0;z-index:10}
+#view-reveal .card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:80px 32px 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
+  transition:opacity .42s ease,transform .42s ease,visibility 0s linear .42s;pointer-events:none}
+#view-reveal .card.active{opacity:1;visibility:visible;transform:none;
+  transition:opacity .42s ease,transform .42s ease;pointer-events:auto}
+@media(max-height:760px){#view-reveal .card{justify-content:flex-start}}
+#view-reveal .eyebrow{display:block;background:none;padding:0;margin:0 0 18px;border-radius:0;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--teal-dark);font-weight:400}
+#view-reveal .eyebrow::before{display:none}
+#view-reveal .eyebrow.coral{color:var(--coral-dark)}
+#view-reveal .eyebrow.brown{color:var(--brown-mid)}
+#view-reveal .display{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;letter-spacing:-.03em;line-height:1.12;color:var(--brown)}
+#view-reveal .h-xl{font-size:33px}
+#view-reveal .h-lg{font-size:26px}
+#view-reveal .h-md{font-size:22px}
+#view-reveal .sub{font-size:16px;line-height:1.55;color:var(--brown-mid);margin-top:16px;max-width:35ch}
+#view-reveal .sub strong{color:var(--brown);font-weight:600}
+#view-reveal .sub+.sub{margin-top:13px}
+#view-reveal .card.active .stag{animation:rdrise .55s cubic-bezier(.2,.7,.3,1) both}
+#view-reveal .card.active .stag:nth-child(1){animation-delay:.04s}
+#view-reveal .card.active .stag:nth-child(2){animation-delay:.11s}
+#view-reveal .card.active .stag:nth-child(3){animation-delay:.18s}
+#view-reveal .card.active .stag:nth-child(4){animation-delay:.25s}
+#view-reveal .card.active .stag:nth-child(5){animation-delay:.32s}
+#view-reveal .card.active .stag:nth-child(6){animation-delay:.39s}
+#view-reveal .card.active .stag:nth-child(7){animation-delay:.46s}
+@keyframes rdrise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#view-reveal .qlist{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+#view-reveal .qrow{display:flex;gap:12px;align-items:flex-start}
+#view-reveal .qrow .ck{flex:none;width:22px;height:22px;border-radius:50%;background:var(--teal-light);
+  display:flex;align-items:center;justify-content:center;margin-top:2px}
+#view-reveal .qrow .ck svg{width:12px;height:12px;stroke:var(--teal-dark);fill:none;stroke-width:2.4}
+#view-reveal .qrow p{font-size:15px;line-height:1.5;color:var(--brown)}
+#view-reveal .qclose{margin-top:22px;font-size:14.5px;line-height:1.55;color:var(--brown-mid)}
+#view-reveal .ringwrap{display:flex;flex-direction:column;align-items:center;text-align:center}
+#view-reveal .ring{position:relative;width:184px;height:184px}
+#view-reveal .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+#view-reveal .ring .bg{fill:none;stroke:var(--brown-light);stroke-width:9}
+#view-reveal .ring .fg{fill:none;stroke-width:9;stroke-linecap:round;stroke-dasharray:339;stroke-dashoffset:339}
+#view-reveal .ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#view-reveal .ring .num b{font-family:'JetBrains Mono',monospace;font-size:54px;font-weight:600;color:var(--brown);letter-spacing:-.04em;line-height:1}
+#view-reveal .ring .num span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--brown-mid);margin-top:6px;text-transform:uppercase}
+#view-reveal .bandlabel{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:23px;letter-spacing:-.02em;margin-top:24px}
+#view-reveal .bandcopy{font-size:15.5px;line-height:1.55;color:var(--brown-mid);margin-top:12px;max-width:32ch}
+#view-reveal .vischip{margin-top:22px;display:inline-flex;align-items:center;gap:8px;background:var(--white);
+  border:1px solid var(--brown-light);border-radius:999px;padding:9px 15px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
+#view-reveal .vischip i{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+#view-reveal .caveat{margin-top:18px;font-size:11.5px;color:var(--brown-mid);opacity:.8;max-width:34ch;line-height:1.5}
+#view-reveal .markerline{display:inline-flex;align-items:baseline;gap:8px;margin:4px 0 14px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--coral-dark)}
+#view-reveal .markerline b{font-size:20px;font-weight:600}
+#view-reveal .connection{margin-top:18px;background:var(--teal-soft);border-left:3px solid var(--teal);
+  border-radius:0 12px 12px 0;padding:13px 15px;font-size:14px;line-height:1.5;color:var(--teal-dark)}
+#view-reveal .lever{margin-top:14px;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:14px 15px}
+#view-reveal .lever .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--coral-dark);margin-bottom:6px}
+#view-reveal .lever .txt{font-size:14px;line-height:1.5;color:var(--brown)}
+#view-reveal .traj{margin-top:14px;font-size:13.5px;line-height:1.5;color:var(--brown-mid);font-style:italic}
+#view-reveal .lever-row{display:flex;gap:13px;margin-top:16px}
+#view-reveal .lever-row .dot{flex:none;width:34px;height:34px;border-radius:10px;background:var(--brown-soft);display:flex;align-items:center;justify-content:center}
+#view-reveal .lever-row .dot svg{width:18px;height:18px;stroke:var(--brown-mid);fill:none;stroke-width:1.7}
+#view-reveal .lever-row .nm{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:15px;color:var(--brown)}
+#view-reveal .lever-row .cn{font-size:13.5px;line-height:1.5;color:var(--brown-mid);margin-top:3px}
+#view-reveal .closing{margin-top:20px;font-size:14.5px;line-height:1.55;color:var(--brown);font-style:italic;border-top:1px solid var(--brown-light);padding-top:15px}
+#view-reveal .nav{position:absolute;left:0;right:0;bottom:0;z-index:42;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px 24px 22px;background:linear-gradient(to top,var(--off-white) 62%,rgba(253,251,248,0))}
+#view-reveal .navbtn{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;border-radius:13px;
+  display:inline-flex;align-items:center;gap:8px;transition:transform .15s,background .15s,opacity .2s}
+#view-reveal .navbtn svg{width:17px;height:17px}
+#view-reveal .navbtn.back{background:var(--white);border:1px solid var(--brown-light);color:var(--brown-mid);font-size:14.5px;padding:13px 18px}
+#view-reveal .navbtn.back:hover{color:var(--brown)}
+#view-reveal .navbtn.back.hide{opacity:0;pointer-events:none}
+#view-reveal .navbtn.next{background:var(--teal);border:none;color:var(--white);font-size:15.5px;padding:14px 24px;
+  box-shadow:0 10px 24px -12px rgba(12,142,107,.7)}
+#view-reveal .navbtn.next:hover{background:var(--teal-dark);transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){
+  #view-reveal .card,#view-reveal .seg i,#view-reveal .card.active .stag{transition:none!important;animation:none!important}
+  #view-reveal .ring .fg{transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -124,11 +225,27 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   <div id="view-processing" class="hidden">
     <div class="spinner"></div>
     <h1>Reading your report</h1>
-    <p>We're pulling out every marker and reading it against women's functional ranges. This usually takes under a minute.</p>
+    <p>We're pulling out every marker and reading it against women's functional ranges. This usually takes a few minutes.</p>
     <div class="proc-file" id="proc-file"></div>
   </div>
 
   <div id="view-reveal" class="hidden">
+    <div class="phone">
+      <div class="segments" id="rd-segments"></div>
+      <button class="skip" id="rd-skip">Skip</button>
+      <div class="deck" id="rd-deck"></div>
+      <div class="nav">
+        <button class="navbtn back hide" id="rd-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Back
+        </button>
+        <button class="navbtn next" id="rd-next">Next
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-dashboard" class="hidden">
     <div class="reveal-head">
       <div class="score-ring" id="score-ring">
         <div class="score-num" id="score-num">&ndash;</div>
@@ -163,7 +280,254 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+
+// ────────────────────────────────────────────────────────────────────────
+// REVEAL DECK (gated, shows once per upload).
+// Markup, segment, ring, nav, and reduced-motion logic ported from
+// reveal.html. Sample data is replaced by results.payload reads; beats
+// with no data (Beat 3 needs a priority) are skipped and segments
+// recompute from the populated beat count.
+// ────────────────────────────────────────────────────────────────────────
+function lowestCoverArea(pills){
+  if(!pills || typeof pills !== 'object') return null;
+  const entries = Array.isArray(pills) ? pills.map((v,i)=>[String(i), v]) : Object.entries(pills);
+  let lowest = null;
+  for(const [key, val] of entries){
+    if(!val || typeof val !== 'object') continue;
+    const cf = (typeof val.coverFactor === 'number') ? val.coverFactor
+             : (typeof val.cover_factor === 'number') ? val.cover_factor
+             : (typeof val.coverage === 'number') ? val.coverage
+             : null;
+    if(cf == null) continue;
+    if(!lowest || cf < lowest.cf){
+      lowest = { key, cf, displayName: val.display_name || val.label || val.name || key };
+    }
+  }
+  return lowest;
+}
+
+function buildDeck(p, reportId){
+  const v = p.vitality || {};
+  const showComposite = v.display ? v.display.show_composite !== false : true;
+  const composite = (typeof v.composite === 'number') ? v.composite : null;
+  const bandLabel = (v.band && v.band.label) || '';
+  const visibility = (typeof v.visibility === 'number') ? Math.round(v.visibility) : null;
+  const qw = Array.isArray(p.quietly_working) ? p.quietly_working : [];
+  const pri = Array.isArray(p.priorities) && p.priorities[0] ? p.priorities[0] : null;
+  const f = p.foundations || {};
+  const levers = Array.isArray(f.levers) ? f.levers : [];
+  const priCount = Array.isArray(p.priorities) ? p.priorities.length : 0;
+  const lowCover = lowestCoverArea(v.pills);
+  const coverageHigh = lowCover && lowCover.cf >= 0.9;
+
+  const beats = [];
+
+  // Beat 0: Frame (static)
+  beats.push(
+    '<section class="card">' +
+      '<div class="eyebrow stag">Your results, read differently</div>' +
+      '<h1 class="display h-xl stag">Most blood tests only check whether something is wrong.</h1>' +
+      '<p class="sub stag">We read every marker on your panel for how well your body is actually working, against ranges tuned for women, your cycle, and your stage of life.</p>' +
+      '<p class="sub stag">Here is what yours is telling us, starting with the good news.</p>' +
+    '</section>'
+  );
+
+  // Beat 1: Quietly working (one row per quietly_working[].finding)
+  beats.push(
+    '<section class="card">' +
+      '<div class="eyebrow stag">First, what is already working</div>' +
+      '<h1 class="display h-lg stag">A few things are quietly working in your favour.</h1>' +
+      '<div class="qlist stag">' +
+        qw.map(q => (
+          '<div class="qrow">' +
+            '<div class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
+            '<p>' + esc(q.finding || '') + '</p>' +
+          '</div>'
+        )).join('') +
+      '</div>' +
+      '<p class="qclose stag">None of this showed up as a problem, so no one would have thought to mention it. It is worth knowing it is yours.</p>' +
+    '</section>'
+  );
+
+  // Beat 2: The number (ring, band, visibility)
+  const ringStyle = showComposite ? 'stroke:var(--amber)' : 'stroke:transparent';
+  beats.push(
+    '<section class="card" data-beat-kind="ring">' +
+      '<div class="ringwrap">' +
+        '<div class="ring stag">' +
+          '<svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/>' +
+          '<circle class="fg" id="rd-ringFg" cx="60" cy="60" r="54" style="' + ringStyle + '"/></svg>' +
+          '<div class="num"><b id="rd-ringNum">' + (showComposite ? '0' : '') + '</b><span>Vitality</span></div>' +
+        '</div>' +
+        '<div class="bandlabel stag" id="rd-bandLabel">' + esc(bandLabel || ' ') + '</div>' +
+        '<p class="bandcopy stag">This is a single read across your systems, weighted by how much each one shapes how you feel day to day.</p>' +
+        (visibility != null
+          ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
+          : '') +
+        '<p class="caveat stag">The more you test over time, the sharper this gets. Founding member preview, functional ranges are guidance and still under clinical review.</p>' +
+      '</div>' +
+    '</section>'
+  );
+
+  // Beat 3: One to watch (skip if priorities is empty)
+  if(pri){
+    const pm = Array.isArray(pri.primary_markers) && pri.primary_markers[0] ? pri.primary_markers[0] : null;
+    const markerStr = pm
+      ? '<span>' + esc(pm.display_name || '') + '</span> <b>' + esc(String(pm.value == null ? '' : pm.value)) + '</b> ' + esc(pm.unit || '')
+      : '';
+    const lever = (pri.action_layer && pri.action_layer.primary_lever) || '';
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow coral stag">The one place to focus first</div>' +
+        '<h1 class="display h-md stag">' + esc(pri.headline || '') + '</h1>' +
+        (markerStr ? '<div class="markerline stag">' + markerStr + '</div>' : '') +
+        (pri.why_this_matters ? '<p class="sub stag" style="margin-top:0">' + esc(pri.why_this_matters) + '</p>' : '') +
+        (pri.the_connection ? '<div class="connection stag">' + esc(pri.the_connection) + '</div>' : '') +
+        (lever
+          ? '<div class="lever stag"><div class="lbl">Start here</div><div class="txt">' + esc(lever) + '</div></div>'
+          : '') +
+        (pri.trajectory_promise ? '<p class="traj stag">' + esc(pri.trajectory_promise) + '</p>' : '') +
+      '</section>'
+    );
+  }
+
+  // Beat 4: The gap (reframe to "what to track next" if coverage is high everywhere)
+  if(coverageHigh || !lowCover){
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow brown stag">What to track next</div>' +
+        '<h1 class="display h-lg stag">Coverage looks solid across the board.</h1>' +
+        '<p class="sub stag">The next layer is following these markers over time, so we can see how each one moves panel to panel.</p>' +
+      '</section>'
+    );
+  } else {
+    const visText = visibility != null ? visibility + '% of the picture' : 'most of the picture';
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow brown stag">What this panel did not show</div>' +
+        '<h1 class="display h-lg stag">' + esc(lowCover.displayName) + ' is your biggest blank right now.</h1>' +
+        '<p class="sub stag">Your panel did not fully cover ' + esc(lowCover.displayName) + '.</p>' +
+        '<p class="sub stag">Filling that in is what would take you from <strong>' + esc(visText) + '</strong> to nearly all of it, and what lets us track real change as you retest.</p>' +
+      '</section>'
+    );
+  }
+
+  // Beat 5: Foundations (lead, levers, closing)
+  beats.push(
+    '<section class="card">' +
+      '<div class="eyebrow stag">The ground it all rests on</div>' +
+      (f.lead
+        ? '<p class="sub stag" style="margin-top:0;color:var(--brown);font-size:17.5px">' + esc(f.lead) + '</p>'
+        : '') +
+      levers.map(L => (
+        '<div class="lever-row stag">' +
+          '<div class="dot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div>' +
+          '<div><div class="nm">' + esc(L.display_name || '') + '</div>' +
+            '<div class="cn">' + esc(L.connection || '') + '</div></div>' +
+        '</div>'
+      )).join('') +
+      (f.closing ? '<p class="closing stag">' + esc(f.closing) + '</p>' : '') +
+    '</section>'
+  );
+
+  // Beat 6: Handoff (priority count interpolated, otherwise static)
+  const priWord = priCount === 1 ? 'priority' : 'priorities';
+  beats.push(
+    '<section class="card">' +
+      '<div class="eyebrow stag">Your full picture is ready</div>' +
+      (priCount > 0
+        ? '<h1 class="display h-lg stag">' + priCount + ' ' + priWord + ', in the order to take them.</h1>'
+        : '<h1 class="display h-lg stag">Everything is laid out and ready.</h1>') +
+      '<p class="sub stag">Everything quietly working for you is in there too, along with what to test next. It is all waiting in your dashboard.</p>' +
+    '</section>'
+  );
+
+  // Mount deck + build segments from the populated beat count.
+  const deck = $('rd-deck');
+  deck.innerHTML = beats.join('');
+  const segWrap = $('rd-segments');
+  segWrap.innerHTML = '';
+  for(let i=0; i<beats.length; i++){
+    const s = document.createElement('div');
+    s.className = 'seg';
+    s.innerHTML = '<i></i>';
+    segWrap.appendChild(s);
+  }
+
+  const cards = [...deck.querySelectorAll('.card')];
+  const segs = [...segWrap.children];
+  const back = $('rd-back'), next = $('rd-next'), skip = $('rd-skip');
+  let cur = -1, ringDone = false;
+  const BEATS = cards.length;
+
+  function paintSegs(){ segs.forEach((s,i)=>s.classList.toggle('done', i<=cur)); }
+  function show(n){
+    if(n<0||n>=BEATS) return;
+    cur = n;
+    cards.forEach((c,i)=>{ const a=(i===n); c.classList.toggle('active', a); if(a) c.scrollTop = 0; });
+    paintSegs();
+    back.classList.toggle('hide', n===0);
+    next.innerHTML = (n===BEATS-1)
+      ? 'See my dashboard <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+      : 'Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>';
+    if(cards[n].dataset.beatKind === 'ring' && !ringDone) animateRing();
+  }
+  function animateRing(){
+    ringDone = true;
+    const fg = $('rd-ringFg'), num = $('rd-ringNum'), dot = $('rd-vischipDot');
+    if(!showComposite || composite == null){
+      // Hide number, keep band + visibility, skip the animation entirely.
+      if(num) num.textContent = '';
+      if(fg) fg.style.strokeDashoffset = '339';
+      return;
+    }
+    const C = 339, off = C * (1 - composite/100);
+    const col = composite>=70 ? 'var(--teal)' : composite>=50 ? 'var(--amber)' : 'var(--coral)';
+    if(fg) fg.style.stroke = col;
+    if(dot) dot.style.background = col;
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+      if(fg){ fg.style.transition = 'none'; fg.style.strokeDashoffset = off; }
+      if(num) num.textContent = composite;
+      return;
+    }
+    if(fg){ fg.style.transition = 'stroke-dashoffset 1s cubic-bezier(.3,.8,.3,1)'; requestAnimationFrame(()=>fg.style.strokeDashoffset = off); }
+    const t0 = performance.now(), dur = 1000;
+    (function tick(t){
+      const p = Math.min(1, (t - t0)/dur), e = 1 - Math.pow(1 - p, 3);
+      if(num) num.textContent = Math.round(composite * e);
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  // Re-clone to drop any prior listeners if buildDeck is re-run for a new report.
+  const replace = (el)=>{ const c = el.cloneNode(true); el.parentNode.replaceChild(c, el); return c; };
+  const nextEl = replace(next), backEl = replace(back), skipEl = replace(skip);
+  nextEl.addEventListener('click', ()=>{ if(cur===BEATS-1) stampSeen(reportId); else show(cur+1); });
+  backEl.addEventListener('click', ()=>{ if(cur>0) show(cur-1); });
+  skipEl.addEventListener('click', ()=>stampSeen(reportId));
+  const onKey = (e)=>{
+    if(!$('view-reveal') || $('view-reveal').classList.contains('hidden')) return;
+    if(e.key==='ArrowRight'||e.key===' '){ if(cur===BEATS-1) stampSeen(reportId); else show(cur+1); }
+    if(e.key==='ArrowLeft') show(cur-1);
+  };
+  if(window.__rdKey) document.removeEventListener('keydown', window.__rdKey);
+  window.__rdKey = onKey;
+  document.addEventListener('keydown', onKey);
+
+  show(0);
+}
+
+async function stampSeen(reportId){
+  // Stamp once. A failed stamp is logged but does not block the dashboard view.
+  try{
+    await sb.from('reports').update({ reveal_seen_at: new Date().toISOString() }).eq('id', reportId);
+  } catch(e){
+    console.warn('reveal stamp failed:', e);
+  }
+  showView('dashboard');
+}
+</script>
 <script src="./score-engine.js"></script>
 <script>
 /* same two values as login.html */
@@ -187,14 +551,17 @@ let USER = null, pollTimer = null;
      quietly_working: [ { finding, implication } ],
      foundations: { lead, levers:[{display_name, connection}], closing }
    }
-   The deterministic vitality score is computed server-side by the engine
-   (vitality.composite, vitality.band.label). The reveal renders that value
-   directly; no client-side recomputation. foundations is unused by the reveal.
+   The deterministic vitality score is computed server-side by the engine.
+   The dashboard view renders composite + band.label directly. The gated
+   reveal deck reads the same payload (composite, band, visibility, pills,
+   priorities[0], quietly_working, foundations) and shows once per upload,
+   stamping reports.reveal_seen_at on exit.
 */
 
 function showView(name){
-  ["upload","processing","reveal"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
-  $("btn-new").classList.toggle("hidden", name!=="reveal");
+  ["upload","processing","reveal","dashboard"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
+  $("btn-new").classList.toggle("hidden", name!=="dashboard");
 }
 
 (async ()=>{
@@ -202,11 +569,26 @@ function showView(name){
   if(!data.session){ location.replace("/login.html?mode=login"); return; }
   USER = data.session.user;
   document.body.classList.add("ready");
-  const { data: latest } = await sb.from("results")
-    .select("report_id, payload").eq("user_id", USER.id)
+
+  // Gate: latest report tells us (a) reveal_seen_at, (b) the id to read
+  // payload from and to stamp against.
+  const { data: report } = await sb.from("reports")
+    .select("id, reveal_seen_at")
+    .eq("user_id", USER.id)
     .order("created_at",{ascending:false}).limit(1).maybeSingle();
-  if(latest && latest.payload){ await renderReveal(latest.payload, latest.report_id); showView("reveal"); }
-  else { showView("upload"); }
+  if(!report){ showView("upload"); return; }
+
+  const { data: result } = await sb.from("results")
+    .select("payload").eq("report_id", report.id).limit(1).maybeSingle();
+  if(!result || !result.payload){ showView("upload"); return; }
+
+  await renderDashboard(result.payload, report.id);
+  if(report.reveal_seen_at == null){
+    buildDeck(result.payload, report.id);
+    showView("reveal");
+  } else {
+    showView("dashboard");
+  }
 })();
 
 $("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
@@ -250,13 +632,17 @@ function pollForResult(reportId){
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
     if(data && data.payload){
       clearInterval(pollTimer);
-      await renderReveal(data.payload, reportId);
+      // Fresh report: reveal_seen_at is null by definition, so always run
+      // through the deck first. Stamping on exit moves the user to the
+      // dashboard view.
+      await renderDashboard(data.payload, reportId);
+      buildDeck(data.payload, reportId);
       showView("reveal");
     }
   }, 3000);
 }
 
-async function renderReveal(p, reportId){
+async function renderDashboard(p, reportId){
   const v = p.vitality || {};
 
   // Vitality ring reads the engine-computed score stored in this report's
@@ -268,7 +654,7 @@ async function renderReveal(p, reportId){
   $("score-num").textContent = score!==null ? score : "";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
-  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ");
+  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-");
   $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
 
   const sys = Array.isArray(p.systems)?p.systems:[];
@@ -307,9 +693,12 @@ async function renderReveal(p, reportId){
   ).join("");
 }
 // esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
+// Two-pass: ' \u2014 ' (space-flanked) becomes ', '; any remaining bare \u2014
+// becomes '-' so compound usages don't lose a glyph.
 function esc(s){
   return String(s==null?"":s)
     .replace(/ \u2014 /g, ", ")
+    .replace(/\u2014/g, "-")
     .replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});
 }
 </script>
