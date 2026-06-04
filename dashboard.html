@@ -96,7 +96,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;overflow:hidden;
   background:radial-gradient(120% 80% at 50% -10%,var(--teal-soft) 0%,rgba(240,249,245,0) 55%),
     radial-gradient(120% 80% at 50% 110%,var(--coral-soft) 0%,rgba(252,245,242,0) 55%),var(--cream)}
-#view-reveal .phone{position:relative;width:100%;max-width:430px;height:100dvh;max-height:920px;overflow:hidden;
+#view-reveal .phone{position:relative;width:100%;max-width:min(76vw,1100px);height:100dvh;max-height:920px;overflow:hidden;
   background:var(--off-white);box-shadow:var(--shadow)}
 @media(min-width:480px){#view-reveal .phone{border-radius:34px;height:880px;border:1px solid var(--brown-light)}}
 #view-reveal .segments{position:absolute;top:16px;left:18px;right:18px;display:flex;gap:6px;z-index:40}
@@ -109,7 +109,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .skip:hover{opacity:1}
 #view-reveal .deck{position:absolute;inset:0;z-index:10}
 #view-reveal .card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
-  padding:80px 32px 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
+  padding:80px max(40px,calc((100% - 760px) / 2)) 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
   transition:opacity .42s ease,transform .42s ease,visibility 0s linear .42s;pointer-events:none}
 #view-reveal .card.active{opacity:1;visibility:visible;transform:none;
   transition:opacity .42s ease,transform .42s ease;pointer-events:auto}
@@ -124,7 +124,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .h-xl{font-size:33px}
 #view-reveal .h-lg{font-size:26px}
 #view-reveal .h-md{font-size:22px}
-#view-reveal .sub{font-size:16px;line-height:1.55;color:var(--brown-mid);margin-top:16px;max-width:35ch}
+#view-reveal .sub{font-size:16px;line-height:1.55;color:var(--brown-mid);margin-top:16px;max-width:none}
 #view-reveal .sub strong{color:var(--brown);font-weight:600}
 #view-reveal .sub+.sub{margin-top:13px}
 #view-reveal .card.active .stag{animation:rdrise .55s cubic-bezier(.2,.7,.3,1) both}
@@ -174,7 +174,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .lever-row .cn{font-size:13.5px;line-height:1.5;color:var(--brown-mid);margin-top:3px}
 #view-reveal .closing{margin-top:20px;font-size:14.5px;line-height:1.55;color:var(--brown);font-style:italic;border-top:1px solid var(--brown-light);padding-top:15px}
 #view-reveal .nav{position:absolute;left:0;right:0;bottom:0;z-index:42;display:flex;align-items:center;justify-content:space-between;
-  gap:12px;padding:16px 24px 22px;background:linear-gradient(to top,var(--off-white) 62%,rgba(253,251,248,0))}
+  gap:12px;padding:16px max(24px,calc((100% - 760px) / 2)) 22px;background:linear-gradient(to top,var(--off-white) 62%,rgba(253,251,248,0))}
 #view-reveal .navbtn{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;border-radius:13px;
   display:inline-flex;align-items:center;gap:8px;transition:transform .15s,background .15s,opacity .2s}
 #view-reveal .navbtn svg{width:17px;height:17px}
