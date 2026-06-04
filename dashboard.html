@@ -208,10 +208,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .prio-card .pchev{flex:none;margin-left:auto;width:20px;height:20px;color:var(--brown-mid);opacity:.5}
 #view-reveal .prio-card .pchev svg{width:20px;height:20px}
 #view-reveal .prio-modal{position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
-  padding:max(40px,calc((100% - 760px) / 2));background:rgba(71,55,43,.34);
+  padding:76px 24px 32px;background:rgba(71,55,43,.34);
   opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s linear .25s}
 #view-reveal .prio-modal.show{opacity:1;visibility:visible;transition:opacity .25s ease}
-#view-reveal .pm-card{position:relative;width:100%;max-width:600px;max-height:84%;overflow-y:auto;
+#view-reveal .pm-card{position:relative;width:100%;max-width:620px;max-height:calc(100dvh - 140px);overflow-y:auto;
   background:var(--off-white);border:1px solid var(--brown-light);border-radius:22px;padding:34px 32px;
   transform:translateY(12px) scale(.985);transition:transform .28s cubic-bezier(.2,.7,.3,1);box-shadow:var(--shadow)}
 #view-reveal .prio-modal.show .pm-card{transform:none}
@@ -225,6 +225,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-reveal .pm-card.t-amber .pm-num{background:var(--amber-light);color:var(--orange-dark)}
 #view-reveal .pm-card.t-teal .pm-num{background:var(--teal-light);color:var(--teal-dark)}
 #view-reveal .pm-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;line-height:1.25;letter-spacing:-.02em;color:var(--brown)}
+#view-reveal .pm-debug{margin-top:16px;background:var(--brown-soft);border:1px solid var(--brown-light);border-radius:12px;padding:14px 16px}
+#view-reveal .pm-debug-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--coral-dark);margin-bottom:8px}
+#view-reveal .pm-debug pre{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.5;color:var(--brown);white-space:pre-wrap;word-break:break-word;margin:0}
 #view-reveal .nav{position:absolute;left:0;right:0;bottom:0;z-index:42;display:flex;align-items:center;justify-content:space-between;
   gap:12px;padding:16px max(24px,calc((100% - 760px) / 2)) 22px;background:linear-gradient(to top,var(--off-white) 62%,rgba(253,251,248,0))}
 #view-reveal .navbtn{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;border-radius:13px;
@@ -807,6 +810,10 @@ function buildDeck(p, reportId){
     // Catch-all for any other descriptive field the payload might carry.
     const skip = new Set(['headline','system_id','severity','rank','primary_markers','action_layer','why_this_matters','the_connection','trajectory_promise']);
     Object.keys(pr).forEach(k=>{ if(skip.has(k)) return; const v=pr[k]; if(typeof v==='string' && v.trim().length>20) txt(v); });
+
+    // TEMP DIAGNOSTIC: if we found no detail, show the raw object so we can see the real field names.
+    try{ console.log('[prio]', i, JSON.parse(JSON.stringify(pr))); }catch(e){ console.log('[prio]', i, pr); }
+    if(!body) body = '<div class="pm-debug"><div class="pm-debug-lbl">debug, raw priority data</div><pre>'+esc(JSON.stringify(pr,null,2))+'</pre></div>';
 
     pmcard.className = 'pm-card ' + toneFor(pr, i);
     pmcard.innerHTML =
