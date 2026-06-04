@@ -121,11 +121,27 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25}
 .sm-summary{font-size:14.5px;line-height:1.6;color:var(--brown-mid);margin-top:10px}
 .sm-mk-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-mid);margin:24px 0 4px}
-.sm-mk{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--brown-light)}
-.sm-mk .mn{font-size:14px;color:var(--brown);font-weight:500}
-.sm-mk .mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.sm-marker{border-top:1px solid var(--brown-light)}
+.sm-mk{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit}
+.sm-mk .mn{font-size:14px;color:var(--brown);font-weight:500;display:flex;align-items:center;min-width:0}
+.sm-mk .mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:9px;flex:none}
 .sm-mk .mdot.s-good{background:var(--teal)} .sm-mk .mdot.s-watch{background:var(--amber)} .sm-mk .mdot.s-flag{background:var(--coral)} .sm-mk .mdot.s-none{background:var(--brown-light)}
+.sm-mk .mr{display:flex;align-items:center;gap:10px;flex:none}
+.mk-spark{width:54px;height:20px;flex:none;overflow:visible}
 .sm-mk .mv{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--brown);white-space:nowrap}
+.sm-mk .mk-chev{color:var(--brown-mid);opacity:.45;font-size:15px;line-height:1;transition:transform .2s}
+.sm-marker.open .mk-chev{transform:rotate(90deg)}
+.sm-mk-detail{display:none;padding:2px 0 16px}
+.sm-marker.open .sm-mk-detail{display:block}
+.sm-trend{background:var(--brown-soft);border:1px solid var(--brown-light);border-radius:14px;padding:14px 16px}
+.sm-trend-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.sm-trend-now{font-family:'JetBrains Mono',monospace;font-size:17px;color:var(--brown);font-weight:600}
+.sm-trend-now small{font-size:11px;color:var(--brown-mid);font-weight:400;margin-left:3px}
+.sm-trend-range{font-size:11.5px;color:var(--brown-mid);text-align:right;white-space:nowrap}
+.sm-chart{width:100%;height:auto;display:block;overflow:visible}
+.sm-chart .axis{stroke:var(--brown-light)}
+.sm-chart .dlabel{font-family:'JetBrains Mono',monospace;font-size:7px;fill:var(--brown-mid)}
+.sm-trend-note{font-size:12.5px;line-height:1.55;color:var(--brown-mid);margin-top:11px}
 .sm-empty{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin-top:18px;font-style:italic}
 .prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:22px;margin-bottom:12px;border-left:4px solid var(--coral)}
 .prio.sev-watch{border-left-color:var(--amber)}
@@ -626,11 +642,120 @@ function markersForSystem(p, s){
   return out;
 }
 
+// A marker's readings over time. Today the payload sends one reading; when
+// longitudinal tracking ships, markers carry history:[{date,value}] and this
+// chart/interpretation fills in automatically.
+function markerHistory(mk){
+  if(Array.isArray(mk.history) && mk.history.length){
+    return mk.history.filter(h=>h && h.value!=null && !isNaN(+h.value)).map(h=>({value:+h.value, date:h.date||null}));
+  }
+  const v = (mk.value==='' || mk.value==null) ? null : +mk.value;
+  return (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null}];
+}
+function fmtDate(d){
+  if(!d) return '';
+  const dt = new Date(d);
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{month:'short', year:'2-digit'});
+}
+function trendChartSVG(hist, color){
+  const W=280,H=92,padX=16,padTop=14,padBot=22, baseY=H-padBot;
+  const vals=hist.map(h=>h.value);
+  if(!vals.length) return '';
+  if(vals.length===1){
+    const cx=W/2, cy=(padTop+baseY)/2;
+    return '<svg class="sm-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
+      '<line class="axis" x1="'+padX+'" y1="'+baseY+'" x2="'+(W-padX)+'" y2="'+baseY+'" stroke-dasharray="3 4"/>'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+color+'"/>'+
+      '<text class="dlabel" x="'+cx+'" y="'+(baseY+12)+'" text-anchor="middle">'+esc(fmtDate(hist[0].date)||'this test')+'</text>'+
+    '</svg>';
+  }
+  const mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1, n=vals.length;
+  const X=i=> padX + i*(W-2*padX)/(n-1);
+  const Y=v=> padTop + (1-(v-mn)/span)*(baseY-padTop);
+  const poly=vals.map((v,i)=>X(i)+','+Y(v)).join(' ');
+  const dots=vals.map((v,i)=>'<circle cx="'+X(i)+'" cy="'+Y(v)+'" r="3.4" fill="'+color+'"/>').join('');
+  return '<svg class="sm-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
+    '<polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+poly+'"/>'+dots+
+    '<text class="dlabel" x="'+X(0)+'" y="'+(baseY+12)+'" text-anchor="start">'+esc(fmtDate(hist[0].date)||'first')+'</text>'+
+    '<text class="dlabel" x="'+X(n-1)+'" y="'+(baseY+12)+'" text-anchor="end">'+esc(fmtDate(hist[n-1].date)||'latest')+'</text>'+
+  '</svg>';
+}
+function miniSparkSVG(hist, color){
+  const W=54,H=20,p=3, vals=hist.map(h=>h.value);
+  if(!vals.length) return '<span style="width:54px;flex:none"></span>';
+  if(vals.length<2){
+    return '<svg class="mk-spark" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
+      '<line x1="'+p+'" y1="'+(H/2)+'" x2="'+(W-p)+'" y2="'+(H/2)+'" stroke="var(--brown-light)" stroke-width="1.5" stroke-dasharray="2 3"/>'+
+      '<circle cx="'+(W-p)+'" cy="'+(H/2)+'" r="2.6" fill="'+color+'"/></svg>';
+  }
+  const mn=Math.min(...vals),mx=Math.max(...vals),sp=(mx-mn)||1,n=vals.length;
+  const X=i=>p+i*(W-2*p)/(n-1), Y=v=>p+(1-(v-mn)/sp)*(H-2*p);
+  const poly=vals.map((v,i)=>X(i)+','+Y(v)).join(' ');
+  return '<svg class="mk-spark" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
+    '<polyline fill="none" stroke="'+color+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" points="'+poly+'"/>'+
+    '<circle cx="'+X(n-1)+'" cy="'+Y(vals[n-1])+'" r="2.4" fill="'+color+'"/></svg>';
+}
+function trendSummary(hist, mk){
+  const ref = mk.reference || mk.range || mk.optimal || null;
+  const unit = mk.unit ? ' '+mk.unit : '';
+  const within = (v)=> ref && (ref.low==null || v>=ref.low) && (ref.high==null || v<=ref.high);
+  if(hist.length<2){
+    const v = hist.length ? hist[0].value : null;
+    if(v!=null && ref){
+      if(within(v)) return 'Your first reading sits inside the healthy range. As you add more tests we will show whether it holds there.';
+      const side = (ref.low!=null && v<ref.low) ? 'below' : 'above';
+      return 'Your first reading is '+side+' the healthy range. Add more tests over time and we will show whether it is moving back toward range.';
+    }
+    return 'This is your first reading for this marker. Upload more blood tests over time and we will chart how it moves and what the trend means.';
+  }
+  const a=hist[0].value, b=hist[hist.length-1].value, d=b-a;
+  const pct = a!==0 ? Math.round(Math.abs(d)/Math.abs(a)*100) : null;
+  const steady = Math.abs(d) < (Math.abs(a)||1)*0.03;
+  let s = steady ? 'This has held about steady near '+b+unit
+                 : 'This has '+(d>0?'risen':'fallen')+' from '+a+' to '+b+unit+(pct!=null?(', about '+pct+' percent'):'');
+  s += ' across '+hist.length+' tests';
+  if(ref){
+    const nowIn=within(b), wasIn=within(a);
+    if(nowIn && !wasIn) s += ', and it has moved into the healthy range';
+    else if(!nowIn && wasIn) s += ', and it has slipped out of the healthy range';
+    else if(nowIn) s += ', staying within the healthy range';
+    else {
+      const tgt = (ref.low!=null && b<ref.low) ? ref.low : ((ref.high!=null && b>ref.high) ? ref.high : null);
+      if(tgt!=null) s += Math.abs(b-tgt) < Math.abs(a-tgt) ? ', edging toward the healthy range' : ', drifting further from the healthy range';
+    }
+  }
+  return s + '.';
+}
+function markerDetailHTML(mk, cls){
+  const color = ST_COLOR[cls] || ST_COLOR['s-none'];
+  const hist = markerHistory(mk);
+  const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
+  const cur = hist.length ? hist[hist.length-1].value : (mk.value!=null?mk.value:'');
+  const ref = mk.reference || mk.range || mk.optimal || null;
+  let rangeTxt = '';
+  if(ref && (ref.low!=null || ref.high!=null)){
+    rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
+  }
+  return '<div class="sm-trend">'+
+    '<div class="sm-trend-top"><div class="sm-trend-now">'+esc(String(cur))+unit+'</div>'+
+      (rangeTxt?'<div class="sm-trend-range">'+esc(rangeTxt)+'</div>':'')+'</div>'+
+    trendChartSVG(hist, color)+
+    '<p class="sm-trend-note">'+esc(trendSummary(hist, mk))+'</p>'+
+  '</div>';
+}
 function markerRowHTML(mk){
+  const cls  = sysStatus(mk.status||'').cls;
+  const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
-  const dot  = mk.status ? '<span class="mdot '+sysStatus(mk.status).cls+'"></span>' : '';
-  return '<div class="sm-mk"><span class="mn">'+dot+name+'</span>'+(val?'<span class="mv">'+esc(val)+'</span>':'')+'</div>';
+  const dot  = '<span class="mdot '+cls+'"></span>';
+  return '<div class="sm-marker">'+
+    '<button class="sm-mk" type="button">'+
+      '<span class="mn">'+dot+name+'</span>'+
+      '<span class="mr">'+miniSparkSVG(markerHistory(mk), color)+(val?'<span class="mv">'+esc(val)+'</span>':'')+'<span class="mk-chev">\u203A</span></span>'+
+    '</button>'+
+    '<div class="sm-mk-detail">'+markerDetailHTML(mk, cls)+'</div>'+
+  '</div>';
 }
 
 // Organ-specific systems get an anchor point on the figure (container %, where
@@ -730,6 +855,10 @@ function openSystem(p, s){
       ? '<div class="sm-mk-label">Markers in this system</div>' + markers.map(markerRowHTML).join('')
       : '<p class="sm-empty">The full marker list for this system will show here as your panel grows. The summary above reflects what we can read from this report.</p>');
   $("sm-close").addEventListener('click', closeSystem);
+  card.onclick = (e)=>{
+    const row = e.target.closest('.sm-mk');
+    if(row && card.contains(row)) row.parentElement.classList.toggle('open');
+  };
   card.scrollTop = 0;
   $("sys-modal").classList.add('show');
 }
