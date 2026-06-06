@@ -510,16 +510,27 @@ async function buildPicker(selectedId){
   const doneSet = new Set((doneRows||[]).map(r=>r.report_id));
   const completed = reports.filter(r=>doneSet.has(r.id));
 
+  // A panel can be reprocessed, leaving several finished reports for the same
+  // collection date. The user thinks in panels, not reprocesses, so keep one
+  // per date (the newest, since the list is already newest-first). Undated
+  // panels are left distinct, keyed by their own id.
+  const seenDates = new Set();
+  const panels = completed.filter(r=>{
+    if(!r.collected_on) return true;
+    if(seenDates.has(r.collected_on)) return false;
+    seenDates.add(r.collected_on); return true;
+  });
+
   const pk = $("report-picker");
   pk.innerHTML = "";
-  completed.forEach(r=>{
+  panels.forEach(r=>{
     const opt = document.createElement("option");
     opt.value = r.id;
     opt.textContent = panelLabel(r);
     if(r.id===selectedId) opt.selected = true;
     pk.appendChild(opt);
   });
-  return completed;
+  return panels;
 }
 
 $("report-picker").onchange = async (e)=>{
