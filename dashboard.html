@@ -159,6 +159,24 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .quiet{background:var(--teal-soft);border-radius:14px;padding:18px 20px;margin-bottom:10px}
 .quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:3px}
 .quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.6}
+/* Longitudinal "Since your last panel" card */
+.longi-summary{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:16px}
+.longi-group{margin-bottom:18px}
+.longi-group-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.longi-dot{width:8px;height:8px;border-radius:50%}
+.longi-dot.win{background:var(--teal)}
+.longi-dot.open{background:var(--coral)}
+.longi-dot.prog{background:var(--amber)}
+.longi-dot.new{background:var(--coral-dark)}
+.longi-row{background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.longi-row.win{background:var(--teal-soft);border-color:var(--teal-light)}
+.longi-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown)}
+.longi-move{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--brown-mid)}
+.longi-tag{margin-left:auto;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px}
+.longi-tag.flag{background:var(--coral-light);color:var(--coral-dark)}
+.longi-tag.watch{background:var(--amber-light);color:var(--amber)}
+.longi-tag.win{background:var(--teal-light);color:var(--teal-dark)}
+.longi-quiet{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:11px 14px}
 .disclaimer{font-size:12px;color:var(--brown-mid);text-align:center;line-height:1.7;padding:18px;background:var(--brown-soft);border-radius:12px;margin-top:28px}
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
@@ -392,6 +410,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         <div class="headline" id="headline"></div>
         <div class="conf" id="conf"></div>
       </div>
+    </div>
+
+    <div id="longi-wrap" class="hidden">
+      <div class="section-label" id="longi-label">Since your last panel</div>
+      <div id="longi"></div>
     </div>
 
     <div id="systems-wrap" class="hidden">
@@ -652,6 +675,8 @@ async function renderDashboard(p, reportId){
   $("systems-wrap").classList.toggle("hidden", sys.length===0);
   buildBodyMap(p, sys);
 
+  renderLongitudinal(p);
+
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
@@ -679,6 +704,93 @@ async function renderDashboard(p, reportId){
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
     (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
   ).join("");
+}
+
+// ── LONGITUDINAL "Since your last panel" ──────────────────────────────────
+// Reads the deterministic buckets the worker attached as p.longitudinal.
+// Persistence is the headline signal (stuck out of range across a year),
+// resolved markers are wins, newly-crossed are framed gently when the move
+// was slight. Hidden entirely for first-time users (no prior panel).
+function fmtPanelDate(d){
+  if(!d) return "your last panel";
+  const dt = new Date(d);
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{month:"long", year:"numeric"});
+}
+function longiMove(m){
+  // "12 -> 34 ng/mL" with the unit once. Falls back gracefully if a value is qualitative.
+  const pv = m.prior_value, cv = m.current_value, u = m.unit ? (" "+m.unit) : "";
+  if(pv==null || cv==null) return "";
+  return pv+" \u2192 "+cv+u;
+}
+function statusTag(status){
+  const s = String(status||"").toLowerCase();
+  if(s==="flag") return '<span class="longi-tag flag">needs a look</span>';
+  if(s==="watch") return '<span class="longi-tag watch">worth watching</span>';
+  return "";
+}
+function longiRow(m, opts){
+  opts = opts || {};
+  const cls = opts.win ? "longi-row win" : "longi-row";
+  const move = longiMove(m);
+  const tag = opts.win ? '<span class="longi-tag win">back in range</span>' : statusTag(m.current_status);
+  return '<div class="'+cls+'">'+
+    '<span class="longi-name">'+esc(m.display_name||m.marker_id||"")+'</span>'+
+    (move?'<span class="longi-move">'+esc(move)+'</span>':'')+
+    tag+
+  '</div>';
+}
+function renderLongitudinal(p){
+  const wrap = $("longi-wrap");
+  const L = p && p.longitudinal;
+  const open = (L && L.persistent_open) || [];
+  const prog = (L && L.persistent_progress) || [];
+  const resolved = (L && L.resolved) || [];
+  const crossed = (L && L.newly_crossed) || [];
+  const counts = (L && L.counts) || {};
+
+  if(!L || (open.length+prog.length+resolved.length+crossed.length)===0){
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  $("longi-label").textContent = "Since your "+fmtPanelDate(L.baseline_panel_date)+" panel";
+
+  // Calm, honest one-liner. Steady count reassures; the rest is detailed below.
+  const steady = counts.steady_healthy;
+  const bits = [];
+  if(typeof steady === "number" && steady>0) bits.push(steady+" marker"+(steady===1?"":"s")+" held steady");
+  if(resolved.length) bits.push(resolved.length+" came back into range");
+  if(open.length) bits.push(open.length+" still need"+(open.length===1?"s":"")+" attention");
+  const summary = bits.length ? bits.join(", ")+"." : "";
+
+  // Notable vs minor split for new crossings (the slight-variation rule).
+  const newNotable = crossed.filter(m=>m.salience!=="minor");
+  const newMinor = crossed.filter(m=>m.salience==="minor");
+
+  let html = summary ? '<div class="longi-summary">'+esc(summary)+'</div>' : '';
+
+  if(resolved.length){
+    html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot win"></span>Back in range</div>'+
+      resolved.map(m=>longiRow(m,{win:true})).join("")+'</div>';
+  }
+  if(open.length){
+    html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot open"></span>Still worth attention</div>'+
+      open.map(m=>longiRow(m)).join("")+'</div>';
+  }
+  if(prog.length){
+    html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot prog"></span>Moving in the right direction</div>'+
+      prog.map(m=>longiRow(m)).join("")+'</div>';
+  }
+  if(newNotable.length){
+    html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot new"></span>New since last panel</div>'+
+      newNotable.map(m=>longiRow(m)).join("")+'</div>';
+  }
+  if(newMinor.length){
+    html += '<div class="longi-quiet">'+newMinor.length+' other marker'+(newMinor.length===1?"":"s")+
+      ' drifted slightly across a line. Small year-to-year moves like these are common and usually worth watching over time rather than acting on now.</div>';
+  }
+
+  $("longi").innerHTML = html;
 }
 // esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
 // Two-pass: ' \u2014 ' (space-flanked) becomes ', '; any remaining bare \u2014
