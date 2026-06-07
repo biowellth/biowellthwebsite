@@ -524,6 +524,7 @@ async function buildPicker(selectedId){
   const { data: reports } = await sb.from("reports")
     .select("id, collected_on, created_at, lab_name, reveal_seen_at")
     .eq("user_id", USER.id)
+    .is("archived_at", null)
     .order("created_at",{ascending:false});
   if(!reports || !reports.length) return [];
 
