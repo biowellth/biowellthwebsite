@@ -166,10 +166,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .longi-dot{width:8px;height:8px;border-radius:50%}
 .longi-dot.win{background:var(--teal)}
 .longi-dot.open{background:var(--coral)}
-.longi-dot.prog{background:var(--amber)}
 .longi-dot.new{background:var(--coral-dark)}
 .longi-row{background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .longi-row.win{background:var(--teal-soft);border-color:var(--teal-light)}
+.longi-improving{font-size:12px;color:var(--teal);font-style:italic;margin-left:2px}
 .longi-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown)}
 .longi-move{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--brown-mid)}
 .longi-tag{margin-left:auto;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px}
@@ -733,9 +733,11 @@ function longiRow(m, opts){
   const cls = opts.win ? "longi-row win" : "longi-row";
   const move = longiMove(m);
   const tag = opts.win ? '<span class="longi-tag win">back in range</span>' : statusTag(m.current_status);
+  const improving = (!opts.win && m.improving) ? '<span class="longi-improving">improving</span>' : '';
   return '<div class="'+cls+'">'+
     '<span class="longi-name">'+esc(m.display_name||m.marker_id||"")+'</span>'+
     (move?'<span class="longi-move">'+esc(move)+'</span>':'')+
+    improving+
     tag+
   '</div>';
 }
@@ -743,12 +745,11 @@ function renderLongitudinal(p){
   const wrap = $("longi-wrap");
   const L = p && p.longitudinal;
   const open = (L && L.persistent_open) || [];
-  const prog = (L && L.persistent_progress) || [];
   const resolved = (L && L.resolved) || [];
   const crossed = (L && L.newly_crossed) || [];
   const counts = (L && L.counts) || {};
 
-  if(!L || (open.length+prog.length+resolved.length+crossed.length)===0){
+  if(!L || (open.length+resolved.length+crossed.length)===0){
     wrap.classList.add("hidden");
     return;
   }
@@ -776,10 +777,6 @@ function renderLongitudinal(p){
   if(open.length){
     html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot open"></span>Still worth attention</div>'+
       open.map(m=>longiRow(m)).join("")+'</div>';
-  }
-  if(prog.length){
-    html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot prog"></span>Moving in the right direction</div>'+
-      prog.map(m=>longiRow(m)).join("")+'</div>';
   }
   if(newNotable.length){
     html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot new"></span>New since last panel</div>'+
