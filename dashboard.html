@@ -170,6 +170,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .longi-row{background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .longi-row.win{background:var(--teal-soft);border-color:var(--teal-light)}
 .longi-improving{font-size:12px;color:var(--teal);font-style:italic;margin-left:2px}
+.mk-note{font-size:12px;color:var(--brown-mid);font-style:italic;padding:2px 0 6px 18px;line-height:1.4}
 .longi-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown)}
 .longi-move{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--brown-mid)}
 .longi-tag{margin-left:auto;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px}
@@ -725,6 +726,7 @@ function longiMove(m){
 }
 function statusTag(status){
   const s = String(status||"").toLowerCase();
+  if(s==="unknown_unit") return "";   // unit unconfirmed -> no chip (handled inline)
   if(s==="flag") return '<span class="longi-tag flag">needs a look</span>';
   if(s==="watch") return '<span class="longi-tag watch">worth watching</span>';
   return "";
@@ -973,16 +975,23 @@ function markerDetailHTML(mk, cls){
   '</div>';
 }
 function markerRowHTML(mk){
-  const cls  = sysStatus(mk.status||'').cls;
+  // unit unconfirmed: show the value as reported, neutral dot, no status chip,
+  // and a quiet hedged note. We deliberately do not score an unmatched unit.
+  const isUnknownUnit = String(mk.status||"").toLowerCase()==="unknown_unit";
+  const cls  = isUnknownUnit ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
   const dot  = '<span class="mdot '+cls+'"></span>';
+  const note = isUnknownUnit
+    ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
+    : '';
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
       '<span class="mr">'+miniSparkSVG(markerHistory(mk), color)+(val?'<span class="mv">'+esc(val)+'</span>':'')+'<span class="mk-chev">\u203A</span></span>'+
     '</button>'+
+    note+
     '<div class="sm-mk-detail">'+markerDetailHTML(mk, cls)+'</div>'+
   '</div>';
 }
