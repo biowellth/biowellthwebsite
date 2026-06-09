@@ -531,7 +531,8 @@ async function buildPicker(selectedId){
 
   const ids = reports.map(r=>r.id);
   const { data: doneRows } = await sb.from("results")
-    .select("report_id").in("report_id", ids);
+    .select("report_id, payload").in("report_id", ids);
+  const payloadByReport = new Map((doneRows||[]).map(r=>[r.report_id, r.payload]));
   const doneSet = new Set((doneRows||[]).map(r=>r.report_id));
   const completed = reports.filter(r=>doneSet.has(r.id));
 
@@ -545,6 +546,33 @@ async function buildPicker(selectedId){
     if(seenDates.has(r.collected_on)) return false;
     seenDates.add(r.collected_on); return true;
   });
+
+  // Cross-panel per-marker series, built once here (buildPicker is always
+  // awaited before the first render) so the expanded marker card can plot
+  // normalized_value over time with no fetch on expand. One entry per deduped
+  // live panel; reprocesses are already collapsed above. Old payloads that
+  // predate the persisted shape simply have normalized_value undefined -> null,
+  // which renders as a gap rather than a fabricated point.
+  const series = {};
+  for(const r of panels){
+    const pay = payloadByReport.get(r.id);
+    if(!pay || !Array.isArray(pay.systems)) continue;
+    for(const sys of pay.systems){
+      for(const m of (sys.markers||[])){
+        const id = m && m.marker_id;
+        if(!id) continue;
+        (series[id] || (series[id]=[])).push({
+          collected_on: r.collected_on || null,
+          normalized_value: (m.normalized_value===undefined ? null : m.normalized_value),
+          canonical_unit: m.canonical_unit || null,
+          band: m.band || null,
+          status: m.status || null,
+          is_cycle_gated: !!m.is_cycle_gated,
+        });
+      }
+    }
+  }
+  window.__rdSeries = series;
 
   const pk = $("report-picker");
   pk.innerHTML = "";
@@ -876,37 +904,92 @@ function markersForSystem(p, s){
 // A marker's readings over time. Today the payload sends one reading; when
 // longitudinal tracking ships, markers carry history:[{date,value}] and this
 // chart/interpretation fills in automatically.
-function markerHistory(mk){
-  if(Array.isArray(mk.history) && mk.history.length){
-    return mk.history.filter(h=>h && h.value!=null && !isNaN(+h.value)).map(h=>({value:+h.value, date:h.date||null}));
+// Colour one point by its OWN panel's engine status (so a panel where the marker
+// was flag stays coral even if the latest reading is optimal). Falls back to the
+// passed colour when a point carries no status.
+function pointColor(status, fallback){
+  if(status){ const c = sysStatus(String(status)).cls; if(ST_COLOR[c]) return ST_COLOR[c]; }
+  return fallback;
+}
+
+// Assemble the cross-panel series for one marker from window.__rdSeries, built in
+// buildPicker. Plots off normalized_value ONLY (canonical-unit axis), never the
+// raw printed value. Returns:
+//   points    - dated, plottable readings (normalized_value != null), ascending
+//   timeline  - dated readings incl. gaps (value null) in date order, for the chart
+//   gaps      - dated panels where the marker was not scored (normalized_value null)
+//   cycleGated, unitsChanged, canonicalUnit
+// Null collected_on is dropped from the line (treated as an undated single reading).
+// With no series (old flow / marker absent) falls back to the single current reading.
+function markerSeriesInfo(mk){
+  const id = mk && mk.marker_id;
+  const raw = (id && window.__rdSeries && Array.isArray(window.__rdSeries[id])) ? window.__rdSeries[id] : null;
+  if(!raw || !raw.length){
+    const v = (mk.value==='' || mk.value==null) ? null : +mk.value;
+    const pts = (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null, status: mk.status||null, band: mk.band||null}];
+    return { points: pts, timeline: pts.slice(), gaps: [], cycleGated: !!mk.is_cycle_gated, unitsChanged:false, canonicalUnit: mk.canonical_unit||null };
   }
+  const cycleGated = raw.some(e=>e && e.is_cycle_gated);
+  const dated = raw.filter(e=> e && e.collected_on!=null);            // undated dropped from the line
+  dated.sort((a,b)=> new Date(a.collected_on) - new Date(b.collected_on));
+  const plottable = (e)=> e.normalized_value!=null && !isNaN(+e.normalized_value);
+  const points = dated.filter(plottable).map(e=>({value:+e.normalized_value, date:e.collected_on, status:e.status||null, band:e.band||null}));
+  const timeline = dated.map(e=> plottable(e)
+    ? {value:+e.normalized_value, date:e.collected_on, status:e.status||null, band:e.band||null}
+    : {value:null, date:e.collected_on, status:null, band:null});
+  const gaps = timeline.filter(t=>t.value==null);
+  const cunits = [...new Set(dated.filter(plottable).map(e=>e.canonical_unit).filter(u=>u!=null))];
+  return { points, timeline, gaps, cycleGated, unitsChanged: cunits.length>1, canonicalUnit: cunits[0]||mk.canonical_unit||null };
+}
+
+// Plottable points for a marker (value,date,status). Used by the row sparkline and
+// as the base series. value is always normalized_value (or the single current
+// reading when there is no cross-panel series).
+function markerHistory(mk){
+  const info = markerSeriesInfo(mk);
+  if(info.points.length) return info.points.map(p=>({value:p.value, date:p.date, status:p.status, band:p.band}));
   const v = (mk.value==='' || mk.value==null) ? null : +mk.value;
-  return (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null}];
+  return (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null, status: mk.status||null, band: mk.band||null}];
 }
 function fmtDate(d){
   if(!d) return '';
   const dt = new Date(d);
   return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{month:'short', year:'2-digit'});
 }
+// hist may contain GAP entries (value == null) for panels where the marker was not
+// scored. The line breaks across gaps (never a fabricated/zero point); each gap
+// shows a small hollow neutral tick at the axis. Plottable dots are coloured by
+// their own panel's status. Single-reading empty state is unchanged.
 function trendChartSVG(hist, color){
   const W=280,H=92,padX=16,padTop=14,padBot=22, baseY=H-padBot;
-  const vals=hist.map(h=>h.value);
-  if(!vals.length) return '';
-  if(vals.length===1){
-    const cx=W/2, cy=(padTop+baseY)/2;
+  const plot=hist.filter(h=>h && h.value!=null && !isNaN(+h.value));
+  if(!plot.length) return '';
+  if(hist.length===1 && plot.length===1){
+    const h0=plot[0], cx=W/2, cy=(padTop+baseY)/2;
     return '<svg class="sm-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
       '<line class="axis" x1="'+padX+'" y1="'+baseY+'" x2="'+(W-padX)+'" y2="'+baseY+'" stroke-dasharray="3 4"/>'+
-      '<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+color+'"/>'+
-      '<text class="dlabel" x="'+cx+'" y="'+(baseY+12)+'" text-anchor="middle">'+esc(fmtDate(hist[0].date)||'this test')+'</text>'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+pointColor(h0.status,color)+'"/>'+
+      '<text class="dlabel" x="'+cx+'" y="'+(baseY+12)+'" text-anchor="middle">'+esc(fmtDate(h0.date)||'this test')+'</text>'+
     '</svg>';
   }
-  const mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1, n=vals.length;
+  const vals=plot.map(h=>+h.value);
+  const mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1, n=hist.length;
   const X=i=> padX + i*(W-2*padX)/(n-1);
   const Y=v=> padTop + (1-(v-mn)/span)*(baseY-padTop);
-  const poly=vals.map((v,i)=>X(i)+','+Y(v)).join(' ');
-  const dots=vals.map((v,i)=>'<circle cx="'+X(i)+'" cy="'+Y(v)+'" r="3.4" fill="'+color+'"/>').join('');
+  // polyline split into runs of consecutive plottable points (breaks at gaps)
+  const segs=[]; let cur=[];
+  hist.forEach((h,i)=>{
+    if(h && h.value!=null && !isNaN(+h.value)){ cur.push(X(i)+','+Y(+h.value)); }
+    else { if(cur.length>1) segs.push(cur.slice()); cur=[]; }
+  });
+  if(cur.length>1) segs.push(cur);
+  const lines=segs.map(pts=>'<polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"/>').join('');
+  const dots=hist.map((h,i)=> (h && h.value!=null && !isNaN(+h.value))
+    ? '<circle cx="'+X(i)+'" cy="'+Y(+h.value)+'" r="3.4" fill="'+pointColor(h.status,color)+'"/>'
+    : '<circle cx="'+X(i)+'" cy="'+baseY+'" r="2.2" fill="none" stroke="var(--brown-light)" stroke-width="1.3"/>'
+  ).join('');
   return '<svg class="sm-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
-    '<polyline fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="'+poly+'"/>'+dots+
+    lines+dots+
     '<text class="dlabel" x="'+X(0)+'" y="'+(baseY+12)+'" text-anchor="start">'+esc(fmtDate(hist[0].date)||'first')+'</text>'+
     '<text class="dlabel" x="'+X(n-1)+'" y="'+(baseY+12)+'" text-anchor="end">'+esc(fmtDate(hist[n-1].date)||'latest')+'</text>'+
   '</svg>';
@@ -959,19 +1042,40 @@ function trendSummary(hist, mk){
 }
 function markerDetailHTML(mk, cls){
   const color = ST_COLOR[cls] || ST_COLOR['s-none'];
-  const hist = markerHistory(mk);
+  const info = markerSeriesInfo(mk);
+  // Header shows the value AS REPORTED on this panel (raw printed value + unit),
+  // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
-  const cur = hist.length ? hist[hist.length-1].value : (mk.value!=null?mk.value:'');
+  const cur = (mk.value!=null && mk.value!=='') ? mk.value : (info.points.length ? info.points[info.points.length-1].value : '');
   const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
   let rangeTxt = '';
   if(ref && (ref.low!=null || ref.high!=null)){
     rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
   }
+  const cu = info.canonicalUnit;
+  let mid;
+  if(info.cycleGated){
+    // Cycle-dependent: no trend line. Show each reading on its own.
+    const reads = info.points.slice().reverse()
+      .map(p=>esc(String(p.value)+(cu?' '+cu:'')+', '+(fmtDate(p.date)||'this test'))).join('<br>');
+    mid = '<p class="sm-trend-note">'+(reads?reads+'<br>':'')+
+      'Levels here move with your cycle, so we show each reading on its own rather than a trend.</p>';
+  } else if(info.unitsChanged){
+    // Mixed canonical units across panels would be a false axis. Show the latest only.
+    const one = info.points.length ? [info.points[info.points.length-1]] : markerHistory(mk);
+    mid = trendChartSVG(one, color)+
+      '<p class="sm-trend-note">The unit for this marker changed across panels, so we show the most recent reading on its own.</p>';
+  } else {
+    const tl = info.timeline.length ? info.timeline : markerHistory(mk);
+    const pts = info.points.length ? info.points : markerHistory(mk);
+    mid = trendChartSVG(tl, color)+
+      (info.gaps.length ? '<p class="sm-trend-note">Some panels are not scored for this marker, so the line skips those points.</p>' : '')+
+      '<p class="sm-trend-note">'+esc(trendSummary(pts, {...mk, unit: cu || mk.unit}))+'</p>';
+  }
   return '<div class="sm-trend">'+
     '<div class="sm-trend-top"><div class="sm-trend-now">'+esc(String(cur))+unit+'</div>'+
       (rangeTxt?'<div class="sm-trend-range">'+esc(rangeTxt)+'</div>':'')+'</div>'+
-    trendChartSVG(hist, color)+
-    '<p class="sm-trend-note">'+esc(trendSummary(hist, mk))+'</p>'+
+    mid+
   '</div>';
 }
 function markerRowHTML(mk){
