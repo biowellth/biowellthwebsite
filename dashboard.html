@@ -966,6 +966,15 @@ function markerHistory(mk){
   const v = (mk.value==='' || mk.value==null) ? null : +mk.value;
   return (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null, status: mk.status||null, band: mk.band||null}];
 }
+// A qualitative marker is reported as a category (ABSENT, Negative, Nil) rather
+// than a number. The categorical text is not captured upstream, so these arrive
+// with a null value, no plottable point, and no band. We render them honestly as
+// unscored, mirroring the unknown-unit branch, instead of trusting the model's
+// default status (a green dot on an unread result would be misleading).
+function isQualitative(mk, info){
+  const inf = info || markerSeriesInfo(mk);
+  return (mk.value==null || mk.value==='') && inf.points.length===0 && mk.band==null;
+}
 function fmtDate(d){
   if(!d) return '';
   const dt = new Date(d);
@@ -1073,18 +1082,22 @@ function trendSummary(hist, mk){
 function markerDetailHTML(mk, cls){
   const color = ST_COLOR[cls] || ST_COLOR['s-none'];
   const info = markerSeriesInfo(mk);
+  const isQual = isQualitative(mk, info);
   // Header shows the value AS REPORTED on this panel (raw printed value + unit),
   // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
   const cur = (mk.value!=null && mk.value!=='') ? mk.value : (info.points.length ? info.points[info.points.length-1].value : '');
   const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
   let rangeTxt = '';
-  if(ref && (ref.low!=null || ref.high!=null)){
+  if(!isQual && ref && (ref.low!=null || ref.high!=null)){
     rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
   }
   const cu = info.canonicalUnit;
   let mid;
-  if(info.cycleGated){
+  if(isQual){
+    // Reported as a category, not a number, so nothing numeric to chart or summarise.
+    mid = '<p class="sm-trend-note">This marker is reported as a result rather than a number, so there is nothing to plot over time.</p>';
+  } else if(info.cycleGated){
     // Cycle-dependent: no trend line. Show each reading on its own.
     const reads = info.points.slice().reverse()
       .map(p=>esc(String(p.value)+(cu?' '+cu:'')+', '+(fmtDate(p.date)||'this test'))).join('<br>');
@@ -1102,8 +1115,13 @@ function markerDetailHTML(mk, cls){
       (info.gaps.length ? '<p class="sm-trend-note">Some panels are not scored for this marker, so the line skips those points.</p>' : '')+
       '<p class="sm-trend-note">'+esc(trendSummary(pts, {...mk, unit: cu || mk.unit}))+'</p>';
   }
+  // Bare unit with no number reads as broken, so qualitatives show a muted
+  // "result not scored" in the header instead of an empty value plus unit.
+  const nowHTML = isQual
+    ? '<div class="sm-trend-now" style="font-weight:400;color:var(--brown-mid)">result not scored</div>'
+    : '<div class="sm-trend-now">'+esc(String(cur))+unit+'</div>';
   return '<div class="sm-trend">'+
-    '<div class="sm-trend-top"><div class="sm-trend-now">'+esc(String(cur))+unit+'</div>'+
+    '<div class="sm-trend-top">'+nowHTML+
       (rangeTxt?'<div class="sm-trend-range">'+esc(rangeTxt)+'</div>':'')+'</div>'+
     mid+
   '</div>';
@@ -1112,10 +1130,19 @@ function markerRowHTML(mk){
   // unit unconfirmed: show the value as reported, neutral dot, no status chip,
   // and a quiet hedged note. We deliberately do not score an unmatched unit.
   const isUnknownUnit = String(mk.status||"").toLowerCase()==="unknown_unit";
-  const cls  = isUnknownUnit ? 's-none' : sysStatus(mk.status||'').cls;
+  // Qualitative markers (a category, not a number) are unscored too, so they get
+  // the same neutral dot and placeholder treatment as an unmatched unit.
+  const info = markerSeriesInfo(mk);
+  const isQual = isQualitative(mk, info);
+  const cls  = (isUnknownUnit || isQual) ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
+  // A bare unit with no number reads as broken, so qualitatives show a muted
+  // "result not scored" placeholder rather than the value slot's number+unit.
+  const valHTML = isQual
+    ? '<span class="mv" style="color:var(--brown-mid)">result not scored</span>'
+    : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
   const dot  = '<span class="mdot '+cls+'"></span>';
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
@@ -1123,7 +1150,7 @@ function markerRowHTML(mk){
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
-      '<span class="mr">'+miniSparkSVG(markerHistory(mk), color)+(val?'<span class="mv">'+esc(val)+'</span>':'')+'<span class="mk-chev">\u203A</span></span>'+
+      '<span class="mr">'+miniSparkSVG(markerHistory(mk), color)+valHTML+'<span class="mk-chev">\u203A</span></span>'+
     '</button>'+
     note+
     '<div class="sm-mk-detail">'+markerDetailHTML(mk, cls)+'</div>'+
