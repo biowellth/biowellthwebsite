@@ -547,6 +547,12 @@ async function buildPicker(selectedId){
     seenDates.add(r.collected_on); return true;
   });
 
+  // TEMP-DIAG (remove): cold-load longitudinal investigation
+  console.log("[DIAG buildPicker] doneRows null?", doneRows==null,
+    "doneRows.length:", (doneRows&&doneRows.length), "ids.length:", ids.length,
+    "completed.length:", completed.length, "panels.length:", panels.length,
+    "panels:", panels.map(r=>({id:r.id, collected_on:r.collected_on})));
+
   // Cross-panel per-marker series, built once here (buildPicker is always
   // awaited before the first render) so the expanded marker card can plot
   // normalized_value over time with no fetch on expand. One entry per deduped
@@ -615,6 +621,12 @@ $("report-picker").onchange = async (e)=>{
 
   // Sync the switcher selection to the panel we are about to show.
   $("report-picker").value = current.id;
+
+  // TEMP-DIAG (remove): cold-load longitudinal investigation
+  console.log("[DIAG coldload] current.id:", current.id, "collected_on:", current.collected_on,
+    "has_longitudinal:", !!(payload && payload.longitudinal),
+    "longitudinal:", payload && payload.longitudinal,
+    "counts:", payload && payload.longitudinal && payload.longitudinal.counts);
 
   await renderDashboard(payload, current.id);
   // The reveal deck is gated on this panel's own reveal_seen_at, exactly as before.
