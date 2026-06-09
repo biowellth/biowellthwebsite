@@ -24,8 +24,8 @@ body.ready{visibility:visible}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .topbar{background:var(--white);border-bottom:1px solid var(--brown-light);padding:0 24px;position:sticky;top:0;z-index:70}
 .topbar-inner{max-width:1100px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));display:flex;align-items:center;justify-content:center;color:var(--white);font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.brand-mark{width:30px;height:30px;color:var(--teal)}
 .brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
 .topbar-right{display:flex;align-items:center;gap:6px}
 .btn-ghost{font-size:13px;color:var(--brown-mid);font-weight:600;padding:8px 14px;border-radius:100px}
@@ -344,9 +344,75 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 </style>
 </head>
 <body>
+<!-- Brand mark sprite, lifted verbatim from index.html (#bw-mark) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="bw-mark" viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
+-8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
+-130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
+-74 -235 -312 -235 -324 0 -2 -13 -23 -29 -47 -38 -57 -85 -143 -139 -253 -41
+-85 -57 -118 -88 -190 -23 -54 -77 -215 -118 -355 -32 -105 -72 -324 -92 -493
+-19 -157 -15 -548 6 -697 23 -167 65 -371 100 -485 11 -38 25 -83 30 -100 38
+-135 172 -441 240 -550 13 -22 33 -56 43 -75 124 -228 421 -582 642 -765 33
+-28 62 -53 65 -56 9 -11 245 -185 260 -193 17 -8 38 -20 95 -57 124 -80 359
+-196 510 -251 69 -26 109 -39 140 -48 17 -5 44 -13 60 -19 41 -14 126 -37 210
+-55 39 -8 102 -22 141 -31 40 -8 85 -15 101 -15 16 0 74 -7 129 -15 204 -31
+620 -16 859 31 183 36 232 47 270 59 22 7 67 20 100 29 33 10 75 24 93 32 18
+8 37 14 43 14 35 0 454 193 490 225 8 8 20 15 25 15 5 0 40 20 77 45 38 25 71
+45 73 45 11 0 245 180 340 262 130 113 207 194 369 387 56 66 205 274 205 286
+0 4 11 21 24 38 33 45 141 249 191 362 14 33 32 74 39 90 23 52 63 162 76 210
+5 17 13 44 18 60 27 80 53 188 86 355 61 311 61 756 0 1085 -24 130 -45 227
+-60 270 -8 23 -14 50 -14 61 0 11 -4 24 -9 30 -6 5 -14 27 -20 49 -9 38 -24
+85 -42 130 -73 184 -152 354 -199 430 -13 22 -33 56 -43 75 -129 235 -405 564
+-647 771 -97 83 -349 269 -365 269 -2 0 -30 17 -62 38 -87 57 -249 139 -428
+217 -55 23 -163 62 -210 75 -16 5 -43 13 -60 18 -138 47 -350 90 -565 117
+-109 13 -517 20 -570 10z m461 -376 c40 -6 112 -22 159 -36 47 -13 99 -28 115
+-32 33 -9 195 -87 265 -128 284 -165 548 -499 640 -808 58 -196 71 -288 71
+-482 0 -171 -30 -375 -67 -461 -8 -18 -14 -39 -14 -47 0 -52 -214 -395 -256
+-412 -26 -10 -13 -28 63 -88 41 -33 101 -83 132 -112 31 -29 58 -52 61 -52 14
+-1 62 55 148 172 83 113 178 302 212 422 4 17 13 44 18 60 19 55 41 169 58
+303 18 143 16 381 -6 497 -31 173 -60 290 -87 352 -7 17 -13 34 -13 38 0 8
+-27 70 -46 107 -8 14 -14 31 -14 36 0 6 -20 45 -45 86 -43 72 -52 96 -39 96
+18 0 313 -244 373 -309 13 -14 46 -51 75 -81 28 -30 67 -75 86 -100 19 -25 40
+-52 47 -60 104 -132 221 -317 295 -470 47 -96 132 -298 141 -335 3 -11 10 -33
+16 -50 10 -31 29 -98 55 -195 64 -245 94 -668 61 -884 -8 -55 -15 -118 -15
+-141 0 -23 -7 -64 -15 -91 -8 -27 -15 -60 -15 -73 0 -13 -7 -49 -16 -80 -8
+-31 -22 -81 -31 -111 -42 -148 -72 -232 -141 -385 -133 -297 -353 -611 -582
+-833 -84 -82 -276 -242 -289 -242 -6 0 -14 -7 -17 -15 -7 -16 -34 -21 -34 -5
+0 5 13 31 28 57 35 60 89 174 132 278 32 78 76 271 96 423 24 190 13 399 -32
+602 -17 72 -42 164 -55 195 -4 11 -18 45 -30 75 -100 254 -234 454 -430 645
+-139 135 -273 238 -399 306 -25 14 -63 36 -85 50 -22 14 -60 33 -85 43 -25 10
+-58 23 -75 30 -86 36 -196 64 -283 73 l-52 6 2 -177 3 -177 55 -19 c30 -11 63
+-19 73 -20 11 0 31 -6 45 -14 15 -7 61 -30 102 -51 41 -20 89 -45 105 -56 17
+-10 37 -22 45 -26 67 -32 243 -169 321 -250 68 -70 189 -225 189 -241 0 -5 6
+-14 13 -20 13 -11 92 -168 120 -237 14 -36 29 -82 58 -182 37 -126 52 -392 29
+-547 -15 -108 -63 -293 -89 -344 -4 -9 -34 -70 -66 -135 -32 -65 -88 -157
+-123 -205 -73 -97 -229 -255 -301 -304 -115 -79 -162 -109 -183 -118 -13 -6
+-30 -14 -38 -19 -17 -10 -78 -38 -125 -56 -221 -89 -507 -122 -755 -86 -92 13
+-259 57 -330 88 -113 49 -242 119 -310 170 -25 18 -58 43 -75 55 -38 28 -192
+184 -222 223 -71 94 -93 124 -110 155 -10 19 -26 46 -35 60 -24 36 -86 184
+-109 260 -11 36 -25 79 -30 95 -11 32 -24 118 -39 254 -10 98 2 275 26 384 35
+157 34 156 92 297 67 165 169 318 306 458 74 77 215 188 301 238 27 16 59 34
+70 41 110 64 240 118 343 140 31 7 33 25 30 203 l-3 155 -34 3 c-44 4 -167
+-27 -311 -80 -19 -8 -77 -34 -128 -60 -311 -159 -588 -407 -774 -693 -53 -82
+-162 -305 -173 -352 -3 -18 -11 -35 -16 -38 -5 -4 -9 -17 -9 -30 0 -13 -6 -39
+-14 -57 -61 -143 -90 -532 -58 -753 20 -136 58 -290 89 -362 7 -17 13 -36 13
+-41 0 -5 13 -37 30 -70 16 -34 30 -66 30 -71 0 -6 20 -45 45 -87 25 -41 45
+-80 45 -85 0 -15 -27 -10 -41 8 -8 9 -36 33 -64 53 -62 47 -240 202 -279 244
+-161 174 -302 356 -381 493 -25 43 -49 85 -55 93 -12 20 -109 216 -126 255
+-58 138 -74 179 -74 191 0 7 -6 28 -14 46 -13 31 -23 67 -60 216 -23 92 -44
+217 -62 375 -24 212 -13 493 27 707 29 155 57 279 65 292 4 6 11 28 15 47 10
+47 56 179 74 213 8 14 15 35 15 46 0 11 7 25 15 32 8 7 15 18 15 24 0 12 66
+144 125 251 33 59 99 160 203 307 28 40 191 226 247 281 51 52 178 162 241
+210 106 82 182 136 215 154 19 10 53 31 76 46 24 15 47 27 52 27 5 0 11 4 13
+8 3 7 122 67 260 131 90 42 297 112 383 131 22 5 58 13 80 18 244 60 623 83
+836 51z"/><path d="M3482 4975 c-42 -35 -100 -180 -121 -305 -4 -25 -13 -72 -19 -105
+-39 -210 -56 -510 -47 -855 7 -307 40 -602 81 -730 8 -25 14 -53 14 -62 0 -9
+15 -51 34 -92 25 -55 44 -81 68 -96 18 -11 37 -20 42 -20 24 0 84 81 103 141
+38 114 79 299 87 389 3 30 10 93 17 140 17 119 17 813 0 945 -7 55 -17 132
+-21 170 -11 90 -28 178 -46 235 -8 25 -14 54 -14 64 0 34 -69 164 -99 185 -37
+27 -43 26 -79 -4z"/></g></g></symbol></svg>
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="brand"><div class="brand-mark">B</div><div class="brand-name">BioWellth</div></div>
+    <div class="brand"><svg class="brand-mark" aria-label="BioWellth"><use href="#bw-mark"/></svg><div class="brand-name">BioWellth</div></div>
     <div class="topbar-right">
       <select class="report-picker hidden" id="report-picker" title="Switch between your panels"></select>
       <button class="btn-ghost hidden" id="btn-new">New upload</button>
@@ -641,6 +707,15 @@ $("report-picker").onchange = async (e)=>{
 $("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
 $("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); showView("upload"); };
 $("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
+// Logo returns the user to their dashboard home. Wired once here, not per render.
+// Mirrors the reveal Skip button (#rd-skip): if the reveal deck is open, stamp it
+// seen before landing on the dashboard so it does not re-fire; otherwise just show
+// the dashboard. No-op on the upload/empty state where no dashboard exists yet.
+document.querySelector(".brand").onclick = ()=>{
+  const inReveal = !$("view-reveal").classList.contains("hidden");
+  if(inReveal && window.__rdReport){ stampSeen(window.__rdReport); }
+  else if(window.__rdPayload){ showView("dashboard"); }
+};
 
 const dz = $("dropzone"), fileInput = $("file");
 dz.onclick = ()=>fileInput.click();
