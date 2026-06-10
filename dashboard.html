@@ -1050,6 +1050,27 @@ function isQualitative(mk, info){
   const inf = info || markerSeriesInfo(mk);
   return (mk.value==null || mk.value==='') && inf.points.length===0 && mk.band==null;
 }
+// Friendly words for the inputs a calculated marker is derived from. derived_from
+// carries library marker_ids; this turns them into plain language for the caption.
+// SOURCE OF TRUTH is the registry in the backend derived-markers.js; keep in sync.
+const DERIVED_INPUT_NAMES = {
+  fasting_insulin: "insulin", fasting_glucose: "glucose",
+  triglycerides: "triglycerides", hdl_cholesterol: "HDL",
+  absolute_neutrophils: "neutrophils", absolute_lymphocytes: "lymphocytes",
+  absolute_monocytes: "monocytes", platelet_count: "platelets",
+  hs_crp: "CRP", albumin: "albumin", ferritin: "ferritin"
+};
+// "Based on your X and Y" (2 inputs) / "X, Y, and Z" (3 inputs, e.g. SII/SIRI).
+// No colon, no em dash. Empty string when there are no inputs to name.
+function derivedCaption(mk){
+  const ins = (mk.derived_from||[]).map(id => DERIVED_INPUT_NAMES[id] || id);
+  if(!ins.length) return "";
+  let list;
+  if(ins.length === 1) list = ins[0];
+  else if(ins.length === 2) list = ins[0] + " and " + ins[1];
+  else list = ins.slice(0,-1).join(", ") + ", and " + ins[ins.length-1];
+  return "Based on your " + list;
+}
 function fmtDate(d){
   if(!d) return '';
   const dt = new Date(d);
@@ -1158,6 +1179,9 @@ function markerDetailHTML(mk, cls){
   const color = ST_COLOR[cls] || ST_COLOR['s-none'];
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
+  // Calculated markers trend across panels and render like any scored marker
+  // (chart, range, value all kept); they only ADD a "Based on your ..." caption.
+  const isDerived = mk.derived === true;
   // Header shows the value AS REPORTED on this panel (raw printed value + unit),
   // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
@@ -1195,10 +1219,14 @@ function markerDetailHTML(mk, cls){
   const nowHTML = isQual
     ? '<div class="sm-trend-now" style="font-weight:400;color:var(--brown-mid)">result not scored</div>'
     : '<div class="sm-trend-now">'+esc(String(cur))+unit+'</div>';
+  // Calculated markers add a plain-language "Based on your ..." note above the
+  // chart; the chart, range, and value all render exactly as a measured marker.
+  const derivCap = (isDerived && derivedCaption(mk))
+    ? '<p class="sm-trend-note">'+esc(derivedCaption(mk))+'</p>' : '';
   return '<div class="sm-trend">'+
     '<div class="sm-trend-top">'+nowHTML+
       (rangeTxt?'<div class="sm-trend-range">'+esc(rangeTxt)+'</div>':'')+'</div>'+
-    mid+
+    derivCap+mid+
   '</div>';
 }
 function markerRowHTML(mk){
@@ -1209,6 +1237,10 @@ function markerRowHTML(mk){
   // the same neutral dot and placeholder treatment as an unmatched unit.
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
+  // Calculated markers are real scored values: they KEEP their band color and
+  // their number, and only add a "Based on your ..." caption (no neutral dot,
+  // no value swap, no badge). This is the opposite of the isQual suppression.
+  const isDerived = mk.derived === true;
   const cls  = (isUnknownUnit || isQual) ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
@@ -1219,9 +1251,13 @@ function markerRowHTML(mk){
     ? '<span class="mv" style="color:var(--brown-mid)">result not scored</span>'
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
   const dot  = '<span class="mdot '+cls+'"></span>';
+  // unknown_unit hedge wins if a marker is somehow both; otherwise a calculated
+  // marker shows its "Based on your ..." caption in the same .mk-note slot.
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
-    : '';
+    : (isDerived && derivedCaption(mk)
+        ? '<div class="mk-note">'+esc(derivedCaption(mk))+'</div>'
+        : '');
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
