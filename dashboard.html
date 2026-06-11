@@ -1050,27 +1050,24 @@ function isQualitative(mk, info){
   const inf = info || markerSeriesInfo(mk);
   return (mk.value==null || mk.value==='') && inf.points.length===0 && mk.band==null;
 }
-// Friendly words for the inputs a calculated marker is derived from. derived_from
-// carries library marker_ids; this turns them into plain language for the caption.
-// SOURCE OF TRUTH is the registry in the backend derived-markers.js; keep in sync.
-const DERIVED_INPUT_NAMES = {
-  fasting_insulin: "insulin", fasting_glucose: "glucose",
-  triglycerides: "triglycerides", hdl_cholesterol: "HDL",
-  absolute_neutrophils: "neutrophils", absolute_lymphocytes: "lymphocytes",
-  absolute_monocytes: "monocytes", platelet_count: "platelets",
-  hs_crp: "CRP", albumin: "albumin", ferritin: "ferritin"
+// Authored "what it is, why it matters" line for each calculated marker, in plain
+// language for a non-clinical reader. No colon, no em dash.
+// Keyed by marker_id; covers the 11 derived indices. A measured-marker
+// explanation set is a separate future project.
+const DERIVED_EXPLAIN = {
+  homa_ir: "A measure of how well your body responds to insulin. It matters because insulin resistance often rises quietly, years before blood sugar changes, and catching it early gives you the most room to act.",
+  tyg_index: "A marker of insulin resistance built from your triglycerides and blood sugar. It matters because it can flag early metabolic strain even when each number on its own still looks normal.",
+  quicki: "Another read on insulin sensitivity, where a higher number is better. It matters because good insulin sensitivity supports steady energy, hormone balance, and long term metabolic health.",
+  nlr: "A balance between two types of white blood cells that reflects your overall inflammation level. It matters because a rising ratio can be an early, general signal that the body is under stress.",
+  plr: "A ratio that picks up on inflammation and immune activity. It matters because shifts here can accompany inflammatory or hormonal changes worth keeping an eye on over time.",
+  sii: "A combined picture of inflammation drawn from your platelets and two white blood cell types. It matters because it captures low grade inflammation that single markers can miss.",
+  siri: "Another combined inflammation measure that adds in your monocytes. It matters because persistent low grade inflammation is linked to how you age and feel day to day.",
+  neutrophil_hdl_ratio: "A ratio that weighs inflammation against your protective HDL cholesterol. It matters because it ties together immune and metabolic health, two systems that often move together in women.",
+  monocyte_hdl_ratio: "A balance between a type of immune cell and your protective HDL. It matters because it can reflect the kind of quiet inflammation that builds slowly over years.",
+  crp_albumin_ratio: "A pairing of an inflammation marker with a protein that reflects nourishment and liver function. It matters because together they give a steadier read on inflammation than CRP alone.",
+  ferritin_albumin_ratio: "A ratio linking your iron stores to that same nourishment protein. It matters because it can help tell apart genuinely high iron from iron that looks high simply because of inflammation."
 };
-// "Based on your X and Y" (2 inputs) / "X, Y, and Z" (3 inputs, e.g. SII/SIRI).
-// No colon, no em dash. Empty string when there are no inputs to name.
-function derivedCaption(mk){
-  const ins = (mk.derived_from||[]).map(id => DERIVED_INPUT_NAMES[id] || id);
-  if(!ins.length) return "";
-  let list;
-  if(ins.length === 1) list = ins[0];
-  else if(ins.length === 2) list = ins[0] + " and " + ins[1];
-  else list = ins.slice(0,-1).join(", ") + ", and " + ins[ins.length-1];
-  return "Based on your " + list;
-}
+function derivedExplain(mk){ return DERIVED_EXPLAIN[mk.marker_id] || ""; }
 function fmtDate(d){
   if(!d) return '';
   const dt = new Date(d);
@@ -1221,8 +1218,8 @@ function markerDetailHTML(mk, cls){
     : '<div class="sm-trend-now">'+esc(String(cur))+unit+'</div>';
   // Calculated markers add a plain-language "Based on your ..." note above the
   // chart; the chart, range, and value all render exactly as a measured marker.
-  const derivCap = (isDerived && derivedCaption(mk))
-    ? '<p class="sm-trend-note">'+esc(derivedCaption(mk))+'</p>' : '';
+  const derivCap = (isDerived && derivedExplain(mk))
+    ? '<p class="sm-trend-note">'+esc(derivedExplain(mk))+'</p>' : '';
   return '<div class="sm-trend">'+
     '<div class="sm-trend-top">'+nowHTML+
       (rangeTxt?'<div class="sm-trend-range">'+esc(rangeTxt)+'</div>':'')+'</div>'+
@@ -1255,8 +1252,8 @@ function markerRowHTML(mk){
   // marker shows its "Based on your ..." caption in the same .mk-note slot.
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
-    : (isDerived && derivedCaption(mk)
-        ? '<div class="mk-note">'+esc(derivedCaption(mk))+'</div>'
+    : (isDerived && derivedExplain(mk)
+        ? '<div class="mk-note">'+esc(derivedExplain(mk))+'</div>'
         : '');
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
