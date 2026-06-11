@@ -1234,10 +1234,6 @@ function markerRowHTML(mk){
   // the same neutral dot and placeholder treatment as an unmatched unit.
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
-  // Calculated markers are real scored values: they KEEP their band color and
-  // their number, and only add a "Based on your ..." caption (no neutral dot,
-  // no value swap, no badge). This is the opposite of the isQual suppression.
-  const isDerived = mk.derived === true;
   const cls  = (isUnknownUnit || isQual) ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
@@ -1248,13 +1244,9 @@ function markerRowHTML(mk){
     ? '<span class="mv" style="color:var(--brown-mid)">result not scored</span>'
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
   const dot  = '<span class="mdot '+cls+'"></span>';
-  // unknown_unit hedge wins if a marker is somehow both; otherwise a calculated
-  // marker shows its "Based on your ..." caption in the same .mk-note slot.
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
-    : (isDerived && derivedExplain(mk)
-        ? '<div class="mk-note">'+esc(derivedExplain(mk))+'</div>'
-        : '');
+    : '';
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
