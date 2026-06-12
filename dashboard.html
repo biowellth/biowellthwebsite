@@ -1393,8 +1393,8 @@ function trendSummary(hist, mk){
   const a=hist[0].value, b=hist[hist.length-1].value, d=b-a;
   const pct = a!==0 ? Math.round(Math.abs(d)/Math.abs(a)*100) : null;
   const steady = Math.abs(d) < (Math.abs(a)||1)*0.03;
-  let s = steady ? 'This has held about steady near '+b+unit
-                 : 'This has '+(d>0?'risen':'fallen')+' from '+a+' to '+b+unit+(pct!=null?(', about '+pct+' percent'):'');
+  let s = steady ? 'This has held about steady near '+fmtDot(b)+unit
+                 : 'This has '+(d>0?'risen':'fallen')+' from '+fmtDot(a)+' to '+fmtDot(b)+unit+(pct!=null?(', about '+pct+' percent'):'');
   s += ' across '+hist.length+' tests';
   if(ref){
     const nowIn=within(b), wasIn=within(a);
