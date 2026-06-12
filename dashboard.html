@@ -1306,6 +1306,13 @@ function fmtDate(d){
 // scored. The line breaks across gaps (never a fabricated/zero point); each gap
 // shows a small hollow neutral tick at the axis. Plottable dots are coloured by
 // their own panel's status. Single-reading empty state is unchanged.
+// Per-point dot labels: round to a magnitude-appropriate precision so a
+// normalized_value (which can be a long float, e.g. a unit-converted Lp(a)
+// reading of 39.337474120082824 nmol/L) renders as a clean "39.3" rather than
+// a 17-digit number. Header value + trend summary are unaffected.
+const fmtDot = v => { const n=+v, a=Math.abs(n);
+  const dp = a>=100?0 : a>=10?1 : a>=1?2 : 3;
+  return parseFloat(n.toFixed(dp)).toString(); };
 function trendChartSVG(hist, color){
   const W=280,H=92,padX=16,padTop=20,padBot=22, baseY=H-padBot;
   const plot=hist.filter(h=>h && h.value!=null && !isNaN(+h.value));
@@ -1347,7 +1354,7 @@ function trendChartSVG(hist, color){
     const cy=Y(+h.value), above=cy-8;
     const ly = above < 10 ? cy+14 : above;          // high points: label below the dot
     const anc = i===0 ? 'start' : (i===n-1 ? 'end' : 'middle');
-    return '<text class="dlabel" style="font-size:8px;opacity:.85" x="'+X(i)+'" y="'+ly+'" text-anchor="'+anc+'">'+esc(String(+h.value))+'</text>';
+    return '<text class="dlabel" style="font-size:8px;opacity:.85" x="'+X(i)+'" y="'+ly+'" text-anchor="'+anc+'">'+esc(fmtDot(h.value))+'</text>';
   }).join('');
   return '<svg class="sm-chart" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
     lines+dots+vlabels+
