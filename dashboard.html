@@ -1412,13 +1412,14 @@ function markerDetailHTML(mk, cls){
   const color = ST_COLOR[cls] || ST_COLOR['s-none'];
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
+  const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
   // Header shows the value AS REPORTED on this panel (raw printed value + unit),
   // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
   const cur = (mk.value!=null && mk.value!=='') ? mk.value : (info.points.length ? info.points[info.points.length-1].value : '');
   const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
   let rangeTxt = '';
-  if(!isQual && ref && (ref.low!=null || ref.high!=null)){
+  if(!isQual && !isNotScored && ref && (ref.low!=null || ref.high!=null)){
     rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
   }
   const cu = info.canonicalUnit;
@@ -1427,11 +1428,17 @@ function markerDetailHTML(mk, cls){
     // Reported as a category, not a number, so nothing numeric to chart or summarise.
     mid = '<p class="sm-trend-note">This marker is reported as a result rather than a number, so there is nothing to plot over time.</p>';
   } else if(info.cycleGated){
-    // Cycle-dependent: no trend line. Show each reading on its own.
+    // Cycle-dependent: no trend line. Show each reading on its own. (Covers cycle-gated
+    // not_scored markers, keeping the cycle copy.)
     const reads = info.points.slice().reverse()
       .map(p=>esc(String(p.value)+(cu?' '+cu:'')+', '+(fmtDate(p.date)||'this test'))).join('<br>');
     mid = '<p class="sm-trend-note">'+(reads?reads+'<br>':'')+
       'Levels here move with your cycle, so we show each reading on its own rather than a trend.</p>';
+  } else if(isNotScored){
+    // not_scored, non-cycle-gated: no scored reference range for this marker, so we do NOT
+    // plot a trend. Tested BEFORE the numeric-trend path below so a numeric not_scored
+    // marker (e.g. dhea, which carries a value) never reaches the trend branch.
+    mid = '<p class="sm-trend-note">We do not have a scored reference range for this marker yet, so it is shown here without a status.</p>';
   } else if(info.unitsChanged){
     // Mixed canonical units across panels would be a false axis. Show the latest only.
     const one = info.points.length ? [info.points[info.points.length-1]] : markerHistory(mk);
@@ -1446,7 +1453,7 @@ function markerDetailHTML(mk, cls){
   }
   // Bare unit with no number reads as broken, so qualitatives show a muted
   // "result not scored" in the header instead of an empty value plus unit.
-  const nowHTML = isQual
+  const nowHTML = (isQual || isNotScored)
     ? '<div class="sm-trend-now" style="font-weight:400;color:var(--brown-mid)">result not scored</div>'
     : '<div class="sm-trend-now">'+esc(String(cur))+unit+'</div>';
   // Any marker with an authored explanation (derived OR measured) shows a
@@ -1468,23 +1475,32 @@ function markerRowHTML(mk){
   // the same neutral dot and placeholder treatment as an unmatched unit.
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
-  const cls  = (isUnknownUnit || isQual) ? 's-none' : sysStatus(mk.status||'').cls;
+  // not_scored: the engine has no scored band for this marker (genuinely unbandable, or
+  // cycle-gated). Same unscored register as above \u2014 grey dot, no value/spark, honest note.
+  const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
+  const cls  = (isUnknownUnit || isQual || isNotScored) ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(mk.display_name || mk.name || "");
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
-  // A bare unit with no number reads as broken, so qualitatives show a muted
-  // "result not scored" placeholder rather than the value slot's number+unit.
-  const valHTML = isQual
+  // A bare unit with no number reads as broken, so qualitatives AND not_scored markers show
+  // a muted "result not scored" placeholder rather than the value, and suppress the spark.
+  const unscored = isQual || isNotScored;
+  const valHTML = unscored
     ? '<span class="mv" style="color:var(--brown-mid)">result not scored</span>'
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
+  const spark = unscored ? miniSparkSVG([], color) : miniSparkSVG(markerHistory(mk), color);
   const dot  = '<span class="mdot '+cls+'"></span>';
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
-    : '';
+    : isNotScored
+      ? '<div class="mk-note">'+(mk.is_cycle_gated
+          ? 'Levels here move with your cycle, so this is not scored against a single range.'
+          : 'We do not have a scored reference range for this marker yet, so it is shown without a status.')+'</div>'
+      : '';
   return '<div class="sm-marker">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
-      '<span class="mr">'+miniSparkSVG(markerHistory(mk), color)+valHTML+'<span class="mk-chev">\u203A</span></span>'+
+      '<span class="mr">'+spark+valHTML+'<span class="mk-chev">\u203A</span></span>'+
     '</button>'+
     note+
     '<div class="sm-mk-detail">'+markerDetailHTML(mk, cls)+'</div>'+
