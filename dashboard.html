@@ -1020,7 +1020,16 @@ function markerSeriesInfo(mk){
     return { points: pts, timeline: pts.slice(), gaps: [], cycleGated: !!mk.is_cycle_gated, unitsChanged:false, canonicalUnit: mk.canonical_unit||null };
   }
   const cycleGated = raw.some(e=>e && e.is_cycle_gated);
-  const dated = raw.filter(e=> e && e.collected_on!=null);            // undated dropped from the line
+  // Clamp the cross-panel series to the OPEN report's date. window.__rdSeries is
+  // user-scoped across ALL panels, so without this a past panel would plot future
+  // readings (and trendSummary, derived from these same points, would read the future
+  // endpoint). window.__rdPayload.panel_date is the open report's draw date, set in
+  // renderDashboard — the same payload markerRowHTML reads mk from. Use <= so the open
+  // panel's OWN reading remains the endpoint of its own trend. Undated points still drop.
+  const openDate = (window.__rdPayload && window.__rdPayload.panel_date) || null;
+  const dated = raw
+    .filter(e=> e && e.collected_on!=null)
+    .filter(e=> !openDate || new Date(e.collected_on) <= new Date(openDate));
   dated.sort((a,b)=> new Date(a.collected_on) - new Date(b.collected_on));
   const plottable = (e)=> e.normalized_value!=null && !isNaN(+e.normalized_value);
   const points = dated.filter(plottable).map(e=>({value:+e.normalized_value, date:e.collected_on, status:e.status||null, band:e.band||null}));
