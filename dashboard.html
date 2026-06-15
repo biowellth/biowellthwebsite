@@ -159,6 +159,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .quiet{background:var(--teal-soft);border-radius:14px;padding:18px 20px;margin-bottom:10px}
 .quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:3px}
 .quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.6}
+.gap-intro{font-size:13.5px;color:var(--brown-mid);line-height:1.7;margin-bottom:14px}
+.gap-cluster{background:var(--brown-soft);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+.gap-sys{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.gap-frame{font-size:13px;color:var(--brown-mid);line-height:1.6}
+.gap-markers{font-size:12.5px;color:var(--brown-mid);opacity:.75;line-height:1.6;margin-top:6px}
 /* Longitudinal "Since your last panel" card */
 .longi-summary{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:16px}
 .longi-group{margin-bottom:18px}
@@ -504,6 +509,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div id="quiet"></div>
     </div>
 
+    <div id="gap-wrap" class="hidden">
+      <div class="section-label">Worth exploring over time</div>
+      <div id="gap-intro" class="gap-intro"></div>
+      <div id="gap"></div>
+    </div>
+
     <div class="disclaimer">
       <strong>This is educational, not a diagnosis.</strong> We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.
     </div>
@@ -770,6 +781,249 @@ function pollForResult(reportId){
   }, 3000);
 }
 
+// ── COVERAGE GAP ("Worth exploring over time") ────────────────────────────
+// Renders payload.coverage_gap: marker_ids in the 132-id Intelligence Basic
+// Panel reference set the user has NOT yet tested, grouped by system. Display
+// only. Marker names are VERBATIM from the biomarker library; system names are
+// the locked map (MASTER #13). Heavy metals + tumor markers are HARD-suppressed
+// and can never render as "worth exploring".
+const GAP_MARKER_NAME = {
+  "absolute_basophils": "Absolute Basophil Count",
+  "absolute_eosinophils": "Absolute Eosinophil Count",
+  "absolute_lymphocytes": "Absolute Lymphocyte Count (ALC)",
+  "absolute_monocytes": "Absolute Monocyte Count",
+  "absolute_neutrophils": "Absolute Neutrophil Count (ANC)",
+  "adiponectin": "Adiponectin",
+  "albumin": "Albumin",
+  "alkaline_phosphatase": "Alkaline Phosphatase",
+  "alt": "ALT (SGPT)",
+  "aluminum": "Aluminum",
+  "amh": "AMH",
+  "amylase": "Amylase",
+  "ana": "ANA",
+  "apolipoprotein_a1": "Apolipoprotein A1",
+  "apolipoprotein_b": "Apolipoprotein B (ApoB)",
+  "ast": "AST (SGOT)",
+  "basophils_pct": "Basophils (%)",
+  "bicarbonate": "CO2 (Bicarbonate)",
+  "bilirubin_direct": "Bilirubin (Direct)",
+  "bilirubin_total": "Bilirubin (Total)",
+  "bun": "BUN",
+  "c_peptide": "C-Peptide",
+  "calcium_total": "Calcium (Total)",
+  "chloride": "Chloride",
+  "coenzyme_q10": "Coenzyme Q10",
+  "cortisol_am": "Cortisol (AM, serum)",
+  "creatinine": "Creatinine",
+  "cystatin_c": "Cystatin C",
+  "dhea_sulfate": "DHEA-S",
+  "dht": "DHT",
+  "eosinophils_pct": "Eosinophils (%)",
+  "esr": "ESR",
+  "estradiol_e2": "Estradiol (E2)",
+  "estriol_e3": "Estriol (E3)",
+  "estrone_e1": "Estrone (E1)",
+  "fasting_glucose": "Fasting Glucose",
+  "fasting_insulin": "Fasting Insulin",
+  "ferritin": "Ferritin",
+  "fibrinogen": "Fibrinogen",
+  "free_t3": "Free T3",
+  "free_t4": "Free T4",
+  "fsh": "FSH",
+  "ggt": "GGT",
+  "hba1c": "HbA1c",
+  "hdl_cholesterol": "HDL Cholesterol",
+  "hematocrit": "Hematocrit",
+  "hemoglobin": "Hemoglobin",
+  "homocysteine": "Homocysteine",
+  "hs_crp": "hs-CRP",
+  "iga": "IgA",
+  "igf_1": "IGF-1 (Insulin-like Growth Factor 1)",
+  "il6": "IL-6",
+  "immature_granulocytes_pct": "Immature Granulocytes (%)",
+  "iron_serum": "Iron (Serum)",
+  "large_hdl_p": "Large HDL-P",
+  "ldh": "LDH",
+  "ldl_cholesterol": "LDL Cholesterol",
+  "lead": "Lead",
+  "leptin": "Leptin",
+  "lh": "LH",
+  "lipase": "Lipase",
+  "lipoprotein_a": "Lipoprotein(a)",
+  "lp_pla2": "Lp-PLA2",
+  "lymphocytes_pct": "Lymphocytes (%)",
+  "magnesium_serum": "Magnesium (Serum)",
+  "mch": "MCH",
+  "mchc": "MCHC",
+  "mcv": "MCV",
+  "mercury": "Mercury",
+  "monocytes_pct": "Monocytes (%)",
+  "mpv": "MPV (Mean Platelet Volume)",
+  "neutrophils_pct": "Neutrophils (%)",
+  "nucleated_rbc_pct": "Nucleated RBC (%)",
+  "pdw": "PDW (Platelet Distribution Width)",
+  "peripheral_smear": "Peripheral Blood Smear",
+  "phosphorus": "Phosphorus",
+  "platelet_count": "Platelet Count",
+  "plcr": "PLCR (Platelet-Large Cell Ratio)",
+  "potassium": "Potassium",
+  "pregnenolone": "Pregnenolone",
+  "progesterone": "Progesterone",
+  "prolactin": "Prolactin",
+  "rbc_count": "RBC Count",
+  "rdw_cv": "RDW-CV",
+  "rdw_sd": "RDW-SD (Red Cell Distribution Width — Standard Deviation)",
+  "reverse_t3": "Reverse T3",
+  "sdldl_c": "sdLDL-C",
+  "shbg": "SHBG",
+  "small_ldl_p": "Small LDL-P",
+  "sodium": "Sodium",
+  "testosterone_bioavailable": "Testosterone (Bioavailable)",
+  "testosterone_total": "Testosterone (Total)",
+  "thyroglobulin_antibodies": "Thyroglobulin Antibodies",
+  "tibc": "TIBC",
+  "total_cholesterol": "Total Cholesterol",
+  "total_ige": "Total IgE",
+  "total_protein": "Total Protein",
+  "total_t3": "Total T3",
+  "total_t4": "Total T4",
+  "tpo_antibodies": "TPO Antibodies",
+  "transferrin": "Transferrin",
+  "triglycerides": "Triglycerides",
+  "tsh": "TSH",
+  "uric_acid": "Uric Acid",
+  "urinary_microalbumin": "Urinary Microalbumin",
+  "urine_appearance": "Urine Appearance / Clarity",
+  "urine_bacteria": "Urine Bacteria (Microscopy)",
+  "urine_bilirubin": "Urine Bilirubin",
+  "urine_blood": "Urine Blood",
+  "urine_casts": "Urine Casts (Microscopy)",
+  "urine_color": "Urine Color",
+  "urine_crystals": "Urine Crystals (Microscopy)",
+  "urine_epithelial_cells": "Urine Epithelial Cells (Microscopy)",
+  "urine_glucose": "Urine Glucose",
+  "urine_ketones": "Urine Ketones",
+  "urine_leukocyte_esterase": "Urine Leukocyte Esterase",
+  "urine_nitrites": "Urine Nitrites",
+  "urine_ph": "Urine pH",
+  "urine_protein": "Urine Protein",
+  "urine_specific_gravity": "Urine Specific Gravity",
+  "urine_urobilinogen": "Urine Urobilinogen",
+  "vitamin_b1": "Vitamin B1 (Thiamin)",
+  "vitamin_b12": "Vitamin B12 (serum)",
+  "vitamin_b2": "Vitamin B2 (Riboflavin)",
+  "vitamin_b3": "Vitamin B3 (Niacin)",
+  "vitamin_b5": "Vitamin B5 (Pantothenic Acid)",
+  "vitamin_b6": "Vitamin B6 (PLP)",
+  "vitamin_b7": "Vitamin B7 (Biotin)",
+  "vitamin_b9_folate": "Vitamin B9 (Folate, serum)",
+  "vitamin_d_25oh_total": "Vitamin D (25-OH total)",
+  "wbc_count": "WBC Count (White Blood Cell Count)",
+  "zinc": "Zinc",
+};
+// System display names — locked map (written record of MASTER #13). heavy_metals
+// is deliberately ABSENT: it is suppressed and never rendered.
+const GAP_SYSTEM_NAME = {
+  "sex_hormones": "Sex Hormones",
+  "cardiovascular": "Heart and Vessels",
+  "metabolic": "Metabolic Health",
+  "inflammation": "Inflammation",
+  "iron_status": "Iron",
+  "growth": "Growth and Repair",
+  "thyroid": "Thyroid",
+  "adrenal": "Adrenal and Stress",
+  "kidney": "Kidney",
+  "hematology": "Blood Cells",
+  "liver": "Liver",
+  "pancreas": "Pancreas",
+  "minerals": "Minerals",
+  "vitamins": "Vitamins",
+  "autoimmune": "Immune",
+  "urinalysis": "Urine",
+};
+// Hard suppression — never render as "worth exploring".
+const GAP_SUPPRESS_SYSTEMS = new Set(["heavy_metals"]);
+const GAP_SUPPRESS_MARKERS = new Set([
+  "aluminum", "lead", "mercury",                                  // heavy metals
+  "afp", "beta_hcg_nonpregnant", "ca_125", "ca_15_3", "ca_19_9", "cea", // tumor markers
+]);
+// Per-system framing lines (locked copy). Colon-free; em-dashes handled by esc().
+const GAP_SYSTEM_FRAMING = {
+  "sex_hormones": "Hormone markers that vary across the menstrual cycle. Worth discussing with your provider if relevant to you, and best tested on the right cycle day for an accurate read.",
+  "cardiovascular": "Finer markers of heart and vessel health beyond the standard lipid panel. These add detail rather than fill a gap.",
+  "metabolic": "Markers that give a closer look at how your body handles energy and fat storage.",
+  "inflammation": "Markers that track the body's background inflammation more closely.",
+  "iron_status": "Transferrin is one additional iron marker. Your main iron and red blood cell markers are already covered, so this would simply add a finer view.",
+  "growth": "A marker tied to growth and how your body uses and repairs tissue. Some people explore it with their provider over time.",
+  "thyroid": "An additional thyroid marker that gives a fuller view alongside the standard thyroid panel.",
+  "adrenal": "An early-step hormone some people look at when exploring energy and stress patterns with their provider.",
+  "kidney": "A marker of the body's acid and base balance that rounds out the standard kidney picture.",
+  "hematology": "A closer look at blood cells under the microscope, usually ordered by a provider when there is a specific reason to.",
+};
+const GAP_FRAMING_DEFAULT = "Additional markers in this area that round out the picture over time.";
+const GAP_DIRECTION_ONLY_LINE = "Certain immune-related markers are best interpreted by a clinician rather than on their own. If these come up as worth checking, your provider can guide whether and how to test.";
+function gapName(id){ return GAP_MARKER_NAME[id] || id; }
+function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
+
+function renderCoverageGap(p){
+  const wrap = $("gap-wrap");
+  const cg = p && p.coverage_gap;
+  if(!cg || !Array.isArray(cg.ids) || cg.ids.length===0){ wrap.classList.add("hidden"); return; }
+
+  // Rule (b): direction-only ids render under one clinician-routing line and are
+  // excluded from their normal system cluster (no double-render). Suppressed
+  // ids can never leak in here either.
+  const dirOnly = (Array.isArray(cg.direction_only) ? cg.direction_only : [])
+    .filter(id => !GAP_SUPPRESS_MARKERS.has(id));
+  const dirSet = new Set(dirOnly);
+
+  // Build post-suppression clusters from by_system.
+  const bySys = (cg.by_system && typeof cg.by_system === "object") ? cg.by_system : {};
+  const clusters = [];
+  for(const sys of Object.keys(bySys)){
+    if(GAP_SUPPRESS_SYSTEMS.has(sys)) continue;                  // drop heavy_metals entirely
+    const arr = Array.isArray(bySys[sys]) ? bySys[sys] : [];
+    const ids = arr.filter(id => !GAP_SUPPRESS_MARKERS.has(id) && !dirSet.has(id));
+    if(ids.length === 0) continue;                               // emptied by suppression -> no cluster
+    clusters.push({ sys, ids });
+  }
+
+  // Everything suppressed away and no direction-only -> hide (empty path).
+  if(clusters.length === 0 && dirOnly.length === 0){ wrap.classList.add("hidden"); return; }
+
+  // Largest cluster first; stable tiebreak by system display name.
+  clusters.sort((a,b)=> (b.ids.length - a.ids.length) || gapSysName(a.sys).localeCompare(gapSysName(b.sys)));
+
+  // Intro, tested_count read LIVE; number-free fallback if missing/non-numeric.
+  const n = cg.tested_count;
+  const intro = (typeof n === "number" && isFinite(n))
+    ? "You have already tested " + n + " markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include."
+    : "You have already tested a broad set of markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include.";
+  $("gap-intro").textContent = intro;
+
+  let html = "";
+  for(const c of clusters){
+    // iron specificity line only when it is the lone iron marker; else generic.
+    let framing = GAP_SYSTEM_FRAMING[c.sys] || GAP_FRAMING_DEFAULT;
+    if(c.sys === "iron_status" && c.ids.length > 1) framing = GAP_FRAMING_DEFAULT;
+    const names = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b)).join(", ");
+    html += '<div class="gap-cluster">' +
+      '<div class="gap-sys">' + esc(gapSysName(c.sys)) + '</div>' +
+      '<div class="gap-frame">' + esc(framing) + '</div>' +
+      '<div class="gap-markers">' + esc(names) + '</div>' +
+    '</div>';
+  }
+  if(dirOnly.length){
+    const names = dirOnly.map(gapName).sort((a,b)=>a.localeCompare(b)).join(", ");
+    html += '<div class="gap-cluster">' +
+      '<div class="gap-frame">' + esc(GAP_DIRECTION_ONLY_LINE) + '</div>' +
+      '<div class="gap-markers">' + esc(names) + '</div>' +
+    '</div>';
+  }
+  $("gap").innerHTML = html;
+  wrap.classList.remove("hidden");
+}
+
 async function renderDashboard(p, reportId){
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
@@ -824,6 +1078,8 @@ async function renderDashboard(p, reportId){
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
     (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
   ).join("");
+
+  renderCoverageGap(p);
 }
 
 // ── LONGITUDINAL "Since your last panel" ──────────────────────────────────
