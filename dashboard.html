@@ -59,14 +59,16 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-processing p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
-.reveal-head{display:flex;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
+.reveal-head{display:flex;gap:28px;align-items:flex-start;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
 .score-ring{width:120px;height:120px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
 .score-ring::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--white)}
 .score-num{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-size:34px;font-weight:700;color:var(--brown);line-height:1}
 .score-cap{position:relative;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-mid);margin-top:3px}
 .reveal-head-text .band{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:6px}
 .reveal-head-text .headline{font-size:15px;color:var(--brown-mid);line-height:1.7}
-.reveal-head-text .conf{font-size:12px;color:var(--brown-mid);margin-top:10px;font-style:italic}
+.vitality-frame{margin-top:12px}
+.vitality-frame p{font-size:13.5px;color:var(--brown-mid);line-height:1.7;margin:0 0 8px}
+.vitality-frame p:last-child{margin-bottom:0}
 .section-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:28px 0 14px}
 .pills{display:flex;flex-wrap:wrap;gap:8px}
 .pill{font-size:13px;font-weight:600;padding:7px 14px;border-radius:100px;display:inline-flex;align-items:center;gap:7px}
@@ -487,7 +489,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="reveal-head-text">
         <div class="band" id="band">Your results</div>
         <div class="headline" id="headline"></div>
-        <div class="conf" id="conf"></div>
+        <div class="vitality-frame" id="vitality-frame"></div>
       </div>
     </div>
 
@@ -1008,8 +1010,8 @@ function renderCoverageGap(p){
   // Intro, tested_count read LIVE; number-free fallback if missing/non-numeric.
   const n = cg.tested_count;
   const intro = (typeof n === "number" && isFinite(n))
-    ? "You have already tested " + n + " markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include."
-    : "You have already tested a broad set of markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include.";
+    ? "Across all your panels, you have tested " + n + " markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include."
+    : "Across all your panels, you have tested a broad set of markers, which covers the core picture well. These are some additional markers that round it out, grouped by area, worth keeping in mind as you test over time. None of this means something is wrong. It is simply what a fuller picture could include.";
   $("gap-intro").textContent = intro;
 
   let html = "";
@@ -1054,7 +1056,24 @@ async function renderDashboard(p, reportId){
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
   $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-");
-  $("conf").textContent = v.confidence ? ("Confidence: "+v.confidence) : "";
+
+  // Frame paragraph under the headline. v.confidence is intentionally NOT shown:
+  // it is a coverage/completeness measure, not certainty, so a bare "Confidence"
+  // number would mislead. The engine still computes it; we just stop displaying it.
+  const vframe = $("vitality-frame");
+  if(!p.vitality){
+    vframe.innerHTML = "";
+    vframe.classList.add("hidden");
+  } else {
+    vframe.classList.remove("hidden");
+    const mc = Array.isArray(v.markers) ? v.markers.length : null;
+    const readClause = (typeof mc === "number" && mc > 0)
+      ? "We built it by reading the "+mc+" markers in this report against functional optimal ranges rather than the standard cutoffs that only flag illness, chosen with South Asian women in mind."
+      : "We built it by reading the markers in this report against functional optimal ranges rather than the standard cutoffs that only flag illness, chosen with South Asian women in mind.";
+    const p1 = "This is your vitality score, a single read of how your body is doing right now, on a scale to 100. "+readClause+" A higher score means more of your body is sitting in its optimal range, not simply its normal one.";
+    const p2 = "Below, we walk through what is working quietly, what is worth your attention, and how your markers have moved since your last test. Nothing here is a diagnosis. It is a picture to understand and to take to your doctor.";
+    vframe.innerHTML = "<p>"+esc(p1)+"</p><p>"+esc(p2)+"</p>";
+  }
 
   const sys = Array.isArray(p.systems)?p.systems:[];
   $("systems-wrap").classList.toggle("hidden", sys.length===0);
