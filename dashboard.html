@@ -1067,10 +1067,10 @@ async function renderDashboard(p, reportId){
   } else {
     vframe.classList.remove("hidden");
     const mc = Array.isArray(v.markers) ? v.markers.length : null;
-    const readClause = (typeof mc === "number" && mc > 0)
-      ? "We built it by reading the "+mc+" markers in this report against functional optimal ranges rather than the standard cutoffs that only flag illness, chosen with South Asian women in mind."
-      : "We built it by reading the markers in this report against functional optimal ranges rather than the standard cutoffs that only flag illness, chosen with South Asian women in mind.";
-    const p1 = "This is your vitality score, a single read of how your body is doing right now, on a scale to 100. "+readClause+" A higher score means more of your body is sitting in its optimal range, not simply its normal one.";
+    const countSentence = (typeof mc === "number" && mc > 0)
+      ? "We looked at the "+mc+" markers in this report."
+      : "We looked at the markers in this report.";
+    const p1 = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
     const p2 = "Below, we walk through what is working quietly, what is worth your attention, and how your markers have moved since your last test. Nothing here is a diagnosis. It is a picture to understand and to take to your doctor.";
     vframe.innerHTML = "<p>"+esc(p1)+"</p><p>"+esc(p2)+"</p>";
   }
