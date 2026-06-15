@@ -183,6 +183,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .longi-tag.watch{background:var(--amber-light);color:var(--amber)}
 .longi-tag.win{background:var(--teal-light);color:var(--teal-dark)}
 .longi-quiet{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:11px 14px}
+.longi-overview{font-size:15px;color:var(--brown);line-height:1.75;margin-bottom:12px}
+.longi-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 0}
+.longi-toggle:hover{color:var(--brown)}
+.longi-chev{display:inline-block;transition:transform .2s;font-size:15px;line-height:1}
+.longi-block.open .longi-chev{transform:rotate(90deg)}
+.longi-detail{display:none;margin-top:14px}
+.longi-block.open .longi-detail{display:block}
 .disclaimer{font-size:12px;color:var(--brown-mid);text-align:center;line-height:1.7;padding:18px;background:var(--brown-soft);border-radius:12px;margin-top:28px}
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
@@ -486,7 +493,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
     <div id="longi-wrap" class="hidden">
       <div class="section-label" id="longi-label">Since your last panel</div>
-      <div id="longi"></div>
+      <div id="longi-block" class="longi-block">
+        <div id="longi-overview" class="longi-overview"></div>
+        <button id="longi-toggle" class="longi-toggle" type="button" aria-expanded="false">See the markers <span class="longi-chev">&rsaquo;</span></button>
+        <div class="longi-detail"><div id="longi"></div></div>
+      </div>
     </div>
 
     <div id="systems-wrap" class="hidden">
@@ -1118,6 +1129,64 @@ function longiRow(m, opts){
     tag+
   '</div>';
 }
+// Deterministic overview paragraph, assembled ONLY from the structured buckets
+// in p.longitudinal (no model call, no status re-derivation). #2-safe: the
+// resolved clause names discrete markers and NEVER makes a blanket "all clear"
+// claim, and persistent-open is always its own standalone sentence.
+function longiOverview(L){
+  const sev = (m)=> (typeof m.severity === "number" ? m.severity : 0);
+  const nm  = (m)=> String(m.display_name || m.marker_id || "");
+  const bySev = (arr)=> arr.slice().sort((a,b)=> sev(b)-sev(a) || nm(a).localeCompare(nm(b)));
+  function names2(arr, tailWord){           // top 2 by severity, then serial-comma tail
+    const s = bySev(arr);
+    const top = s.slice(0,2).map(nm);
+    const extra = s.length - top.length;   // >0 only when s.length>=3, so top.length is 2 here
+    if(extra>0){
+      const word = (tailWord==="others") ? (extra===1?"other":"others") : tailWord; // "more" invariant
+      return top[0]+", "+top[1]+", and "+extra+" "+word;   // "A, B, and N others/more"
+    }
+    return top.length===2 ? (top[0]+" and "+top[1]) : (top[0]||"");  // "A and B" / "A"
+  }
+  const counts = (L && L.counts) || {};
+  const resolved = (L && L.resolved) || [];
+  const open = (L && L.persistent_open) || [];
+  const crossed = (L && L.newly_crossed) || [];
+  const sentences = [];
+
+  // 1. steady (good news first)
+  const steady = counts.steady_healthy;
+  if(typeof steady === "number" && steady>0){
+    sentences.push(steady+" marker"+(steady===1?"":"s")+" held steady in a healthy range.");
+  }
+  // 2. resolved -> came back into range (discrete names only, never blanket)
+  if(resolved.length>0){
+    const who = names2(resolved, "others");
+    sentences.push(who + " came back into range.");
+  }
+  // 3. persistent open -> ALWAYS its own standalone sentence, never merged
+  if(open.length>0){
+    const who = names2(open, "more");
+    sentences.push(open.length+" marker"+(open.length===1?"":"s")+
+      " still need"+(open.length===1?"s":"")+" attention, including "+who+".");
+  }
+  // 4. newly crossed (+ notable/minor split from counts)
+  if(crossed.length>0){
+    const notable = counts.newly_crossed_notable, minor = counts.newly_crossed_minor;
+    let s = crossed.length+" marker"+(crossed.length===1?"":"s")+
+      " crossed a line for the first time since your last panel";
+    const parts = [];
+    if(typeof notable === "number" && notable>0) parts.push(notable+" worth noting");
+    if(typeof minor === "number" && minor>0) parts.push(minor+" small drift"+(minor===1?"":"s"));
+    if(parts.length) s += ", " + parts.join(" and ");
+    sentences.push(s + ".");
+  }
+  // 5. hedged minor-drift close (verbatim existing wording), only if minor drifts exist
+  const minor = counts.newly_crossed_minor;
+  if(typeof minor === "number" && minor>0){
+    sentences.push("Small year-to-year moves like these are common and usually worth watching over time rather than acting on now.");
+  }
+  return sentences.join(" ");
+}
 function renderLongitudinal(p){
   const wrap = $("longi-wrap");
   const L = p && p.longitudinal;
@@ -1133,19 +1202,26 @@ function renderLongitudinal(p){
   wrap.classList.remove("hidden");
   $("longi-label").textContent = "Since your "+fmtPanelDate(L.baseline_panel_date)+" panel";
 
-  // Calm, honest one-liner. Steady count reassures; the rest is detailed below.
-  const steady = counts.steady_healthy;
-  const bits = [];
-  if(typeof steady === "number" && steady>0) bits.push(steady+" marker"+(steady===1?"":"s")+" held steady");
-  if(resolved.length) bits.push(resolved.length+" came back into range");
-  if(open.length) bits.push(open.length+" still need"+(open.length===1?"s":"")+" attention");
-  const summary = bits.length ? bits.join(", ")+"." : "";
+  // Deterministic overview paragraph (primary), with the per-marker rows collapsed
+  // behind a click-to-expand. esc() for em-dash safety. Collapsed by default on
+  // every render (do not persist .open across panel switches).
+  $("longi-overview").innerHTML = esc(longiOverview(L));
+  const block = $("longi-block");
+  block.classList.remove("open");
+  const tog = $("longi-toggle");
+  tog.setAttribute("aria-expanded", "false");
+  tog.onclick = ()=>{
+    const isOpen = block.classList.toggle("open");
+    tog.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  };
 
   // Notable vs minor split for new crossings (the slight-variation rule).
   const newNotable = crossed.filter(m=>m.salience!=="minor");
   const newMinor = crossed.filter(m=>m.salience==="minor");
 
-  let html = summary ? '<div class="longi-summary">'+esc(summary)+'</div>' : '';
+  // Per-marker bucket detail (collapsed). The overview paragraph above replaces
+  // the old one-line summary, so it is not repeated here.
+  let html = '';
 
   if(resolved.length){
     html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot win"></span>Back in range</div>'+
