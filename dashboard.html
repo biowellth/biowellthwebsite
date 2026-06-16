@@ -1182,11 +1182,35 @@ function longiOverview(L){
     const who = names2(resolved, "others");
     sentences.push(who + " came back into range.");
   }
-  // 3. persistent open -> ALWAYS its own standalone sentence, never merged
+  // 3. persistent open -> standalone. v27 payloads carry true per-zone sub-counts
+  //    (persistent_open_flag/_watch) so we split flag-zone ("a closer look") from
+  //    watch-zone ("keeping an eye on") — the engine calls watch an optimization
+  //    opportunity, not a clinical problem, so we never call those "attention".
+  //    Counts are true totals; named examples come from the sliced array, flag first.
+  //    Pre-v27 payloads lack the sub-counts -> fall back to the prior single sentence.
   if(open.length>0){
-    const who = names2(open, "more");
-    sentences.push(open.length+" marker"+(open.length===1?"":"s")+
-      " still need"+(open.length===1?"s":"")+" attention, including "+who+".");
+    const flagCount = counts.persistent_open_flag;
+    const watchCount = counts.persistent_open_watch;
+    const hasSplit = (typeof flagCount === "number") && (typeof watchCount === "number");
+    if(hasSplit){
+      const flagItems = open.filter(m=> m.current_zone === 2);
+      const watchItems = open.filter(m=> m.current_zone === 1);
+      if(flagCount > 0){
+        const who = names2(flagItems, "more");
+        sentences.push(flagCount+" marker"+(flagCount===1?" needs":"s need")+" a closer look"+(who?", including "+who:"")+".");
+      }
+      if(watchCount > 0){
+        // name watch examples ONLY when there are no flag examples (keep it calm; never enumerate 30+)
+        const nameWatch = (flagItems.length === 0) && watchItems.length > 0;
+        let s = watchCount+" others worth keeping an eye on";
+        if(nameWatch){ const w = names2(watchItems, "more"); if(w) s += ", including "+w; }
+        sentences.push(s+".");
+      }
+    } else {
+      const who = names2(open, "more");
+      sentences.push(open.length+" marker"+(open.length===1?"":"s")+
+        " still need"+(open.length===1?"s":"")+" attention, including "+who+".");
+    }
   }
   // 4. newly crossed (+ notable/minor split from counts)
   if(crossed.length>0){
