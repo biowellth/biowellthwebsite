@@ -17,10 +17,14 @@ This script reads the library, parses each marker's
 into {low, high} numbers, and emits a flat lookup map. The output is stamped
 with the library's schema_version so the dashboard can detect drift.
 
-Run from the website repo root, every time the library version bumps:
+Run from the website repo root, every time the library version bumps. Source the
+WORKER copy of the library (process-report-worker) — it is the AUTHORITATIVE one:
+it carries engine #3, the derived indices, the Jun-2026 toxic-band rewrite, and the
+2b-lib display_name spell-outs. The process-report copy is STALE (drifted ~53 markers,
+e.g. quicki absent) and must NOT be used as the source. See the 2b drift investigation.
 
   python3 scripts/build-ranges-slim.py \
-    ../biowellth-backend-supa/supabase/functions/process-report/biomarker-library-v2.1.1.json \
+    ../biowellth-backend-supa/supabase/functions/process-report-worker/biomarker-library-v2.1.1.json \
     ranges-slim.json
 
 Then commit both the script and ranges-slim.json. The CI deploy ships the
