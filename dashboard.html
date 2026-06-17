@@ -69,7 +69,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .vitality-frame{margin-top:12px}
 .vitality-frame p{font-size:13.5px;color:var(--brown-mid);line-height:1.7;margin:0 0 8px}
 .vitality-frame p:last-child{margin-bottom:0}
-.section-label{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:28px 0 14px}
+.section-label{display:flex;align-items:center;gap:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:28px 0 14px}
+.section-label::before{content:"";width:18px;height:2px;border-radius:2px;background:var(--brown);flex:none}
+.section-label.acc-coral::before{background:var(--coral)}
+.section-label.acc-teal::before{background:var(--teal)}
+.section-label.acc-amber::before{background:var(--amber)}
 .pills{display:flex;flex-wrap:wrap;gap:8px}
 .pill{font-size:13px;font-weight:600;padding:7px 14px;border-radius:100px;display:inline-flex;align-items:center;gap:7px}
 .pill::before{content:'';width:7px;height:7px;border-radius:50%}
@@ -148,14 +152,14 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-chart .dlabel{font-family:'JetBrains Mono',monospace;font-size:7px;fill:var(--brown-mid)}
 .sm-trend-note{font-size:12.5px;line-height:1.55;color:var(--brown-mid);margin-top:11px}
 .sm-empty{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin-top:18px;font-style:italic}
-.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:22px;margin-bottom:12px;border-left:4px solid var(--coral)}
+.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:22px;margin-bottom:12px;border-left:6px solid var(--coral)}
 .prio.sev-watch{border-left-color:var(--amber)}
 .prio.sev-monitor{border-left-color:var(--orange)}
 .prio.sev-low{border-left-color:var(--coral)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
 .prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown)}
-.prio-marker{font-size:13px;color:var(--teal-dark);font-weight:600;margin-left:auto}
+.prio-marker{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;background:var(--coral-light);color:var(--coral-dark);padding:3px 9px;border-radius:100px}
 .prio-finding{font-size:14px;color:var(--brown);line-height:1.6;margin-bottom:8px}
 .prio-action{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:10px 12px}
 .quiet{background:var(--teal-soft);border-radius:14px;padding:18px 20px;margin-bottom:10px}
@@ -165,7 +169,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .gap-cluster{background:var(--brown-soft);border-radius:14px;padding:16px 20px;margin-bottom:10px}
 .gap-sys{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:4px}
 .gap-frame{font-size:13px;color:var(--brown-mid);line-height:1.6}
-.gap-markers{font-size:12.5px;color:var(--brown-mid);opacity:.75;line-height:1.6;margin-top:6px}
+.gap-markers{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.gap-chip{display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown);background:var(--amber-light);border:1px solid #F0E3C2;border-radius:100px;padding:3px 10px;line-height:1.3}
+.gap-cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--cream);background:var(--brown);border:none;border-radius:100px;padding:12px 22px;cursor:pointer;transition:background .18s,transform .15s}
+.gap-cta:hover{background:#5a4636;transform:translateY(-1px)}
 /* Longitudinal "Since your last panel" card */
 .longi-summary{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:16px}
 .longi-group{margin-bottom:18px}
@@ -396,12 +403,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .found-lead{font-size:14.5px;line-height:1.7;color:var(--brown-mid);margin-bottom:16px}
 .found-lead.hidden,.found-closing.hidden{display:none}
 .found-levers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.lever{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
+.lever{background:var(--white);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
 .lever-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
 .lever-conn{font-size:13.5px;line-height:1.65;color:var(--brown-mid)}
 .lever-relates{margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
 .found-closing{margin-top:16px;font-size:14px;line-height:1.7;color:var(--teal-dark);font-style:italic}
-@media(max-width:600px){.found-levers{grid-template-columns:1fr}}
+.found-panel{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:18px;padding:24px}
+@media(max-width:600px){.found-levers{grid-template-columns:1fr}.found-panel{padding:18px}}
 </style>
 </head>
 <body>
@@ -551,14 +559,16 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     </div>
 
     <div id="foundations-wrap" class="hidden">
-      <div class="section-label">What's already strong</div>
-      <p id="found-lead" class="found-lead"></p>
-      <div id="found-levers" class="found-levers"></div>
-      <p id="found-closing" class="found-closing"></p>
+      <div class="section-label acc-teal">What's already strong</div>
+      <div class="found-panel">
+        <p id="found-lead" class="found-lead"></p>
+        <div id="found-levers" class="found-levers"></div>
+        <p id="found-closing" class="found-closing"></p>
+      </div>
     </div>
 
     <div id="prios-wrap" class="hidden">
-      <div class="section-label">What's worth your attention</div>
+      <div class="section-label acc-coral">What needs a closer look</div>
       <div id="prios"></div>
     </div>
 
@@ -572,14 +582,15 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     </div>
 
     <div id="quiet-wrap" class="hidden">
-      <div class="section-label">Quietly working well</div>
+      <div class="section-label acc-teal">Quietly working well</div>
       <div id="quiet"></div>
     </div>
 
     <div id="gap-wrap" class="hidden">
-      <div class="section-label">Worth exploring over time</div>
+      <div class="section-label acc-amber">What to test next</div>
       <div id="gap-intro" class="gap-intro"></div>
       <div id="gap"></div>
+      <button id="gap-generate" class="gap-cta" type="button">Generate test request list</button>
     </div>
 
     <div id="systems-wrap" class="hidden">
@@ -1082,21 +1093,27 @@ function renderCoverageGap(p){
     // iron specificity line only when it is the lone iron marker; else generic.
     let framing = GAP_SYSTEM_FRAMING[c.sys] || GAP_FRAMING_DEFAULT;
     if(c.sys === "iron_status" && c.ids.length > 1) framing = GAP_FRAMING_DEFAULT;
-    const names = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b)).join(", ");
+    const chips = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b))
+      .map(nm => '<span class="gap-chip">'+esc(nm)+'</span>').join("");
     html += '<div class="gap-cluster">' +
       '<div class="gap-sys">' + esc(gapSysName(c.sys)) + '</div>' +
       '<div class="gap-frame">' + esc(framing) + '</div>' +
-      '<div class="gap-markers">' + esc(names) + '</div>' +
+      '<div class="gap-markers">' + chips + '</div>' +
     '</div>';
   }
   if(dirOnly.length){
-    const names = dirOnly.map(gapName).sort((a,b)=>a.localeCompare(b)).join(", ");
+    const chips = dirOnly.map(gapName).sort((a,b)=>a.localeCompare(b))
+      .map(nm => '<span class="gap-chip">'+esc(nm)+'</span>').join("");
     html += '<div class="gap-cluster">' +
       '<div class="gap-frame">' + esc(GAP_DIRECTION_ONLY_LINE) + '</div>' +
-      '<div class="gap-markers">' + esc(names) + '</div>' +
+      '<div class="gap-markers">' + chips + '</div>' +
     '</div>';
   }
   $("gap").innerHTML = html;
+  // Placeholder CTA: feature not yet wired. No-op handler keeps it inert and
+  // error-free; it must not fabricate a result until the real flow exists.
+  const cta = $("gap-generate");
+  if(cta) cta.onclick = ()=>{};
   wrap.classList.remove("hidden");
 }
 
