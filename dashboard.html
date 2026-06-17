@@ -390,6 +390,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .comp-read.hidden{display:none}
 .comp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 @media(prefers-reduced-motion:reduce){.reveal-head::before{animation:none!important}}
+
+/* ── STAGE 3b: foundations — "What's already strong" (calm strengths beat;
+   teal-soft, NOT coral — this is reassurance/upstream levers, not attention) */
+.found-lead{font-size:14.5px;line-height:1.7;color:var(--brown-mid);margin-bottom:16px}
+.found-lead.hidden,.found-closing.hidden{display:none}
+.found-levers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lever{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
+.lever-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
+.lever-conn{font-size:13.5px;line-height:1.65;color:var(--brown-mid)}
+.lever-relates{margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
+.found-closing{margin-top:16px;font-size:14px;line-height:1.7;color:var(--teal-dark);font-style:italic}
+@media(max-width:600px){.found-levers{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -538,7 +550,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="comp-chips" id="comp-chips"></div>
     </div>
 
-    <!-- STAGE 3b: foundations -->
+    <div id="foundations-wrap" class="hidden">
+      <div class="section-label">What's already strong</div>
+      <p id="found-lead" class="found-lead"></p>
+      <div id="found-levers" class="found-levers"></div>
+      <p id="found-closing" class="found-closing"></p>
+    </div>
 
     <div id="prios-wrap" class="hidden">
       <div class="section-label">What's worth your attention</div>
@@ -1106,6 +1123,68 @@ function deriveVerdict(p){
   return foundation + attention + ".";
 }
 
+// ── STAGE 3b: foundations ("What's already strong") ────────────────────────
+// Lights up p.foundations (engine-computed, previously rendered nowhere). The
+// text pipeline is foundations-LOCAL (deliberately NOT retrofitted to other
+// surfaces): stripPriorityTokens drops the model's inline "(pN)" refs; smartDash
+// turns a paired em-dash appositive into parentheses and a lone em-dash into a
+// comma; foundEsc entity-encodes only (smartDash already handled the dashes).
+function foundStrip(text){
+  return String(text==null?"":text)
+    .replace(/\s*\(p\d+\)/g, "")
+    .replace(/ {2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
+}
+function foundDash(text){
+  let s = String(text==null?"":text);
+  s = s.replace(/\s—\s([^—]+?)\s—\s/g, " ($1) ");  // paired -> (...)
+  s = s.replace(/\s*—\s*/g, ", ");                            // lone -> ", "
+  return s.replace(/ {2,}/g, " ").trim();
+}
+function foundEsc(s){
+  return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function foundPipe(t){ return foundEsc(foundDash(foundStrip(t))); }
+
+function renderFoundations(p){
+  const wrap = $("foundations-wrap");
+  if(!wrap) return;
+  const f = p && p.foundations;
+  const levers = (f && Array.isArray(f.levers)) ? f.levers : [];
+  if(!f || !(f.lead || levers.length)){ wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+
+  // priority id -> rank (rank field when present, else 1-based order)
+  const rankById = {};
+  (Array.isArray(p.priorities)?p.priorities:[]).forEach((x,i)=>{
+    if(x && x.priority_id) rankById[x.priority_id] = (typeof x.rank==="number" ? x.rank : (i+1));
+  });
+
+  const leadEl = $("found-lead");
+  if(f.lead){ leadEl.innerHTML = foundPipe(f.lead); leadEl.classList.remove("hidden"); }
+  else { leadEl.innerHTML = ""; leadEl.classList.add("hidden"); }
+
+  $("found-levers").innerHTML = levers.map(lv=>{
+    const name = foundEsc(lv.display_name || lv.lever || "");
+    const conn = foundPipe(lv.connection || "");
+    const ranks = (Array.isArray(lv.appears_in_priority_ids) ? lv.appears_in_priority_ids : [])
+      .map(id => rankById[id]).filter(r => r != null).sort((a,b)=>a-b);
+    const relates = ranks.length
+      ? '<div class="lever-relates">Relates to '+(ranks.length===1?"priority ":"priorities ")+ranks.map(r=>"#"+r).join(", ")+'</div>'
+      : '';
+    return '<div class="lever">'+
+      '<div class="lever-name">'+name+'</div>'+
+      (conn ? '<div class="lever-conn">'+conn+'</div>' : '')+
+      relates+
+    '</div>';
+  }).join("");
+
+  const closeEl = $("found-closing");
+  if(f.closing){ closeEl.innerHTML = foundPipe(f.closing); closeEl.classList.remove("hidden"); }
+  else { closeEl.innerHTML = ""; closeEl.classList.add("hidden"); }
+}
+
 async function renderDashboard(p, reportId){
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
@@ -1160,6 +1239,8 @@ async function renderDashboard(p, reportId){
       compRead.classList.add("hidden");
     }
   }
+
+  renderFoundations(p);
 
   const sys = Array.isArray(p.systems)?p.systems:[];
   $("systems-wrap").classList.toggle("hidden", sys.length===0);
