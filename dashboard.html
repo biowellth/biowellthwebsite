@@ -10,7 +10,7 @@
 <style>
 :root{
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
-  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
   --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
   --amber:#D4A94A; --amber-light:#FAF3E0;
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
@@ -355,6 +355,41 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .replay-btn{display:inline-flex;align-items:center;gap:9px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown-mid);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 20px;cursor:pointer;transition:color .15s,border-color .15s,transform .15s}
 .replay-btn:hover{color:var(--brown);border-color:var(--brown-mid);transform:translateY(-1px)}
 .replay-btn svg{width:16px;height:16px}
+
+/* ── STAGE 2: dark atmospheric hero (overrides the light .reveal-head) ────────
+   Reuses index.html's hero family: brown ground, two drifting radial blooms
+   (teal + coral) on ::before, a faint feTurbulence grain on ::after. Score ring
+   lives in the dark (teal arc on a translucent-white track, brown inner disc).
+   Content (ring + text) sits at z-index 2 above the blooms (0) and grain (1). */
+.reveal-head{position:relative;overflow:hidden;background:var(--brown);border-color:transparent;color:var(--cream)}
+.reveal-head::before{content:'';position:absolute;inset:-40% -20%;z-index:0;pointer-events:none;
+  background:radial-gradient(380px 380px at 12% 0%,rgba(12,142,107,.55),rgba(12,142,107,0) 60%),
+             radial-gradient(340px 340px at 92% 100%,rgba(212,124,101,.48),rgba(212,124,101,0) 60%);
+  animation:revealDrift 22s ease-in-out infinite;backface-visibility:hidden}
+.reveal-head::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23rn)'/%3E%3C/svg%3E");background-size:200px}
+@keyframes revealDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,-18px)}}
+.reveal-head .score-ring,.reveal-head .reveal-head-text{position:relative;z-index:2}
+.reveal-head .score-ring{background:conic-gradient(var(--teal) calc(var(--p,70)*1%),rgba(255,255,255,.16) 0)}
+.reveal-head .score-ring::before{background:var(--brown)}
+.reveal-head .score-num{color:var(--cream)}
+.reveal-head .score-cap{color:rgba(250,248,244,.55)}
+.reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0}
+.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(20px,2.4vw,26px);font-weight:300;font-style:italic;line-height:1.32;color:var(--cream);margin-top:10px}
+.reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
+@media(max-width:600px){.reveal-head{flex-direction:column;align-items:center;text-align:center}}
+
+/* ── STAGE 2: companion slot (lighter card, distinct from the dark hero above) */
+.companion{background:linear-gradient(135deg,var(--white),var(--teal-soft));border:1px solid var(--teal-light);border-radius:18px;padding:22px 24px;margin-bottom:24px}
+.comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
+.comp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
+.comp-badge{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange-dark);background:var(--amber-light);border:1px solid #F0E3C2;border-radius:100px;padding:4px 10px}
+.comp-read p{font-size:14px;line-height:1.7;color:var(--brown-mid);margin:0 0 10px}
+.comp-read p:last-child{margin-bottom:0}
+.comp-read.hidden{display:none}
+.comp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+@media(prefers-reduced-motion:reduce){.reveal-head::before{animation:none!important}}
 </style>
 </head>
 <body>
@@ -491,6 +526,16 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         <div class="headline" id="headline"></div>
         <div class="vitality-frame" id="vitality-frame"></div>
       </div>
+    </div>
+
+    <div class="companion" id="companion">
+      <div class="comp-head">
+        <span class="comp-avatar">B</span>
+        <span class="comp-title">BioWellth companion</span>
+        <span class="comp-badge">Arriving soon</span>
+      </div>
+      <div class="comp-read" id="comp-read"></div>
+      <div class="comp-chips" id="comp-chips"></div>
     </div>
 
     <div id="longi-wrap" class="hidden">
@@ -1036,6 +1081,29 @@ function renderCoverageGap(p){
   wrap.classList.remove("hidden");
 }
 
+// ── STAGE 2: derived one-line verdict for the hero #headline ───────────────
+// Built ONLY from engine facts: the vitality band key (foundation clause) and
+// the priority COUNT (attention clause). No marker names, no numbers/cutoffs,
+// no composite score, no priority headline text. Unknown band keys degrade to
+// the band's own label verbatim, so a new band never errors or blanks.
+const VERDICT_BAND = {
+  thriving:           "Your body's in a really good place",
+  solid_foundation:   "You've got a solid foundation",
+  building:           "You're building real momentum",
+  running_on_reserve: "Your body's asking for some support",
+  needs_attention:    "Your body's asking for some attention",
+};
+function deriveVerdict(p){
+  const v = (p && p.vitality) || {};
+  const band = v.band || {};
+  const foundation = VERDICT_BAND[band.key] || band.label || "Your results";
+  const n = ((p && p.priorities) || []).length;
+  const attention = n === 0 ? ", and there's nothing that needs your attention right now"
+    : n === 1 ? ", and one thing's worth a look"
+    : ", and a few things are worth a look";
+  return foundation + attention + ".";
+}
+
 async function renderDashboard(p, reportId){
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
@@ -1054,7 +1122,7 @@ async function renderDashboard(p, reportId){
   $("score-num").textContent = score!==null ? score : "";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
-  $("headline").textContent = (p.headline || "").replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-");
+  $("headline").textContent = deriveVerdict(p);
 
   // Frame paragraph under the headline. v.confidence is intentionally NOT shown:
   // it is a coverage/completeness measure, not certainty, so a bare "Confidence"
@@ -1072,6 +1140,23 @@ async function renderDashboard(p, reportId){
     const p1 = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
     const p2 = "Below, we walk through what is working quietly, what is worth your attention, and how your markers have moved since your last test. Nothing here is a diagnosis. It is a picture to understand and to take to your doctor.";
     vframe.innerHTML = "<p>"+esc(p1)+"</p><p>"+esc(p2)+"</p>";
+  }
+
+  // ── STAGE 2: companion slot. Surfaces the engine's narrative_headline as the
+  // companion's first "read" (lead + closing as two paragraphs). esc() applies
+  // the same em-dash/HTML rules used everywhere. With no narrative_headline the
+  // read is hidden and only the "Arriving soon" state shows (no crash).
+  const compRead = $("comp-read");
+  if(compRead){
+    const nh = p.narrative_headline;
+    const parts = nh ? [nh.lead, nh.closing].filter(Boolean) : [];
+    if(parts.length){
+      compRead.innerHTML = parts.map(t=>"<p>"+esc(t)+"</p>").join("");
+      compRead.classList.remove("hidden");
+    } else {
+      compRead.innerHTML = "";
+      compRead.classList.add("hidden");
+    }
   }
 
   const sys = Array.isArray(p.systems)?p.systems:[];
