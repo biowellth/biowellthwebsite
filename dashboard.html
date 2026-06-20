@@ -398,7 +398,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .reveal-head::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23rn)'/%3E%3C/svg%3E");background-size:200px}
 @keyframes revealDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,-18px)}}
-.reveal-head .score-ring,.reveal-head .reveal-head-text{position:relative;z-index:2}
+.reveal-head .reveal-head-left,.reveal-head .score-ring,.reveal-head .reveal-head-text{position:relative;z-index:2}
 .reveal-head .score-ring{background:conic-gradient(var(--teal) calc(var(--p,70)*1%),rgba(255,255,255,.16) 0)}
 .reveal-head .score-ring::before{background:var(--brown)}
 .reveal-head .score-num{color:var(--cream)}
@@ -406,7 +406,17 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0}
 .reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(20px,2.4vw,26px);font-weight:300;font-style:italic;line-height:1.32;color:var(--cream);margin-top:10px}
 .reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
-@media(max-width:600px){.reveal-head{flex-direction:column;align-items:center;text-align:center}}
+/* STAGE: hero stat strip + trend line + demoted score caption (dark-hero context) */
+.reveal-head-left{display:flex;flex-direction:column;align-items:center;gap:14px;flex:none;max-width:220px}
+.score-caption{font-size:11px;line-height:1.55;color:rgba(250,248,244,.5);text-align:center}
+.score-caption.hidden{display:none}
+.hero-stats{display:flex;flex-wrap:wrap;gap:14px 28px;margin-top:18px}
+.hero-stat{min-width:60px}
+.hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;line-height:1}
+.hs-lbl{font-size:11px;color:rgba(250,248,244,.6);margin-top:5px;line-height:1.3}
+.hero-trend{margin-top:16px;font-size:13px;font-style:italic;color:var(--teal-mid)}
+.hero-trend.hidden{display:none}
+@media(max-width:600px){.reveal-head{flex-direction:column;align-items:center;text-align:center}.reveal-head-left{max-width:none}.hero-stats{justify-content:center}}
 
 /* ── STAGE 2: companion slot (lighter card, distinct from the dark hero above) */
 .companion{background:linear-gradient(135deg,var(--white),var(--teal-soft));border:1px solid var(--teal-light);border-radius:18px;padding:22px 24px;margin-bottom:24px}
@@ -559,14 +569,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
   <div id="view-dashboard" class="hidden">
     <div class="reveal-head">
-      <div class="score-ring" id="score-ring">
-        <div class="score-num" id="score-num">&ndash;</div>
-        <div class="score-cap">Vitality</div>
+      <div class="reveal-head-left">
+        <div class="score-ring" id="score-ring">
+          <div class="score-num" id="score-num">&ndash;</div>
+          <div class="score-cap">Vitality</div>
+        </div>
+        <div class="score-caption hidden" id="score-caption"></div>
       </div>
       <div class="reveal-head-text">
         <div class="band" id="band">Your results</div>
         <div class="headline" id="headline"></div>
-        <div class="vitality-frame" id="vitality-frame"></div>
+        <div class="hero-stats" id="hero-stats"></div>
+        <div class="hero-trend hidden" id="hero-trend"></div>
       </div>
     </div>
 
@@ -1261,22 +1275,65 @@ async function renderDashboard(p, reportId){
   $("band").textContent = bandLabel;
   $("headline").textContent = deriveVerdict(p);
 
-  // Frame paragraph under the headline. v.confidence is intentionally NOT shown:
-  // it is a coverage/completeness measure, not certainty, so a bare "Confidence"
-  // number would mislead. The engine still computes it; we just stop displaying it.
-  const vframe = $("vitality-frame");
-  if(!p.vitality){
-    vframe.innerHTML = "";
-    vframe.classList.add("hidden");
-  } else {
-    vframe.classList.remove("hidden");
-    const mc = Array.isArray(v.markers) ? v.markers.length : null;
-    const countSentence = (typeof mc === "number" && mc > 0)
-      ? "We looked at the "+mc+" markers in this report."
-      : "We looked at the markers in this report.";
-    const p1 = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
-    const p2 = "Below, we walk through what is working quietly, what is worth your attention, and how your markers have moved since your last test. Nothing here is a diagnosis. It is a picture to understand and to take to your doctor.";
-    vframe.innerHTML = "<p>"+esc(p1)+"</p><p>"+esc(p2)+"</p>";
+  // Demoted "what this score is" caption under the ring (small/muted), p1 verbatim
+  // with the marker-count interpolation. The old p2 nav preamble is removed — the
+  // sections below are clearly labeled. v.confidence still intentionally not shown.
+  const cap = $("score-caption");
+  if(cap){
+    if(p.vitality){
+      const mc = Array.isArray(v.markers) ? v.markers.length : null;
+      const countSentence = (typeof mc === "number" && mc > 0)
+        ? "We looked at the "+mc+" markers in this report."
+        : "We looked at the markers in this report.";
+      cap.textContent = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
+      cap.classList.remove("hidden");
+    } else { cap.textContent = ""; cap.classList.add("hidden"); }
+  }
+
+  // Four-stat strip. Buckets via the SHARED sysStatus() (same fn the browse grid
+  // uses, at marker level) over systems[].markers[]; gaps via coverage_gap AFTER the
+  // SAME suppression renderCoverageGap applies (GAP_SUPPRESS_SYSTEMS/_MARKERS +
+  // direction_only). No parallel bucket list / gap filter — strip and grid can't drift.
+  const statsEl = $("hero-stats");
+  if(statsEl){
+    let flag=0, watch=0, good=0;
+    for(const s of (Array.isArray(p.systems)?p.systems:[]))
+      for(const m of (Array.isArray(s.markers)?s.markers:[])){
+        const c = sysStatus(m.status||"").cls;
+        if(c==="s-flag") flag++; else if(c==="s-watch") watch++; else if(c==="s-good") good++;
+      }
+    let gaps=0;
+    const cg = p.coverage_gap;
+    if(cg && cg.by_system && typeof cg.by_system==="object"){
+      const dirSet = new Set(Array.isArray(cg.direction_only)?cg.direction_only:[]);
+      for(const sys of Object.keys(cg.by_system)){
+        if(GAP_SUPPRESS_SYSTEMS.has(sys)) continue;
+        gaps += (Array.isArray(cg.by_system[sys])?cg.by_system[sys]:[])
+          .filter(id => !GAP_SUPPRESS_MARKERS.has(id) && !dirSet.has(id)).length;
+      }
+    }
+    const stat = (n,label,color)=>'<div class="hero-stat"><div class="hs-num" style="color:'+color+'">'+n+'</div><div class="hs-lbl">'+esc(label)+'</div></div>';
+    statsEl.innerHTML =
+      stat(flag,  "Need a closer look", ST_COLOR['s-flag']) +
+      stat(watch, "Worth watching",     ST_COLOR['s-watch']) +
+      stat(good,  "In healthy range",   ST_COLOR['s-good']) +
+      stat(gaps,  "Gaps to test",       "var(--cream)");
+  }
+
+  // One authored trend line from longitudinal RESOLVED total (real prior->current
+  // transitions). counts.resolved is the TRUE total (resolved[] is a capped sample).
+  // Verb matches longiOverview exactly ("came back into range"). Omitted entirely
+  // when no baseline / 0 resolved (first-panel users get no line).
+  const trendEl = $("hero-trend");
+  if(trendEl){
+    const Lc = (p.longitudinal && p.longitudinal.counts) || null;
+    const n = (Lc && typeof Lc.resolved === "number") ? Lc.resolved : 0;
+    if(p.longitudinal && n > 0){
+      const base = p.longitudinal.baseline_panel_date;
+      const since = base ? ("since your "+fmtPanelDate(base)+" panel") : "since your last panel";
+      trendEl.textContent = n + " marker" + (n===1?"":"s") + " came back into range " + since + ".";
+      trendEl.classList.remove("hidden");
+    } else { trendEl.textContent = ""; trendEl.classList.add("hidden"); }
   }
 
   // ── STAGE 2: companion slot. Surfaces the engine's narrative_headline as the
