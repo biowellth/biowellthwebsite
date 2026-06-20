@@ -182,6 +182,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .gap-chip{display:inline-flex;align-items:center;font-family:'Instrument Sans',sans-serif;font-size:13.5px;color:var(--brown);background:var(--amber-light);border:none;border-radius:10px;padding:8px 14px;line-height:1.3}
 .gap-cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--cream);background:var(--brown);border:none;border-radius:100px;padding:12px 22px;cursor:pointer;transition:background .18s,transform .15s}
 .gap-cta:hover{background:#5a4636;transform:translateY(-1px)}
+.gap-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 0;margin-top:4px}
+.gap-toggle:hover{color:var(--brown)}
+.gap-chev{display:inline-block;transition:transform .2s}
+.gap-card.open .gap-chev{transform:rotate(90deg)}
+.gap-detail{display:none;margin-top:14px}
+.gap-card.open .gap-detail{display:block}
 /* "Browse everything" systems grid */
 .bes-card{background:#fff;border:1px solid var(--cream-mid);border-radius:18px;padding:24px 28px}
 .bes-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
@@ -636,8 +642,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="gap-card">
         <div class="gap-card-title">Worth exploring over time</div>
         <p id="gap-intro" class="gap-intro"></p>
-        <div id="gap"></div>
-        <button id="gap-generate" class="gap-cta" type="button">Generate test request list</button>
+        <button class="gap-toggle" id="gap-toggle" type="button" aria-expanded="false">See what to test <span class="gap-chev">&rsaquo;</span></button>
+        <div class="gap-detail">
+          <div id="gap"></div>
+          <button id="gap-generate" class="gap-cta" type="button">Generate test request list</button>
+        </div>
       </div>
     </div>
 
@@ -1176,6 +1185,20 @@ function renderCoverageGap(p){
   // error-free; it must not fabricate a result until the real flow exists.
   const cta = $("gap-generate");
   if(cta) cta.onclick = ()=>{};
+  // Whole-list collapse (Option A), mirrors the longi idiom: .open host is .gap-card;
+  // reset CLOSED on each render (no persist across renders/panel switches), in-memory
+  // class only (no storage), click (not hover). Only runs when the section has content
+  // (the early-returns above hide+return on an empty section, so no toggle-opens-nothing).
+  const gapCard = wrap.querySelector(".gap-card");
+  const gtog = $("gap-toggle");
+  if(gapCard && gtog){
+    gapCard.classList.remove("open");
+    gtog.setAttribute("aria-expanded", "false");
+    gtog.onclick = ()=>{
+      const isOpen = gapCard.classList.toggle("open");
+      gtog.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    };
+  }
   wrap.classList.remove("hidden");
 }
 
