@@ -1126,6 +1126,23 @@ const GAP_DIRECTION_ONLY_LINE = "Certain immune-related markers are best interpr
 function gapName(id){ return GAP_MARKER_NAME[id] || id; }
 function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 
+// Pure plaintext builder for the "Generate test request list" CTA. Mirrors the
+// on-screen framing logic exactly (incl. the iron_status specificity rule) so the
+// copied text never drifts from the cards. Takes the in-scope post-suppression
+// clusters only (direction-only is excluded by design). No esc()/HTML — plaintext.
+function buildGapRequestText(clusters){
+  const header = "Markers worth discussing at your next visit";
+  const intro  = "Based on my recent blood panel, here are markers that weren't tested and may be worth looking at over time. None of these suggest anything is wrong. I'd like to talk through whether any of them are relevant for me.";
+  const footer = "This list was put together with BioWellth, a wellness tool that uses functional-health ranges. It is not a diagnosis or medical advice, and your provider decides what is appropriate to test.";
+  const blocks = clusters.map(c => {
+    let framing = GAP_SYSTEM_FRAMING[c.sys] || GAP_FRAMING_DEFAULT;
+    if(c.sys === "iron_status" && c.ids.length > 1) framing = GAP_FRAMING_DEFAULT;
+    const names = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b));
+    return gapSysName(c.sys).toUpperCase() + "\n" + framing + "\n" + names.map(n => "- " + n).join("\n");
+  });
+  return [header, "", intro, "", blocks.join("\n\n"), "", footer].join("\n");
+}
+
 function renderCoverageGap(p){
   const wrap = $("gap-wrap");
   const cg = p && p.coverage_gap;
@@ -1181,10 +1198,24 @@ function renderCoverageGap(p){
     '</div>';
   }
   $("gap").innerHTML = html;
-  // Placeholder CTA: feature not yet wired. No-op handler keeps it inert and
-  // error-free; it must not fabricate a result until the real flow exists.
+  // Wired: copy a discussion-framed gap list (in-scope clusters only).
+  // Hidden on direction-only-only panels (no clusters); un-hidden on clustered
+  // panels because renderCoverageGap re-runs on every panel switch.
   const cta = $("gap-generate");
-  if(cta) cta.onclick = ()=>{};
+  if(cta){
+    if(clusters.length === 0){
+      cta.style.display = "none";
+    } else {
+      cta.style.display = "";
+      cta.onclick = ()=>{
+        const text = buildGapRequestText(clusters);
+        const done = ()=>{ const o = cta.textContent; cta.textContent = "Copied"; setTimeout(()=>{ cta.textContent = o; }, 2000); };
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(done).catch(()=>alert(text));
+        } else { alert(text); }
+      };
+    }
+  }
   // Whole-list collapse (Option A), mirrors the longi idiom: .open host is .gap-card;
   // reset CLOSED on each render (no persist across renders/panel switches), in-memory
   // class only (no storage), click (not hover). Only runs when the section has content
