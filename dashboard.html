@@ -424,8 +424,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .reveal-head .score-ring::before{background:var(--brown)}
 .reveal-head .score-num{color:var(--cream)}
 .reveal-head .score-cap{color:rgba(250,248,244,.55)}
-.reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0}
-.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(20px,2.4vw,26px);font-weight:300;font-style:italic;line-height:1.32;color:var(--cream);margin-top:10px}
+.reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0;display:inline-flex;align-items:center;gap:8px}
+.reveal-head-text .band::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex:none}
+.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(20px,2.4vw,26px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px}
 .reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
 /* STAGE: hero stat strip + trend line + demoted score caption (dark-hero context) */
 .reveal-head-left{display:flex;flex-direction:column;align-items:center;gap:10px;flex:none;max-width:220px}
@@ -1413,7 +1414,7 @@ async function renderDashboard(p, reportId){
       stat(flag,  "Need a closer look", ST_COLOR['s-flag']) +
       stat(watch, "Worth watching",     ST_COLOR['s-watch']) +
       stat(good,  "In healthy range",   ST_COLOR['s-good']) +
-      stat(gaps,  "Gaps to test",       "var(--cream)");
+      stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
   // One authored trend line from longitudinal RESOLVED total (real prior->current
