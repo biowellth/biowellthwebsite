@@ -413,12 +413,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
    Content (ring + text) sits at z-index 2 above the blooms (0) and grain (1). */
 .reveal-head{position:relative;overflow:hidden;background:var(--brown);border-color:transparent;color:var(--cream)}
 .reveal-head::before{content:'';position:absolute;inset:-40% -20%;z-index:0;pointer-events:none;
-  background:radial-gradient(380px 380px at 12% 0%,rgba(12,142,107,.55),rgba(12,142,107,0) 60%),
-             radial-gradient(340px 340px at 92% 100%,rgba(212,124,101,.48),rgba(212,124,101,0) 60%);
+  background:radial-gradient(380px 380px at 28% 36%,rgba(12,142,107,.68),rgba(12,142,107,0) 60%),
+             radial-gradient(340px 340px at 71% 64%,rgba(212,124,101,.62),rgba(212,124,101,0) 60%);
   animation:revealDrift 22s ease-in-out infinite;backface-visibility:hidden}
 .reveal-head::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23rn)'/%3E%3C/svg%3E");background-size:200px}
-@keyframes revealDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(26px,-18px)}}
+@keyframes revealDrift{0%,100%{transform:translate(0,0)}50%{transform:translate(14px,-10px)}}
 .reveal-head .reveal-head-left,.reveal-head .score-ring,.reveal-head .reveal-head-text{position:relative;z-index:2}
 .reveal-head .score-ring{background:conic-gradient(var(--teal) calc(var(--p,70)*1%),rgba(255,255,255,.16) 0)}
 .reveal-head .score-ring::before{background:var(--brown)}
