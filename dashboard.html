@@ -426,7 +426,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .reveal-head .score-cap{color:rgba(250,248,244,.55)}
 .reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0;display:inline-flex;align-items:center;gap:8px}
 .reveal-head-text .band::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex:none}
-.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(20px,2.4vw,26px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px}
+.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(22px,3.2vw,34px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px}
+.reveal-head-text .headline strong{font-weight:600;color:inherit}
 .reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
 /* STAGE: hero stat strip + trend line + demoted score caption (dark-hero context) */
 .reveal-head-left{display:flex;flex-direction:column;align-items:center;gap:10px;flex:none;max-width:220px}
@@ -1251,16 +1252,16 @@ function renderCoverageGap(p){
 // no composite score, no priority headline text. Unknown band keys degrade to
 // the band's own label verbatim, so a new band never errors or blanks.
 const VERDICT_BAND = {
-  thriving:           "Your body's in a really good place",
-  solid_foundation:   "You've got a solid foundation",
-  building:           "You're building real momentum",
-  running_on_reserve: "Your body's asking for some support",
-  needs_attention:    "Your body's asking for some attention",
+  thriving:           "Your body's in a really good <strong>place</strong>",
+  solid_foundation:   "You've got a <strong>solid</strong> foundation",
+  building:           "You're building real <strong>momentum</strong>",
+  running_on_reserve: "Your body's asking for some <strong>support</strong>",
+  needs_attention:    "Your body's asking for some <strong>attention</strong>",
 };
 function deriveVerdict(p){
   const v = (p && p.vitality) || {};
   const band = v.band || {};
-  const foundation = VERDICT_BAND[band.key] || band.label || "Your results";
+  const foundation = VERDICT_BAND[band.key] || esc(band.label || "Your results");
   const n = ((p && p.priorities) || []).length;
   const attention = n === 0 ? ", and there's nothing that needs your attention right now"
     : n === 1 ? ", and one thing's worth a look"
@@ -1348,7 +1349,7 @@ async function renderDashboard(p, reportId){
   $("score-num").textContent = score!==null ? score : "";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
-  $("headline").textContent = deriveVerdict(p);
+  $("headline").innerHTML = deriveVerdict(p);
 
   // Demoted "what this score is" explainer: a TAP/CLICK-toggle popover on the ring
   // (not hover — touch-safe). p1 verbatim (marker-count interpolation kept; copy
