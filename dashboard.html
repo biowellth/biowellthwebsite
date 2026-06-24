@@ -1504,7 +1504,30 @@ async function renderDashboard(p, reportId){
     }
   });
 
-  const q = Array.isArray(p.quietly_working)?p.quietly_working:[];
+  // Copy-safety: drop "quietly working" strengths that are PURELY sensitive-class
+  // (heavy-metals / autoimmune) so an all-negative panel isn't surfaced as a "win"
+  // with reassuring declarative copy. Suppressed-id set = systems-derived
+  // (authoritative — follows the library) UNION a hardcoded floor so the filter
+  // fails CLOSED if p.systems[] is ever absent/renamed. Floor ids verified verbatim
+  // against the heavy_metals + autoimmune systems[].markers[] across all 3 keepers
+  // (19 metals + ana/anti_ccp/aso/rheumatoid_factor). Mirrors the backend QW tumor
+  // filter's "all markers in set -> drop" semantics (mixed entries are kept).
+  const QW_SUPPRESS_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
+  const QW_SUPPRESS_FALLBACK = new Set([
+    "ana","anti_ccp","aso","rheumatoid_factor",
+    "aluminum","antimony","arsenic","barium","beryllium","bismuth",
+    "cadmium","cesium","chromium","cobalt","lead","mercury","nickel",
+    "silver","strontium","thallium","tin","uranium","vanadium"
+  ]);
+  const qwSuppIds = new Set(QW_SUPPRESS_FALLBACK);
+  for(const s of (Array.isArray(p.systems)?p.systems:[]))
+    if(QW_SUPPRESS_SYSTEMS.has(s.system_id))
+      for(const m of (Array.isArray(s.markers)?s.markers:[])) qwSuppIds.add(m.marker_id);
+  const q = (Array.isArray(p.quietly_working)?p.quietly_working:[]).filter(x=>{
+    const mk = Array.isArray(x.markers)?x.markers:[];
+    if(!mk.length) return true;                 // no class info -> keep (can't classify)
+    return !mk.every(id => qwSuppIds.has(id));    // drop iff ALL markers are sensitive-class
+  });
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
   $("quiet").innerHTML = q.map(x=>
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
