@@ -1471,7 +1471,9 @@ async function renderDashboard(p, reportId){
   const compRead = $("comp-read");
   if(compRead){
     const nh = p.narrative_headline;
-    const parts = nh ? [nh.lead, nh.closing].filter(Boolean) : [];
+    // closing DROPPED: it carried reassuring heavy-metal/autoimmune declaratives ("panel
+    // entirely clear") that no per-marker guard reaches; lead carries the substantive narrative.
+    const parts = nh ? [nh.lead].filter(Boolean) : [];
     if(parts.length){
       compRead.innerHTML = parts.map(t=>"<p>"+esc(t)+"</p>").join("");
       compRead.classList.remove("hidden");
