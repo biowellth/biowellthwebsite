@@ -1332,6 +1332,35 @@ function renderFoundations(p){
   else { closeEl.innerHTML = ""; closeEl.classList.add("hidden"); }
 }
 
+// Copy-safety helper (shared): drop "quietly working" strengths that are PURELY
+// sensitive-class (heavy-metals / autoimmune) so an all-negative panel isn't surfaced
+// as a "win" with reassuring declarative copy. Suppressed-id set = systems-derived
+// (authoritative — follows the library) UNION a hardcoded floor so it fails CLOSED if
+// payload.systems[] is ever absent/renamed. Floor ids verified verbatim against the
+// heavy_metals + autoimmune systems[].markers[] across all 3 keepers (19 metals +
+// ana/anti_ccp/aso/rheumatoid_factor). Mirrors the backend QW tumor filter's "all
+// markers in set -> drop" semantics (mixed entries kept; markerless entries kept —
+// fail-open, a separate decision NOT changed here). Routes BOTH the dashboard
+// "What's already strong" beat and the reveal-deck Beat 1.
+function dropSuppressedQW(list, payload){
+  const QW_SUPPRESS_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
+  const QW_SUPPRESS_FALLBACK = new Set([
+    "ana","anti_ccp","aso","rheumatoid_factor",
+    "aluminum","antimony","arsenic","barium","beryllium","bismuth",
+    "cadmium","cesium","chromium","cobalt","lead","mercury","nickel",
+    "silver","strontium","thallium","tin","uranium","vanadium"
+  ]);
+  const qwSuppIds = new Set(QW_SUPPRESS_FALLBACK);
+  for(const s of (Array.isArray(payload.systems)?payload.systems:[]))
+    if(QW_SUPPRESS_SYSTEMS.has(s.system_id))
+      for(const m of (Array.isArray(s.markers)?s.markers:[])) qwSuppIds.add(m.marker_id);
+  return (Array.isArray(list)?list:[]).filter(x=>{
+    const mk = Array.isArray(x.markers)?x.markers:[];
+    if(!mk.length) return true;                 // no class info -> keep (can't classify)
+    return !mk.every(id => qwSuppIds.has(id));    // drop iff ALL markers are sensitive-class
+  });
+}
+
 async function renderDashboard(p, reportId){
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
@@ -1504,30 +1533,10 @@ async function renderDashboard(p, reportId){
     }
   });
 
-  // Copy-safety: drop "quietly working" strengths that are PURELY sensitive-class
-  // (heavy-metals / autoimmune) so an all-negative panel isn't surfaced as a "win"
-  // with reassuring declarative copy. Suppressed-id set = systems-derived
-  // (authoritative — follows the library) UNION a hardcoded floor so the filter
-  // fails CLOSED if p.systems[] is ever absent/renamed. Floor ids verified verbatim
-  // against the heavy_metals + autoimmune systems[].markers[] across all 3 keepers
-  // (19 metals + ana/anti_ccp/aso/rheumatoid_factor). Mirrors the backend QW tumor
-  // filter's "all markers in set -> drop" semantics (mixed entries are kept).
-  const QW_SUPPRESS_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
-  const QW_SUPPRESS_FALLBACK = new Set([
-    "ana","anti_ccp","aso","rheumatoid_factor",
-    "aluminum","antimony","arsenic","barium","beryllium","bismuth",
-    "cadmium","cesium","chromium","cobalt","lead","mercury","nickel",
-    "silver","strontium","thallium","tin","uranium","vanadium"
-  ]);
-  const qwSuppIds = new Set(QW_SUPPRESS_FALLBACK);
-  for(const s of (Array.isArray(p.systems)?p.systems:[]))
-    if(QW_SUPPRESS_SYSTEMS.has(s.system_id))
-      for(const m of (Array.isArray(s.markers)?s.markers:[])) qwSuppIds.add(m.marker_id);
-  const q = (Array.isArray(p.quietly_working)?p.quietly_working:[]).filter(x=>{
-    const mk = Array.isArray(x.markers)?x.markers:[];
-    if(!mk.length) return true;                 // no class info -> keep (can't classify)
-    return !mk.every(id => qwSuppIds.has(id));    // drop iff ALL markers are sensitive-class
-  });
+  // Copy-safety: route the dashboard "What's already strong" beat through the shared
+  // suppression helper (dropSuppressedQW) — drops purely heavy-metals/autoimmune "wins".
+  // The reveal-deck Beat 1 goes through the same helper, so the logic lives in one place.
+  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p);
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
   $("quiet").innerHTML = q.map(x=>
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
@@ -2531,7 +2540,7 @@ function buildDeck(p, reportId){
   const composite = (typeof v.composite === 'number') ? v.composite : null;
   const bandLabel = (v.band && v.band.label) || '';
   const visibility = (typeof v.visibility === 'number') ? Math.round(v.visibility) : null;
-  const qw = Array.isArray(p.quietly_working) ? p.quietly_working : [];
+  const qw = dropSuppressedQW(Array.isArray(p.quietly_working) ? p.quietly_working : [], p);
   const pri = Array.isArray(p.priorities) && p.priorities[0] ? p.priorities[0] : null;
   const f = p.foundations || {};
   const levers = Array.isArray(f.levers) ? f.levers : [];
