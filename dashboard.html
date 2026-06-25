@@ -1342,8 +1342,12 @@ function renderFoundations(p){
 // markers in set -> drop" semantics (mixed entries kept; markerless entries kept —
 // fail-open, a separate decision NOT changed here). Routes BOTH the dashboard
 // "What's already strong" beat and the reveal-deck Beat 1.
+// Systems whose reassuring all-clear copy must never surface as a "win" — gated across
+// the strengths beat, the reveal deck (both via dropSuppressedQW), and the system-detail
+// modal summary_line. (cardStatus still neutralizes only heavy_metals on the body map —
+// a one-word status label, a separate/lesser concern.)
+const SENSITIVE_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
 function dropSuppressedQW(list, payload){
-  const QW_SUPPRESS_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
   const QW_SUPPRESS_FALLBACK = new Set([
     "ana","anti_ccp","aso","rheumatoid_factor",
     "aluminum","antimony","arsenic","barium","beryllium","bismuth",
@@ -1352,7 +1356,7 @@ function dropSuppressedQW(list, payload){
   ]);
   const qwSuppIds = new Set(QW_SUPPRESS_FALLBACK);
   for(const s of (Array.isArray(payload.systems)?payload.systems:[]))
-    if(QW_SUPPRESS_SYSTEMS.has(s.system_id))
+    if(SENSITIVE_SYSTEMS.has(s.system_id))
       for(const m of (Array.isArray(s.markers)?s.markers:[])) qwSuppIds.add(m.marker_id);
   return (Array.isArray(list)?list:[]).filter(x=>{
     const mk = Array.isArray(x.markers)?x.markers:[];
@@ -2496,7 +2500,8 @@ function openSystem(p, s){
     '<button class="sm-close" id="sm-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
     '<div class="sm-status '+st.cls+'"><span class="d"></span>'+esc(st.label)+'</div>' +
     '<h2 class="sm-h">'+esc(s.display_name||s.system_id||"")+'</h2>' +
-    (s.summary_line ? '<p class="sm-summary">'+esc(s.summary_line)+'</p>' : '') +
+    (s.summary_line && !SENSITIVE_SYSTEMS.has(s.system_id)
+       ? '<p class="sm-summary">'+esc(s.summary_line)+'</p>' : '') +
     (markers.length
       ? '<div class="sm-mk-label">Markers in this system</div>' + markers.map(markerRowHTML).join('')
       : '<p class="sm-empty">The full marker list for this system will show here as your panel grows. The summary above reflects what we can read from this report.</p>');
