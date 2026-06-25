@@ -177,9 +177,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio.open .prio-chev{transform:rotate(90deg)}
 .prio-detail{display:none;margin-top:10px}
 .prio.open .prio-detail{display:block}
-.quiet{background:var(--teal-soft);border-radius:14px;padding:18px 20px;margin-bottom:10px}
-.quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:3px}
-.quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.6}
+.quiet-intro{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:600;color:var(--teal-dark);line-height:1.35;margin-bottom:20px}
+/* auto-fit reflow: 2 survivors fill the row cleanly (no broken 3-col gap); 3 cards go 3-up wide, 2-up/1-up as width drops */
+#quiet{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.quiet{background:#fff;border:1px solid var(--teal-light);border-radius:16px;padding:20px}
+.quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:5px}
+.quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.55}
+.quiet-foot{font-style:italic;color:var(--teal-dark);font-size:14px;margin-top:18px}
 .gap-card{background:#fff;border:1px solid var(--cream-mid);border-radius:18px;padding:28px 32px}
 .gap-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--brown);margin-bottom:8px}
 .gap-intro{font-size:14px;color:var(--brown-mid);line-height:1.7;margin-bottom:8px}
@@ -622,7 +626,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
+      <p class="quiet-intro" id="quiet-intro"></p>
       <div id="quiet"></div>
+      <p class="quiet-foot">These are worth protecting as much as the flags are worth addressing.</p>
     </div>
 
     <div id="foundations-wrap" class="hidden">
@@ -1544,6 +1550,11 @@ async function renderDashboard(p, reportId){
   // The reveal-deck Beat 1 goes through the same helper, so the logic lives in one place.
   const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p);
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
+  // Generic verdict intro — names NO systems, so it is leak-proof by construction
+  // (no per-entry system name needed). textContent: static string, no injection path.
+  $("quiet-intro").textContent = q.length
+    ? "A lot is quietly going right. These are the systems that tend to be hardest to move, and yours are steady."
+    : "";
   $("quiet").innerHTML = q.map(x=>
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
     (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
