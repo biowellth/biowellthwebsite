@@ -57,6 +57,14 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 @keyframes spin{to{transform:rotate(360deg)}}
 #view-processing h1{font-size:22px;margin-bottom:10px}
 #view-processing p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
+.proc-err{color:var(--coral-dark)}
+#view-interim{max-width:720px;margin:0 auto;padding:32px 24px}
+.interim-banner{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:14px;padding:16px 18px;font-size:14.5px;line-height:1.6;color:var(--brown);margin-bottom:24px}
+.interim-list{display:flex;flex-direction:column;gap:18px}
+.interim-sys-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.interim-marker{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--cream-mid)}
+.interim-marker .im-name{font-size:14px;color:var(--brown)}
+.interim-marker .im-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid);white-space:nowrap}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
 .reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
@@ -575,8 +583,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   <div id="view-processing" class="hidden">
     <div class="spinner"></div>
     <h1>Reading your report</h1>
-    <p>We are reading every result and comparing it against healthy ranges built for women. This usually takes a minute or two.</p>
+    <p>We are reading every result and comparing it against healthy ranges built for women. This usually takes a few minutes.</p>
     <div class="proc-file" id="proc-file"></div>
+  </div>
+
+  <div id="view-interim" class="hidden">
+    <div class="interim-banner">Your results are in. We're now reading them against women's functional ranges, and your full interpretation lands in a moment.</div>
+    <div id="interim-list" class="interim-list"></div>
   </div>
 
   <div id="view-reveal" class="hidden">
@@ -742,7 +755,7 @@ let USER = null, pollTimer = null;
 */
 
 function showView(name){
-  ["upload","processing","reveal","dashboard"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  ["upload","processing","reveal","dashboard","interim"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
   // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
   $("btn-new").classList.toggle("hidden", name!=="dashboard");
   // The panel switcher only earns its place once there is more than one panel to switch between.
@@ -935,23 +948,68 @@ async function handleFile(file){
 function pollForResult(reportId){
   if(pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async ()=>{
+    // Call B done? results.payload is the authoritative interpretation.
     const { data } = await sb.from("results")
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
     if(data && data.payload){
       clearInterval(pollTimer);
       // Fresh report: reveal_seen_at is null by definition, so always run
       // through the deck first. Stamping on exit moves the user to the
-      // dashboard view.
-      // The new panel now has a result, so add it to the switcher and select it.
-      // buildPicker also builds window.__rdSeries; run it BEFORE the first render
-      // so the fresh panel's per-marker trend has its cross-panel series ready.
+      // dashboard view. buildPicker also builds window.__rdSeries; run it
+      // BEFORE the first render so the fresh panel's per-marker trend has
+      // its cross-panel series ready. Reuse the payload already fetched.
       await buildPicker(reportId);
-      // Reuse the payload already fetched above — no re-fetch.
       await renderDashboard(data.payload, reportId);
       buildDeck(data.payload, reportId);
       showView("reveal");
+      return;
+    }
+    // Not done yet — surface the interim value view as soon as Call A's
+    // transcription_json lands ('awaiting_interpretation') so the user sees
+    // their numbers ~3 min in instead of a ~9 min blank wait. Authoritative
+    // banding / colour / verdict come ONLY with Call B (above), never here.
+    const { data: rep } = await sb.from("reports")
+      .select("status, transcription_json").eq("id", reportId).limit(1).maybeSingle();
+    if(rep && rep.status === "error"){
+      clearInterval(pollTimer);
+      $("proc-file").innerHTML = '<span class="proc-err">Something went wrong reading this report. Please try uploading it again.</span>';
+      showView("processing");
+      return;
+    }
+    if(rep && rep.transcription_json){
+      renderInterim(rep.transcription_json);
+      showView("interim");
+    } else {
+      showView("processing");
     }
   }, 3000);
+}
+
+// Interim "your values are in" view. Renders Call A output (transcription_json,
+// persisted at 'awaiting_interpretation') as NEUTRAL VALUES ONLY — value + unit,
+// grouped by system. NO status, NO colour, NO verdict of any kind: authoritative
+// banding arrives only with Call B (renderDashboard). This removes the
+// provisional->authoritative colour flip AND any copy-safety register risk
+// (heavy_metals / autoimmune simply show plain numbers) by construction. esc()
+// every model-authored string. Idempotent: replaces #interim-list, never appends.
+function renderInterim(tj){
+  const systems = (tj && Array.isArray(tj.systems)) ? tj.systems : [];
+  let html = "";
+  for(const s of systems){
+    const markers = Array.isArray(s.markers) ? s.markers : [];
+    if(!markers.length) continue;
+    const title = CANONICAL_TITLE[s.system_id] || s.display_name || s.system_id || "";
+    html += '<div class="interim-sys"><div class="interim-sys-h">' + esc(title) + '</div>';
+    for(const m of markers){
+      const raw = (m.value===null || m.value===undefined || m.value==="") ? (m.value_text||"") : m.value;
+      const unit = m.unit ? " " + esc(String(m.unit)) : "";
+      html += '<div class="interim-marker"><span class="im-name">' +
+              esc(m.display_name || m.marker_id || "") + '</span><span class="im-val">' +
+              esc(String(raw)) + unit + '</span></div>';
+    }
+    html += "</div>";
+  }
+  $("interim-list").innerHTML = html;
 }
 
 // ── COVERAGE GAP ("Worth exploring over time") ────────────────────────────
