@@ -59,25 +59,38 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-processing p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
 .proc-err{color:var(--coral-dark)}
 #view-interim{max-width:720px;margin:0 auto;padding:32px 24px}
-.interim-banner{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:14px;padding:16px 18px;font-size:14.5px;line-height:1.6;color:var(--brown);margin-bottom:24px}
-.interim-list{display:flex;flex-direction:column;gap:18px}
-.interim-sys-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.interim-marker{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--cream-mid)}
-.interim-marker .im-name{font-size:14px;color:var(--brown)}
-.interim-marker .im-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid);white-space:nowrap}
-.interim-summary{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--brown-mid);margin-bottom:26px}
-.interim-summary b{color:var(--brown);font-weight:700}
+.interim-status{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.interim-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);animation:interimPulse 1.6s ease-in-out infinite;flex-shrink:0}
+.interim-status-t{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
+@keyframes interimPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+.interim-sweep{position:relative;height:3px;border-radius:3px;background:var(--teal-light);overflow:hidden;margin-bottom:28px}
+.interim-sweep span{position:absolute;top:0;height:100%;width:38%;border-radius:3px;background:var(--teal);animation:interimSweep 1.5s ease-in-out infinite}
+@keyframes interimSweep{0%{left:-42%}100%{left:100%}}
+.interim-head{font-size:24px;line-height:1.25;color:var(--brown);font-weight:700;margin-bottom:10px}
+.interim-head b{color:var(--teal);font-weight:700}
+.interim-sub{font-size:15px;line-height:1.6;color:var(--brown-mid);margin-bottom:24px;max-width:60ch}
+.interim-tiles{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:30px}
+.itile{flex:1 1 140px;background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:3px}
+.itile-n{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;color:var(--teal)}
+.itile-l{font-size:12.5px;color:var(--brown-mid);text-transform:uppercase;letter-spacing:.06em}
+.interim-list{display:flex;flex-direction:column;gap:0}
 .interim-sec-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:var(--brown-mid);text-transform:uppercase;letter-spacing:.09em;margin:0 0 12px}
 .isys-wrap{display:flex;flex-direction:column;gap:8px}
-.isys{background:var(--white);border:1px solid var(--brown-light);border-radius:10px;overflow:hidden}
-.isys-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;cursor:pointer;user-select:none}
-.isys-h .isys-t{font-size:13.5px;font-weight:600;color:var(--brown)}
-.isys-meta{display:flex;align-items:center;gap:11px}
+.isys{background:var(--white);border:1px solid var(--brown-light);border-radius:12px;overflow:hidden;transition:border-color .15s}
+.isys-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+.isys-h:hover{background:var(--cream)}
+.isys-left{display:flex;align-items:center;gap:12px;min-width:0}
+.isys-tile{width:32px;height:32px;border-radius:9px;background:var(--teal-soft);border:1px solid var(--teal-light);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);flex-shrink:0}
+.isys-t{font-size:14px;font-weight:600;color:var(--brown);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.isys-meta{display:flex;align-items:center;gap:11px;flex-shrink:0}
 .isys-count{font-size:12.5px;color:var(--brown-mid)}
 .isys-chev{width:8px;height:8px;border-right:2px solid var(--brown-mid);border-bottom:2px solid var(--brown-mid);transform:rotate(45deg);transition:transform .18s;margin-bottom:3px}
 .isys.open .isys-chev{transform:rotate(-135deg);margin-bottom:-3px}
-.isys-body{display:none;padding:0 15px 6px}
+.isys-body{display:none;padding:2px 14px 6px}
 .isys.open .isys-body{display:block}
+.interim-marker{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--cream-mid)}
+.interim-marker .im-name{font-size:14px;color:var(--brown)}
+.interim-marker .im-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid);white-space:nowrap}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
 .reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
@@ -601,7 +614,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   </div>
 
   <div id="view-interim" class="hidden">
-    <div class="interim-banner">Your results are in. Here's your full panel — your interpretation against women's functional ranges is landing now.</div>
+    <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Reading your panel against women's functional ranges</span></div>
+    <div class="interim-sweep"><span></span></div>
     <div id="interim-list" class="interim-list"></div>
   </div>
 
@@ -998,10 +1012,13 @@ function pollForResult(reportId){
   }, 3000);
 }
 
-// Interim "your values are in" view (v2, structure-only). Renders Call A output
-// (transcription_json, persisted at 'awaiting_interpretation') as an ORIENTATION,
-// not a flat receipt: summary counts + the full neutral value set collapsed by
-// system. NO client-side banding, NO standout flag, NO verdict of any kind — a
+// Interim "your values are in" view (v2, structure-only + restyle). Renders Call A
+// output (transcription_json, persisted at 'awaiting_interpretation') as an
+// ORIENTATION that PROMISES the reveal: a living header/sweep (static markup),
+// anticipatory framing headline + subline, two stat tiles, and the full neutral
+// value set as collapsible per-system cards (icon tile + count + chevron). Systems
+// sharing a system_id are merged into one card (transcription sometimes splits a
+// system into multiple blocks). NO client-side banding, NO standout flag, NO verdict — a
 // flip-proof "worth a look" list is not derivable before Call B (clinical ranking
 // lives in the engine; raw band-distance proved a poor, unit-unsafe proxy). The
 // authoritative interpretation arrives seconds later with renderDashboard. Rows
@@ -1020,39 +1037,56 @@ function interimValHTML(m){
 
 function renderInterim(tj){
   const systems = (tj && Array.isArray(tj.systems)) ? tj.systems : [];
-  let totalMarkers = 0, systemsWithMarkers = 0;
-  const sysRows = [];
+  // Merge systems[] entries that share a system_id. The transcription occasionally
+  // splits one system across multiple blocks (e.g. iron_status as 7 + 4 markers),
+  // which would otherwise render as two identical-titled cards. Group by sid in
+  // first-seen order; the canonical title is stable per sid.
+  const order = [];
+  const bySid = new Map();
   for(const s of systems){
     const markers = Array.isArray(s.markers) ? s.markers : [];
     if(!markers.length) continue;
-    systemsWithMarkers++;
     const sid = s.system_id;
-    const title = CANONICAL_TITLE[sid] || s.display_name || sid || "";
-    let body = "";
-    for(const m of markers){
-      totalMarkers++;
-      body += '<div class="interim-marker"><span class="im-name">' +
-              esc(m.display_name || m.marker_id || "") + '</span><span class="im-val">' +
-              interimValHTML(m) + '</span></div>';
+    if(!bySid.has(sid)){
+      bySid.set(sid, { sid, title: CANONICAL_TITLE[sid] || s.display_name || sid || "", markers: [] });
+      order.push(sid);
     }
-    sysRows.push({ sid, title, total: markers.length, body });
+    const g = bySid.get(sid);
+    for(const m of markers) g.markers.push(m);
   }
 
-  let html = '<div class="interim-summary">' +
-    '<span><b>' + totalMarkers + '</b> markers read</span>' +
-    '<span><b>' + systemsWithMarkers + '</b> systems</span></div>';
+  let totalMarkers = 0;
+  for(const sid of order) totalMarkers += bySid.get(sid).markers.length;
+  const systemsMapped = order.length;
+
+  // Anticipatory framing: the interim PROMISES the walkthrough rather than being one.
+  let html =
+    '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
+    '<p class="interim-sub">Your full read, covering what\'s strong, what to watch, and where to focus, is landing in a moment. Here\'s the shape of what came back.</p>' +
+    '<div class="interim-tiles">' +
+      '<div class="itile"><span class="itile-n">' + totalMarkers + '</span><span class="itile-l">markers read</span></div>' +
+      '<div class="itile"><span class="itile-n">' + systemsMapped + '</span><span class="itile-l">systems mapped</span></div>' +
+    '</div>';
 
   // Neutral marker count per system — no banding, so no "in range" register. This
   // keeps the SENSITIVE_SYSTEMS classes (heavy_metals / autoimmune) safe by default.
   html += '<div class="interim-sec-h">Your markers by system</div><div class="isys-wrap">';
-  for(const r of sysRows){
-    const open = INTERIM_EXPANDED.has(r.sid);
-    const count = r.total + ' markers';
-    html += '<div class="isys' + (open?' open':'') + '" data-sid="' + esc(r.sid) + '">' +
-            '<div class="isys-h"><span class="isys-t">' + esc(r.title) + '</span>' +
-            '<span class="isys-meta"><span class="isys-count">' + esc(count) + '</span>' +
+  for(const sid of order){
+    const g = bySid.get(sid);
+    const open = INTERIM_EXPANDED.has(sid);
+    const initial = esc((g.title.trim()[0] || "•").toUpperCase());
+    let body = "";
+    for(const m of g.markers){
+      body += '<div class="interim-marker"><span class="im-name">' +
+              esc(m.display_name || m.marker_id || "") + '</span><span class="im-val">' +
+              interimValHTML(m) + '</span></div>';
+    }
+    html += '<div class="isys' + (open?' open':'') + '" data-sid="' + esc(sid) + '">' +
+            '<div class="isys-h"><span class="isys-left"><span class="isys-tile">' + initial + '</span>' +
+            '<span class="isys-t">' + esc(g.title) + '</span></span>' +
+            '<span class="isys-meta"><span class="isys-count">' + g.markers.length + ' markers</span>' +
             '<span class="isys-chev"></span></span></div>' +
-            '<div class="isys-body">' + r.body + '</div></div>';
+            '<div class="isys-body">' + body + '</div></div>';
   }
   html += '</div>';
 
