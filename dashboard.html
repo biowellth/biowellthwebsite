@@ -505,6 +505,34 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .found-closing{margin-top:16px;font-size:14px;line-height:1.7;color:var(--teal-dark);font-style:italic}
 .found-panel{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:18px;padding:24px}
 @media(max-width:600px){.found-levers{grid-template-columns:1fr}.found-panel{padding:18px}}
+/* First-run onboarding card — reuses the .sys-modal overlay idiom + :root tokens */
+.onb-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(71,55,43,.45);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s linear .25s}
+.onb-modal.show{opacity:1;visibility:visible;transition:opacity .25s ease}
+.onb-card{position:relative;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--off-white);
+  border:1px solid var(--brown-light);border-radius:22px;padding:30px 28px 26px;box-shadow:var(--shadow);
+  transform:translateY(12px) scale(.985);transition:transform .28s cubic-bezier(.2,.7,.3,1)}
+.onb-modal.show .onb-card{transform:none}
+.onb-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 13px;border-radius:100px;margin-bottom:14px}
+.onb-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25}
+.onb-sub{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-top:8px}
+.onb-q{margin-top:22px}
+.onb-q-label{font-size:13.5px;font-weight:600;color:var(--brown);margin-bottom:10px}
+.onb-opts{display:flex;flex-direction:column;gap:8px}
+.onb-opts.row{flex-direction:row;flex-wrap:wrap}
+.onb-opts.row .onb-opt{flex:1 1 auto;justify-content:center}
+.onb-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-family:inherit;font-size:14px;color:var(--brown);
+  background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+.onb-opt:hover{border-color:var(--teal-mid)}
+.onb-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
+.onb-year{font-family:'Instrument Sans',sans-serif;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;width:100%;-webkit-appearance:none;appearance:none}
+.onb-actions{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px}
+.onb-save{background:var(--teal);color:var(--white);font-weight:700;font-size:14px;border-radius:100px;padding:12px 26px}
+.onb-save:hover{background:var(--teal-dark)}
+.onb-save:disabled{opacity:.6;cursor:default}
+.onb-skip{font-size:13px;color:var(--brown-mid);background:none;text-decoration:underline;text-underline-offset:3px}
+.onb-msg{font-size:13px;color:var(--coral-dark);margin-top:12px;min-height:1px}
 </style>
 </head>
 <body>
@@ -898,11 +926,67 @@ $("report-picker").onchange = async (e)=>{
   showView("dashboard");
 };
 
+// ── First-run onboarding: capture durable life-stage context the worker's
+// buildUserContext already reads (dormant until populated). Writes ONLY the
+// answered fields to the user's OWN profiles row via the existing "own profile"
+// RLS update. Fully skippable; re-shows on a later load while dob OR cycle_status
+// remain null. life_stage written here is a DECLARED HINT only — the engine
+// derives the authoritative per-panel value (Step 3). PCOS / amenorrheic leave
+// life_stage unset (do not infer a stage).
+const ONB_Q2 = {
+  regular:  { cycle_status:"regular",     life_stage:"premenopause" },
+  changing: { cycle_status:"irregular",   life_stage:"perimenopause" },
+  stopped:  { cycle_status:"none",        life_stage:"postmenopause" },
+  pcos:     { cycle_status:"pcos",        life_stage:null },
+  none:     { cycle_status:"amenorrheic", life_stage:null },
+};
+const onbSel = { period:null, diet:null, preg:null };
+function onbWireGroup(id, key, attr){
+  document.querySelectorAll("#"+id+" .onb-opt").forEach(btn=>{
+    btn.onclick = ()=>{
+      onbSel[key] = btn.getAttribute(attr);
+      document.querySelectorAll("#"+id+" .onb-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+    };
+  });
+}
+async function maybeShowOnboarding(){
+  try{
+    const { data: prof } = await sb.from("profiles").select("dob, cycle_status").eq("id", USER.id).maybeSingle();
+    if(prof && prof.dob != null && prof.cycle_status != null) return;   // already onboarded
+    const ysel = $("onb-year");
+    if(ysel && ysel.options.length <= 1){
+      const now = new Date().getFullYear();
+      for(let y=now-13; y>=now-90; y--){ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); ysel.appendChild(o); }
+    }
+    onbWireGroup("onb-periods","period","data-k");
+    onbWireGroup("onb-diet","diet","data-v");
+    onbWireGroup("onb-preg","preg","data-b");
+    $("onb-skip").onclick = ()=> $("onb-modal").classList.remove("show");
+    $("onb-save").onclick = onbSave;
+    $("onb-modal").classList.add("show");
+  }catch(_e){ /* onboarding must never block the dashboard */ }
+}
+async function onbSave(){
+  const payload = {};
+  const yr = $("onb-year").value;
+  if(yr) payload.dob = yr + "-07-01";                      // year-only -> midyear, bounds age error to ~6mo
+  if(onbSel.period){ const m = ONB_Q2[onbSel.period]; payload.cycle_status = m.cycle_status; if(m.life_stage) payload.life_stage = m.life_stage; }
+  if(onbSel.diet) payload.vegetarian_status = onbSel.diet;
+  if(onbSel.preg) payload.pregnant_or_postpartum_within_6_months = (onbSel.preg === "yes");
+  if(!Object.keys(payload).length){ $("onb-modal").classList.remove("show"); return; }   // nothing answered = skip
+  $("onb-save").disabled = true; $("onb-msg").textContent = "";
+  const { error } = await sb.from("profiles").update(payload).eq("id", USER.id);
+  $("onb-save").disabled = false;
+  if(error){ $("onb-msg").textContent = "Couldn't save just now — you can continue and add this later."; return; }
+  $("onb-modal").classList.remove("show");
+}
+
 (async ()=>{
   const { data } = await sb.auth.getSession();
   if(!data.session){ location.replace("/login.html?mode=login"); return; }
   USER = data.session.user;
   document.body.classList.add("ready");
+  maybeShowOnboarding();   // non-blocking overlay; dashboard loads behind it
 
   // Load every panel, populate the switcher, and default to the newest one
   // that actually has a finished result. If the most recent upload is still
@@ -3042,5 +3126,53 @@ async function stampSeen(reportId){
   showView('dashboard');
 }
 </script>
+<div class="onb-modal" id="onb-modal" aria-hidden="true">
+  <div class="onb-card">
+    <div class="onb-eyebrow">Welcome</div>
+    <div class="onb-h">A few things about you</div>
+    <p class="onb-sub">These help us read your results against your body and life stage. Skip anything you'd rather not share.</p>
+
+    <div class="onb-q">
+      <div class="onb-q-label">What year were you born?</div>
+      <select class="onb-year" id="onb-year"><option value="">Select year</option></select>
+    </div>
+
+    <div class="onb-q">
+      <div class="onb-q-label">Which best describes your periods these days?</div>
+      <div class="onb-opts" id="onb-periods">
+        <button type="button" class="onb-opt" data-k="regular">My periods are regular and predictable</button>
+        <button type="button" class="onb-opt" data-k="changing">They've become irregular or are changing</button>
+        <button type="button" class="onb-opt" data-k="stopped">They've stopped (no period for 12+ months)</button>
+        <button type="button" class="onb-opt" data-k="pcos">I have PCOS, or they've always been irregular</button>
+        <button type="button" class="onb-opt" data-k="none">I don't have periods / not applicable</button>
+      </div>
+    </div>
+
+    <div class="onb-q">
+      <div class="onb-q-label">How would you describe your diet?</div>
+      <div class="onb-opts row" id="onb-diet">
+        <button type="button" class="onb-opt" data-v="Vegetarian">Vegetarian</button>
+        <button type="button" class="onb-opt" data-v="Non-vegetarian">Non-vegetarian</button>
+        <button type="button" class="onb-opt" data-v="Eggetarian">Eggetarian</button>
+        <button type="button" class="onb-opt" data-v="Vegan">Vegan</button>
+        <button type="button" class="onb-opt" data-v="Mostly vegetarian">Mostly vegetarian</button>
+      </div>
+    </div>
+
+    <div class="onb-q">
+      <div class="onb-q-label">Are you currently pregnant, or within 6 months postpartum?</div>
+      <div class="onb-opts row" id="onb-preg">
+        <button type="button" class="onb-opt" data-b="yes">Yes</button>
+        <button type="button" class="onb-opt" data-b="no">No</button>
+      </div>
+    </div>
+
+    <div class="onb-msg" id="onb-msg"></div>
+    <div class="onb-actions">
+      <button type="button" class="onb-skip" id="onb-skip">Skip for now</button>
+      <button type="button" class="onb-save" id="onb-save">Save</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
