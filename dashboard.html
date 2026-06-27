@@ -136,7 +136,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sys-chip .dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--st)}
 .sys-chip .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sys-chip .chev{flex:none;opacity:.4;font-size:16px;line-height:1;color:var(--brown-mid)}
-.sys-chip.s-good{--st:var(--teal)} .sys-chip.s-watch{--st:var(--amber)} .sys-chip.s-flag{--st:var(--coral)} .sys-chip.s-none{--st:var(--brown-light)}
+.sys-chip.s-good{--st:var(--teal)} .sys-chip.s-watch{--st:var(--amber)} .sys-chip.s-flag{--st:var(--coral)} .sys-chip.s-none{--st:var(--brown-light)} .sys-chip.s-ref{--st:var(--teal-mid)}
 .sys-chip.left{right:63%} .sys-chip.right{left:63%}
 .sys-chip.flow{position:static;transform:none;width:auto}
 .bm-systemic{max-width:1560px;margin:22px auto 0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:auto;grid-auto-rows:1fr;gap:12px;justify-items:stretch}
@@ -170,6 +170,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-status.s-watch{background:var(--amber-light);color:#8A6D1F} .sm-status.s-watch .d{background:var(--amber)}
 .sm-status.s-flag{background:var(--coral-light);color:var(--coral-dark)} .sm-status.s-flag .d{background:var(--coral)}
 .sm-status.s-none{background:var(--brown-soft);color:var(--brown-mid)} .sm-status.s-none .d{background:var(--brown-light)}
+.sm-status.s-ref{background:var(--teal-soft);color:var(--teal-dark)} .sm-status.s-ref .d{background:var(--teal-mid)}
 .sm-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25}
 .sm-summary{font-size:14.5px;line-height:1.6;color:var(--brown-mid);margin-top:10px}
 .sm-mk-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-mid);margin:24px 0 4px}
@@ -177,7 +178,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-mk{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit}
 .sm-mk .mn{font-size:14px;color:var(--brown);font-weight:500;display:flex;align-items:center;min-width:0}
 .sm-mk .mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:9px;flex:none}
-.sm-mk .mdot.s-good{background:var(--teal)} .sm-mk .mdot.s-watch{background:var(--amber)} .sm-mk .mdot.s-flag{background:var(--coral)} .sm-mk .mdot.s-none{background:var(--brown-light)}
+.sm-mk .mdot.s-good{background:var(--teal)} .sm-mk .mdot.s-watch{background:var(--amber)} .sm-mk .mdot.s-flag{background:var(--coral)} .sm-mk .mdot.s-none{background:var(--brown-light)} .sm-mk .mdot.s-ref{background:var(--teal-mid)}
 .sm-mk .mr{display:flex;align-items:center;gap:10px;flex:none}
 .mk-spark{width:54px;height:20px;flex:none;overflow:visible}
 .sm-mk .mv{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--brown);white-space:nowrap}
@@ -1849,6 +1850,7 @@ function longiMove(m){
 function statusTag(status){
   const s = String(status||"").toLowerCase();
   if(s==="unknown_unit") return "";   // unit unconfirmed -> no chip (handled inline)
+  if(s==="life_stage_reference") return "";   // deliberate life-stage reference -> no trend flag (grouped with not_scored/unknown_unit)
   if(s==="flag") return '<span class="longi-tag flag">needs a look</span>';
   if(s==="watch") return '<span class="longi-tag watch">worth watching</span>';
   return "";
@@ -2056,6 +2058,10 @@ function lookupRange(mk) {
 // reads as watch while plain "low" reads as needs-attention.
 function sysStatus(status){
   const s = (status||"").toLowerCase().replace(/[\s-]+/g,"_");
+  // Life-stage reference (e.g. postmenopausal progesterone): a deliberate, calm
+  // "expected for your stage" reading — never a deficiency, never a "win"/optimal.
+  // Explicit BEFORE the keyword matching so no flag substring can catch it.
+  if(s==="life_stage_reference") return { cls:"s-ref", label:"Expected for your stage" };
   const hit = (set)=> set.some(w => s===w || s.includes(w));
   const watch = ['watch','borderline','fair','monitor','mild','suboptimal','moderate','slightly','low_normal','high_normal','early'];
   const flag  = ['low','high','attention','concern','abnormal','flag','poor','severe','deficient','elevated','critical','out_of_range','very_low','very_high'];
@@ -2625,7 +2631,7 @@ function anatomyOf(name){
   if(has('sex','reproduct','estrogen','hormone','fsh','progest','testoster','ovar','uter')) return {x:54, y:52, side:'R'};
   return null;
 }
-const ST_COLOR = {'s-good':'#0C8E6B','s-watch':'#D4A94A','s-flag':'#D47C65','s-none':'#D9CDBE'};
+const ST_COLOR = {'s-good':'#0C8E6B','s-watch':'#D4A94A','s-flag':'#D47C65','s-none':'#D9CDBE','s-ref':'#B8E4D4'};
 
 // "Browse everything" grid: every system as a card (status dot + marker count +
 // status word), with filter pills. Reuses sysStatus/ST_COLOR (single source of
