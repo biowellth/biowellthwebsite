@@ -2694,7 +2694,15 @@ const BES_WORD = { "s-good":"Healthy", "s-watch":"Watching", "s-flag":"Needs a l
 function cardStatus(s){
   const st = sysStatus(s.status);
   if(s && s.system_id === "heavy_metals"){
-    return { cls: "s-none", word: "Tested", color: ST_COLOR["s-none"] };
+    // Heavy metals: never green/reassuring. Neutral "Tested" when in range. A toxic
+    // element is only concerning ABOVE the reference interval (a low reading is not a
+    // concern), so flag on a HIGH-side band only. Calm word matches the prompt's
+    // above-range phrasing ("worth discussing with a doctor") — never an alarm word.
+    const HM_HIGH = new Set(["high","elevated","very_high","critical_high","high_concern","abnormal","suboptimal_high","borderline_high"]);
+    const outHigh = Array.isArray(s.markers) && s.markers.some(m => HM_HIGH.has(String((m && m.band) || "").toLowerCase()));
+    return outHigh
+      ? { cls: "s-flag", word: "Worth discussing", color: ST_COLOR["s-flag"] }
+      : { cls: "s-none", word: "Tested", color: ST_COLOR["s-none"] };
   }
   return { cls: st.cls, word: (BES_WORD[st.cls] || st.label), color: ST_COLOR[st.cls] };
 }
