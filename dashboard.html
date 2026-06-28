@@ -2541,7 +2541,9 @@ function markerDetailHTML(mk, cls){
     const reads = info.points.slice().reverse()
       .map(p=>esc(String(p.value)+(cu?' '+cu:'')+', '+(fmtDate(p.date)||'this test'))).join('<br>');
     mid = '<p class="sm-trend-note">'+(reads?reads+'<br>':'')+
-      'Levels here move with your cycle, so we show each reading on its own rather than a trend.</p>';
+      (isPregnantPanel()
+        ? 'Levels here rise during pregnancy, so we show each reading on its own rather than a trend.'
+        : 'Levels here move with your cycle, so we show each reading on its own rather than a trend.')+'</p>';
   } else if(isNotScored){
     // not_scored, non-cycle-gated: no scored reference range for this marker, so we do NOT
     // plot a trend. Tested BEFORE the numeric-trend path below so a numeric not_scored
@@ -2575,6 +2577,15 @@ function markerDetailHTML(mk, cls){
     explainNote+mid+
   '</div>';
 }
+// True when the open panel is a pregnancy report (engine sets display.mode
+// "pregnancy_per_marker"). Read from the global payload so the per-marker notes can
+// swap the cycle copy ("move with your cycle") for pregnancy copy without threading
+// a param. For a pregnant user the cycle-gated hormones rise with pregnancy, not the
+// cycle, so the cycle wording would be wrong.
+function isPregnantPanel(){
+  const d = window.__rdPayload && window.__rdPayload.vitality && window.__rdPayload.vitality.display;
+  return !!(d && d.mode === "pregnancy_per_marker");
+}
 function markerRowHTML(mk){
   // unit unconfirmed: show the value as reported, neutral dot, no status chip,
   // and a quiet hedged note. We deliberately do not score an unmatched unit.
@@ -2602,7 +2613,9 @@ function markerRowHTML(mk){
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
     : isNotScored
       ? '<div class="mk-note">'+(mk.is_cycle_gated
-          ? 'Levels here move with your cycle, so this is not scored against a single range.'
+          ? (isPregnantPanel()
+              ? 'Levels here rise during pregnancy, so this is not scored against a single range.'
+              : 'Levels here move with your cycle, so this is not scored against a single range.')
           : 'We do not have a scored reference range for this marker yet, so it is shown without a status.')+'</div>'
       : '';
   return '<div class="sm-marker">'+
