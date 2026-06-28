@@ -2531,6 +2531,27 @@ function markerDetailHTML(mk, cls){
     rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
   }
   const cu = info.canonicalUnit;
+  // Lp(a)-class reconciliation: when this panel's reported unit differs from the
+  // server-canonical unit, disclose the canonical number the trend chart uses, so the
+  // header and chart stop showing two different numbers for the same marker. Reads the
+  // already-server-converted normalized_value; NO FE conversion math. Empty string for
+  // every marker whose units match -> header byte-identical to today.
+  let canonParen = '';
+  {
+    // Canonical value/unit live on the trend SERIES (e.normalized_value / e.canonical_unit),
+    // NOT on mk — the live record's mk.normalized_value is null, which is why the chart can
+    // render nmol/L while mk cannot. Use info.points[last] as the canonical counterpart of
+    // the header reading: consistent with the cur fallback above (header shows the latest
+    // panel; the latest series point is that same reading). cu = info.canonicalUnit (bound
+    // just above). Empty string whenever units match -> header byte-identical to today.
+    const ru = (mk.unit||'').trim().toLowerCase();
+    const cuRaw = (cu||'').trim().toLowerCase();
+    const lastPt = (info.points && info.points.length) ? info.points[info.points.length-1] : null;
+    const cv = lastPt ? Number(lastPt.value) : NaN;
+    if (mk.value!=null && mk.value!=='' && ru && cuRaw && ru!==cuRaw && Number.isFinite(cv)) {
+      canonParen = ' <small>(≈ '+esc(fmtDot(cv))+' '+esc(cu)+')</small>';
+    }
+  }
   let mid;
   if(isQual){
     // Reported as a category, not a number, so nothing numeric to chart or summarise.
@@ -2565,7 +2586,7 @@ function markerDetailHTML(mk, cls){
   // "result not scored" in the header instead of an empty value plus unit.
   const nowHTML = (isQual || isNotScored)
     ? '<div class="sm-trend-now" style="font-weight:400;color:var(--brown-mid)">result not scored</div>'
-    : '<div class="sm-trend-now">'+esc(String(cur))+unit+'</div>';
+    : '<div class="sm-trend-now">'+esc(String(cur))+unit+canonParen+'</div>';
   // Any marker with an authored explanation (derived OR measured) shows a
   // plain-language note above the chart; un-authored markers return "" and show
   // nothing. EXPAND-ONLY: the collapsed row stays clean.
