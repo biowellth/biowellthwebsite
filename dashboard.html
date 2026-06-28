@@ -212,6 +212,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio.open .prio-chev{transform:rotate(90deg)}
 .prio-detail{display:none;margin-top:10px}
 .prio.open .prio-detail{display:block}
+.prio-markers{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.prio-mk-name{font-size:13.5px;color:var(--brown)}
 .quiet-intro{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:600;color:var(--teal-dark);line-height:1.35;margin-bottom:20px}
 /* auto-fit reflow: 2 survivors fill the row cleanly (no broken 3-col gap); 3 cards go 3-up wide, 2-up/1-up as width drops */
 #quiet{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
@@ -797,7 +800,7 @@ let USER = null, pollTimer = null;
      // panel complete, process-report should emit the full per-system marker list
      // (either system.markers[] above, or a top-level p.markers[] with system_id).
      priorities:[ { rank, headline, system_id, severity,
-                    primary_markers:[{display_name, value, unit}],
+                    primary_markers:[{marker_id, display_name, position, band, flag_status}],
                     why_this_matters, the_connection,
                     action_layer:{primary_lever}, trajectory_promise } ],
      quietly_working: [ { finding, implication } ],
@@ -1812,10 +1815,21 @@ async function renderDashboard(p, reportId){
       : "";
     const lever = (x.action_layer && x.action_layer.primary_lever) || "";
     // SUMMARY (always visible): rank + headline + marker chip + why_this_matters.
-    // DETAIL (per-card collapse, mirrors the longitudinal idiom): the_connection +
-    // "Start here" + trajectory_promise. Guard: no detail blocks -> no toggle (a
-    // toggle that opens nothing is the noise we avoided on quiet/foundations).
+    // DETAIL (per-card collapse, mirrors the longitudinal idiom): ALL primary_markers
+    // (name + status chip, no raw value/unit) then the_connection + "Start here" +
+    // trajectory_promise. The chip reads position (clean 5-value enum), falling back to
+    // band, through the shared sysStatus()/BES_WORD vocabulary so it matches every other
+    // status word on the surface. Guard: no detail blocks -> no toggle.
+    const mkList = Array.isArray(x.primary_markers) ? x.primary_markers : [];
+    const markersBlock = mkList.length
+      ? '<div class="prio-markers">' + mkList.map(pm=>{
+          const st = sysStatus(pm.position || pm.band || "");
+          return '<div class="prio-mk"><span class="prio-mk-name">'+esc(markerName(pm))+'</span>'+
+            '<span class="sm-status '+st.cls+'"><span class="d"></span>'+esc(BES_WORD[st.cls] || st.label)+'</span></div>';
+        }).join('') + '</div>'
+      : '';
     const detail =
+      markersBlock +
       (x.the_connection?'<div class="prio-finding">'+esc(x.the_connection)+'</div>':'')+
       (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
       (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'');
