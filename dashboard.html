@@ -1163,7 +1163,7 @@ function renderInterim(tj){
     let body = "";
     for(const m of g.markers){
       body += '<div class="interim-marker"><span class="im-name">' +
-              esc(m.display_name || m.marker_id || "") + '</span><span class="im-val">' +
+              esc(markerName(m)) + '</span><span class="im-val">' +
               interimValHTML(m) + '</span></div>';
     }
     html += '<div class="isys' + (open?' open':'') + '" data-sid="' + esc(sid) + '">' +
@@ -1332,6 +1332,19 @@ const GAP_MARKER_NAME = {
   "vitamin_d_25oh_total": "Vitamin D (25-OH total)",
   "wbc_count": "WBC Count (White Blood Cell Count)",
   "zinc": "Zinc",
+  // Derived indices (11, mirrored from DERIVED_EXPLAIN; names verbatim from the
+  // biomarker library) so humanizeMarkerId() never has to title-case an acronym.
+  "homa_ir": "HOMA-IR",
+  "tyg_index": "TyG Index",
+  "quicki": "QUICKI",
+  "nlr": "Neutrophil-to-Lymphocyte Ratio (NLR)",
+  "plr": "Platelet-to-Lymphocyte Ratio (PLR)",
+  "sii": "Systemic Immune-Inflammation Index (SII)",
+  "siri": "Systemic Inflammation Response Index (SIRI)",
+  "neutrophil_hdl_ratio": "Neutrophil-to-HDL Ratio (NHR)",
+  "monocyte_hdl_ratio": "Monocyte-to-HDL Ratio (MHR)",
+  "crp_albumin_ratio": "CRP-to-Albumin Ratio (CAR)",
+  "ferritin_albumin_ratio": "Ferritin-to-Albumin Ratio (FAR)",
 };
 // System display names — locked map (written record of MASTER #13). heavy_metals
 // is ABSENT here (suppressed from the gap/coverage surfaces). It IS rendered in the
@@ -1411,6 +1424,25 @@ const GAP_SYSTEM_FRAMING = {
 };
 const GAP_FRAMING_DEFAULT = "Additional markers in this area that round out the picture over time.";
 const GAP_DIRECTION_ONLY_LINE = "Certain immune-related markers are best interpreted by a clinician rather than on their own. If these come up as worth checking, your provider can guide whether and how to test.";
+// Marker display name, hardened so a raw underscore id (e.g. "testosterone_free") can
+// NEVER reach the screen. Tiers: trust the server-canonical display_name; else the
+// library gap-map name (correct acronyms: AMH, ALT); else humanize the id as a floor.
+// marker_id-SAFE: priority-site objects carry no marker_id, so guard for it.
+function humanizeMarkerId(id){
+  const s = String(id||'').trim();
+  if(!s) return '';
+  return s.split(/[_\s-]+/).filter(Boolean)
+          .map(w => w.charAt(0).toUpperCase()+w.slice(1))
+          .join(' ');
+}
+function markerName(m){
+  if(!m) return '';
+  const dn = m.display_name;
+  if(dn!=null && String(dn).trim()!=='') return String(dn);
+  const id = m.marker_id;
+  if(id==null || String(id).trim()==='') return '';   // priority sites: no id -> nothing to map
+  return (typeof GAP_MARKER_NAME!=='undefined' && GAP_MARKER_NAME[id]) || humanizeMarkerId(id);
+}
 function gapName(id){ return GAP_MARKER_NAME[id] || id; }
 function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 
@@ -1776,7 +1808,7 @@ async function renderDashboard(p, reportId){
     const rank = (typeof x.rank === "number" ? x.rank : (i+1));
     const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
     const markerLine = pm
-      ? [pm.display_name, pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
+      ? [markerName(pm), pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
       : "";
     const lever = (x.action_layer && x.action_layer.primary_lever) || "";
     // SUMMARY (always visible): rank + headline + marker chip + why_this_matters.
@@ -1862,7 +1894,7 @@ function longiRow(m, opts){
   const tag = opts.win ? '<span class="longi-tag win">back in range</span>' : statusTag(m.current_status);
   const improving = (!opts.win && m.improving) ? '<span class="longi-improving">improving</span>' : '';
   return '<div class="'+cls+'">'+
-    '<span class="longi-name">'+esc(m.display_name||m.marker_id||"")+'</span>'+
+    '<span class="longi-name">'+esc(markerName(m))+'</span>'+
     (move?'<span class="longi-move">'+esc(move)+'</span>':'')+
     improving+
     tag+
@@ -1874,7 +1906,7 @@ function longiRow(m, opts){
 // claim, and persistent-open is always its own standalone sentence.
 function longiOverview(L){
   const sev = (m)=> (typeof m.severity === "number" ? m.severity : 0);
-  const nm  = (m)=> String(m.display_name || m.marker_id || "");
+  const nm  = (m)=> markerName(m);
   const bySev = (arr)=> arr.slice().sort((a,b)=> sev(b)-sev(a) || nm(a).localeCompare(nm(b)));
   function names2(arr, tailWord){           // top 2 by severity, then serial-comma tail
     const s = bySev(arr);
@@ -2620,7 +2652,7 @@ function markerRowHTML(mk){
   const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
   const cls  = (isUnknownUnit || isQual || isNotScored) ? 's-none' : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
-  const name = esc(mk.display_name || mk.name || "");
+  const name = esc(markerName(mk));
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
   // A bare unit with no number reads as broken, so qualitatives AND not_scored markers show
   // a muted "result not scored" placeholder rather than the value, and suppress the spark.
@@ -2942,7 +2974,7 @@ function buildDeck(p, reportId){
   if(pri){
     const pm = Array.isArray(pri.primary_markers) && pri.primary_markers[0] ? pri.primary_markers[0] : null;
     const markerStr = pm
-      ? '<span>' + esc(pm.display_name || '') + '</span> <b>' + esc(String(pm.value == null ? '' : pm.value)) + '</b> ' + esc(pm.unit || '')
+      ? '<span>' + esc(markerName(pm)) + '</span> <b>' + esc(String(pm.value == null ? '' : pm.value)) + '</b> ' + esc(pm.unit || '')
       : '';
     const lever = (pri.action_layer && pri.action_layer.primary_lever) || '';
     beats.push(
@@ -2986,7 +3018,7 @@ function buildDeck(p, reportId){
       levers.map(L => (
         '<div class="lever-row stag">' +
           '<div class="dot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div>' +
-          '<div><div class="nm">' + esc(L.display_name || '') + '</div>' +
+          '<div><div class="nm">' + esc(markerName(L)) + '</div>' +
             '<div class="cn">' + esc(L.connection || '') + '</div></div>' +
         '</div>'
       )).join('') +
@@ -3100,7 +3132,7 @@ function buildDeck(p, reportId){
     if(!pr) return;
     const pm = Array.isArray(pr.primary_markers) && pr.primary_markers[0] ? pr.primary_markers[0] : null;
     const markerStr = pm
-      ? '<span>' + esc(pm.display_name || '') + '</span> <b>' + esc(String(pm.value == null ? '' : pm.value)) + '</b> ' + esc(pm.unit || '')
+      ? '<span>' + esc(markerName(pm)) + '</span> <b>' + esc(String(pm.value == null ? '' : pm.value)) + '</b> ' + esc(pm.unit || '')
       : '';
 
     // Gather every descriptive block we can find, in order, de-duped. This reads the
