@@ -1720,9 +1720,9 @@ async function renderDashboard(p, reportId){
     }
     const stat = (n,label,color)=>'<div class="hero-stat"><div class="hs-num" style="color:'+color+'">'+n+'</div><div class="hs-lbl">'+esc(label)+'</div></div>';
     statsEl.innerHTML =
-      stat(flag,  "Need a closer look", ST_COLOR['s-flag']) +
-      stat(watch, "Worth watching",     ST_COLOR['s-watch']) +
-      stat(good,  "In healthy range",   ST_COLOR['s-good']) +
+      stat(flag,  "Worth a closer look", ST_COLOR['s-flag']) +
+      stat(watch, "Worth watching",      ST_COLOR['s-watch']) +
+      stat(good,  "Looks good",          ST_COLOR['s-good']) +
       stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
@@ -1851,7 +1851,7 @@ function statusTag(status){
   const s = String(status||"").toLowerCase();
   if(s==="unknown_unit") return "";   // unit unconfirmed -> no chip (handled inline)
   if(s==="life_stage_reference") return "";   // deliberate life-stage reference -> no trend flag (grouped with not_scored/unknown_unit)
-  if(s==="flag") return '<span class="longi-tag flag">needs a look</span>';
+  if(s==="flag") return '<span class="longi-tag flag">worth a closer look</span>';
   if(s==="watch") return '<span class="longi-tag watch">worth watching</span>';
   return "";
 }
@@ -2070,7 +2070,7 @@ function sysStatus(status){
   if(hit(watch)) cls='s-watch';
   else if(hit(flag)) cls='s-flag';
   else if(hit(good)) cls='s-good';
-  const fallback = {'s-good':'Optimal','s-watch':'Worth watching','s-flag':'Needs attention','s-none':'No reading'}[cls];
+  const fallback = {'s-good':'Looks good','s-watch':'Worth watching','s-flag':'Worth a closer look','s-none':'Not tested yet'}[cls];
   const label = status ? String(status).replace(/[_-]+/g,' ').replace(/^./,c=>c.toUpperCase()) : fallback;
   return { cls, label };
 }
@@ -2656,7 +2656,7 @@ function renderBrowseGrid(p, sys){
   wrap.classList.remove("hidden");
   $("bes-title").textContent = "All " + sys.length + " systems";
   // pills: All + only the buckets that actually appear (besides s-none)
-  const PILL = [["all","All"],["s-flag","Needs a look"],["s-watch","Watching"],["s-good","Healthy"]];
+  const PILL = [["all","All"],["s-flag","Worth a closer look"],["s-watch","Worth watching"],["s-good","Looks good"]];
   const present = new Set(sys.map(s => sysStatus(s.status).cls));
   const pills = PILL.filter(([cls]) => cls==="all" || present.has(cls));
   let active = "all";
@@ -2701,7 +2701,7 @@ function renderBrowseGrid(p, sys){
 }
 
 // Friendly status word keyed off st.cls, shared by the browse grid and body-map cards.
-const BES_WORD = { "s-good":"Healthy", "s-watch":"Watching", "s-flag":"Needs a look", "s-none":"Not tested yet" };
+const BES_WORD = { "s-good":"Looks good", "s-watch":"Worth watching", "s-flag":"Worth a closer look", "s-none":"Not tested yet" };
 // Status descriptor for a body-map card. Centralizes the heavy_metals neutral override
 // so neither the organ nor the tray path can ever render it green/"Healthy".
 function cardStatus(s){
@@ -2803,7 +2803,7 @@ function openSystem(p, s){
   if(!card) return;
   card.innerHTML =
     '<button class="sm-close" id="sm-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-    '<div class="sm-status '+st.cls+'"><span class="d"></span>'+esc(st.label)+'</div>' +
+    '<div class="sm-status '+st.cls+'"><span class="d"></span>'+esc(BES_WORD[st.cls] || st.label)+'</div>' +
     '<h2 class="sm-h">'+esc(CANONICAL_TITLE[s.system_id]||s.display_name||s.system_id||"")+'</h2>' +
     (s.summary_line && !SENSITIVE_SYSTEMS.has(s.system_id)
        ? '<p class="sm-summary">'+esc(s.summary_line)+'</p>' : '') +
