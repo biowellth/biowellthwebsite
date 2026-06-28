@@ -3001,13 +3001,29 @@ function buildDeck(p, reportId){
     );
   }
 
-  // Beat 4: The gap (reframe to "what to track next" if coverage is high everywhere)
-  if(coverageHigh || !lowCover){
+  // Beat 4: The gap. The positive "covered almost everything" verdict fires ONLY when
+  // per-system coverage is high AND there are no untested basic-panel markers (coverage_gap).
+  // Otherwise we acknowledge the explorables — the "Worth exploring over time" card reads the
+  // SAME coverage_gap, so the two surfaces can no longer contradict each other.
+  const gapIds = (p.coverage_gap && Array.isArray(p.coverage_gap.ids)) ? p.coverage_gap.ids : [];
+  const hasGaps = gapIds.length > 0;
+  const coverComplete = (coverageHigh || !lowCover);
+  if(coverComplete && !hasGaps){
     beats.push(
       '<section class="card">' +
         '<div class="eyebrow brown stag">What to track next</div>' +
         '<h1 class="display h-lg stag">This test covered almost everything.</h1>' +
         '<p class="sub stag">The next step is to keep testing over time, so we can see how your numbers change from one report to the next.</p>' +
+      '</section>'
+    );
+  } else if(coverComplete){
+    // High per-system coverage, but basic-panel markers remain untested -> point at the
+    // worth-exploring card instead of claiming completeness.
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow brown stag">What to track next</div>' +
+        '<h1 class="display h-lg stag">You\'ve covered the essentials.</h1>' +
+        '<p class="sub stag">A few more markers are worth exploring over time — they\'re waiting in your dashboard under “Worth exploring over time.” Testing them rounds out the picture, and keeps the trend going from one report to the next.</p>' +
       '</section>'
     );
   } else {
