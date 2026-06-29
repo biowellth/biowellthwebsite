@@ -2108,6 +2108,10 @@ function sysStatus(status){
   // "expected for your stage" reading — never a deficiency, never a "win"/optimal.
   // Explicit BEFORE the keyword matching so no flag substring can catch it.
   if(s==="life_stage_reference") return { cls:"s-ref", label:"Expected for your stage" };
+  // Water-soluble vitamin running high — benign supplementation (excess excreted). A calm,
+  // neutral reading that reuses the s-ref teal chip (never watch/flag, never optimal).
+  // Explicit BEFORE the keyword matching so the "high" substring can't read it as a flag.
+  if(s==="supplement_high") return { cls:"s-ref", label:"Expected if supplementing" };
   const hit = (set)=> set.some(w => s===w || s.includes(w));
   const watch = ['watch','borderline','fair','monitor','mild','suboptimal','moderate','slightly','low_normal','high_normal','early'];
   const flag  = ['low','high','attention','concern','abnormal','flag','poor','severe','deficient','elevated','critical','out_of_range','very_low','very_high'];
