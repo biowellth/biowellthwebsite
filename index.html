@@ -477,7 +477,7 @@ footer{background:var(--brown);padding:40px 5%}
   <div class="hero-inner">
     <div class="hero-badge">Built for South Asian women</div>
     <h1>Your doctor said your tests were normal.<br/><em>You're still exhausted.</em></h1>
-    <p class="hero-sub">Upload your existing blood work. We read it against functional ranges adjusted for South Asian women's biology and tell you what your results actually mean, what's missing, and what to test next. Not a replacement for your doctor. A way to walk into your next appointment knowing what to ask.</p>
+    <p class="hero-sub">Upload your existing blood work. We read it against functional ranges built for South Asian women's biology. Then we track it across every panel you add, and flag markers drifting the wrong way before they turn into symptoms. Not a replacement for your doctor. A way to see where your health is actually heading, and to walk into every appointment knowing what to ask.</p>
     <div class="hero-btns">
       <a href="#" onclick="showPage('early-access')" class="btn-teal">Get early access · 100 spots</a>
       <a href="#how" class="btn-outline">How it works</a>
@@ -536,8 +536,8 @@ footer{background:var(--brown);padding:40px 5%}
       </div>
       <div class="how-step reveal rd2">
         <div class="how-num">03</div>
-        <h3>Walk into your next appointment with a plan</h3>
-        <p>Take a generated test list to your doctor and say "I'd like these checked." Know which markers were functionally low, which ones were missing, and what the pattern actually suggests. That conversation is usually the hardest part. We make it easier.</p>
+        <h3>Then watch it change over time</h3>
+        <p>Add each new panel as you get it. We thread them together and show you which markers are drifting, and how fast. When something's trending the wrong way, we flag it early, while there's still room to act. You also get a test-request list to bring to your doctor, so every appointment starts a step ahead.</p>
       </div>
     </div>
   </div>
@@ -578,6 +578,66 @@ footer{background:var(--brown);padding:40px 5%}
         <div>
           <div class="mock-label" style="color:var(--coral);font-weight:600">⚑ Not tested</div>
           <div style="font-size:12px;color:var(--brown-mid);line-height:1.5;margin-top:4px">Free T3, Free T4, Progesterone, DHEA-S, hsCRP, Cortisol. These markers matter for how you feel. Ask your doctor to run them.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- MOCK: TRAJECTORY OVER TIME -->
+<section class="mock-section" style="background:var(--off-white)">
+  <div class="section-inner">
+    <div class="mock-grid">
+      <div class="reveal">
+        <div class="mock-tag">Tracking over time</div>
+        <div class="mock-text">
+          <h2>One panel tells you where you are. We show you where you're headed.</h2>
+          <p class="direct-answer">A single blood test is a snapshot. The most important signal usually isn't in any one result. It's in the direction you're moving.</p>
+          <p>Ferritin is the clearest example. It can read "normal" on three tests in a row while quietly falling from 85 to 42. That's the classic slide toward iron deficiency, and the fatigue and hair shedding that come with it. A one-time reading misses it. So does a free report that only sees your latest number.</p>
+          <p>We hold the thread across every panel you upload. When a marker is genuinely drifting the wrong way, not just wobbling between tests, we flag it early, while there's still room to act. Before it's a symptom, let alone a diagnosis.</p>
+          <p>Just as often, it's reassurance. A value that looks off on its own but has been steady and normal for your body, so you're not chasing something that was never a problem.</p>
+        </div>
+      </div>
+      <div class="mock-visual reveal rd1">
+        <div style="width:100%">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <div class="mock-label" style="margin:0">Ferritin (iron stores) · last 3 panels</div>
+            <div style="font-size:11px;color:var(--brown-mid)">Clinical range 10 to 150</div>
+          </div>
+          <svg viewBox="0 0 460 300" role="img" aria-label="Ferritin trending down across three panels, from 85 in January 2024 to 60 in March 2025 to 42 in February 2026. Every value stays inside the clinical range, but the line drifts down out of the functional target band of 70 to 100 and heads toward the functionally low zone." style="width:100%;height:auto;display:block">
+            <!-- functional target band -->
+            <rect x="64" y="103" width="366" height="38" fill="#E3F5EE"/>
+            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#097A5B">Functional target 70 to 100</text>
+            <!-- functionally low zone -->
+            <rect x="64" y="192" width="366" height="38" fill="#FAF0ED"/>
+            <text x="68" y="206" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#BC6550">Functionally low</text>
+            <!-- baseline axis -->
+            <line x1="64" y1="230" x2="430" y2="230" stroke="#F2EDE3" stroke-width="1"/>
+            <!-- trajectory line -->
+            <polyline points="110,122 245,154 380,177" fill="none" stroke="#D47C65" stroke-width="2.5" stroke-opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- projected continuation -->
+            <line x1="380" y1="177" x2="426" y2="194" stroke="#D47C65" stroke-width="2" stroke-dasharray="4 4" stroke-opacity="0.5"/>
+            <circle cx="426" cy="194" r="4" fill="none" stroke="#D47C65" stroke-width="1.5" stroke-opacity="0.6"/>
+            <!-- data points -->
+            <circle cx="110" cy="122" r="6" fill="#0C8E6B"/>
+            <circle cx="245" cy="154" r="6" fill="#D4A94A"/>
+            <circle cx="380" cy="177" r="6" fill="#D47C65"/>
+            <!-- value labels -->
+            <text x="110" y="112" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">85</text>
+            <text x="245" y="144" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">60</text>
+            <text x="380" y="167" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">42</text>
+            <!-- x axis labels -->
+            <text x="110" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Jan 2024</text>
+            <text x="245" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Mar 2025</text>
+            <text x="380" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Feb 2026</text>
+            <!-- status labels -->
+            <text x="110" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#097A5B">in range</text>
+            <text x="245" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C7D30">still &#8220;normal&#8221;</text>
+            <text x="380" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#BC6550">still &#8220;normal&#8221;</text>
+          </svg>
+          <div class="mock-note low" style="margin-top:10px">Flagged "normal" on every report. Drifting toward deficiency the whole time. A single panel can't show that. We do.</div>
         </div>
       </div>
     </div>
