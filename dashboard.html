@@ -1896,6 +1896,7 @@ function longiMove(m){
 function statusTag(status){
   const s = String(status||"").toLowerCase();
   if(s==="unknown_unit") return "";   // unit unconfirmed -> no chip (handled inline)
+  if(s==="no_value") return "";   // no value captured -> no trend/reassurance chip (grouped with unknown_unit)
   if(s==="life_stage_reference") return "";   // deliberate life-stage reference -> no trend flag (grouped with not_scored/unknown_unit)
   if(s==="flag") return '<span class="longi-tag flag">worth a closer look</span>';
   if(s==="watch") return '<span class="longi-tag watch">worth watching</span>';
@@ -2112,6 +2113,9 @@ function sysStatus(status){
   // neutral reading that reuses the s-ref teal chip (never watch/flag, never optimal).
   // Explicit BEFORE the keyword matching so the "high" substring can't read it as a flag.
   if(s==="supplement_high") return { cls:"s-ref", label:"Expected if supplementing" };
+  // No value captured for this marker (Deploy X1). Neutral, never green/amber/coral — a no-data
+  // marker must never read as reassuring OR alarming. Explicit BEFORE the keyword matching.
+  if(s==="no_value") return { cls:"s-none", label:"We couldn't read this one" };
   const hit = (set)=> set.some(w => s===w || s.includes(w));
   const watch = ['watch','borderline','fair','monitor','mild','suboptimal','moderate','slightly','low_normal','high_normal','early'];
   const flag  = ['low','high','attention','concern','abnormal','flag','poor','severe','deficient','elevated','critical','out_of_range','very_low','very_high'];
