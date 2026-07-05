@@ -215,6 +215,24 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-markers{margin-top:10px;display:flex;flex-direction:column;gap:7px}
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
+/* Clarify chip (Deploy D2): the companion asking about an ambiguous marker. Calm teal-soft
+   card, never a form/settings row. Suppressed once the user has answered (profile.supp_*). */
+.clarify-card{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:18px 20px;margin-bottom:10px;animation:escFade .4s ease}
+.clarify-lead{font-size:14px;color:var(--brown);line-height:1.5;margin-bottom:2px}
+.clarify-q{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:600;color:var(--teal-dark);line-height:1.4;margin-bottom:5px}
+.clarify-why{font-size:12.5px;color:var(--brown-mid);opacity:.9;line-height:1.5;margin-bottom:14px}
+.clarify-opts{display:flex;flex-wrap:wrap;gap:9px}
+.clarify-opt{font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--teal-dark);background:#fff;border:1px solid var(--teal-mid);border-radius:100px;padding:9px 16px;cursor:pointer;transition:background .15s,transform .1s}
+.clarify-opt:hover{background:var(--teal-light);transform:translateY(-1px)}
+.clarify-opt:disabled{opacity:.45;cursor:default;transform:none}
+.clarify-ack{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:16px 20px;margin-bottom:10px;font-size:14px;color:var(--teal-dark);line-height:1.5;animation:escFade .4s ease}
+.clarify-upd{display:block;font-size:12.5px;color:var(--brown-mid);margin-top:6px}
+/* escalated_soft (Deploy D2): a measured soft-priority surfaced by a "no" answer. Softer than
+   the coral priorities (calm amber accent, no expand). Fades in on the calm reveal. */
+.esc-card{background:var(--amber-light);border:1px solid #F0E3C2;border-radius:14px;padding:15px 18px;margin-bottom:8px;animation:escFade .5s ease}
+.esc-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.esc-text{font-size:13.5px;color:var(--brown-mid);line-height:1.6}
+@keyframes escFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .quiet-intro{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:600;color:var(--teal-dark);line-height:1.35;margin-bottom:20px}
 /* auto-fit reflow: 2 survivors fill the row cleanly (no broken 3-col gap); 3 cards go 3-up wide, 2-up/1-up as width drops */
 #quiet{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
@@ -712,9 +730,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       </div>
     </div>
 
+    <div id="clarify-wrap" class="hidden">
+      <div id="clarify"></div>
+    </div>
+
     <div id="prios-wrap" class="hidden">
       <div class="section-label acc-coral">What needs a closer look</div>
       <div id="prios"></div>
+    </div>
+
+    <div id="escalated-wrap" class="hidden">
+      <div class="section-label acc-teal">Worth keeping an eye on</div>
+      <div id="escalated"></div>
     </div>
 
     <div id="longi-wrap" class="hidden">
@@ -786,6 +813,15 @@ const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id)=>document.getElementById(id);
 let USER = null, pollTimer = null;
+// Supplement answers (Deploy D2) for clarify-chip suppression. Loaded once at init, refreshed
+// after a tap persists, so renderDashboard can hide a chip whose answer is already set.
+let PROFILE = {};
+async function loadProfile(){
+  if(!USER) return;
+  const { data } = await sb.from("profiles")
+    .select("supp_b12, supp_folate, supp_status_updated_at").eq("id", USER.id).maybeSingle();
+  PROFILE = data || {};
+}
 
 /* CONTRACT: v1.3 payload shape written by process-report:
    {
@@ -845,11 +881,15 @@ async function loadPayload(reportId){
 // Returns the list of completed panels (newest first) so the caller can pick a default.
 async function buildPicker(selectedId){
   const { data: reports } = await sb.from("reports")
-    .select("id, collected_on, created_at, lab_name, reveal_seen_at")
+    .select("id, collected_on, created_at, lab_name, reveal_seen_at, clarify_prompts")
     .eq("user_id", USER.id)
     .is("archived_at", null)
     .order("created_at",{ascending:false});
   if(!reports || !reports.length) return [];
+  // Clarify chip source (Deploy D2): reports.clarify_prompts per report_id, read by
+  // renderDashboard for the open panel. Column-listed above (was missing it) so the chip
+  // has data to render.
+  window.__clarifyByReport = new Map(reports.map(r=>[r.id, r.clarify_prompts]));
 
   const ids = reports.map(r=>r.id);
   const { data: doneRows } = await sb.from("results")
@@ -990,6 +1030,7 @@ async function onbSave(){
   if(!data.session){ location.replace("/login.html?mode=login"); return; }
   USER = data.session.user;
   document.body.classList.add("ready");
+  await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
   maybeShowOnboarding();   // non-blocking overlay; dashboard loads behind it
 
   // Load every panel, populate the switcher, and default to the newest one
@@ -1449,6 +1490,104 @@ function markerName(m){
 function gapName(id){ return GAP_MARKER_NAME[id] || id; }
 function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 
+// ── Clarify chip + escalated_soft reveal (Deploy D2) ───────────────────────────────────────
+// The companion asks about an ambiguous high marker (B12/folate) via reports.clarify_prompts.
+// The chip is SUPPRESSED once the user has answered (profile.supp_* set, or "Not sure" stamped
+// via supp_status_updated_at so it never nags). A definitive Yes/No persists + invokes the live
+// enqueue-rescore edge fn, then polls results.rescored_at and re-renders the sharpened read.
+// The engine already did the scoring; this is FE-only.
+const CLARIFY_COL = { vitamin_b12: "supp_b12", vitamin_b9_folate: "supp_folate" };
+// Companion-register copy (no colons, no em dashes; warm, plain, hedged). Aditi may tune.
+const CLARIFY_COPY = {
+  vitamin_b12:       { lead: "Your B12 is sitting higher than the usual range.",   ask: "Do you take a B12 supplement?", why: "It changes what this number means for you." },
+  vitamin_b9_folate: { lead: "Your folate is sitting higher than the usual range.", ask: "Do you take a folate or folic-acid supplement?", why: "It changes what this number means for you." },
+};
+function answerToken(label){
+  const s = String(label||"").trim().toLowerCase();
+  // "not sure" starts with "no" — disambiguate by checking not/unsure FIRST.
+  if(s.indexOf("not")===0 || s.indexOf("unsure")===0) return "unsure";
+  if(s.indexOf("yes")===0) return "yes";
+  if(s.indexOf("no")===0)  return "no";
+  return "unsure";
+}
+// A prompt is "answered" when its column is set (yes/no) OR the user chose "Not sure" (the
+// status stamp is set while the column stays null). Either way the chip stops showing.
+function clarifyAnswered(marker_id){
+  const col = CLARIFY_COL[marker_id];
+  if(!col) return true;                                 // unknown marker -> never show
+  if(PROFILE[col] != null) return true;                 // Yes/No recorded
+  if(PROFILE.supp_status_updated_at != null) return true; // "Not sure" recorded (stamp, null col)
+  return false;
+}
+function renderClarify(reportId){
+  const wrap = $("clarify-wrap"), host = $("clarify");
+  const prompts = (window.__clarifyByReport && window.__clarifyByReport.get(reportId)) || [];
+  const show = (Array.isArray(prompts)?prompts:[])
+    .filter(pr => pr && CLARIFY_COL[pr.marker_id] && !clarifyAnswered(pr.marker_id));
+  if(!show.length){ wrap.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.innerHTML = show.map(pr=>{
+    const c = CLARIFY_COPY[pr.marker_id] || { lead:"", ask: pr.question || "", why:"" };
+    const opts = (Array.isArray(pr.options) && pr.options.length) ? pr.options : ["Yes","No","Not sure"];
+    return '<div class="clarify-card" data-marker="'+esc(pr.marker_id)+'">'+
+      (c.lead?'<div class="clarify-lead">'+esc(c.lead)+'</div>':'')+
+      '<div class="clarify-q">'+esc(c.ask || pr.question || "")+'</div>'+
+      (c.why?'<div class="clarify-why">'+esc(c.why)+'</div>':'')+
+      '<div class="clarify-opts">'+
+        opts.map(o=>'<button class="clarify-opt" type="button" data-ans="'+esc(answerToken(o))+'">'+esc(o)+'</button>').join('')+
+      '</div></div>';
+  }).join('');
+  wrap.classList.remove("hidden");
+  host.querySelectorAll(".clarify-card").forEach(card=>{
+    const marker_id = card.getAttribute("data-marker");
+    card.querySelectorAll(".clarify-opt").forEach(btn=>{
+      btn.onclick = ()=> onClarifyTap(marker_id, btn.getAttribute("data-ans"), card, reportId);
+    });
+  });
+}
+async function onClarifyTap(marker_id, ans, card, reportId){
+  const col = CLARIFY_COL[marker_id];
+  if(!col) return;
+  const definitive = (ans === "yes" || ans === "no");
+  // 1. immediate calm acknowledgment in place of the chip (the tap always feels like it landed)
+  card.outerHTML = '<div class="clarify-ack">Thanks, that helps make your reading more accurate.'+
+    (definitive?'<span class="clarify-upd">Updating your read.</span>':'')+'</div>';
+  // 2. persist to the user's OWN profiles row (RLS own-row update). Reflect locally for suppress.
+  const patch = { supp_status_updated_at: new Date().toISOString() };
+  if(ans === "yes") patch[col] = true; else if(ans === "no") patch[col] = false;
+  try{ await sb.from("profiles").update(patch).eq("id", USER.id); }catch(_){}
+  if(ans === "yes") PROFILE[col] = true; else if(ans === "no") PROFILE[col] = false;
+  PROFILE.supp_status_updated_at = patch.supp_status_updated_at;
+  // 3. "Not sure" -> nothing changes; leave the acknowledgment in place (no rescore, no re-render).
+  if(!definitive) return;
+  // Definitive -> invoke the live enqueue-rescore edge fn (JWT auto-attached), then poll for the
+  // sharpened read. The worker claims within seconds (D1 instant-feel trigger); poll covers it.
+  const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
+  try{ await sb.functions.invoke("enqueue-rescore", { body: { report_id: reportId } }); }catch(_){}
+  const deadline = Date.now() + 20000;
+  let fresh = null;
+  while(Date.now() < deadline){
+    await new Promise(r=>setTimeout(r, 1500));
+    const p2 = await loadPayload(reportId);
+    if(p2 && ((p2.rescored_at || null) !== before)){ fresh = p2; break; }
+  }
+  // On success re-render the sharpened read (escalated_soft fades in on a "No"); on timeout,
+  // re-render the current payload so the chip stays cleared and nothing hangs.
+  await renderDashboard(fresh || window.__rdPayload, reportId);
+}
+function renderEscalated(p){
+  const wrap = $("escalated-wrap"), host = $("escalated");
+  const es = Array.isArray(p.escalated_soft) ? p.escalated_soft : [];
+  if(!es.length){ wrap.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.innerHTML = es.map(e=>{
+    const nm = markerName({ marker_id: e.marker_id }) || (e.marker_id||"");
+    return '<div class="esc-card">'+
+      '<div class="esc-name">'+esc(nm)+'</div>'+
+      (e.correction?'<div class="esc-text">'+esc(e.correction)+'</div>':'')+
+    '</div>';
+  }).join('');
+  wrap.classList.remove("hidden");
+}
+
 // Pure plaintext builder for the "Generate test request list" CTA. Mirrors the
 // on-screen framing logic exactly (incl. the iron_status specificity rule) so the
 // copied text never drifts from the cards. Takes the in-scope post-suppression
@@ -1858,6 +1997,11 @@ async function renderDashboard(p, reportId){
       };
     }
   });
+
+  // Clarify chip (companion ask, above priorities) + escalated_soft reveal (calm block below).
+  // Deploy D2. Chip suppressed once the answer is persisted (profile.supp_*).
+  renderClarify(reportId);
+  renderEscalated(p);
 
   // Copy-safety: route the dashboard "What's already strong" beat through the shared
   // suppression helper (dropSuppressedQW) — drops purely heavy-metals/autoimmune "wins".
