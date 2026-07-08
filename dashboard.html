@@ -2603,6 +2603,12 @@ const MEASURED_EXPLAIN = {
 function explainFor(mk){
   return DERIVED_EXPLAIN[mk.marker_id] || MEASURED_EXPLAIN[mk.marker_id] || "";
 }
+// Recognized components that are intentionally not scored on their own (read via the Total).
+// Their always-visible note reads as an intentional component, not a "no range yet" gap.
+const COMPONENT_NOTE = {
+  vitamin_d2: "One of the two forms that add up to your Vitamin D Total, which is the number we score. Shown here for completeness.",
+  vitamin_d3: "One of the two forms that add up to your Vitamin D Total, which is the number we score. Shown here for completeness.",
+};
 function fmtDate(d){
   if(!d) return '';
   const dt = new Date(d);
@@ -2831,7 +2837,9 @@ function markerRowHTML(mk){
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
     : isNotScored
-      ? '<div class="mk-note">'+(mk.is_cycle_gated
+      ? '<div class="mk-note">'+(COMPONENT_NOTE[mk.marker_id]
+          ? COMPONENT_NOTE[mk.marker_id]
+          : mk.is_cycle_gated
           ? (isPregnantPanel()
               ? 'Levels here rise during pregnancy, so this is not scored against a single range.'
               : 'Levels here move with your cycle, so this is not scored against a single range.')
