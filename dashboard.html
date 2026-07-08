@@ -2213,9 +2213,14 @@ function esc(s){
 //    Keyed by marker_id (preferred), display_name (lowercase fallback), and
 //    alias (lowercase fallback). Each value is { low: number|null, high: number|null }.
 let RANGES_LOOKUP = null;
+// Cache-bust: force-cache keys on the URL, and schema_version stays 2.1.1 across library-range
+// edits, so a rebuilt ranges-slim.json would otherwise be ignored by a browser that already
+// cached it. Bump RANGES_BUILD (date int) whenever ranges-slim.json is regenerated -> new URL
+// -> guaranteed refetch; within a build the cached copy still serves fast.
+const RANGES_BUILD = "20260707";
 (async () => {
   try {
-    const res = await fetch('/ranges-slim.json', { cache: 'force-cache' });
+    const res = await fetch('/ranges-slim.json?v=' + RANGES_BUILD, { cache: 'force-cache' });
     if (!res.ok) { console.warn('ranges-slim.json fetch failed:', res.status); return; }
     RANGES_LOOKUP = await res.json();
     if (RANGES_LOOKUP?.schema_version && window.__LIBRARY_SCHEMA_VERSION_FROM_PAYLOAD
