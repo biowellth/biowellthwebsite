@@ -108,6 +108,15 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .section-label.acc-coral::before{background:var(--coral)}
 .section-label.acc-teal::before{background:var(--teal)}
 .section-label.acc-amber::before{background:var(--amber)}
+/* "Your numbers" glance grid — reference-weight (cream + hairline), NOT headline-weight */
+#numbers-wrap{margin:18px 0 8px}
+.nz-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.nz-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid #EDE6DC;border-radius:10px}
+.nz-dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.nz-body{display:flex;flex-direction:column;min-width:0}
+.nz-name{font-family:'Instrument Sans',sans-serif;font-size:12px;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nz-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown);font-weight:600;line-height:1.2}
+.nz-showall{margin-top:10px;background:none;border:none;padding:4px 0;cursor:pointer;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:var(--teal-dark);text-decoration:underline}
 .pills{display:flex;flex-wrap:wrap;gap:8px}
 .pill{font-size:13px;font-weight:600;padding:7px 14px;border-radius:100px;display:inline-flex;align-items:center;gap:7px}
 .pill::before{content:'';width:7px;height:7px;border-radius:50%}
@@ -713,6 +722,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
     </div>
+
+    <section id="numbers-wrap" style="display:none">
+      <div class="section-label">Your numbers</div>
+      <div id="nz-grid" class="nz-grid"></div>
+    </section>
 
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
@@ -1832,6 +1846,60 @@ async function renderDashboard(p, reportId){
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
   $("headline").innerHTML = deriveVerdict(p);
+
+  // "Your numbers" glance: interpretation-tied default (arc-ordered:
+  //   strengths -> clarify -> priorities) + "Show all" for the full flatten.
+  // Full list from p.systems[].markers[] (no top-level p.markers); dedup by marker_id.
+  (function renderNumbers(){
+    // Idempotent: renderDashboard re-runs (clarify tap/poll, panel switch), so clear any
+    // prior "Show all" button + rest grid before rebuilding, or they'd accumulate as siblings.
+    ['nz-more','nz-rest'].forEach(function(id){ var el=document.getElementById(id); if(el) el.remove(); });
+    var all = (p.systems||[]).flatMap(function(s){ return s.markers||[]; });
+    var byId = {}, full = [], seen = {};
+    all.forEach(function(mk){
+      var id = mk.marker_id || markerName(mk);
+      if(seen[id]) return; seen[id] = 1;
+      if(mk.value === null || mk.value === undefined || mk.value === '') return;
+      byId[id] = mk; full.push(mk);
+    });
+    if(!full.length){ $("numbers-wrap").style.display = 'none'; return; }
+
+    // arc-ordered default id list: strengths, then clarify, then priorities
+    var order = [], pushId = function(id){ if(id && byId[id] && order.indexOf(id)<0) order.push(id); };
+    (p.quietly_working||[]).forEach(function(q){ (q.markers||[]).forEach(pushId); });
+    var cp = (window.__clarifyByReport && window.__clarifyByReport.get(reportId)) || [];
+    cp.forEach(function(pr){ if(CLARIFY_COL[pr.marker_id]) pushId(pr.marker_id); });
+    (p.priorities||[]).forEach(function(x){ (x.primary_markers||[]).forEach(function(pm){ pushId(pm.marker_id); }); });
+
+    var chip = function(mk){
+      var color = ST_COLOR[sysStatus(mk.status||'').cls] || ST_COLOR['s-none'];
+      var val = [mk.value, mk.unit].filter(function(v){ return v!==null && v!==undefined && v!==''; }).join(' ');
+      return '<div class="nz-chip"><span class="nz-dot" style="background:'+color+'"></span>'
+           + '<span class="nz-body"><span class="nz-name">'+esc(markerName(mk))+'</span>'
+           + '<span class="nz-val">'+esc(val)+'</span></span></div>';
+    };
+
+    var defaults = order.map(function(id){ return byId[id]; });
+    var rest = full.filter(function(mk){ return order.indexOf(mk.marker_id||markerName(mk))<0; });
+    // if the interpretation names nothing (edge case), just show all
+    if(!defaults.length){ defaults = full; rest = []; }
+
+    $("nz-grid").innerHTML = defaults.map(chip).join('');
+    if(rest.length){
+      var moreId = 'nz-more';
+      $("nz-grid").insertAdjacentHTML('afterend',
+        '<button id="'+moreId+'" class="nz-showall" type="button">Show all '+full.length+'</button>'
+      + '<div id="nz-rest" class="nz-grid" style="display:none;margin-top:8px"></div>');
+      var btn = document.getElementById(moreId), restEl = document.getElementById('nz-rest'), open = false;
+      btn.addEventListener('click', function(){
+        open = !open;
+        if(open && !restEl.innerHTML) restEl.innerHTML = rest.map(chip).join('');
+        restEl.style.display = open ? '' : 'none';
+        btn.textContent = open ? 'Show fewer' : ('Show all '+full.length);
+      });
+    }
+    $("numbers-wrap").style.display = '';
+  })();
 
   // Demoted "what this score is" explainer: a TAP/CLICK-toggle popover on the ring
   // (not hover — touch-safe). p1 verbatim (marker-count interpolation kept; copy
