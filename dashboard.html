@@ -227,6 +227,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .clarify-opt:disabled{opacity:.45;cursor:default;transform:none}
 .clarify-ack{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:16px 20px;margin-bottom:10px;font-size:14px;color:var(--teal-dark);line-height:1.5;animation:escFade .4s ease}
 .clarify-upd{display:block;font-size:12.5px;color:var(--brown-mid);margin-top:6px}
+.folate-link{color:var(--teal-dark);text-decoration:underline;text-underline-offset:2px;font-weight:600;cursor:pointer}
+.folate-link:hover{color:var(--teal-mid)}
+.sm-marker.mk-flash{animation:mkFlash 1.6s ease}
+@keyframes mkFlash{0%{background:var(--teal-soft);box-shadow:inset 0 0 0 2px var(--teal-light)}100%{background:transparent;box-shadow:inset 0 0 0 0 transparent}}
 /* escalated_soft (Deploy D2): a measured soft-priority surfaced by a "no" answer. Softer than
    the coral priorities (calm amber accent, no expand). Fades in on the calm reveal. */
 .esc-card{background:var(--amber-light);border:1px solid #F0E3C2;border-radius:14px;padding:15px 18px;margin-bottom:8px;animation:escFade .5s ease}
@@ -1502,6 +1506,57 @@ const CLARIFY_COPY = {
   vitamin_b12:       { lead: "Your B12 is sitting higher than the usual range.",   ask: "Do you take a B12 supplement?", why: "It changes what this number means for you." },
   vitamin_b9_folate: { lead: "Your folate is sitting higher than the usual range.", ask: "Do you take a folate or folic-acid supplement?", why: "It changes what this number means for you." },
 };
+// Answered-state acknowledgment (Finding #2). Survives the post-rescore re-render via __clarifyAck,
+// keyed marker_id -> {ans, wasFirst} for THIS session (a fresh reload suppresses, as before).
+window.__clarifyAck = window.__clarifyAck || new Map();
+// §3c substance is CERT-PENDING placeholder (B12 only; folate deferred to step 2/3). Four full
+// per-register strings — recognition is baked into *_first, no prepend, no double-ack stutter.
+// §0.1: NO string claims B12 moved; the honest read is "your answer lets me read it right."
+const CLARIFY_ACK = {
+  vitamin_b12: {
+    yes_first:  "Thank you, that helps me read this properly. Most reports would just call your B12 high and move on. You telling me changes what this number means for you. Because you told me you supplement, I can see this high B12 for what it is, expected, not a flag. I will note it so it does not get raised again. Your folate is the number actually worth your attention here.",
+    yes_every:  "Got it, that explains it. Because you told me you supplement, I can see this high B12 for what it is, expected, not a flag. I will note it so it does not get raised again. Your folate is the number actually worth your attention here.",
+    no_first:   "Thank you, that helps me read this properly. You telling me changes what this number means for you. Since you are not supplementing, this high B12 is worth a quick mention to your doctor at a routine visit, nothing urgent. It is usually nothing and simple to check. Meanwhile your folate is the lever that actually moves this picture.",
+    no_every:   "Thanks, that helps. Since you are not supplementing, this high B12 is worth a quick mention to your doctor at a routine visit, nothing urgent. It is usually nothing and simple to check. Meanwhile your folate is the lever that actually moves this picture.",
+  },
+};
+// Folate redirect (Finding #2 step 3): the "folate" word in a B12 ack becomes a tappable link
+// that opens the vitamins system modal and reveals the folate row. Constant span injected AFTER
+// esc() so the rest of the copy stays escaped (Approach B — Aditi's strings stay verbatim).
+const FOLATE_LINK = '<span class="folate-link" data-goto="vitamin_b9_folate" role="link" tabindex="0">folate</span>';
+function payloadHasFolate(){
+  const p = window.__rdPayload;
+  return !!(p && Array.isArray(p.systems) &&
+    p.systems.some(s => markersForSystem(p, s).some(m => m && m.marker_id === "vitamin_b9_folate")));
+}
+function clarifyAckHTML(marker_id, ans, wasFirst){
+  const c = CLARIFY_ACK[marker_id] || {};
+  const key = (ans === "yes") ? (wasFirst ? "yes_first" : "yes_every")
+                              : (wasFirst ? "no_first"  : "no_every");   // unsure -> no_*
+  let body = esc(c[key] || "");
+  // B12 ack only, and only when folate is actually in the payload (never a link to nothing):
+  // swap the single "folate" mention for the tappable span. First-match; strings audited to hold
+  // exactly one "folate" and no "folic". §0.1 intact — no clinical claim changes, only tappable.
+  if(marker_id === "vitamin_b12" && payloadHasFolate()) body = body.replace(/\bfolate\b/, FOLATE_LINK);
+  return '<div class="clarify-ack">'+body+'</div>';
+}
+// Opens the vitamins system modal on HER tap and gently reveals the folate row. Reuses the
+// existing openSystem; the ~320ms defer clears openSystem's card.scrollTop=0 + the .28s rise.
+function onFolateGoto(){
+  const p = window.__rdPayload;
+  if(!p || !Array.isArray(p.systems)) return;
+  const sys = p.systems.find(s => markersForSystem(p, s).some(m => m && m.marker_id === "vitamin_b9_folate"));
+  if(!sys) return;
+  openSystem(p, sys);
+  setTimeout(()=>{
+    const card = $("sm-card");
+    const row = card && card.querySelector('[data-mid="vitamin_b9_folate"]');
+    if(!row) return;
+    row.scrollIntoView({ behavior:"smooth", block:"center" });
+    row.classList.add("mk-flash");
+    setTimeout(()=> row.classList.remove("mk-flash"), 1600);
+  }, 320);
+}
 function answerToken(label){
   const s = String(label||"").trim().toLowerCase();
   // "not sure" starts with "no" — disambiguate by checking not/unsure FIRST.
@@ -1521,23 +1576,42 @@ function clarifyAnswered(marker_id){
 }
 function renderClarify(reportId){
   const wrap = $("clarify-wrap"), host = $("clarify");
+  // Delegate folate-link taps on the persistent host — survives innerHTML re-renders AND the
+  // immediate onClarifyTap outerHTML ack (incl. the "not sure" path, which never re-renders).
+  // Bind once. Keyboard (Enter/Space) too, since the span is role=link tabindex=0.
+  if(host && !host.__folateBound){
+    const go = (e)=>{ const l = e.target.closest && e.target.closest(".folate-link");
+      if(l && host.contains(l)){ e.preventDefault(); onFolateGoto(); } };
+    host.addEventListener("click", go);
+    host.addEventListener("keydown", (e)=>{ if(e.key==="Enter" || e.key===" ") go(e); });
+    host.__folateBound = true;
+  }
   const prompts = (window.__clarifyByReport && window.__clarifyByReport.get(reportId)) || [];
-  const show = (Array.isArray(prompts)?prompts:[])
-    .filter(pr => pr && CLARIFY_COL[pr.marker_id] && !clarifyAnswered(pr.marker_id));
-  if(!show.length){ wrap.classList.add("hidden"); host.innerHTML = ""; return; }
-  host.innerHTML = show.map(pr=>{
-    const c = CLARIFY_COPY[pr.marker_id] || { lead:"", ask: pr.question || "", why:"" };
-    const opts = (Array.isArray(pr.options) && pr.options.length) ? pr.options : ["Yes","No","Not sure"];
-    return '<div class="clarify-card" data-marker="'+esc(pr.marker_id)+'">'+
-      (c.lead?'<div class="clarify-lead">'+esc(c.lead)+'</div>':'')+
-      '<div class="clarify-q">'+esc(c.ask || pr.question || "")+'</div>'+
-      (c.why?'<div class="clarify-why">'+esc(c.why)+'</div>':'')+
-      '<div class="clarify-opts">'+
-        opts.map(o=>'<button class="clarify-opt" type="button" data-ans="'+esc(answerToken(o))+'">'+esc(o)+'</button>').join('')+
-      '</div></div>';
-  }).join('');
+  const list = (Array.isArray(prompts)?prompts:[]).filter(pr => pr && CLARIFY_COL[pr.marker_id]);
+  const parts = [];
+  list.forEach(pr=>{
+    const mk = pr.marker_id;
+    if(!clarifyAnswered(mk)){
+      const c = CLARIFY_COPY[mk] || { lead:"", ask: pr.question || "", why:"" };
+      const opts = (Array.isArray(pr.options) && pr.options.length) ? pr.options : ["Yes","No","Not sure"];
+      parts.push('<div class="clarify-card" data-marker="'+esc(mk)+'">'+
+        (c.lead?'<div class="clarify-lead">'+esc(c.lead)+'</div>':'')+
+        '<div class="clarify-q">'+esc(c.ask || pr.question || "")+'</div>'+
+        (c.why?'<div class="clarify-why">'+esc(c.why)+'</div>':'')+
+        '<div class="clarify-opts">'+
+          opts.map(o=>'<button class="clarify-opt" type="button" data-ans="'+esc(answerToken(o))+'">'+esc(o)+'</button>').join('')+
+        '</div></div>');
+      return;
+    }
+    // Answered: render the voice ack IF we have this session's tap record (survives the re-render,
+    // byte-identical to the immediate ack). Answered without a record (prior-session) -> suppress.
+    const ack = window.__clarifyAck.get(mk);
+    if(ack) parts.push(clarifyAckHTML(mk, ack.ans, ack.wasFirst));
+  });
+  if(!parts.length){ wrap.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.innerHTML = parts.join('');
   wrap.classList.remove("hidden");
-  host.querySelectorAll(".clarify-card").forEach(card=>{
+  host.querySelectorAll(".clarify-card").forEach(card=>{   // acks carry no buttons; only live chips wire
     const marker_id = card.getAttribute("data-marker");
     card.querySelectorAll(".clarify-opt").forEach(btn=>{
       btn.onclick = ()=> onClarifyTap(marker_id, btn.getAttribute("data-ans"), card, reportId);
@@ -1548,9 +1622,12 @@ async function onClarifyTap(marker_id, ans, card, reportId){
   const col = CLARIFY_COL[marker_id];
   if(!col) return;
   const definitive = (ans === "yes" || ans === "no");
-  // 1. immediate calm acknowledgment in place of the chip (the tap always feels like it landed)
-  card.outerHTML = '<div class="clarify-ack">Thanks, that helps make your reading more accurate.'+
-    (definitive?'<span class="clarify-upd">Updating your read.</span>':'')+'</div>';
+  // Layer-3 first-signal: null stamp = first answer (voice-spec §1.4 deterministic trigger).
+  // Captured BEFORE the profiles write below flips it non-null.
+  const wasFirst = (PROFILE.supp_status_updated_at == null);
+  window.__clarifyAck.set(marker_id, { ans, wasFirst });
+  // 1. immediate voice ack in place of the chip — byte-identical to what renderClarify re-renders
+  card.outerHTML = clarifyAckHTML(marker_id, ans, wasFirst);
   // 2. persist to the user's OWN profiles row (RLS own-row update). Reflect locally for suppress.
   const patch = { supp_status_updated_at: new Date().toISOString() };
   if(ans === "yes") patch[col] = true; else if(ans === "no") patch[col] = false;
@@ -2850,7 +2927,7 @@ function markerRowHTML(mk){
               : 'Levels here move with your cycle, so this is not scored against a single range.')
           : 'We do not have a scored reference range for this marker yet, so it is shown without a status.')+'</div>'
       : '';
-  return '<div class="sm-marker">'+
+  return '<div class="sm-marker" data-mid="'+esc(mk.marker_id||'')+'">'+
     '<button class="sm-mk" type="button">'+
       '<span class="mn">'+dot+name+'</span>'+
       '<span class="mr">'+spark+valHTML+'<span class="mk-chev">\u203A</span></span>'+
