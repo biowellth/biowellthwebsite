@@ -521,11 +521,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 
 /* ── STAGE 3b: foundations — "What's already strong" (calm strengths beat;
    teal-soft, NOT coral — this is reassurance/upstream levers, not attention) */
-.found-lead{font-size:14.5px;line-height:1.7;color:var(--brown-mid);margin-bottom:16px}
+.found-lead{font-size:14.5px;line-height:1.7;color:var(--brown-mid);margin-bottom:20px}
 .found-lead.hidden,.found-closing.hidden{display:none}
-.found-levers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.found-levers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
 .lever{background:var(--white);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
 .lever-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
+.lever-action{font-size:14px;line-height:1.6;color:var(--brown);margin-bottom:8px}
 .lever-conn{font-size:13.5px;line-height:1.65;color:var(--brown-mid)}
 .lever-relates{margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
 .found-closing{margin-top:16px;font-size:14px;line-height:1.7;color:var(--teal-dark);font-style:italic}
@@ -1840,6 +1841,9 @@ function renderFoundations(p){
   $("found-levers").innerHTML = levers.map(lv=>{
     const name = foundEsc(lv.display_name || lv.lever || "");
     const conn = foundPipe(lv.connection || "");
+    // Deploy B adds lever.action (prompt-side). Defensive: present -> action leads (primary),
+    // connection drops to the muted line below; absent -> today's markup exactly (no empty node).
+    const action = foundPipe(lv.action || "");
     const ranks = (Array.isArray(lv.appears_in_priority_ids) ? lv.appears_in_priority_ids : [])
       .map(id => rankById[id]).filter(r => r != null).sort((a,b)=>a-b);
     const relates = ranks.length
@@ -1847,6 +1851,7 @@ function renderFoundations(p){
       : '';
     return '<div class="lever">'+
       '<div class="lever-name">'+name+'</div>'+
+      (action ? '<div class="lever-action">'+action+'</div>' : '')+
       (conn ? '<div class="lever-conn">'+conn+'</div>' : '')+
       relates+
     '</div>';
@@ -3291,7 +3296,8 @@ function buildDeck(p, reportId){
         '<div class="lever-row stag">' +
           '<div class="dot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div>' +
           '<div><div class="nm">' + esc(markerName(L)) + '</div>' +
-            '<div class="cn">' + esc(L.connection || '') + '</div></div>' +
+            // Deploy B: action-first when present (INSTEAD of connection); else today's connection.
+            '<div class="cn">' + esc(L.action || L.connection || '') + '</div></div>' +
         '</div>'
       )).join('') +
       (f.closing ? '<p class="closing stag">' + esc(f.closing) + '</p>' : '') +
