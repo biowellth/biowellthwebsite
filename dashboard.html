@@ -824,7 +824,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("supp_b12, supp_folate, supp_status_updated_at").eq("id", USER.id).maybeSingle();
+    .select("full_name, supp_b12, supp_folate, supp_status_updated_at").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
 }
 
@@ -2288,6 +2288,15 @@ function esc(s){
     .replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});
 }
 
+// First name from PROFILE.full_name (nullable OAuth text). Trim, first whitespace-delimited
+// token. "Lakshmi Vinod" -> "Lakshmi", "Aditi" -> "Aditi". "" for null/empty/whitespace-only.
+// Result MUST still pass through esc() before innerHTML (user-controlled OAuth data).
+function firstName(s){
+  const t = String(s == null ? "" : s).trim();
+  if(!t) return "";
+  return t.split(/\s+/)[0];
+}
+
 // ── RANGES LOOKUP (re-derive per-marker healthy range from the bundled
 //    biomarker library, since the backend now omits `reference` from each
 //    marker entry to keep Call A's output small). Loaded once at page load
@@ -3185,11 +3194,17 @@ function buildDeck(p, reportId){
     return ['t-coral','t-amber','t-teal'][i % 3];
   }
 
-  // Beat 0: Frame (static)
+  // Beat 0: Frame. Name greeting is defensive (same pattern as lever.action in Deploy A):
+  // present -> "Hi {FirstName}! Here is..."; absent -> today's string byte-identical.
+  // The exclamation mark is deliberate and is the ONLY one permitted in the reveal.
+  const fn0 = firstName(PROFILE && PROFILE.full_name);
+  const hero0 = fn0
+    ? 'Hi ' + esc(fn0) + '! Here is what your body is telling us.'
+    : 'Here is what your body is telling us.';
   beats.push(
     '<section class="card card--hero">' +
       '<div class="eyebrow stag">Your results, read differently</div>' +
-      '<h1 class="display h-hero stag">Here is what your body is telling us.</h1>' +
+      '<h1 class="display h-hero stag">' + hero0 + '</h1>' +
       '<p class="sub stag">This looks at how well you are, not just whether something is wrong. We will start with the good news.</p>' +
     '</section>'
   );
