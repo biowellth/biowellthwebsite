@@ -2029,7 +2029,7 @@ async function renderDashboard(p, reportId){
       const countSentence = (typeof mc === "number" && mc > 0)
         ? "We looked at the "+mc+" markers in this report."
         : "We looked at the markers in this report.";
-      infoPop.textContent = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
+      infoPop.textContent = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is not a diagnosis, and it does not replace your doctor. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. Our ranges are often tighter than the ones printed on your lab report. When we read a marker differently from your lab, we will say so. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
       infoBtn.classList.remove("hidden");
       infoPop.classList.add("hidden");                 // start closed on every render
       infoBtn.setAttribute("aria-expanded", "false");
