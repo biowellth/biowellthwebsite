@@ -1587,8 +1587,12 @@ function confounderAnswered(confounder_id){
 // Coverage line under the band (2026-07-13). Plain words, no ring change. COPY: completeness, not
 // score. Derives "N of your 7 areas" from the pills. Defensive: a LEGACY payload (pre-v51, no
 // deferred_reasons + pills lack refusal_reason) renders NOTHING rather than a wrong count — Lakshmi's
-// stored payload is stale and hits this. Appends "waiting on one answer" only when a held-out pill
-// is deferred for an answerable reason (fasting_unknown).
+// stored payload is stale and hits this. Trailing clause branches on THREE states (retest conversion,
+// ratified 2026-07-13): (1) fasting_unknown + chip never answered (key ABSENT) -> "... is waiting on
+// one answer" (the chip is showing). (2) fasting_unknown + key PRESENT (answered "Not sure", null, no
+// rescore so the reason persists) -> the retest line. (3) not_fasting (answered "No", rescore
+// re-emitted the reason) -> the retest line too. The retest line names what becomes READABLE, never a
+// score (standing product rule). Held-area naming is unchanged; only the trailing clause differs.
 function renderCoverageLine(p){
   const el = $("coverage-line"); if(!el) return;
   const hide = ()=>{ el.classList.add("hidden"); el.textContent=""; };
@@ -1603,12 +1607,21 @@ function renderCoverageLine(p){
   const held = names.filter(n => pills[n] && pills[n].score == null);
   if(!held.length){ return hide(); }   // all areas read -> nothing to say
   let line = "Read from " + scoring.length + " of your " + names.length + " areas.";
-  const reasons = v.deferred_reasons || {};
-  const answerable = Object.values(reasons).some(r => r === "fasting_unknown");
-  if(answerable){
-    const heldNames = held.map(n => n.replace(/ & /g, " and ").toLowerCase());
-    const joined = heldNames.length === 1 ? heldNames[0]
-      : heldNames.slice(0,-1).join(", ") + " and " + heldNames[heldNames.length-1];
+  const rvals = Object.values(v.deferred_reasons || {});
+  const fastingUnknown = rvals.some(r => r === "fasting_unknown");
+  const notFasting = rvals.some(r => r === "not_fasting");
+  // Held-area naming: unchanged (pill names, " & " -> " and ", lowercase, joined). The waiting clause
+  // capitalizes the first letter (sentence start); the retest clause reads it mid-sentence (lowercase).
+  const heldNames = held.map(n => n.replace(/ & /g, " and ").toLowerCase());
+  const joined = heldNames.length === 1 ? heldNames[0]
+    : heldNames.slice(0,-1).join(", ") + " and " + heldNames[heldNames.length-1];
+  // Retest clause when she has answered and no answer remains: "No" (not_fasting) OR "Not sure"
+  // (fasting_unknown but the key is now present). Waiting clause only while the chip is still showing
+  // (fasting_unknown + key absent). Reuse confounderAnswered for the key-presence check.
+  const answered = confounderAnswered("true_fasting_at_draw");
+  if(notFasting || (fastingUnknown && answered)){
+    line += " A fasting retest would let us read " + joined + ".";
+  } else if(fastingUnknown && !answered){
     line += " " + joined.charAt(0).toUpperCase() + joined.slice(1) + " is waiting on one answer.";
   }
   el.textContent = line;
