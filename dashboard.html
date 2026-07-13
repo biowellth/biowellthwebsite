@@ -499,6 +499,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .score-info-btn{font-family:'Instrument Sans',sans-serif;font-size:11px;color:rgba(250,248,244,.6);background:none;border:none;border-bottom:1px dotted rgba(250,248,244,.4);padding:0 0 1px;cursor:pointer;letter-spacing:.02em}
 .score-info-btn:hover{color:var(--cream)}
 .score-info-pop{flex:0 0 100%;margin-top:4px;font-size:12px;line-height:1.6;color:rgba(250,248,244,.72);background:rgba(0,0,0,.18);border:1px solid rgba(250,248,244,.14);border-radius:12px;padding:14px 16px}
+.coverage-line{font-size:13.5px;line-height:1.6;color:rgba(250,248,244,.78);margin-top:6px}
+.coverage-line.hidden{display:none}
 .hero-stats{display:flex;flex-wrap:wrap;gap:14px 28px;margin-top:18px}
 .hero-stat{min-width:60px}
 .hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;line-height:1}
@@ -702,6 +704,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       </div>
       <div class="reveal-head-text">
         <div class="band" id="band">Your results</div>
+        <div class="coverage-line hidden" id="coverage-line"></div>
         <div class="headline" id="headline"></div>
         <div class="hero-stats" id="hero-stats"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
@@ -824,7 +827,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, supp_b12, supp_folate, supp_status_updated_at").eq("id", USER.id).maybeSingle();
+    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
 }
 
@@ -1575,6 +1578,42 @@ function clarifyAnswered(marker_id){
   if(PROFILE.supp_status_updated_at != null) return true; // "Not sure" recorded (stamp, null col)
   return false;
 }
+// Confounder chip answered? The signal is KEY PRESENCE in profiles.confounders (true / false /
+// null-for-not-sure all count as answered — she is never nagged). Key ABSENT = never asked -> show.
+function confounderAnswered(confounder_id){
+  const c = PROFILE.confounders;
+  return !!(c && Object.prototype.hasOwnProperty.call(c, confounder_id));
+}
+// Coverage line under the band (2026-07-13). Plain words, no ring change. COPY: completeness, not
+// score. Derives "N of your 7 areas" from the pills. Defensive: a LEGACY payload (pre-v51, no
+// deferred_reasons + pills lack refusal_reason) renders NOTHING rather than a wrong count — Lakshmi's
+// stored payload is stale and hits this. Appends "waiting on one answer" only when a held-out pill
+// is deferred for an answerable reason (fasting_unknown).
+function renderCoverageLine(p){
+  const el = $("coverage-line"); if(!el) return;
+  const hide = ()=>{ el.classList.add("hidden"); el.textContent=""; };
+  const v = (p && p.vitality) || {};
+  const pills = v.pills || {};
+  const names = Object.keys(pills);
+  if(!names.length){ return hide(); }
+  // Legacy guard: pre-v51 payloads carry neither deferred_reasons nor per-pill refusal_reason.
+  const legacy = (v.deferred_reasons == null) && names.every(n => pills[n] && !('refusal_reason' in pills[n]));
+  if(legacy){ return hide(); }
+  const scoring = names.filter(n => pills[n] && pills[n].score != null);
+  const held = names.filter(n => pills[n] && pills[n].score == null);
+  if(!held.length){ return hide(); }   // all areas read -> nothing to say
+  let line = "Read from " + scoring.length + " of your " + names.length + " areas.";
+  const reasons = v.deferred_reasons || {};
+  const answerable = Object.values(reasons).some(r => r === "fasting_unknown");
+  if(answerable){
+    const heldNames = held.map(n => n.replace(/ & /g, " and ").toLowerCase());
+    const joined = heldNames.length === 1 ? heldNames[0]
+      : heldNames.slice(0,-1).join(", ") + " and " + heldNames[heldNames.length-1];
+    line += " " + joined.charAt(0).toUpperCase() + joined.slice(1) + " is waiting on one answer.";
+  }
+  el.textContent = line;
+  el.classList.remove("hidden");
+}
 function renderClarify(reportId){
   const wrap = $("clarify-wrap"), host = $("clarify");
   // Delegate folate-link taps on the persistent host — survives innerHTML re-renders AND the
@@ -1588,9 +1627,25 @@ function renderClarify(reportId){
     host.__folateBound = true;
   }
   const prompts = (window.__clarifyByReport && window.__clarifyByReport.get(reportId)) || [];
-  const list = (Array.isArray(prompts)?prompts:[]).filter(pr => pr && CLARIFY_COL[pr.marker_id]);
+  const list = (Array.isArray(prompts)?prompts:[]).filter(pr => pr && (
+    (pr.kind === "confounder" && pr.confounder_id) ||
+    ((pr.kind === "marker" || !pr.kind) && CLARIFY_COL[pr.marker_id])
+  ));
   const parts = [];
   list.forEach(pr=>{
+    // Confounder chip (fasting, this build): no CLARIFY_COPY, no voice ack in v1. Suppress once
+    // answered (key present in profiles.confounders). data-confounder routes the tap.
+    if(pr.kind === "confounder"){
+      const cid = pr.confounder_id;
+      if(confounderAnswered(cid)) return;
+      const opts = (Array.isArray(pr.options) && pr.options.length) ? pr.options : ["Yes","No","Not sure"];
+      parts.push('<div class="clarify-card" data-confounder="'+esc(cid)+'">'+
+        '<div class="clarify-q">'+esc(pr.question || "")+'</div>'+
+        '<div class="clarify-opts">'+
+          opts.map(o=>'<button class="clarify-opt" type="button" data-ans="'+esc(answerToken(o))+'">'+esc(o)+'</button>').join('')+
+        '</div></div>');
+      return;
+    }
     const mk = pr.marker_id;
     if(!clarifyAnswered(mk)){
       const c = CLARIFY_COPY[mk] || { lead:"", ask: pr.question || "", why:"" };
@@ -1614,12 +1669,14 @@ function renderClarify(reportId){
   wrap.classList.remove("hidden");
   host.querySelectorAll(".clarify-card").forEach(card=>{   // acks carry no buttons; only live chips wire
     const marker_id = card.getAttribute("data-marker");
+    const confounder_id = card.getAttribute("data-confounder");
     card.querySelectorAll(".clarify-opt").forEach(btn=>{
-      btn.onclick = ()=> onClarifyTap(marker_id, btn.getAttribute("data-ans"), card, reportId);
+      btn.onclick = ()=> onClarifyTap(marker_id, btn.getAttribute("data-ans"), card, reportId, confounder_id);
     });
   });
 }
-async function onClarifyTap(marker_id, ans, card, reportId){
+async function onClarifyTap(marker_id, ans, card, reportId, confounder_id){
+  if(confounder_id){ return onConfounderTap(confounder_id, ans, card, reportId); }
   const col = CLARIFY_COL[marker_id];
   if(!col) return;
   const definitive = (ans === "yes" || ans === "no");
@@ -1650,6 +1707,37 @@ async function onClarifyTap(marker_id, ans, card, reportId){
   }
   // On success re-render the sharpened read (escalated_soft fades in on a "No"); on timeout,
   // re-render the current payload so the chip stays cleared and nothing hangs.
+  await renderDashboard(fresh || window.__rdPayload, reportId);
+}
+// Confounder chip tap (fasting, this build). COPY RULE: promise COMPLETENESS, never IMPROVEMENT.
+// The score can DROP when she answers (her held-out markers may be elevated) and that must read as
+// the picture getting more complete, never as a punishment. yes -> true (un-defers, reads the area);
+// no -> false (stays deferred, genuinely unreadable non-fasting); not sure -> null (present = answered,
+// stays deferred, chip gone so we do not nag). Write is jsonb-safe via the set_confounder RPC.
+async function onConfounderTap(confounder_id, ans, card, reportId){
+  const definitive = (ans === "yes" || ans === "no");
+  const value = ans === "yes" ? true : ans === "no" ? false : null;
+  const ackMsg = ans === "yes"
+    ? "Thanks. We can read those markers now."
+    : ans === "no"
+      ? "Thanks. A fasting retest would let us read those properly."
+      : "No problem. We will leave those out for now.";
+  card.outerHTML = '<div class="clarify-ack">'+esc(ackMsg)+'</div>';
+  // Reflect locally so the re-render suppresses the chip (key now present).
+  PROFILE.confounders = Object.assign({}, PROFILE.confounders || {}, { [confounder_id]: value });
+  // Persist via the jsonb-safe RPC (own row, whitelisted key, atomic, no clobber of other keys).
+  try{ await sb.rpc("set_confounder", { p_key: confounder_id, p_value: value }); }catch(_){}
+  if(!definitive) return; // "not sure" -> answered, chip gone, systems stay deferred, no rescore.
+  // Definitive -> same rescore tail as the marker chip. "yes" un-defers and completes the picture.
+  const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
+  try{ await sb.functions.invoke("enqueue-rescore", { body: { report_id: reportId } }); }catch(_){}
+  const deadline = Date.now() + 20000;
+  let fresh = null;
+  while(Date.now() < deadline){
+    await new Promise(r=>setTimeout(r, 1500));
+    const p2 = await loadPayload(reportId);
+    if(p2 && ((p2.rescored_at || null) !== before)){ fresh = p2; break; }
+  }
   await renderDashboard(fresh || window.__rdPayload, reportId);
 }
 function renderEscalated(p){
@@ -1913,6 +2001,7 @@ async function renderDashboard(p, reportId){
   $("score-num").textContent = score!==null ? score : "";
   $("score-ring").style.setProperty("--p", score!==null ? score : 0);
   $("band").textContent = bandLabel;
+  renderCoverageLine(p);
   $("headline").innerHTML = deriveVerdict(p);
 
   // Demoted "what this score is" explainer: a TAP/CLICK-toggle popover on the ring
