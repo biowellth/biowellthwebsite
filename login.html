@@ -65,6 +65,8 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
       <input id="su-email" type="email" autocomplete="email" placeholder="you@email.com"/>
       <label for="su-pass">Choose a password</label>
       <input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
+      <label for="su-pass2">Confirm your password</label>
+      <input id="su-pass2" type="password" autocomplete="new-password" placeholder="Type it again"/>
       <button class="btn" id="su-btn">Create account</button>
       <div class="toggle">Already have an account? <a id="to-login">Sign in</a></div>
     </div>
@@ -127,9 +129,11 @@ $("su-btn").onclick = async () => {
   const name  = $("su-name").value.trim();
   const email = $("su-email").value.trim();
   const pass  = $("su-pass").value;
+  const pass2 = $("su-pass2").value;
   if (!name)            return show("err", "Please enter your name.");
   if (!email)           return show("err", "Please enter your email.");
   if (pass.length < 8)  return show("err", "Password needs at least 8 characters.");
+  if (pass !== pass2)   return show("err", "Those passwords do not match.");
 
   $("su-btn").disabled = true; $("su-btn").textContent = "Creating account…";
   const { data, error } = await sb.auth.signUp({
@@ -143,7 +147,7 @@ $("su-btn").onclick = async () => {
       return show("err", "This email already has an account. Try signing in instead.");
     // the database gate refuses non-invited emails (surfaces as a generic db error)
     if (m.includes("database") || error.status === 500)
-      return show("err", "We couldn't create an account with that email. Please use the exact address you were invited with.");
+      return show("err", "We could not find an invite for that email. Please use the exact address your invite was sent to. If you need a different address, reply to your invite and we will add it.");
     return show("err", error.message);
   }
   if (data.session){ location.replace(APP); }

@@ -500,6 +500,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .score-info-btn:hover{color:var(--cream)}
 .score-info-pop{flex:0 0 100%;margin-top:4px;font-size:12px;line-height:1.6;color:rgba(250,248,244,.72);background:rgba(0,0,0,.18);border:1px solid rgba(250,248,244,.14);border-radius:12px;padding:14px 16px}
 .coverage-line{font-size:13.5px;line-height:1.6;color:rgba(250,248,244,.78);margin-top:6px}
+.sparse-sub{font-size:14px;line-height:1.6;color:rgba(250,248,244,.72);margin-top:8px;font-weight:400}
 .coverage-line.hidden{display:none}
 .hero-stats{display:flex;flex-wrap:wrap;gap:14px 28px;margin-top:18px}
 .hero-stat{min-width:60px}
@@ -657,7 +658,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       </div>
       <div class="upload-meta">
         <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Private to your account. Encrypted and stored in India.</div>
-        <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>This takes up to about ten minutes. You can close the page — your results will be waiting.</div>
+        <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>This takes up to about ten minutes. You can close the page and your results will be waiting.</div>
       </div>
       <div class="msg" id="upload-msg"></div>
     </div>
@@ -666,7 +667,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   <div id="view-processing" class="hidden">
     <div class="spinner"></div>
     <h1>Reading your report</h1>
-    <p>We are reading every result and comparing it against functional ranges built for South Asian women. This can take up to about ten minutes — you can close this page and come back, your results will be saved.</p>
+    <p>We are reading every result and comparing it against functional ranges built for South Asian women. This can take up to about ten minutes. You can close this page and come back, and your results will be saved.</p>
     <div class="proc-file" id="proc-file"></div>
   </div>
 
@@ -1593,10 +1594,20 @@ function confounderAnswered(confounder_id){
 // rescore so the reason persists) -> the retest line. (3) not_fasting (answered "No", rescore
 // re-emitted the reason) -> the retest line too. The retest line names what becomes READABLE, never a
 // score (standing product rule). Held-area naming is unchanged; only the trailing clause differs.
+// Sparse-reveal (SIGNED 2026-07-13, docs/biowellth-sparse-reveal-copy-SIGNED.md). Engine-suppressed
+// too-thin panel. Gate on the ENGINE verdict (display.show_composite===false AND mode==="pills_only")
+// — the SAME condition the backend gates on (worker v61), NEVER composite==null (pregnancy also nulls
+// it) or prose. Legacy pre-v51 payloads lack this display shape so they never enter this branch.
+function isSuppressed(v){ return !!(v && v.display && v.display.show_composite === false && v.display.mode === "pills_only"); }
+const SPARSE_SR1 = "We could not read enough of this panel to give you a score yet.";
+const SPARSE_SR2 = "We could still read some of your results, and they are below.";
+const SPARSE_SR3 = "A broader blood panel, one that covers more of your systems, would let us give you a full score.";
+
 function renderCoverageLine(p){
   const el = $("coverage-line"); if(!el) return;
   const hide = ()=>{ el.classList.add("hidden"); el.textContent=""; };
   const v = (p && p.vitality) || {};
+  if(isSuppressed(v)){ return hide(); }   // suppressed: SR-1..SR-3 carry the message; "0 of 7 areas" is noise
   const pills = v.pills || {};
   const names = Object.keys(pills);
   if(!names.length){ return hide(); }
@@ -2011,11 +2022,22 @@ async function renderDashboard(p, reportId){
   const showComposite = v.display ? v.display.show_composite !== false : true;
   const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
   const bandLabel = (v.band && v.band.label) || "Your results";
-  $("score-num").textContent = score!==null ? score : "";
-  $("score-ring").style.setProperty("--p", score!==null ? score : 0);
-  $("band").textContent = bandLabel;
+  if(isSuppressed(v)){
+    // Sparse-reveal hero (SIGNED): the score is replaced by SR-1..SR-3. No number, no band label,
+    // no verdict clause (the old headline fell through VERDICT_BAND["suppressed"] being undefined).
+    $("score-num").textContent = "";
+    $("score-ring").style.setProperty("--p", 0);
+    $("band").textContent = "";
+    $("headline").innerHTML = esc(SPARSE_SR1) +
+      '<div class="sparse-sub">' + esc(SPARSE_SR2) + '</div>' +
+      '<div class="sparse-sub">' + esc(SPARSE_SR3) + '</div>';
+  } else {
+    $("score-num").textContent = score!==null ? score : "";
+    $("score-ring").style.setProperty("--p", score!==null ? score : 0);
+    $("band").textContent = bandLabel;
+    $("headline").innerHTML = deriveVerdict(p);
+  }
   renderCoverageLine(p);
-  $("headline").innerHTML = deriveVerdict(p);
 
   // Demoted "what this score is" explainer: a TAP/CLICK-toggle popover on the ring
   // (not hover — touch-safe). p1 verbatim (marker-count interpolation kept; copy
@@ -2024,7 +2046,9 @@ async function renderDashboard(p, reportId){
   const infoBtn = $("score-info-btn");
   const infoPop = $("score-info-pop");
   if(infoBtn && infoPop){
-    if(p.vitality){
+    // Suppressed: hide the "What's this?" explainer entirely. Its signed copy asserts a score exists
+    // ("This is your vitality score"), and no score is shown. Minimal honest handling, no copy edit.
+    if(p.vitality && !isSuppressed(v)){
       const mc = Array.isArray(v.markers) ? v.markers.length : null;
       const countSentence = (typeof mc === "number" && mc > 0)
         ? "We looked at the "+mc+" markers in this report."
@@ -2396,7 +2420,11 @@ function esc(s){
 function firstName(s){
   const t = String(s == null ? "" : s).trim();
   if(!t) return "";
-  return t.split(/\s+/)[0];
+  const parts = t.split(/\s+/);
+  // Skip a leading honorific (Dr, Mr, Mrs, Ms, Miss, Prof, with or without a trailing period,
+  // case-insensitive) so "Dr. Priya" greets "Priya", not "Dr". Single-token names are untouched.
+  if(parts.length > 1 && /^(dr|mr|mrs|ms|miss|prof)\.?$/i.test(parts[0])) return parts[1];
+  return parts[0];
 }
 
 // ── RANGES LOOKUP (re-derive per-marker healthy range from the bundled
@@ -3311,42 +3339,59 @@ function buildDeck(p, reportId){
     '</section>'
   );
 
-  // Beat 1: Quietly working (one row per quietly_working[].finding)
-  beats.push(
-    '<section class="card">' +
-      '<div class="eyebrow stag">First, what is already working</div>' +
-      '<h1 class="display h-lg stag">A few things are quietly working in your favour.</h1>' +
-      '<div class="qlist">' +
-        qw.map(q => (
-          '<div class="qcard stag">' +
-            '<div class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
-            '<p>' + esc(q.finding || '') + '</p>' +
-          '</div>'
-        )).join('') +
-      '</div>' +
-      '<p class="qclose stag">No one flags these, because nothing is wrong with them. Worth knowing they are yours.</p>' +
-    '</section>'
-  );
-
-  // Beat 2: The number (ring, band, visibility)
-  const ringStyle = showComposite ? 'stroke:var(--amber)' : 'stroke:transparent';
-  beats.push(
-    '<section class="card" data-beat-kind="ring">' +
-      '<div class="ringwrap">' +
-        '<div class="ring stag">' +
-          '<svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/>' +
-          '<circle class="fg" id="rd-ringFg" cx="60" cy="60" r="54" style="' + ringStyle + '"/></svg>' +
-          '<div class="num"><b id="rd-ringNum">' + (showComposite ? '0' : '') + '</b><span>Vitality</span></div>' +
+  // Beat 1: Quietly working (one row per quietly_working[].finding). Skip entirely when there are no
+  // strengths — a suppressed panel returns zero quietly_working from the backend, and an empty
+  // "quietly working in your favour" beat would read as broken. Healthy panels have strengths, so
+  // this guard leaves them byte-identical.
+  if(qw.length){
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow stag">First, what is already working</div>' +
+        '<h1 class="display h-lg stag">A few things are quietly working in your favour.</h1>' +
+        '<div class="qlist">' +
+          qw.map(q => (
+            '<div class="qcard stag">' +
+              '<div class="ck"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>' +
+              '<p>' + esc(q.finding || '') + '</p>' +
+            '</div>'
+          )).join('') +
         '</div>' +
-        '<div class="bandlabel stag" id="rd-bandLabel">' + esc(bandLabel || ' ') + '</div>' +
-        '<p class="bandcopy stag">This is one score for your whole body. The parts that affect how you feel the most count for more.</p>' +
-        (visibility != null
-          ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
-          : '') +
-        '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our medical team.</p>' +
-      '</div>' +
-    '</section>'
-  );
+        '<p class="qclose stag">No one flags these, because nothing is wrong with them. Worth knowing they are yours.</p>' +
+      '</section>'
+    );
+  }
+
+  // Beat 2: The number (ring, band, visibility) — or, on a suppressed panel, the sparse-reveal hero
+  // (SIGNED) in its place. The suppressed branch drops the ring and the "This is one score for your
+  // whole body" line, which would assert a score that is not there.
+  if(isSuppressed(v)){
+    beats.push(
+      '<section class="card" data-beat-kind="ring">' +
+        '<h1 class="display h-lg stag">' + esc(SPARSE_SR1) + '</h1>' +
+        '<p class="sub stag">' + esc(SPARSE_SR2) + '</p>' +
+        '<p class="sub stag">' + esc(SPARSE_SR3) + '</p>' +
+      '</section>'
+    );
+  } else {
+    const ringStyle = showComposite ? 'stroke:var(--amber)' : 'stroke:transparent';
+    beats.push(
+      '<section class="card" data-beat-kind="ring">' +
+        '<div class="ringwrap">' +
+          '<div class="ring stag">' +
+            '<svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54"/>' +
+            '<circle class="fg" id="rd-ringFg" cx="60" cy="60" r="54" style="' + ringStyle + '"/></svg>' +
+            '<div class="num"><b id="rd-ringNum">' + (showComposite ? '0' : '') + '</b><span>Vitality</span></div>' +
+          '</div>' +
+          '<div class="bandlabel stag" id="rd-bandLabel">' + esc(bandLabel || ' ') + '</div>' +
+          '<p class="bandcopy stag">This is one score for your whole body. The parts that affect how you feel the most count for more.</p>' +
+          (visibility != null
+            ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
+            : '') +
+          '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our medical team.</p>' +
+        '</div>' +
+      '</section>'
+    );
+  }
 
   // Beat 3: One to watch (skip if priorities is empty)
   if(pri){
