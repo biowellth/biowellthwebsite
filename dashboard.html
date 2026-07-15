@@ -2122,19 +2122,30 @@ function renderCoverageGap(p){
   wrap.classList.remove("hidden");
 }
 
-// ── STAGE 2: derived one-line verdict for the hero #headline ───────────────
-// Built ONLY from engine facts: the vitality band key (foundation clause) and
-// the priority COUNT (attention clause). No marker names, no numbers/cutoffs,
-// no composite score, no priority headline text. Unknown band keys degrade to
-// the band's own label verbatim, so a new band never errors or blanks.
+// ── STAGE 2: one-line verdict for the hero #headline ───────────────────────
+// F3 PERSONALIZATION (2026-07-14): the verdict is now WRITTEN BY Call B and names
+// HER actual drivers (narrative_headline.verdict), so two women in the same band no
+// longer read the identical sentence. The engine supplies her priorities/flagged
+// markers; the model writes the sentence in the doctor register. Rendered escaped
+// (model prose, never trusted HTML). HONEST DEGRADE: a legacy payload (pre-F3, no
+// verdict field) or any empty verdict falls back to the band template below, so an
+// old stored panel never blanks. Suppressed panels never reach here (the caller
+// renders SR-1..SR-3 instead), so the signed suppressed copy still owns that screen.
 const VERDICT_BAND = {
   thriving:           "Your body's in a really good <strong>place</strong>",
   solid_foundation:   "You've got a <strong>solid</strong> foundation",
   building:           "You're building real <strong>momentum</strong>",
-  running_on_reserve: "Your body's asking for some <strong>support</strong>",
-  needs_attention:    "Your body's asking for some <strong>attention</strong>",
+  // de-agented (voice rule F4): the old "Your body's asking for support/attention" was the banned
+  // body-as-agent tell. These are the LEGACY/empty fallback only; the primary path is the personalized
+  // Call B verdict above.
+  running_on_reserve: "A few of your markers are worth a <strong>look</strong>",
+  needs_attention:    "A few of your markers <strong>need attention</strong>",
 };
 function deriveVerdict(p){
+  const nh = (p && p.narrative_headline) || {};
+  const personalized = typeof nh.verdict === "string" ? nh.verdict.trim() : "";
+  if(personalized) return esc(personalized);   // F3: her own drivers, doctor register
+  // Fallback (legacy/empty): the pre-F3 band + priority-count template.
   const v = (p && p.vitality) || {};
   const band = v.band || {};
   const foundation = VERDICT_BAND[band.key] || esc(band.label || "Your results");
