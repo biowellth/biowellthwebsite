@@ -91,6 +91,35 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .interim-marker{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--cream-mid)}
 .interim-marker .im-name{font-size:14px;color:var(--brown)}
 .interim-marker .im-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid);white-space:nowrap}
+/* Between-calls capture (Finding #1): confounders PRIMARY (white card, shadow, full weight),
+   supplements a lighter dashed optional block, free text the lightest line, calm timeout. */
+.bc-wrap{margin-bottom:30px}
+.bc-lead{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);margin-bottom:3px}
+.bc-sublead{font-size:13.5px;color:var(--brown-mid);margin-bottom:16px}
+.bc-card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px 20px 8px;box-shadow:var(--shadow)}
+.bc-q{margin-bottom:18px}
+.bc-q-t{font-size:15px;font-weight:600;color:var(--brown);line-height:1.4;margin-bottom:10px}
+.bc-opts{display:flex;gap:9px;flex-wrap:wrap}
+.bc-opt{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:9px 18px;cursor:pointer;transition:background .15s,transform .1s}
+.bc-opt:hover{transform:translateY(-1px)}
+.bc-opt.sel{background:var(--teal);color:#fff;border-color:var(--teal)}
+.bc-extra{border:1px dashed var(--brown-light);border-radius:14px;padding:15px 16px;margin-bottom:14px}
+.bc-extra-h{font-size:12.5px;color:var(--brown-mid);margin-bottom:11px;line-height:1.5}
+.bc-extra-h b{color:var(--brown);font-weight:700}
+.bc-supp{display:flex;gap:7px;flex-wrap:wrap}
+.bc-sp{font-family:inherit;font-size:12.5px;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:8px;padding:6px 12px;cursor:pointer;transition:background .15s}
+.bc-sp.sel{background:var(--amber-light);border-color:var(--amber);color:var(--orange-dark);font-weight:600}
+.bc-sp.bc-biotin.sel{background:var(--coral-light);border-color:var(--coral);color:var(--coral-dark)}
+.bc-note-l{font-size:11.5px;color:var(--brown-mid);margin:12px 0 5px}
+.bc-note{width:100%;font-family:inherit;font-size:12.5px;color:var(--brown);background:transparent;border:none;border-bottom:1px solid var(--brown-light);padding:5px 2px}
+.bc-note:focus{outline:none;border-bottom-color:var(--teal)}
+.bc-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 2px 10px}
+.bc-later{font-family:inherit;font-size:13px;color:var(--brown-mid);text-decoration:underline;background:none;border:none;cursor:pointer}
+.bc-done{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--teal);border-radius:100px;padding:10px 26px;cursor:pointer}
+.bc-done:hover{background:var(--teal-dark)}
+.bc-calm{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.bc-calm-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:5px}
+.bc-calm-b{font-size:13.5px;color:var(--brown-mid);line-height:1.55}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
 .reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
@@ -672,9 +701,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   </div>
 
   <div id="view-interim" class="hidden">
-    <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Reading your panel against South Asian women's functional ranges</span></div>
+    <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Still reading your full results</span></div>
     <div class="interim-sweep"><span></span></div>
     <div id="interim-list" class="interim-list"></div>
+    <div id="between-calls"></div>
+    <div id="interim-markers"></div>
   </div>
 
   <div id="view-reveal" class="hidden">
@@ -828,7 +859,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders").eq("id", USER.id).maybeSingle();
+    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
 }
 
@@ -1118,6 +1149,9 @@ function pollForResult(reportId){
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
     if(data && data.payload){
       clearInterval(pollTimer);
+      // Interpretation landed -> the between-calls window is over; kill its 90s timer so a
+      // late fire can never swap the (now hidden) interim host after the reveal.
+      if(window.__bc && window.__bc.timer){ clearTimeout(window.__bc.timer); window.__bc.timer = null; }
       // Fresh report: reveal_seen_at is null by definition, so always run
       // through the deck first. Stamping on exit moves the user to the
       // dashboard view. buildPicker also builds window.__rdSeries; run it
@@ -1143,6 +1177,7 @@ function pollForResult(reportId){
     }
     if(rep && rep.transcription_json){
       renderInterim(rep.transcription_json);
+      renderBetweenCalls(reportId);   // built once; state survives the 3s poll re-render
       showView("interim");
     } else {
       showView("processing");
@@ -1197,18 +1232,24 @@ function renderInterim(tj){
   for(const sid of order) totalMarkers += bySid.get(sid).markers.length;
   const systemsMapped = order.length;
 
-  // Anticipatory framing: the interim PROMISES the walkthrough rather than being one.
-  let html =
+  // Anticipatory framing: the interim PROMISES the walkthrough rather than being one. IN-3
+  // (SIGNED docs/biowellth-between-calls-copy-SIGNED.md) replaces the earlier "…the shape of what
+  // came back" subline (AI-voice ban, F4). Top matter renders into #interim-list; the between-calls
+  // ask sits in its OWN persistent #between-calls (built once, state survives the 3s poll); the
+  // marker list renders into #interim-markers. Keeping the ask out of these two re-rendered hosts is
+  // what lets her taps + typed note persist across polls.
+  let topHtml =
     '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
-    '<p class="interim-sub">Your full read, covering what\'s strong, what to watch, and where to focus, is landing in a moment. Here\'s the shape of what came back.</p>' +
+    '<p class="interim-sub">Your full read is on the way. While it finishes, four quick things help us read your results right.</p>' +
     '<div class="interim-tiles">' +
       '<div class="itile"><span class="itile-n">' + totalMarkers + '</span><span class="itile-l">markers read</span></div>' +
       '<div class="itile"><span class="itile-n">' + systemsMapped + '</span><span class="itile-l">systems mapped</span></div>' +
     '</div>';
+  $("interim-list").innerHTML = topHtml;
 
   // Neutral marker count per system — no banding, so no "in range" register. This
   // keeps the SENSITIVE_SYSTEMS classes (heavy_metals / autoimmune) safe by default.
-  html += '<div class="interim-sec-h">Your markers by system</div><div class="isys-wrap">';
+  let mHtml = '<div class="interim-sec-h">Your markers by system</div><div class="isys-wrap">';
   for(const sid of order){
     const g = bySid.get(sid);
     const open = INTERIM_EXPANDED.has(sid);
@@ -1219,17 +1260,17 @@ function renderInterim(tj){
               esc(markerName(m)) + '</span><span class="im-val">' +
               interimValHTML(m) + '</span></div>';
     }
-    html += '<div class="isys' + (open?' open':'') + '" data-sid="' + esc(sid) + '">' +
+    mHtml += '<div class="isys' + (open?' open':'') + '" data-sid="' + esc(sid) + '">' +
             '<div class="isys-h"><span class="isys-left"><span class="isys-tile">' + initial + '</span>' +
             '<span class="isys-t">' + esc(g.title) + '</span></span>' +
             '<span class="isys-meta"><span class="isys-count">' + g.markers.length + ' markers</span>' +
             '<span class="isys-chev"></span></span></div>' +
             '<div class="isys-body">' + body + '</div></div>';
   }
-  html += '</div>';
+  mHtml += '</div>';
 
-  const list = $("interim-list");
-  list.innerHTML = html;
+  const list = $("interim-markers");
+  list.innerHTML = mHtml;
   // Expand/collapse: delegated handler bound ONCE on the persistent parent. Tap
   // updates INTERIM_EXPANDED (re-applied as the 'open' class on every re-render,
   // so the 3s poll never snaps an open system shut) and toggles the class live.
@@ -1244,6 +1285,202 @@ function renderInterim(tj){
       else { INTERIM_EXPANDED.add(sid); card.classList.add("open"); }
     });
   }
+}
+
+// ── BETWEEN-CALLS CAPTURE (Finding #1) ─────────────────────────────────────
+// The one honest moment to ask the four confounders only she knows, plus an optional
+// supplement/context extra, BEFORE Call B interprets. Rendered into the persistent
+// #between-calls host (built ONCE per report; state survives the 3s interim poll).
+//
+// WIRING (load-bearing, mirrors the backend seam comments):
+//   - Confounders  -> set_confounder RPC, per tap (authoritative engine inputs).
+//   - Biotin       -> ALSO set_confounder('biotin_supplementation') — the ONE supplement that
+//                     touches scoring (excludes thyroid). It is NEVER added to the supplements[]
+//                     context array.
+//   - Supplements  -> supplements[] via commit_between_calls on Done. CONTEXT to Call B only,
+//                     never the engine.
+//   - Free text    -> context_note via commit_between_calls. NARRATION ONLY, capped server-side.
+//
+// COMMITTED-BEFORE-CLAIM: confounders are durable per tap; commit_between_calls writes the optional
+// tier AND flips the held interpretation row claimable in ONE transaction, so the worker can only
+// ever read committed answers. If the 90s window instead elapses first, interpretation proceeds
+// EXACTLY as today (deferrals fire, the dashboard fasting chip is the fallback) — a late answer is
+// never worse than no answer. Copy is calm and never apologetic (T-1/T-2 serve all three exits).
+const BC_WINDOW_MS = 90000;   // W = 90s, mirrors report_queue.not_before on the interpretation row
+const BC_CONFOUNDERS = [
+  { key: "true_fasting_at_draw",          q: "Was this blood test done fasting?" },
+  { key: "recent_illness_within_4_weeks", q: "Were you unwell in the four weeks before this test?" },
+  { key: "acute_stress_within_2_weeks",   q: "Were you under unusual stress in the two weeks before this test?" },
+  { key: "hard_training_within_72_hours", q: "Did you do hard exercise in the three days before this test?" },
+];
+// Persisted values are byte-exact to the ratified Azure-aligned list (Step 0 = LOOSE SET; the six
+// shared app values are adopted verbatim, extensions in the same lowercase convention). Display
+// labels are separate. Biotin carries confounder:true; "none of these" carries sentinel:true.
+const BC_SUPPLEMENTS = [
+  { v: "iron",         label: "Iron" },
+  { v: "b12",          label: "Vitamin B12" },
+  { v: "folate",       label: "Folate" },
+  { v: "vitamin_d",    label: "Vitamin D" },
+  { v: "omega3",       label: "Omega 3" },
+  { v: "multivitamin", label: "Multivitamin" },
+  { v: "probiotic",    label: "Probiotic" },
+  { v: "biotin",       label: "Biotin", confounder: true },
+  { v: "thyroid medication",             label: "Thyroid medication" },
+  { v: "hormonal contraception or HRT",  label: "Contraception or HRT" },
+  { v: "none of these", label: "None of these", sentinel: true },
+];
+// T-1 / T-2 (SIGNED). One calm state serves Done, "I'll do this later", and the 90s timeout — never
+// "time's up", never an apology, never an implication she was slow.
+const BC_CALM_H = "Your results are on their way.";
+const BC_CALM_B = "You can still tell us if this was a fasting draw when you get there. Nothing is missing.";
+
+// Module state, keyed to the current report so it survives poll re-renders.
+window.__bc = window.__bc || null;
+
+function renderBetweenCalls(reportId){
+  const host = $("between-calls");
+  if(!host) return;
+  // Build once per report. A poll that re-enters interim must not wipe her taps/typed note.
+  if(window.__bc && window.__bc.reportId === reportId && window.__bc.built) return;
+  // A different report (or first time) -> fresh state. Clear any prior timer.
+  if(window.__bc && window.__bc.timer) clearTimeout(window.__bc.timer);
+  const preSupp = new Set(Array.isArray(PROFILE.supplements) ? PROFILE.supplements : []);
+  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:"", timer:null };
+  buildBcForm(reportId);
+  // Silent 90s window (no visible countdown -> no time pressure). On expiry, swap to the calm state.
+  window.__bc.timer = setTimeout(()=>bcTimeout(reportId), BC_WINDOW_MS);
+}
+
+function buildBcForm(reportId){
+  const host = $("between-calls");
+  const conf = PROFILE.confounders || {};
+  let qs = "";
+  BC_CONFOUNDERS.forEach(c=>{
+    const has = Object.prototype.hasOwnProperty.call(conf, c.key);
+    const val = has ? conf[c.key] : undefined;
+    const opt = (label, token, isSel)=>
+      '<button type="button" class="bc-opt'+(isSel?' sel':'')+'" data-key="'+esc(c.key)+'" data-val="'+token+'">'+esc(label)+'</button>';
+    qs += '<div class="bc-q" data-qkey="'+esc(c.key)+'"><div class="bc-q-t">'+esc(c.q)+'</div><div class="bc-opts">'+
+      opt("Yes","yes", has && val===true) + opt("No","no", has && val===false) + opt("Not sure","unsure", has && val===null) +
+      '</div></div>';
+  });
+  const preBiotin = conf.biotin_supplementation === true;
+  let sp = "";
+  BC_SUPPLEMENTS.forEach(s=>{
+    const sel = s.confounder ? preBiotin : window.__bc.supplements.has(s.v);
+    sp += '<button type="button" class="bc-sp'+(s.confounder?' bc-biotin':'')+(sel?' sel':'')+'" data-v="'+esc(s.v)+'"'+
+      (s.confounder?' data-confounder="1"':'')+(s.sentinel?' data-sentinel="1"':'')+'>'+esc(s.label)+'</button>';
+  });
+  host.innerHTML =
+    '<div class="bc-wrap">'+
+      '<div class="bc-card">'+
+        '<div class="bc-lead">Four things only you know</div>'+
+        '<div class="bc-sublead">These change how we read your markers. Answer what you can, skip the rest.</div>'+
+        qs+
+        '<div class="bc-extra">'+
+          '<div class="bc-extra-h"><b>Optional.</b> Anything you take regularly? A quick tap helps us read your vitamins right.</div>'+
+          '<div class="bc-supp">'+sp+'</div>'+
+          '<div class="bc-note-l">Anything else you take regularly? (optional)</div>'+
+          '<input class="bc-note" type="text" maxlength="500" placeholder="A brand or medicine name is fine"/>'+
+        '</div>'+
+        '<div class="bc-foot"><button type="button" class="bc-later">I\'ll do this later</button>'+
+          '<button type="button" class="bc-done">Done</button></div>'+
+      '</div>'+
+    '</div>';
+  // Confounder taps (per-tap set_confounder; select this option, clear siblings).
+  host.querySelectorAll(".bc-opt").forEach(btn=>{
+    btn.onclick = ()=>{
+      if(window.__bc.state !== "active") return;
+      const key = btn.getAttribute("data-key"), tok = btn.getAttribute("data-val");
+      const value = tok === "yes" ? true : tok === "no" ? false : null;
+      btn.closest(".bc-q").querySelectorAll(".bc-opt").forEach(b=>b.classList.remove("sel"));
+      btn.classList.add("sel");
+      PROFILE.confounders = Object.assign({}, PROFILE.confounders||{}, { [key]: value });
+      try{ sb.rpc("set_confounder", { p_key:key, p_value:value }); }catch(_){}
+    };
+  });
+  // Supplement toggles. Biotin routes to the confounder path; "none of these" is exclusive.
+  host.querySelectorAll(".bc-sp").forEach(btn=>{
+    btn.onclick = ()=>{
+      if(window.__bc.state !== "active") return;
+      const v = btn.getAttribute("data-v");
+      const on = !btn.classList.contains("sel");
+      if(btn.getAttribute("data-confounder")){
+        // Biotin -> confounder path ONLY (never the supplements[] context array).
+        btn.classList.toggle("sel", on);
+        try{ sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value: on ? true : false }); }catch(_){}
+        return;
+      }
+      if(btn.getAttribute("data-sentinel")){
+        // "None of these": clear every other selection (context + biotin), then select this alone.
+        if(on){
+          window.__bc.supplements.clear();
+          host.querySelectorAll(".bc-sp").forEach(b=>{ if(b!==btn) b.classList.remove("sel"); });
+          const bio = host.querySelector('.bc-sp[data-confounder]');
+          if(bio && bio.classList.contains("sel")){ bio.classList.remove("sel"); try{ sb.rpc("set_confounder",{p_key:"biotin_supplementation",p_value:false}); }catch(_){} }
+          window.__bc.supplements.add(v); btn.classList.add("sel");
+        } else {
+          window.__bc.supplements.delete(v); btn.classList.remove("sel");
+        }
+        return;
+      }
+      // A normal context supplement toggles in/out; selecting one clears the "none of these" sentinel.
+      const none = host.querySelector('.bc-sp[data-sentinel]');
+      if(on){
+        if(none && none.classList.contains("sel")){ none.classList.remove("sel"); window.__bc.supplements.delete("none of these"); }
+        window.__bc.supplements.add(v); btn.classList.add("sel");
+      } else {
+        window.__bc.supplements.delete(v); btn.classList.remove("sel");
+      }
+    };
+  });
+  const note = host.querySelector(".bc-note");
+  if(note) note.oninput = ()=>{ if(window.__bc.state==="active") window.__bc.note = note.value; };
+  host.querySelector(".bc-done").onclick  = ()=>bcDone(reportId);
+  host.querySelector(".bc-later").onclick = ()=>bcLater(reportId);
+}
+
+function bcCalm(){
+  const host = $("between-calls");
+  if(host) host.innerHTML = '<div class="bc-wrap"><div class="bc-calm"><div class="bc-calm-h">'+esc(BC_CALM_H)+
+    '</div><div class="bc-calm-b">'+esc(BC_CALM_B)+'</div></div></div>';
+}
+// Kick the worker to claim the now-claimable interpretation row NOW (service-role edge fn), rather
+// than waiting up to a cron tick. Best-effort — correctness never depends on it (cron drains, and
+// commit_between_calls already flipped not_before in-transaction).
+function bcKickWorker(reportId){
+  try{ sb.functions.invoke("release-between-calls", { body:{ report_id: reportId } }).catch(()=>{}); }catch(_){}
+}
+async function bcDone(reportId){
+  if(!window.__bc || window.__bc.state !== "active") return;
+  window.__bc.state = "committed";
+  if(window.__bc.timer) clearTimeout(window.__bc.timer);
+  const supp = [...window.__bc.supplements];                 // excludes biotin (confounder path)
+  const note = (window.__bc.note || "").trim().slice(0,500);
+  bcCalm();
+  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); }catch(_){}
+  bcKickWorker(reportId);
+}
+async function bcLater(reportId){
+  if(!window.__bc || window.__bc.state !== "active") return;
+  window.__bc.state = "committed";
+  if(window.__bc.timer) clearTimeout(window.__bc.timer);
+  bcCalm();
+  // null supplements/note -> commit_between_calls only opens the window (never clobbers a prior value).
+  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: null, p_context_note: null }); }catch(_){}
+  bcKickWorker(reportId);
+}
+async function bcTimeout(reportId){
+  if(!window.__bc || window.__bc.state !== "active") return;
+  window.__bc.state = "timedout";
+  bcCalm();
+  // The server-side 90s window has elapsed; the row is (or is about to be) claimable on its own. Send
+  // any optional context she DID select as best-effort — if the worker already claimed, it lands but
+  // is simply not read (never worse than no answer). Confounders are already durable per tap.
+  const supp = [...window.__bc.supplements];
+  const note = (window.__bc.note || "").trim().slice(0,500);
+  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp.length?supp:null, p_context_note: note || null }); }catch(_){}
+  bcKickWorker(reportId);
 }
 
 // ── COVERAGE GAP ("Worth exploring over time") ────────────────────────────
