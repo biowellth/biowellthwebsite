@@ -136,6 +136,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bc-calm-b{font-size:13.5px;color:var(--brown-mid);line-height:1.55}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
+/* Upload-time confounder ask lives on the Call A "Reading your report" screen (left-aligned, constrained). */
+#proc-ask{width:100%;max-width:560px;margin:22px auto 0;text-align:left}
 .reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
 .score-ring{width:120px;height:120px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
 .score-ring::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--white)}
@@ -729,13 +731,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     <h1>Reading your report</h1>
     <p>We are reading every result and comparing it against functional ranges built for South Asian women. This can take up to about ten minutes. You can close this page and come back, and your results will be saved.</p>
     <div class="proc-file" id="proc-file"></div>
+    <div id="proc-ask"></div>
   </div>
 
   <div id="view-interim" class="hidden">
     <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Still reading your full results</span></div>
     <div class="interim-sweep"><span></span></div>
     <div id="interim-list" class="interim-list"></div>
-    <div id="between-calls"></div>
     <div id="interim-markers"></div>
   </div>
 
@@ -1193,6 +1195,7 @@ async function handleFile(file){
       .select("id").single();
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
+    renderConfounderAsk(reportId);   // ask lives on the "Reading your report" (Call A) screen, non-blocking
     try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId } }); }catch(_){}
     pollForResult(reportId);
   }catch(err){
@@ -1210,9 +1213,6 @@ function pollForResult(reportId){
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
     if(data && data.payload){
       clearInterval(pollTimer);
-      // Interpretation landed -> the between-calls window is over; kill its 90s timer so a
-      // late fire can never swap the (now hidden) interim host after the reveal.
-      if(window.__bc && window.__bc.timer){ clearTimeout(window.__bc.timer); window.__bc.timer = null; }
       // Fresh report: reveal_seen_at is null by definition, so always run
       // through the deck first. Stamping on exit moves the user to the
       // dashboard view. buildPicker also builds window.__rdSeries; run it
@@ -1237,10 +1237,12 @@ function pollForResult(reportId){
       return;
     }
     if(rep && rep.transcription_json){
+      // Call A done -> the ask on the processing screen is over; the interim screen is now a pure
+      // confidence beat (the confounder ask lived on #proc-ask during Call A, already committed).
       renderInterim(rep.transcription_json);
-      renderBetweenCalls(reportId);   // built once; state survives the 3s poll re-render
       showView("interim");
     } else {
+      renderConfounderAsk(reportId);   // Call A still running -> ensure the ask is present (built once)
       showView("processing");
     }
   }, 3000);
@@ -1293,15 +1295,12 @@ function renderInterim(tj){
   for(const sid of order) totalMarkers += bySid.get(sid).markers.length;
   const systemsMapped = order.length;
 
-  // Anticipatory framing: the interim PROMISES the walkthrough rather than being one. IN-3
-  // (SIGNED docs/biowellth-between-calls-copy-SIGNED.md) replaces the earlier "…the shape of what
-  // came back" subline (AI-voice ban, F4). Top matter renders into #interim-list; the between-calls
-  // ask sits in its OWN persistent #between-calls (built once, state survives the 3s poll); the
-  // marker list renders into #interim-markers. Keeping the ask out of these two re-rendered hosts is
-  // what lets her taps + typed note persist across polls.
+  // The interim 193/20 screen is a PURE CONFIDENCE BEAT (the confounder ask moved to the Call A
+  // "Reading your report" screen, 2026-07-15). IN-3 (SIGNED docs/biowellth-between-calls-copy-SIGNED.md)
+  // is the calm reassurance; no ask here. Top matter -> #interim-list, marker list -> #interim-markers.
   let topHtml =
     '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
-    '<p class="interim-sub">Your full read is on the way. While it finishes, four quick things help us read your results right.</p>' +
+    '<p class="interim-sub">Your full results are almost ready.</p>' +
     '<div class="interim-tiles">' +
       '<div class="itile"><span class="itile-n">' + totalMarkers + '</span><span class="itile-l">markers read</span></div>' +
       '<div class="itile"><span class="itile-n">' + systemsMapped + '</span><span class="itile-l">systems mapped</span></div>' +
@@ -1349,25 +1348,24 @@ function renderInterim(tj){
 }
 
 // ── BETWEEN-CALLS CAPTURE (Finding #1) ─────────────────────────────────────
-// The one honest moment to ask the four confounders only she knows, plus an optional
-// supplement/context extra, BEFORE Call B interprets. Rendered into the persistent
-// #between-calls host (built ONCE per report; state survives the 3s interim poll).
+// Ask the four confounders only she knows, plus an optional supplement/context extra, on the Call A
+// "Reading your report" screen (relocated from the interim screen 2026-07-15) — the questions overlap
+// real transcription work. Rendered into the persistent #proc-ask host (built ONCE per report; state
+// survives poll re-renders). Non-blocking; auto-transitions to the confidence beat when Call A finishes.
 //
 // WIRING (load-bearing, mirrors the backend seam comments):
 //   - Confounders  -> set_confounder RPC, per tap (authoritative engine inputs).
 //   - Biotin       -> ALSO set_confounder('biotin_supplementation') — the ONE supplement that
 //                     touches scoring (excludes thyroid). It is NEVER added to the supplements[]
 //                     context array.
-//   - Supplements  -> supplements[] via commit_between_calls on Done. CONTEXT to Call B only,
+//   - Supplements  -> supplements[] via commit_between_calls per-tap. CONTEXT to Call B only,
 //                     never the engine.
-//   - Free text    -> context_note via commit_between_calls. NARRATION ONLY, capped server-side.
+//   - Free text    -> context_note via commit_between_calls (debounced). NARRATION ONLY, capped server-side.
 //
-// COMMITTED-BEFORE-CLAIM: confounders are durable per tap; commit_between_calls writes the optional
-// tier AND flips the held interpretation row claimable in ONE transaction, so the worker can only
-// ever read committed answers. If the 90s window instead elapses first, interpretation proceeds
-// EXACTLY as today (deferrals fire, the dashboard fasting chip is the fallback) — a late answer is
-// never worse than no answer. Copy is calm and never apologetic (T-1/T-2 serve all three exits).
-const BC_WINDOW_MS = 90000;   // W = 90s, mirrors report_queue.not_before on the interpretation row
+// COMMITTED-BEFORE-CLAIM (carries over): confounders are durable per tap, the optional tier commits
+// per-change during Call A — all written to profiles BEFORE the interpretation row is even enqueued, so
+// the worker can only ever read committed answers. A last in-flight tap racing a fast claim is never
+// worse than no answer; unanswered confounders fall through to the same dashboard-chip fallback as today.
 const BC_CONFOUNDERS = [
   { key: "true_fasting_at_draw",          q: "Was this blood test done fasting?" },
   { key: "recent_illness_within_4_weeks", q: "Were you unwell in the four weeks before this test?" },
@@ -1390,30 +1388,34 @@ const BC_SUPPLEMENTS = [
   { v: "hormonal contraception or HRT",  label: "Contraception or HRT" },
   { v: "none of these", label: "None of these", sentinel: true },
 ];
-// T-1 / T-2 (SIGNED). One calm state serves Done, "I'll do this later", and the 90s timeout — never
-// "time's up", never an apology, never an implication she was slow.
-const BC_CALM_H = "Your results are on their way.";
-const BC_CALM_B = "You can still tell us if this was a fasting draw when you get there. Nothing is missing.";
 
 // Module state, keyed to the current report so it survives poll re-renders.
 window.__bc = window.__bc || null;
 
-function renderBetweenCalls(reportId){
-  const host = $("between-calls");
+// Upload-time confounder ask (relocated onto the Call A "Reading your report" screen, 2026-07-15).
+// Renders as soon as upload succeeds and Call A is in flight; non-blocking. Taps commit per-tap; when
+// Call A finishes the poll transitions to the interim confidence beat (no Done, no timeout).
+function renderConfounderAsk(reportId){
+  const host = $("proc-ask");
   if(!host) return;
-  // Build once per report. A poll that re-enters interim must not wipe her taps/typed note.
+  // Build once per report. Poll re-renders of the processing screen must not wipe her taps/typed note.
   if(window.__bc && window.__bc.reportId === reportId && window.__bc.built) return;
-  // A different report (or first time) -> fresh state. Clear any prior timer.
-  if(window.__bc && window.__bc.timer) clearTimeout(window.__bc.timer);
   const preSupp = new Set(Array.isArray(PROFILE.supplements) ? PROFILE.supplements : []);
-  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:"", timer:null };
+  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:"", noteTimer:null };
   buildBcForm(reportId);
-  // Silent 90s window (no visible countdown -> no time pressure). On expiry, swap to the calm state.
-  window.__bc.timer = setTimeout(()=>bcTimeout(reportId), BC_WINDOW_MS);
+}
+// Persist the optional tier (supplements[] + free text) per-change via the EXISTING atomic RPC. The
+// four confounders + biotin are already durable per-tap via set_confounder. commit_between_calls writes
+// profiles scoped to auth.uid() (committed-before-claim); its not_before flip is a harmless no-op during
+// Call A because the interpretation row does not exist yet.
+function commitAsk(reportId){
+  const supp = [...window.__bc.supplements];
+  const note = (window.__bc.note || "").trim().slice(0,500);
+  try{ sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); }catch(_){}
 }
 
 function buildBcForm(reportId){
-  const host = $("between-calls");
+  const host = $("proc-ask");
   const conf = PROFILE.confounders || {};
   let qs = "";
   BC_CONFOUNDERS.forEach(c=>{
@@ -1435,8 +1437,8 @@ function buildBcForm(reportId){
   host.innerHTML =
     '<div class="bc-wrap">'+
       '<div class="bc-card">'+
-        '<div class="bc-lead">Four things only you know</div>'+
-        '<div class="bc-sublead">These change how we read your markers. Answer what you can, skip the rest.</div>'+
+        '<div class="bc-lead">A few quick things about this draw</div>'+
+        '<div class="bc-sublead">Answer these while we read your report so we read it right. Nothing here is required.</div>'+
         qs+
         '<div class="bc-extra">'+
           '<div class="bc-extra-h"><b>Optional.</b> Anything you take regularly? A quick tap helps us read your vitamins right.</div>'+
@@ -1444,8 +1446,6 @@ function buildBcForm(reportId){
           '<div class="bc-note-l">Anything else you take regularly? (optional)</div>'+
           '<input class="bc-note" type="text" maxlength="500" placeholder="A brand or medicine name is fine"/>'+
         '</div>'+
-        '<div class="bc-foot"><button type="button" class="bc-later">I\'ll do this later</button>'+
-          '<button type="button" class="bc-done">Done</button></div>'+
       '</div>'+
     '</div>';
   // Confounder taps (per-tap set_confounder; select this option, clear siblings).
@@ -1483,7 +1483,7 @@ function buildBcForm(reportId){
         } else {
           window.__bc.supplements.delete(v); btn.classList.remove("sel");
         }
-        return;
+        commitAsk(reportId); return;
       }
       // A normal context supplement toggles in/out; selecting one clears the "none of these" sentinel.
       const none = host.querySelector('.bc-sp[data-sentinel]');
@@ -1493,56 +1493,17 @@ function buildBcForm(reportId){
       } else {
         window.__bc.supplements.delete(v); btn.classList.remove("sel");
       }
+      commitAsk(reportId);
     };
   });
   const note = host.querySelector(".bc-note");
-  if(note) note.oninput = ()=>{ if(window.__bc.state==="active") window.__bc.note = note.value; };
-  host.querySelector(".bc-done").onclick  = ()=>bcDone(reportId);
-  host.querySelector(".bc-later").onclick = ()=>bcLater(reportId);
+  if(note) note.oninput = ()=>{
+    window.__bc.note = note.value;
+    if(window.__bc.noteTimer) clearTimeout(window.__bc.noteTimer);
+    window.__bc.noteTimer = setTimeout(()=>commitAsk(reportId), 700);   // debounce keystrokes
+  };
 }
 
-function bcCalm(){
-  const host = $("between-calls");
-  if(host) host.innerHTML = '<div class="bc-wrap"><div class="bc-calm"><div class="bc-calm-h">'+esc(BC_CALM_H)+
-    '</div><div class="bc-calm-b">'+esc(BC_CALM_B)+'</div></div></div>';
-}
-// Kick the worker to claim the now-claimable interpretation row NOW (service-role edge fn), rather
-// than waiting up to a cron tick. Best-effort — correctness never depends on it (cron drains, and
-// commit_between_calls already flipped not_before in-transaction).
-function bcKickWorker(reportId){
-  try{ sb.functions.invoke("release-between-calls", { body:{ report_id: reportId } }).catch(()=>{}); }catch(_){}
-}
-async function bcDone(reportId){
-  if(!window.__bc || window.__bc.state !== "active") return;
-  window.__bc.state = "committed";
-  if(window.__bc.timer) clearTimeout(window.__bc.timer);
-  const supp = [...window.__bc.supplements];                 // excludes biotin (confounder path)
-  const note = (window.__bc.note || "").trim().slice(0,500);
-  bcCalm();
-  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); }catch(_){}
-  bcKickWorker(reportId);
-}
-async function bcLater(reportId){
-  if(!window.__bc || window.__bc.state !== "active") return;
-  window.__bc.state = "committed";
-  if(window.__bc.timer) clearTimeout(window.__bc.timer);
-  bcCalm();
-  // null supplements/note -> commit_between_calls only opens the window (never clobbers a prior value).
-  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: null, p_context_note: null }); }catch(_){}
-  bcKickWorker(reportId);
-}
-async function bcTimeout(reportId){
-  if(!window.__bc || window.__bc.state !== "active") return;
-  window.__bc.state = "timedout";
-  bcCalm();
-  // The server-side 90s window has elapsed; the row is (or is about to be) claimable on its own. Send
-  // any optional context she DID select as best-effort — if the worker already claimed, it lands but
-  // is simply not read (never worse than no answer). Confounders are already durable per tap.
-  const supp = [...window.__bc.supplements];
-  const note = (window.__bc.note || "").trim().slice(0,500);
-  try{ await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp.length?supp:null, p_context_note: note || null }); }catch(_){}
-  bcKickWorker(reportId);
-}
 
 // ── COVERAGE GAP ("Worth exploring over time") ────────────────────────────
 // Renders payload.coverage_gap: marker_ids in the 132-id Intelligence Basic
