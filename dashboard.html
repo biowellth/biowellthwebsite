@@ -29,6 +29,20 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
 .topbar-right{display:flex;align-items:center;gap:6px}
 .btn-ghost{font-size:13px;color:var(--brown-mid);font-weight:600;padding:8px 14px;border-radius:100px}
+/* Account deletion (audit H1): discreet link + strong typed-confirm modal (not a primary button). */
+.del-link{font-size:12px;color:var(--coral-dark);opacity:.7}
+.del-link:hover{opacity:1}
+.del-modal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(71,55,43,.45)}
+.del-card{background:var(--white);border:1px solid var(--brown-light);border-radius:18px;padding:26px 24px;max-width:440px;width:100%;box-shadow:0 30px 80px -20px rgba(71,55,43,.4)}
+.del-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:12px}
+.del-body{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-bottom:12px}
+.del-input{width:100%;font-family:inherit;font-size:15px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:11px;padding:11px 14px;letter-spacing:.08em}
+.del-input:focus{outline:none;border-color:var(--coral)}
+.del-msg{font-size:13px;line-height:1.5;margin-top:12px;min-height:1px}
+.del-msg.err{color:var(--coral-dark)}
+.del-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.del-confirm{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--coral-dark);border:none;border-radius:100px;padding:10px 20px;cursor:pointer}
+.del-confirm:disabled{opacity:.45;cursor:not-allowed}
 .btn-ghost:hover{background:var(--cream);color:var(--brown)}
 .report-picker{font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:7px 30px 7px 14px;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B5047' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .report-picker:hover{color:var(--brown);border-color:var(--brown-mid)}
@@ -668,6 +682,23 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <select class="report-picker hidden" id="report-picker" title="Switch between your panels"></select>
       <button class="btn-ghost hidden" id="btn-new">New upload</button>
       <button class="btn-ghost" id="logout">Sign out</button>
+      <button class="btn-ghost del-link" id="del-account">Delete account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account deletion (security audit H1): self-serve, typed-confirm, calls the delete-account edge fn
+     (purges storage PDFs then cascades the DB). Static text only, no interpolation. -->
+<div class="del-modal hidden" id="del-modal" role="dialog" aria-modal="true" aria-labelledby="del-h">
+  <div class="del-card">
+    <h2 class="del-h" id="del-h">Delete your account</h2>
+    <p class="del-body">This permanently removes your account, every blood report you uploaded, your extracted results, and your profile. Your report PDFs are deleted from our storage too. This cannot be undone.</p>
+    <p class="del-body">Type <strong>DELETE</strong> to confirm.</p>
+    <input class="del-input" id="del-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="DELETE"/>
+    <div class="del-msg" id="del-msg"></div>
+    <div class="del-actions">
+      <button class="btn-ghost" id="del-cancel">Cancel</button>
+      <button class="del-confirm" id="del-confirm" disabled>Delete everything</button>
     </div>
   </div>
 </div>
@@ -1098,6 +1129,36 @@ async function onbSave(){
 })();
 
 $("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
+
+// Account deletion (audit H1). Opens a typed-confirm modal; on confirm calls the delete-account edge
+// fn (self-only, JWT-derived uid — no id is passed), which purges the user's storage PDFs then deletes
+// the auth user (DB cascade clears the rest). Success -> sign out + back to login. A failure/abort NEVER
+// silently succeeds: nothing was changed and we say so.
+$("del-account").onclick = ()=>{
+  $("del-input").value = ""; $("del-confirm").disabled = true;
+  $("del-msg").textContent = ""; $("del-msg").className = "del-msg";
+  $("del-modal").classList.remove("hidden");
+  $("del-input").focus();
+};
+$("del-cancel").onclick = ()=> $("del-modal").classList.add("hidden");
+$("del-input").oninput = ()=>{ $("del-confirm").disabled = ($("del-input").value.trim() !== "DELETE"); };
+$("del-confirm").onclick = async ()=>{
+  if($("del-input").value.trim() !== "DELETE") return;
+  const btn = $("del-confirm");
+  btn.disabled = true; btn.textContent = "Deleting…";
+  $("del-msg").textContent = ""; $("del-msg").className = "del-msg";
+  try{
+    // JWT auto-attached by the client; the function reads the caller from it, no body param.
+    const { data, error } = await sb.functions.invoke("delete-account");
+    if(error || !data || data.ok === false) throw new Error("delete failed");
+    await sb.auth.signOut();
+    location.replace("/login.html");
+  }catch(_){
+    btn.disabled = false; btn.textContent = "Delete everything";
+    $("del-msg").className = "del-msg err";
+    $("del-msg").textContent = "We could not complete deletion. Nothing was changed. Please email support@mybiowellth.com and we will finish it.";
+  }
+};
 $("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); showView("upload"); };
 $("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
 // Logo returns the user to their dashboard home. Wired once here, not per render.
