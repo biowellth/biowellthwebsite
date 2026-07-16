@@ -1420,7 +1420,9 @@ function renderConfounderAsk(reportId){
   // Build once per report. Poll re-renders of the processing screen must not wipe her taps/typed note.
   if(window.__bc && window.__bc.reportId === reportId && window.__bc.built) return;
   const preSupp = new Set(Array.isArray(PROFILE.supplements) ? PROFILE.supplements : []);
-  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:(PROFILE.context_note || ""), noteTimer:null };
+  // seq/blockSeq = latest-tap tokens: only the RPC of the LATEST tap is allowed to write the saved
+  // indicator, so an earlier-tapped-later-resolving call can never confirm "saved" against a stale value.
+  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:(PROFILE.context_note || ""), noteTimer:null, seq:{}, blockSeq:0 };
   buildBcForm(reportId);
 }
 // Persist the optional tier (supplements[] + free text) per-change via the EXISTING atomic RPC. The
@@ -1431,11 +1433,12 @@ async function commitAsk(reportId){
   const supp = [...window.__bc.supplements];
   const note = (window.__bc.note || "").trim().slice(0,500);
   const blk = document.getElementById("bc-saved-block");
+  const mySeq = ++window.__bc.blockSeq;           // latest optional-tier action owns the block indicator
   bcSetSaved(blk, 'clear');                       // in-flight -> no claim of "saved" yet
   let error = null;
   try{ const r = await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); error = r && r.error; }
   catch(e){ error = e; }
-  bcSetSaved(blk, error ? 'error' : 'saved');     // truth: saved only after the RPC resolved clean
+  if(window.__bc.blockSeq === mySeq) bcSetSaved(blk, error ? 'error' : 'saved');   // stale resolves never write it
 }
 
 function buildBcForm(reportId){
@@ -1486,11 +1489,12 @@ function buildBcForm(reportId){
       PROFILE.confounders = Object.assign({}, PROFILE.confounders||{}, { [key]: value });
       // Saved state keyed to the RPC, never the tap: clear in-flight, then confirm only on clean resolve.
       const savedEl = host.querySelector('.bc-saved[data-savefor="'+CSS.escape(key)+'"]');
+      const mySeq = (window.__bc.seq[key] = (window.__bc.seq[key]||0) + 1);   // latest tap for THIS question
       bcSetSaved(savedEl, 'clear');
       let error = null;
       try{ const r = await sb.rpc("set_confounder", { p_key:key, p_value:value }); error = r && r.error; }
       catch(e){ error = e; }
-      bcSetSaved(savedEl, error ? 'error' : 'saved');
+      if(window.__bc.seq[key] === mySeq) bcSetSaved(savedEl, error ? 'error' : 'saved');   // superseded taps never write it
     };
   });
   // Supplement toggles. Biotin routes to the confounder path; "none of these" is exclusive.
@@ -1502,11 +1506,13 @@ function buildBcForm(reportId){
       if(btn.getAttribute("data-confounder")){
         // Biotin -> confounder path ONLY (never the supplements[] context array). Block indicator.
         btn.classList.toggle("sel", on);
-        const blk = host.querySelector('#bc-saved-block'); bcSetSaved(blk, 'clear');
+        const blk = host.querySelector('#bc-saved-block');
+        const mySeq = ++window.__bc.blockSeq;         // shares the block token with commitAsk
+        bcSetSaved(blk, 'clear');
         let error = null;
         try{ const r = await sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value: on ? true : false }); error = r && r.error; }
         catch(e){ error = e; }
-        bcSetSaved(blk, error ? 'error' : 'saved');
+        if(window.__bc.blockSeq === mySeq) bcSetSaved(blk, error ? 'error' : 'saved');
         return;
       }
       if(btn.getAttribute("data-sentinel")){
