@@ -127,6 +127,14 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bc-note-l{font-size:11.5px;color:var(--brown-mid);margin:12px 0 5px}
 .bc-note{width:100%;font-family:inherit;font-size:12.5px;color:var(--brown);background:transparent;border:none;border-bottom:1px solid var(--brown-light);padding:5px 2px}
 .bc-note:focus{outline:none;border-bottom-color:var(--teal)}
+/* Save-state feedback (per-answer + block + persistent bottom line). No submit button. */
+.bc-saved{font-size:11.5px;font-weight:600;margin-left:auto;align-self:center;white-space:nowrap}
+.bc-saved.is-saved{color:var(--teal-dark)}
+.bc-saved.is-saved::before{content:"\2713 "}
+.bc-saved.is-error{color:var(--coral-dark)}
+.bc-extra-foot{display:flex;justify-content:flex-end;min-height:15px;margin-top:8px}
+.bc-bottom{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--brown-mid);border-top:1px solid var(--brown-light);margin-top:14px;padding-top:12px}
+.bc-bottom::before{content:"\2713";color:var(--teal-dark);font-weight:700}
 .bc-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 2px 10px}
 .bc-later{font-family:inherit;font-size:13px;color:var(--brown-mid);text-decoration:underline;background:none;border:none;cursor:pointer}
 .bc-done{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--teal);border-radius:100px;padding:10px 26px;cursor:pointer}
@@ -1388,6 +1396,17 @@ const BC_SUPPLEMENTS = [
   { v: "hormonal contraception or HRT",  label: "Contraception or HRT" },
   { v: "none of these", label: "None of these", sentinel: true },
 ];
+// Save-feedback copy (SIGNED docs/biowellth-between-calls-copy-SIGNED.md). "saved" is a claim on the
+// screen, so it is set ONLY after the commit RPC resolves error-free — never optimistic, never on tap.
+const BC_SAVED = "saved";
+const BC_UNSAVED = "not saved, tap again";
+const BC_BOTTOM = "Saved as you answer. Nothing to submit.";
+function bcSetSaved(el, state){   // 'saved' | 'error' | 'clear' (in-flight / unanswered)
+  if(!el) return;
+  if(state==='saved'){ el.textContent = BC_SAVED; el.className = 'bc-saved is-saved'; }
+  else if(state==='error'){ el.textContent = BC_UNSAVED; el.className = 'bc-saved is-error'; }
+  else { el.textContent = ''; el.className = 'bc-saved'; }
+}
 
 // Module state, keyed to the current report so it survives poll re-renders.
 window.__bc = window.__bc || null;
@@ -1401,17 +1420,22 @@ function renderConfounderAsk(reportId){
   // Build once per report. Poll re-renders of the processing screen must not wipe her taps/typed note.
   if(window.__bc && window.__bc.reportId === reportId && window.__bc.built) return;
   const preSupp = new Set(Array.isArray(PROFILE.supplements) ? PROFILE.supplements : []);
-  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:"", noteTimer:null };
+  window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:(PROFILE.context_note || ""), noteTimer:null };
   buildBcForm(reportId);
 }
 // Persist the optional tier (supplements[] + free text) per-change via the EXISTING atomic RPC. The
 // four confounders + biotin are already durable per-tap via set_confounder. commit_between_calls writes
 // profiles scoped to auth.uid() (committed-before-claim); its not_before flip is a harmless no-op during
 // Call A because the interpretation row does not exist yet.
-function commitAsk(reportId){
+async function commitAsk(reportId){
   const supp = [...window.__bc.supplements];
   const note = (window.__bc.note || "").trim().slice(0,500);
-  try{ sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); }catch(_){}
+  const blk = document.getElementById("bc-saved-block");
+  bcSetSaved(blk, 'clear');                       // in-flight -> no claim of "saved" yet
+  let error = null;
+  try{ const r = await sb.rpc("commit_between_calls", { p_report_id: reportId, p_supplements: supp, p_context_note: note || null }); error = r && r.error; }
+  catch(e){ error = e; }
+  bcSetSaved(blk, error ? 'error' : 'saved');     // truth: saved only after the RPC resolved clean
 }
 
 function buildBcForm(reportId){
@@ -1425,6 +1449,7 @@ function buildBcForm(reportId){
       '<button type="button" class="bc-opt'+(isSel?' sel':'')+'" data-key="'+esc(c.key)+'" data-val="'+token+'">'+esc(label)+'</button>';
     qs += '<div class="bc-q" data-qkey="'+esc(c.key)+'"><div class="bc-q-t">'+esc(c.q)+'</div><div class="bc-opts">'+
       opt("Yes","yes", has && val===true) + opt("No","no", has && val===false) + opt("Not sure","unsure", has && val===null) +
+      '<span class="bc-saved" data-savefor="'+esc(c.key)+'"></span>'+
       '</div></div>';
   });
   const preBiotin = conf.biotin_supplementation === true;
@@ -1445,31 +1470,43 @@ function buildBcForm(reportId){
           '<div class="bc-supp">'+sp+'</div>'+
           '<div class="bc-note-l">Anything else you take regularly? (optional)</div>'+
           '<input class="bc-note" type="text" maxlength="500" placeholder="A brand or medicine name is fine"/>'+
+          '<div class="bc-extra-foot"><span class="bc-saved" id="bc-saved-block"></span></div>'+
         '</div>'+
+        '<div class="bc-bottom">'+esc(BC_BOTTOM)+'</div>'+
       '</div>'+
     '</div>';
   // Confounder taps (per-tap set_confounder; select this option, clear siblings).
   host.querySelectorAll(".bc-opt").forEach(btn=>{
-    btn.onclick = ()=>{
+    btn.onclick = async ()=>{
       if(window.__bc.state !== "active") return;
       const key = btn.getAttribute("data-key"), tok = btn.getAttribute("data-val");
       const value = tok === "yes" ? true : tok === "no" ? false : null;
       btn.closest(".bc-q").querySelectorAll(".bc-opt").forEach(b=>b.classList.remove("sel"));
       btn.classList.add("sel");
       PROFILE.confounders = Object.assign({}, PROFILE.confounders||{}, { [key]: value });
-      try{ sb.rpc("set_confounder", { p_key:key, p_value:value }); }catch(_){}
+      // Saved state keyed to the RPC, never the tap: clear in-flight, then confirm only on clean resolve.
+      const savedEl = host.querySelector('.bc-saved[data-savefor="'+CSS.escape(key)+'"]');
+      bcSetSaved(savedEl, 'clear');
+      let error = null;
+      try{ const r = await sb.rpc("set_confounder", { p_key:key, p_value:value }); error = r && r.error; }
+      catch(e){ error = e; }
+      bcSetSaved(savedEl, error ? 'error' : 'saved');
     };
   });
   // Supplement toggles. Biotin routes to the confounder path; "none of these" is exclusive.
   host.querySelectorAll(".bc-sp").forEach(btn=>{
-    btn.onclick = ()=>{
+    btn.onclick = async ()=>{
       if(window.__bc.state !== "active") return;
       const v = btn.getAttribute("data-v");
       const on = !btn.classList.contains("sel");
       if(btn.getAttribute("data-confounder")){
-        // Biotin -> confounder path ONLY (never the supplements[] context array).
+        // Biotin -> confounder path ONLY (never the supplements[] context array). Block indicator.
         btn.classList.toggle("sel", on);
-        try{ sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value: on ? true : false }); }catch(_){}
+        const blk = host.querySelector('#bc-saved-block'); bcSetSaved(blk, 'clear');
+        let error = null;
+        try{ const r = await sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value: on ? true : false }); error = r && r.error; }
+        catch(e){ error = e; }
+        bcSetSaved(blk, error ? 'error' : 'saved');
         return;
       }
       if(btn.getAttribute("data-sentinel")){
@@ -1497,11 +1534,24 @@ function buildBcForm(reportId){
     };
   });
   const note = host.querySelector(".bc-note");
-  if(note) note.oninput = ()=>{
-    window.__bc.note = note.value;
-    if(window.__bc.noteTimer) clearTimeout(window.__bc.noteTimer);
-    window.__bc.noteTimer = setTimeout(()=>commitAsk(reportId), 700);   // debounce keystrokes
-  };
+  if(note){
+    note.value = window.__bc.note || "";                 // pre-fill a returning note
+    note.oninput = ()=>{
+      window.__bc.note = note.value;
+      if(window.__bc.noteTimer) clearTimeout(window.__bc.noteTimer);
+      window.__bc.noteTimer = setTimeout(()=>commitAsk(reportId), 700);   // debounce keystrokes; commitAsk sets the block indicator on resolve
+    };
+  }
+  // Pre-committed answers (already in PROFILE) render as SAVED, so a returning/re-rendered screen
+  // reflects committed truth, not a blank slate.
+  BC_CONFOUNDERS.forEach(c=>{
+    if(Object.prototype.hasOwnProperty.call(conf, c.key)){
+      bcSetSaved(host.querySelector('.bc-saved[data-savefor="'+CSS.escape(c.key)+'"]'), 'saved');
+    }
+  });
+  if(window.__bc.supplements.size > 0 || preBiotin || (window.__bc.note && window.__bc.note.trim())){
+    bcSetSaved(host.querySelector('#bc-saved-block'), 'saved');
+  }
 }
 
 
