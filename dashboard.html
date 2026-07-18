@@ -892,6 +892,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div id="prios"></div>
     </div>
 
+    <div id="amh-beat-wrap" class="hidden">
+      <div class="section-label acc-teal">One hormone we could read now</div>
+      <div id="amh-beat"></div>
+    </div>
+
     <div id="escalated-wrap" class="hidden">
       <div class="section-label acc-teal">Worth keeping an eye on</div>
       <div id="escalated"></div>
@@ -2162,6 +2167,32 @@ async function onConfounderTap(confounder_id, ans, card, reportId){
   }
   await renderDashboard(fresh || window.__rdPayload, reportId);
 }
+// AMH reveal beat (PCOS safety, Option B). Deterministic from the engine's AMH band, ONLY when
+// flagged (amh_high_pcos = >5 PCOS-pattern, deficient = <0.5 low reserve). AMH is cycle-independent
+// and its system is deferred, so this is the AUTOMATIC surface that Call B cannot give. Reuses the
+// existing .esc-card style. Non-diagnostic, never "you have PCOS". Nothing renders when not flagged.
+function amhBeatCard(p){
+  const m = reportAmhMarker(p);
+  if(!m) return "";
+  const band = String(m.band||"").toLowerCase();
+  let body;
+  if(band==="amh_high_pcos"){
+    body = "Your AMH is elevated. This can be part of a PCOS pattern and is worth discussing with your doctor. Your other sex hormones still need a cycle day to read.";
+  } else if(band==="deficient"){
+    body = "Your AMH is low. This can reflect lower ovarian reserve and is worth discussing. AMH naturally declines with age, so it is read against your age.";
+  } else {
+    return "";
+  }
+  return '<div class="esc-card"><div class="esc-text">'+esc(body)+'</div></div>';
+}
+function renderAmhBeat(p){
+  const wrap = $("amh-beat-wrap"), host = $("amh-beat");
+  if(!wrap || !host) return;
+  const card = amhBeatCard(p);
+  if(!card){ wrap.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.innerHTML = card;
+  wrap.classList.remove("hidden");
+}
 function renderEscalated(p){
   const wrap = $("escalated-wrap"), host = $("escalated");
   const es = Array.isArray(p.escalated_soft) ? p.escalated_soft : [];
@@ -2346,8 +2377,14 @@ function reportDeferredNote(p){
   const deferred = Array.isArray(v.deferred) ? v.deferred : [];
   if(!deferred.length) return "";
   const reasons = (v.deferred_reasons && typeof v.deferred_reasons==="object") ? v.deferred_reasons : {};
+  // AMH carve-out (PCOS fix): AMH is cycle-INDEPENDENT. If sex_hormones is deferred but AMH within
+  // it was actually read (has a band), the note must NOT claim the whole system was unscored.
+  // Acknowledge AMH, defer only the rest. AMH-specific; the cycle-gated hormones stay deferred.
+  const amh = reportAmhMarker(p);
+  const amhInSxh = !!(amh && amh.band != null) && deferred.includes("sex_hormones");
   const byReason = {}, noReason = [];
   deferred.forEach(sysId=>{
+    if(sysId==="sex_hormones" && amhInSxh) return;   // handled by the AMH clause below
     const code = reasons[sysId];
     if(code && REPORT_DEFER_REASON[code]) (byReason[code]=byReason[code]||[]).push(sysId);
     else noReason.push(sysId);
@@ -2361,8 +2398,17 @@ function reportDeferredNote(p){
     const names = noReason.map(s=>reportSysName(p,s));
     clauses.push(reportJoinNames(names)+" "+(names.length>1?"were":"was")+" not scored yet because "+(names.length>1?"they need":"it needs")+" more information to read correctly.");
   }
-  return '<div class="report-note"><strong>Not yet interpreted.</strong> '+esc(clauses.join(" "))+
-    ' These are not missing and not a concern. They simply need the right conditions before we can read them.</div>';
+  const amhClause = amhInSxh ? "We could read your AMH. The rest of your sex hormones still need a cycle day to read." : "";
+  if(!clauses.length && !amhClause) return "";
+  let inner;
+  if(clauses.length){
+    inner = '<strong>Not yet interpreted.</strong> '+esc(clauses.join(" "))+
+      ' These are not missing and not a concern. They simply need the right conditions before we can read them.'+
+      (amhClause ? ' '+esc(amhClause) : '');
+  } else {
+    inner = esc(amhClause);
+  }
+  return '<div class="report-note">'+inner+'</div>';
 }
 
 // Honesty guard: never reinforce a "quietly working" strength for a system the engine
@@ -2430,7 +2476,9 @@ function reportS1(p){
   if(qw.length){
     const more = qw.length>1 ? (" "+(qw.length-1)+" more system"+(qw.length-1===1?" is":"s are")+" quietly steady too.") : "";
     items.push(reportProse(qw[0].finding || "Several systems are quietly doing well.")+more);
-  } else if(!pr.length && !suppressed){
+  } else if(!pr.length && !suppressed && !reportAmhFlagged(p)){
+    // Guard: a flagged AMH (cycle-independent, no priority card because sex_hormones is deferred)
+    // means the panel IS asking for attention, so never claim "nothing" — S5 raises the AMH point.
     items.push("Nothing in this panel is asking for your attention right now. Your readings sit within the ranges we would want to see.");
   }
 
@@ -2514,6 +2562,38 @@ function reportGapList(p){
 // S5 — Provider discussion points. Deterministic: each priority (headline + the_connection
 // + action_layer.primary_lever, framed "consider discussing") plus the coverage_gap
 // consider-testing list. Never prescriptive.
+// Deterministic AMH provider-discussion point (PCOS safety, Option B). AMH is cycle-independent
+// and its system (sex_hormones) is deferred for a menstruating user, so Call B never priority-
+// surfaces it. This adds the point deterministically from the engine's own band, never diagnostic.
+// amh_high_pcos = >5 PCOS-pattern; deficient = <0.5 low reserve. optimal/watch -> no point (the
+// dashboard read carries the age caveat via MEASURED_EXPLAIN). Flags stand regardless of age.
+function reportAmhMarker(p){
+  for(const s of (Array.isArray(p.systems)?p.systems:[]))
+    for(const m of (Array.isArray(s.markers)?s.markers:[]))
+      if(m && m.marker_id==="amh") return m;
+  return null;
+}
+// AMH is flagged when the engine gave it a PCOS-high (amh_high_pcos) or low-reserve (deficient) band.
+function reportAmhFlagged(p){
+  const m = reportAmhMarker(p);
+  return !!(m && ["amh_high_pcos","deficient"].includes(String(m.band||"").toLowerCase()));
+}
+function reportAmhPoint(p){
+  const m = reportAmhMarker(p);
+  if(!m) return "";
+  const band = String(m.band||"").toLowerCase();
+  let body;
+  if(band==="amh_high_pcos"){
+    body = "AMH is elevated, which can be part of a PCOS pattern. Worth discussing with your doctor.";
+  } else if(band==="deficient"){
+    body = "AMH is low, which can reflect lower ovarian reserve. Worth discussing. AMH naturally declines with age, so read this against your age.";
+  } else {
+    return "";
+  }
+  return '<div class="report-item"><div class="report-item-h"><span>'+esc(markerName(m))+'</span>'+
+    '<span class="report-tag routine">Consider raising</span></div>'+
+    '<div class="report-item-body"><p>'+esc(body)+'</p></div></div>';
+}
 function reportS5(p){
   const pr = Array.isArray(p.priorities) ? p.priorities : [];
   let html = '<div class="report-sec"><div class="report-sec-h">Provider discussion points</div>'+
@@ -2531,6 +2611,8 @@ function reportS5(p){
     points.push('<div class="report-item"><div class="report-item-h"><span>'+reportProse(x.headline)+'</span>'+tag+'</div>'+
       (why?'<div class="report-item-body"><p>'+why+'</p></div>':'')+'</div>');
   });
+  const amhPt = reportAmhPoint(p);
+  if(amhPt) points.push(amhPt);
   html += points.join("");
   const gap = reportGapList(p);
   html += gap;
@@ -2943,6 +3025,7 @@ async function renderDashboard(p, reportId){
   // Clarify chip (companion ask, above priorities) + escalated_soft reveal (calm block below).
   // Deploy D2. Chip suppressed once the answer is persisted (profile.supp_*).
   renderClarify(reportId);
+  renderAmhBeat(p);
   renderEscalated(p);
 
   // Copy-safety: route the dashboard "What's already strong" beat through the shared
@@ -3903,6 +3986,17 @@ function cardStatus(s){
     return outHigh
       ? { cls: "s-flag", word: "Worth discussing", color: ST_COLOR["s-flag"] }
       : { cls: "s-none", word: "Tested", color: ST_COLOR["s-none"] };
+  }
+  if(s && s.system_id === "sex_hormones"){
+    // AMH is cycle-INDEPENDENT, so a flagged AMH surfaces on the body map even while the
+    // cycle-gated hormones (progesterone/estradiol/lh/fsh/etc) stay honestly deferred and the
+    // system status is null. Mirrors the heavy_metals marker-band override. AMH-SPECIFIC: only
+    // AMH's flag bands (amh_high_pcos = >5 PCOS signal, deficient = <0.5 low reserve) flip the
+    // chip. No other sex hormone flips it, so the deferred cycle hormones stay honestly unread.
+    const amh = Array.isArray(s.markers) ? s.markers.find(m => m && m.marker_id === "amh") : null;
+    if(amh && ["amh_high_pcos","deficient"].includes(String(amh.band||"").toLowerCase())){
+      return { cls: "s-flag", word: "Worth discussing", color: ST_COLOR["s-flag"] };
+    }
   }
   return { cls: st.cls, word: (BES_WORD[st.cls] || st.label), color: ST_COLOR[st.cls] };
 }
