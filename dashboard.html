@@ -2305,16 +2305,34 @@ function reportNum(x){
 }
 // Human name for a re-test marker whether it arrives as an id string or a marker object.
 function reportMarkerName(m){ return (typeof m==="string") ? markerName({marker_id:m}) : markerName(m); }
-// Honest coverage COUNT (never a % of a library). Prefer the deterministic
-// coverage_gap.tested_count (union across the user's live panels); fall back to
-// distinct engine markers on this panel when coverage_gap is absent (older payloads).
+// A marker is SCORED (actually read against a functional range) iff the engine gave it a
+// real band AND its status is not a not-read / neutralized / reference sentinel.
+// no_value/unknown_unit/not_scored/cycle_gated/reference_only carry a null band;
+// supplement_high/life_stage_reference carry a band but are neutralized reference reads,
+// not a functional-range read of the value, so they do NOT count.
+const REPORT_NOT_SCORED_STATUS = new Set([
+  "no_value","unknown_unit","not_scored","cycle_gated","reference_only",
+  "supplement_high","life_stage_reference",
+]);
+function reportMarkerScored(m){
+  if(!m || m.band == null) return false;                 // no band -> never read against a range
+  return !REPORT_NOT_SCORED_STATUS.has(String(m.status||"").toLowerCase());
+}
+// Honest coverage COUNT (never a % of a library, never cross-panel): distinct markers in
+// THIS panel that were actually read against a functional range. Deliberately NOT
+// coverage_gap.tested_count, which counts marker SLOTS that merely appeared, unions every
+// live panel the user has, and includes unreadable markers. Also returns `unread` = distinct
+// markers that arrived but could not be read (no_value + unknown_unit) for the honesty line.
 function reportCoverageCount(p){
-  const cg = p && p.coverage_gap;
-  if(cg && typeof cg.tested_count === "number" && cg.tested_count>0) return { n: cg.tested_count, cross: true };
-  const ids = new Set();
+  const scored = new Set(), unread = new Set();
   for(const s of (Array.isArray(p.systems)?p.systems:[]))
-    for(const m of (Array.isArray(s.markers)?s.markers:[])) if(m && m.marker_id) ids.add(m.marker_id);
-  return { n: ids.size, cross: false };
+    for(const m of (Array.isArray(s.markers)?s.markers:[])){
+      if(!m || !m.marker_id) continue;
+      if(reportMarkerScored(m)){ scored.add(m.marker_id); continue; }
+      const st = String(m.status||"").toLowerCase();
+      if(st==="no_value" || st==="unknown_unit") unread.add(m.marker_id);
+    }
+  return { n: scored.size, unread: unread.size };
 }
 function fmtDrawDate(d){
   if(!d) return "";
@@ -2384,9 +2402,16 @@ function reportS1(p){
     const bandPart = band
       ? ("Your overall reading is <span class=\"report-band\">"+esc(band)+"</span>"+(score!==null?(", a composite of "+score+" out of 100"):"")+". ")
       : "";
-    const from = cov.cross ? "across your results" : "from this panel";
-    const covPart = "We read "+cov.n+" of your markers "+from+" against functional ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
-    lead = bandPart+covPart;
+    const covPart = "We read "+cov.n+" of your markers from this panel against functional health ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
+    // Honesty line: markers that arrived but could not be read (no value / no confirmed unit).
+    // Factual, non-alarmist; pre-empts "why is marker X not in my report". Cycle-gated and
+    // reference-only markers are NOT counted here (they are deferred / shown honestly elsewhere).
+    let unreadPart = "";
+    if(cov.unread > 0){
+      const one = cov.unread === 1;
+      unreadPart = " A further "+cov.unread+" marker"+(one?"":"s")+" arrived without a clear value or unit and "+(one?"was":"were")+" not read.";
+    }
+    lead = bandPart+covPart+unreadPart;
   }
 
   // Bullets are pattern-level TOP FINDINGS. The headline is the clean standalone
