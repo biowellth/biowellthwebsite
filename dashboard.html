@@ -616,6 +616,68 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .onb-save:disabled{opacity:.6;cursor:default}
 .onb-skip{font-size:13px;color:var(--brown-mid);background:none;text-decoration:underline;text-underline-offset:3px}
 .onb-msg{font-size:13px;color:var(--coral-dark);margin-top:12px;min-height:1px}
+
+/* ── REPORT GENERATOR v1a — in-app health report + provider-ready PDF (render-only) ── */
+.report-cta-row{display:flex;justify-content:center;margin:28px 0 4px}
+.report-cta{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;color:var(--white);background:var(--teal);border:none;border-radius:100px;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:9px}
+.report-cta:hover{background:var(--teal-dark)}
+.report-cta svg{width:17px;height:17px}
+.report-view{position:fixed;inset:0;z-index:120;background:var(--cream);display:flex;flex-direction:column}
+.report-view.hidden{display:none}
+.report-bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--white);border-bottom:1px solid var(--brown-light);padding:12px 20px}
+.report-bar-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+.report-bar-btn{font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:8px 18px;cursor:pointer}
+.report-bar-btn:hover{color:var(--brown);border-color:var(--brown-mid)}
+.report-bar-btn.primary{background:var(--teal);color:var(--white);border-color:var(--teal)}
+.report-bar-btn.primary:hover{background:var(--teal-dark)}
+.report-scroll{flex:1 1 auto;overflow-y:auto;padding:28px 20px 60px}
+.report-doc{max-width:760px;margin:0 auto;background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:40px 44px;color:var(--brown)}
+.report-doc-head{border-bottom:2px solid var(--brown-light);padding-bottom:20px;margin-bottom:26px}
+.report-doc-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--brown);margin-bottom:8px}
+.report-doc-meta{font-size:13px;color:var(--brown-mid);line-height:1.75}
+.report-sec{margin-bottom:30px}
+.report-sec-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--brown-light)}
+.report-sec-sub{font-size:12.5px;color:var(--brown-mid);line-height:1.55;margin:10px 0 14px}
+.report-lead{font-size:14px;line-height:1.65;color:var(--brown);margin:12px 0 14px}
+.report-band{font-weight:700}
+.report-bullets{list-style:none;margin:0;padding:0}
+.report-bullets li{position:relative;padding-left:18px;font-size:13.5px;line-height:1.6;color:var(--brown);margin-bottom:9px}
+.report-bullets li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.report-note{background:var(--brown-soft);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--brown-mid);margin-top:14px}
+.report-note strong{color:var(--brown)}
+.report-item{border:1px solid var(--brown-light);border-radius:12px;padding:15px 17px;margin-bottom:11px}
+.report-item-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.report-item-body{font-size:13.5px;line-height:1.6;color:var(--brown)}
+.report-item-body p{margin:0 0 8px}
+.report-item-body p:last-child{margin-bottom:0}
+.report-tag{font-family:'Instrument Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:100px;white-space:nowrap}
+.report-tag.improving{background:var(--teal-light);color:var(--teal-dark)}
+.report-tag.sustained{background:var(--amber-light);color:#8A6D1F}
+.report-tag.new{background:var(--coral-light);color:var(--coral-dark)}
+.report-tag.prompt{background:var(--coral-light);color:var(--coral-dark)}
+.report-tag.routine{background:var(--brown-soft);color:var(--brown-mid)}
+.report-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.report-chip{font-size:12px;color:var(--brown-mid);background:var(--cream-mid);border-radius:100px;padding:5px 12px}
+.report-sys-group{margin-top:12px}
+.report-sys-name{font-size:12.5px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.report-sys-frame{font-size:12.5px;color:var(--brown-mid);line-height:1.55}
+.report-mono{color:var(--brown-mid)}
+.report-retest{font-size:12.5px;color:var(--teal-dark);font-weight:600;margin-top:8px}
+.report-disc{border-top:2px solid var(--brown-light);margin-top:30px;padding-top:18px;font-size:12px;line-height:1.6;color:var(--brown-mid)}
+.report-disc strong{color:var(--brown)}
+.report-print-footer{display:none}
+@media print{
+  body{visibility:visible!important;background:#fff!important}
+  body>*{display:none!important}
+  .report-view:not(.hidden){display:block!important;position:static!important;background:#fff!important}
+  .report-bar{display:none!important}
+  .report-scroll{overflow:visible!important;padding:0!important}
+  .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0 0 92px!important}
+  .report-item,.report-note{break-inside:avoid}
+  .report-sec{break-inside:avoid-page}
+  .report-print-footer{display:block!important;position:fixed;bottom:0;left:0;right:0;font-size:9.5px;line-height:1.4;color:#555;border-top:1px solid #ccc;padding:6px 10px;background:#fff;text-align:center}
+  @page{margin:14mm}
+}
 </style>
 </head>
 <body>
@@ -853,7 +915,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         <button class="gap-toggle" id="gap-toggle" type="button" aria-expanded="false">See what to test <span class="gap-chev">&rsaquo;</span></button>
         <div class="gap-detail">
           <div id="gap"></div>
-          <button id="gap-generate" class="gap-cta" type="button">Generate test request list</button>
         </div>
       </div>
     </div>
@@ -867,6 +928,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         </div>
         <div class="bes-grid" id="bes-grid"></div>
       </div>
+    </div>
+
+    <div class="report-cta-row">
+      <button class="report-cta" id="btn-report" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
+        Generate health report
+      </button>
     </div>
 
     <div class="disclaimer">
@@ -883,6 +951,21 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     <div class="sys-modal" id="sys-modal"><div class="sm-card" id="sm-card"></div></div>
   </div>
 
+</div>
+
+<!-- REPORT GENERATOR v1a — full-screen overlay, direct body child so @media print can
+     isolate it (body>* hidden, this shown). Content assembled render-only from
+     window.__rdPayload by openReport(). -->
+<div id="report-view" class="report-view hidden" role="dialog" aria-label="Your health report" aria-modal="true">
+  <div class="report-bar">
+    <button class="report-bar-btn" id="report-back" type="button">Back</button>
+    <div class="report-bar-title">Your health report</div>
+    <button class="report-bar-btn primary" id="report-print" type="button">Save as PDF</button>
+  </div>
+  <div class="report-scroll">
+    <div class="report-doc" id="report-doc"></div>
+  </div>
+  <div class="report-print-footer">This report supports conversations with your healthcare provider and is not medical advice. It is not a diagnosis.</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2097,19 +2180,6 @@ function renderEscalated(p){
 // on-screen framing logic exactly (incl. the iron_status specificity rule) so the
 // copied text never drifts from the cards. Takes the in-scope post-suppression
 // clusters only (direction-only is excluded by design). No esc()/HTML — plaintext.
-function buildGapRequestText(clusters){
-  const header = "Markers worth discussing at your next visit";
-  const intro  = "Based on my recent blood panel, here are markers that weren't tested and may be worth looking at over time. None of these suggest anything is wrong. I'd like to talk through whether any of them are relevant for me.";
-  const footer = "This list was put together with BioWellth, a wellness tool that uses functional-health ranges. It is not a diagnosis or medical advice, and your provider decides what is appropriate to test.";
-  const blocks = clusters.map(c => {
-    let framing = GAP_SYSTEM_FRAMING[c.sys] || GAP_FRAMING_DEFAULT;
-    if(c.sys === "iron_status" && c.ids.length > 1) framing = GAP_FRAMING_DEFAULT;
-    const names = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b));
-    return gapSysName(c.sys).toUpperCase() + "\n" + framing + "\n" + names.map(n => "- " + n).join("\n");
-  });
-  return [header, "", intro, "", blocks.join("\n\n"), "", footer].join("\n");
-}
-
 function renderCoverageGap(p){
   const wrap = $("gap-wrap");
   const cg = p && p.coverage_gap;
@@ -2165,24 +2235,9 @@ function renderCoverageGap(p){
     '</div>';
   }
   $("gap").innerHTML = html;
-  // Wired: copy a discussion-framed gap list (in-scope clusters only).
-  // Hidden on direction-only-only panels (no clusters); un-hidden on clustered
-  // panels because renderCoverageGap re-runs on every panel switch.
-  const cta = $("gap-generate");
-  if(cta){
-    if(clusters.length === 0){
-      cta.style.display = "none";
-    } else {
-      cta.style.display = "";
-      cta.onclick = ()=>{
-        const text = buildGapRequestText(clusters);
-        const done = ()=>{ const o = cta.textContent; cta.textContent = "Copied"; setTimeout(()=>{ cta.textContent = o; }, 2000); };
-        if(navigator.clipboard && navigator.clipboard.writeText){
-          navigator.clipboard.writeText(text).then(done).catch(()=>alert(text));
-        } else { alert(text); }
-      };
-    }
-  }
+  // The old "Generate test request list" clipboard dump was removed in Report Generator
+  // v1a; its provider-facing list is now S5 "Provider discussion points" in the full
+  // health report (openReport). The gap chips remain here as an at-a-glance dashboard teaser.
   // Whole-list collapse (Option A), mirrors the longi idiom: .open host is .gap-card;
   // reset CLOSED on each render (no persist across renders/panel switches), in-memory
   // class only (no storage), click (not hover). Only runs when the section has content
@@ -2199,6 +2254,334 @@ function renderCoverageGap(p){
   }
   wrap.classList.remove("hidden");
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// REPORT GENERATOR v1a — in-app health report + provider-ready PDF.
+// RENDER-ONLY off results.payload (window.__rdPayload): no model call, no
+// scoring, no ranges, no status re-derivation. Reuses esc / sysStatus /
+// isSuppressed / longiOverview / longiMove / markerName / gapName / gapSysName /
+// dropSuppressedQW / fmtPanelDate / firstName and the GAP_* suppression sets.
+// Sections: S1 Snapshot, S2 Longitudinal, S5 Provider points, S6 Monitoring.
+// S3 (risk clusters) and S4 (future outlook) are DEFERRED to v1b — the only
+// cluster data in the payload (cluster_patterns) is Call B synthesis, not
+// engine/system-detected, so v1a omits it per the build brief.
+// ══════════════════════════════════════════════════════════════════════════
+const REPORT_DEFER_REASON = {
+  fasting_unknown:  "these read best from a fasting draw, and we do not know whether this draw was fasting",
+  not_fasting:      "these read best from a fasting draw, and this one was not fasting",
+  cycle_day_unknown:"a single draw needs the day of your cycle to read these correctly",
+};
+const REPORT_SYS_NAME_FALLBACK = { cardiovascular:"Cardiovascular", metabolic:"Metabolic", sex_hormones:"Sex hormones" };
+
+function reportSysName(p, sysId){
+  const sys = (Array.isArray(p.systems)?p.systems:[]).find(s=>s.system_id===sysId);
+  if(sys && sys.display_name) return sys.display_name;
+  return REPORT_SYS_NAME_FALLBACK[sysId] || String(sysId||"").replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
+}
+function reportJoinNames(arr){
+  const a = arr.filter(Boolean);
+  if(!a.length) return "";
+  if(a.length===1) return a[0];
+  if(a.length===2) return a[0]+" and "+a[1];
+  return a.slice(0,-1).join(", ")+", and "+a[a.length-1];
+}
+// Model-prose cleaner for report display: drop "(Priority N …)" / "(pN)" cross-references
+// (they assume the dashboard's numbered priority cards, which the report does not show),
+// tidy whitespace, then esc() (em-dash strip + HTML escape). Mirrors the foundStrip idiom.
+function reportProse(s){
+  let t = String(s==null?"":s)
+    .replace(/\s*\((?:Priority|priority)\s*\d+[^)]*\)/g, "")
+    .replace(/\s*\(p\d+\)/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
+  return esc(t);
+}
+// Display number: strip binary-float noise (13.363299999999999 -> 13.3633) without
+// rewriting the value. Non-numbers pass through untouched. Render-only presentation.
+function reportNum(x){
+  if(typeof x !== "number" || !isFinite(x)) return x;
+  return parseFloat(x.toPrecision(6));
+}
+// Human name for a re-test marker whether it arrives as an id string or a marker object.
+function reportMarkerName(m){ return (typeof m==="string") ? markerName({marker_id:m}) : markerName(m); }
+// Honest coverage COUNT (never a % of a library). Prefer the deterministic
+// coverage_gap.tested_count (union across the user's live panels); fall back to
+// distinct engine markers on this panel when coverage_gap is absent (older payloads).
+function reportCoverageCount(p){
+  const cg = p && p.coverage_gap;
+  if(cg && typeof cg.tested_count === "number" && cg.tested_count>0) return { n: cg.tested_count, cross: true };
+  const ids = new Set();
+  for(const s of (Array.isArray(p.systems)?p.systems:[]))
+    for(const m of (Array.isArray(s.markers)?s.markers:[])) if(m && m.marker_id) ids.add(m.marker_id);
+  return { n: ids.size, cross: false };
+}
+function fmtDrawDate(d){
+  if(!d) return "";
+  const dt = new Date(d);
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"});
+}
+
+// Deferred systems render honestly (never absent, never all-clear).
+function reportDeferredNote(p){
+  const v = p.vitality || {};
+  const deferred = Array.isArray(v.deferred) ? v.deferred : [];
+  if(!deferred.length) return "";
+  const reasons = (v.deferred_reasons && typeof v.deferred_reasons==="object") ? v.deferred_reasons : {};
+  const byReason = {}, noReason = [];
+  deferred.forEach(sysId=>{
+    const code = reasons[sysId];
+    if(code && REPORT_DEFER_REASON[code]) (byReason[code]=byReason[code]||[]).push(sysId);
+    else noReason.push(sysId);
+  });
+  const clauses = [];
+  Object.keys(byReason).forEach(code=>{
+    const names = byReason[code].map(s=>reportSysName(p,s));
+    clauses.push(reportJoinNames(names)+" "+(names.length>1?"were":"was")+" not scored because "+REPORT_DEFER_REASON[code]+".");
+  });
+  if(noReason.length){
+    const names = noReason.map(s=>reportSysName(p,s));
+    clauses.push(reportJoinNames(names)+" "+(names.length>1?"were":"was")+" not scored yet because "+(names.length>1?"they need":"it needs")+" more information to read correctly.");
+  }
+  return '<div class="report-note"><strong>Not yet interpreted.</strong> '+esc(clauses.join(" "))+
+    ' These are not missing and not a concern. They simply need the right conditions before we can read them.</div>';
+}
+
+// Honesty guard: never reinforce a "quietly working" strength for a system the engine
+// DEFERRED (could not score). Otherwise S1 would both say "Metabolic was not scored"
+// and "your metabolic engine is genuinely clean" in the same breath. Drops an entry
+// only when ALL of its markers sit in deferred systems (mixed/markerless entries kept).
+// Same "all markers in set -> drop" shape as dropSuppressedQW.
+function reportDropDeferredQW(list, p){
+  const v = p.vitality || {};
+  const deferred = new Set(Array.isArray(v.deferred)?v.deferred:[]);
+  if(!deferred.size) return Array.isArray(list)?list:[];
+  const mSys = {};
+  for(const s of (Array.isArray(p.systems)?p.systems:[]))
+    for(const m of (Array.isArray(s.markers)?s.markers:[])) if(m && m.marker_id) mSys[m.marker_id]=s.system_id;
+  return (Array.isArray(list)?list:[]).filter(x=>{
+    const mk = Array.isArray(x.markers)?x.markers:[];
+    if(!mk.length) return true;                        // no markers -> can't classify -> keep
+    return !mk.every(id => deferred.has(mSys[id]));    // drop iff EVERY marker sits in a deferred system
+  });
+}
+
+// S1 — Executive snapshot. Deterministic: composite band + honest coverage count
+// + top findings from priorities (the_connection, else headline) + a positives line.
+function reportS1(p){
+  const v = p.vitality || {};
+  const suppressed = isSuppressed(v);
+  const band = (v.band && v.band.label) || null;
+  const showComposite = v.display ? v.display.show_composite !== false : true;
+  const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
+  const cov = reportCoverageCount(p);
+  const pr = Array.isArray(p.priorities) ? p.priorities : [];
+
+  let lead;
+  if(suppressed){
+    lead = "We could read some of your results but not enough to give you a full score yet. What we could read is below. A broader panel would let us give you a complete picture.";
+  } else {
+    const bandPart = band
+      ? ("Your overall reading is <span class=\"report-band\">"+esc(band)+"</span>"+(score!==null?(", a composite of "+score+" out of 100"):"")+". ")
+      : "";
+    const from = cov.cross ? "across your results" : "from this panel";
+    const covPart = "We read "+cov.n+" of your markers "+from+" against functional ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
+    lead = bandPart+covPart;
+  }
+
+  // Bullets are pattern-level TOP FINDINGS. The headline is the clean standalone
+  // statement of each finding; the_connection is mechanistic and cross-references
+  // other priorities by number (better placed in S5), so headline leads here and
+  // the_connection is only the fallback when a headline is somehow absent.
+  const items = [];
+  for(let i=0;i<Math.min(pr.length,5);i++){
+    const x = pr[i];
+    const txt = (x && typeof x.headline==="string" && x.headline.trim())
+      ? x.headline.trim()
+      : (x && typeof x.the_connection==="string" && x.the_connection.trim() ? x.the_connection.trim() : "");
+    if(txt) items.push(reportProse(txt));
+  }
+  const qw = reportDropDeferredQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p);
+  if(qw.length){
+    const more = qw.length>1 ? (" "+(qw.length-1)+" more system"+(qw.length-1===1?" is":"s are")+" quietly steady too.") : "";
+    items.push(reportProse(qw[0].finding || "Several systems are quietly doing well.")+more);
+  } else if(!pr.length && !suppressed){
+    items.push("Nothing in this panel is asking for your attention right now. Your readings sit within the ranges we would want to see.");
+  }
+
+  let html = '<div class="report-sec"><div class="report-sec-h">Snapshot</div>'+
+    '<div class="report-lead">'+lead+'</div>';
+  if(items.length) html += '<ul class="report-bullets">'+items.map(t=>'<li>'+t+'</li>').join("")+'</ul>';
+  html += reportDeferredNote(p);
+  return html+'</div>';
+}
+
+// S2 — Longitudinal patterns. From the deterministic longitudinal buckets only.
+// Report-local move string: same "prior -> current unit" shape as longiMove but with
+// reportNum() applied so binary-float noise never reaches a provider PDF.
+function reportMove(m){
+  const pv=m.prior_value, cv=m.current_value, u=m.unit?(" "+m.unit):"";
+  if(pv==null || cv==null) return "";
+  return reportNum(pv)+" → "+reportNum(cv)+u;
+}
+function reportLongiGroup(title, tag, arr, note){
+  if(!arr.length) return "";
+  return arr.map(m=>{
+    const move = reportMove(m);
+    return '<div class="report-item"><div class="report-item-h"><span>'+esc(markerName(m))+'</span>'+
+      '<span class="report-tag '+tag+'">'+esc(title)+'</span></div>'+
+      '<div class="report-item-body report-mono">'+(move?esc(move)+". ":"")+esc(note)+'.</div></div>';
+  }).join("");
+}
+function reportS2(p){
+  const L = p && p.longitudinal;
+  const resolved = (L && Array.isArray(L.resolved)) ? L.resolved : [];
+  const open     = (L && Array.isArray(L.persistent_open)) ? L.persistent_open : [];
+  const crossed  = (L && Array.isArray(L.newly_crossed)) ? L.newly_crossed : [];
+  let html = '<div class="report-sec"><div class="report-sec-h">Longitudinal patterns</div>';
+  if(!L || (resolved.length+open.length+crossed.length)===0){
+    return html+'<div class="report-lead">This report is a single snapshot. There is no earlier panel to compare it against yet, so we cannot show a direction of travel. When you test again, this section will show what changed and which way it moved.</div></div>';
+  }
+  html += '<div class="report-sec-sub">Compared against your '+esc(fmtPanelDate(L.baseline_panel_date))+' panel. Each finding below is a two-point comparison between that panel and this one.</div>';
+  html += '<div class="report-lead">'+esc(longiOverview(L))+'</div>';
+  html += reportLongiGroup("Improving","improving",resolved,"came back into range");
+  html += reportLongiGroup("Sustained","sustained",open,"still worth attention across both panels");
+  html += reportLongiGroup("New since last panel","new",crossed,"crossed a line since your last panel");
+  return html+'</div>';
+}
+
+// Shared gap clustering — mirrors renderCoverageGap's suppression exactly (heavy-metals
+// system dropped, suppressed marker ids dropped, direction-only routed separately).
+function reportGapClusters(p){
+  const cg = p && p.coverage_gap;
+  if(!cg || !Array.isArray(cg.ids) || cg.ids.length===0) return { clusters:[], dirOnly:[] };
+  const dirOnly = (Array.isArray(cg.direction_only)?cg.direction_only:[]).filter(id=>!GAP_SUPPRESS_MARKERS.has(id));
+  const dirSet = new Set(dirOnly);
+  const bySys = (cg.by_system && typeof cg.by_system==="object") ? cg.by_system : {};
+  const clusters = [];
+  for(const sys of Object.keys(bySys)){
+    if(GAP_SUPPRESS_SYSTEMS.has(sys)) continue;
+    const ids = (Array.isArray(bySys[sys])?bySys[sys]:[]).filter(id=>!GAP_SUPPRESS_MARKERS.has(id) && !dirSet.has(id));
+    if(ids.length) clusters.push({ sys, ids });
+  }
+  clusters.sort((a,b)=>(b.ids.length-a.ids.length)||gapSysName(a.sys).localeCompare(gapSysName(b.sys)));
+  return { clusters, dirOnly };
+}
+function reportGapList(p){
+  const { clusters, dirOnly } = reportGapClusters(p);
+  if(!clusters.length && !dirOnly.length) return "";
+  let html = '<div class="report-item"><div class="report-item-h"><span>Markers worth considering over time</span></div>'+
+    '<div class="report-item-body"><p>These were not part of this panel. None of them means anything is wrong. They are simply what a fuller picture could include, worth keeping in mind as you test over time.</p></div></div>';
+  for(const c of clusters){
+    let framing = GAP_SYSTEM_FRAMING[c.sys] || GAP_FRAMING_DEFAULT;
+    if(c.sys==="iron_status" && c.ids.length>1) framing = GAP_FRAMING_DEFAULT;
+    const chips = c.ids.map(gapName).sort((a,b)=>a.localeCompare(b)).map(nm=>'<span class="report-chip">'+esc(nm)+'</span>').join("");
+    html += '<div class="report-sys-group"><div class="report-sys-name">'+esc(gapSysName(c.sys))+'</div>'+
+      '<div class="report-sys-frame">'+esc(framing)+'</div><div class="report-chips">'+chips+'</div></div>';
+  }
+  if(dirOnly.length){
+    const chips = dirOnly.map(gapName).sort((a,b)=>a.localeCompare(b)).map(nm=>'<span class="report-chip">'+esc(nm)+'</span>').join("");
+    html += '<div class="report-sys-group"><div class="report-sys-frame">'+esc(GAP_DIRECTION_ONLY_LINE)+'</div><div class="report-chips">'+chips+'</div></div>';
+  }
+  return html;
+}
+
+// S5 — Provider discussion points. Deterministic: each priority (headline + the_connection
+// + action_layer.primary_lever, framed "consider discussing") plus the coverage_gap
+// consider-testing list. Never prescriptive.
+function reportS5(p){
+  const pr = Array.isArray(p.priorities) ? p.priorities : [];
+  let html = '<div class="report-sec"><div class="report-sec-h">Provider discussion points</div>'+
+    '<div class="report-sec-sub">Points you may want to raise with your doctor. None of these is a prescription or a diagnosis. Your provider decides what is appropriate for you.</div>';
+  // Each point is the FINDING framed for discussion: headline + urgency + why it matters.
+  // why_this_matters is a standalone explanation (no "Priority N" cross-refs, not an
+  // instruction), so S5 stays non-prescriptive. The daily action lever lives in S6.
+  const points = [];
+  pr.forEach((x,i)=>{
+    if(!x || !x.headline) return;
+    const urg = (x.provider_followup_urgency||"").toLowerCase();
+    const tag = urg==="prompt" ? '<span class="report-tag prompt">Consider raising soon</span>'
+              : urg==="routine" ? '<span class="report-tag routine">Routine</span>' : '';
+    const why = (typeof x.why_this_matters==="string" && x.why_this_matters.trim()) ? reportProse(x.why_this_matters) : "";
+    points.push('<div class="report-item"><div class="report-item-h"><span>'+reportProse(x.headline)+'</span>'+tag+'</div>'+
+      (why?'<div class="report-item-body"><p>'+why+'</p></div>':'')+'</div>');
+  });
+  html += points.join("");
+  const gap = reportGapList(p);
+  html += gap;
+  if(!points.length && !gap){
+    html += '<div class="report-lead">Nothing additional is flagged for discussion from this panel. Your regular check-ups with your doctor remain the right place to review your health over time.</div>';
+  }
+  return html+'</div>';
+}
+
+// S6 — Monitoring strategy. Priority markers to re-test, the re-test window, and the
+// daily behavioural levers, all from action_layer.
+function reportS6(p){
+  const pr = Array.isArray(p.priorities) ? p.priorities : [];
+  let html = '<div class="report-sec"><div class="report-sec-h">Monitoring strategy</div>'+
+    '<div class="report-sec-sub">What to keep an eye on, when to re-test, and the daily levers within your control.</div>';
+  const items = [];
+  pr.forEach((x,i)=>{
+    const al = x.action_layer || {};
+    const rank = (typeof x.rank==="number"?x.rank:(i+1));
+    const retest = Array.isArray(al.retest_markers)?al.retest_markers:[];
+    const months = (typeof al.retest_in_months==="number") ? al.retest_in_months : null;
+    const windowTxt = months!=null ? ("about "+months+" month"+(months===1?"":"s")) : "6 to 12 months";
+    const levers = [al.primary_lever].concat(Array.isArray(al.supporting_levers)?al.supporting_levers:[]).filter(Boolean);
+    if(!retest.length && !levers.length && !x.headline) return;
+    const chips = retest.map(m=>{ const nm=reportMarkerName(m); return nm?'<span class="report-chip">'+esc(nm)+'</span>':''; }).join("");
+    // Levers are complete sentences; join with a space (each already carries its own
+    // terminal period, add one only if missing) so we never emit a double period.
+    const leverText = levers.map(l=>{ const s=reportProse(l); return /[.!?]$/.test(s)?s:s+"."; }).join(" ");
+    items.push('<div class="report-item"><div class="report-item-h"><span>'+reportProse(x.headline||("Priority "+rank))+'</span></div>'+
+      '<div class="report-item-body">'+
+        (leverText?'<p>'+leverText+'</p>':'')+
+        (chips?'<div class="report-chips">'+chips+'</div>':'')+
+        '<div class="report-retest">Re-test in '+esc(windowTxt)+'.</div>'+
+      '</div></div>');
+  });
+  if(!items.length){
+    html += '<div class="report-lead">There are no priority markers to actively monitor from this panel. Re-testing a broad panel every 6 to 12 months is a reasonable way to keep watch as things change over time.</div>';
+  } else {
+    html += items.join("");
+  }
+  return html+'</div>';
+}
+
+function reportDocHtml(p){
+  const fn = firstName(PROFILE && PROFILE.full_name);
+  const drawDate = p.panel_date ? fmtDrawDate(p.panel_date) : "";
+  const lab = p.lab_name || "";
+  const meta = [];
+  if(fn) meta.push("Prepared for "+esc(fn));
+  if(drawDate) meta.push("Blood draw "+esc(drawDate));
+  if(lab) meta.push("Source "+esc(lab));
+  const head = '<div class="report-doc-head"><div class="report-doc-title">Your BioWellth health report</div>'+
+    (meta.length?'<div class="report-doc-meta">'+meta.join("<br>")+'</div>':'')+'</div>';
+  const disc = '<div class="report-disc"><strong>This report is intended to support conversations with your healthcare provider and does not constitute medical advice.</strong> '+
+    'It is educational. We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.</div>';
+  return head + reportS1(p) + reportS2(p) + reportS5(p) + reportS6(p) + disc;
+}
+
+function openReport(){
+  const p = window.__rdPayload;
+  if(!p) return;
+  $("report-doc").innerHTML = reportDocHtml(p);
+  const rv = $("report-view");
+  rv.classList.remove("hidden");
+  const sc = rv.querySelector(".report-scroll"); if(sc) sc.scrollTop = 0;
+  document.body.style.overflow = "hidden";
+}
+function closeReport(){
+  $("report-view").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+(function wireReport(){
+  const b = $("btn-report"); if(b) b.onclick = openReport;
+  const bk = $("report-back"); if(bk) bk.onclick = closeReport;
+  const pt = $("report-print"); if(pt) pt.onclick = ()=>window.print();
+})();
 
 // ── STAGE 2: one-line verdict for the hero #headline ───────────────────────
 // F3 PERSONALIZATION (2026-07-14): the verdict is now WRITTEN BY Call B and names
