@@ -674,7 +674,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   .report-scroll{overflow:visible!important;padding:0!important}
   .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0 0 92px!important}
   .report-item,.report-note{break-inside:avoid}
-  .report-sec{break-inside:avoid-page}
+  .report-sec-h{break-after:avoid}
   .report-print-footer{display:block!important;position:fixed;bottom:0;left:0;right:0;font-size:9.5px;line-height:1.4;color:#555;border-top:1px solid #ccc;padding:6px 10px;background:#fff;text-align:center}
   @page{margin:14mm}
 }
@@ -2679,10 +2679,16 @@ function openReport(){
   rv.classList.remove("hidden");
   const sc = rv.querySelector(".report-scroll"); if(sc) sc.scrollTop = 0;
   document.body.style.overflow = "hidden";
+  // Real document title -> the PDF filename (also covers a manual Cmd-P). Read from the same
+  // payload fields the report renders; cache the dashboard title once so closeReport reverts it.
+  if(window.__reportPrevTitle == null) window.__reportPrevTitle = document.title;
+  const titleParts = ["BioWellth health report", firstName(PROFILE && PROFILE.full_name), fmtDrawDate(p.panel_date)].filter(Boolean);
+  document.title = titleParts.join(" — ");
 }
 function closeReport(){
   $("report-view").classList.add("hidden");
   document.body.style.overflow = "";
+  if(window.__reportPrevTitle != null){ document.title = window.__reportPrevTitle; window.__reportPrevTitle = null; }
 }
 (function wireReport(){
   const b = $("btn-report"); if(b) b.onclick = openReport;
