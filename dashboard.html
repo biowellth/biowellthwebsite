@@ -672,10 +672,22 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   .report-view:not(.hidden){display:block!important;position:static!important;background:#fff!important}
   .report-bar{display:none!important}
   .report-scroll{overflow:visible!important;padding:0!important}
-  .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0 0 92px!important}
+  /* FIX B: per-page fixed footer removed (it stays display:none in print), so no reserved bottom pad. */
+  .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0!important}
   .report-item,.report-note{break-inside:avoid}
-  .report-sec-h{break-after:avoid}
-  .report-print-footer{display:block!important;position:fixed;bottom:0;left:0;right:0;font-size:9.5px;line-height:1.4;color:#555;border-top:1px solid #ccc;padding:6px 10px;background:#fff;text-align:center}
+  /* FIX A: scale report text ~1.2x for print legibility (body -> ~12pt); print-only, size hierarchy preserved. */
+  .report-doc-title{font-size:29px!important}
+  .report-doc-meta{font-size:15.5px!important}
+  .report-sec-h{break-after:avoid;font-size:19px!important}
+  .report-sec-sub{font-size:15px!important}
+  .report-lead{font-size:17px!important}
+  .report-item-h{font-size:17px!important}
+  .report-item-body,.report-bullets li{font-size:16px!important}
+  .report-note{font-size:15.5px!important}
+  .report-chip{font-size:14.5px!important}
+  .report-tag{font-size:12px!important}
+  .report-sys-name,.report-sys-frame,.report-retest{font-size:15px!important}
+  .report-disc{font-size:14.5px!important}
   @page{margin:14mm}
 }
 </style>
