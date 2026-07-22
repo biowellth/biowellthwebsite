@@ -1525,6 +1525,12 @@ const BC_CONFOUNDERS = [
   { key: "acute_stress_within_2_weeks",   q: "Were you under unusual stress in the two weeks before this test?" },
   { key: "hard_training_within_72_hours", q: "Did you do hard exercise in the three days before this test?" },
 ];
+// The four PER-DRAW confounder keys (0013): stored per-report (reports.confounders via
+// set_report_confounder), never inherited across draws. Biotin and any standing key stay
+// profile-level (set_confounder). window.__rdReportConf holds THIS report's per-draw answers in the
+// dashboard render context (populated in renderDashboard) so chip-visibility reads the report, not
+// the profile.
+const PER_DRAW_CONFOUNDER_KEYS = new Set(BC_CONFOUNDERS.map(c => c.key));
 // Persisted values are byte-exact to the ratified Azure-aligned list (Step 0 = LOOSE SET; the six
 // shared app values are adopted verbatim, extensions in the same lowercase convention). Display
 // labels are separate. Biotin carries confounder:true; "none of these" carries sentinel:true.
@@ -1586,9 +1592,14 @@ async function commitAsk(reportId){
   if(window.__bc.blockSeq === mySeq) bcSetSaved(blk, error ? 'error' : 'saved');   // stale resolves never write it
 }
 
-function buildBcForm(reportId){
+async function buildBcForm(reportId){
   const host = $("proc-ask");
-  const conf = PROFILE.confounders || {};
+  // Per-draw confounders (0013): the four per-draw questions read from THIS report's confounders,
+  // not the profile, so a new draw renders unanswered and never inherits the prior draw's answers.
+  const { data: rrow } = await sb.from("reports").select("confounders").eq("id", reportId).maybeSingle();
+  const conf = (rrow && rrow.confounders) || {};   // per-draw source: this report
+  window.__bc.reportConf = conf;
+  const profConf = PROFILE.confounders || {};       // standing source: biotin stays profile-level
   let qs = "";
   BC_CONFOUNDERS.forEach(c=>{
     const has = Object.prototype.hasOwnProperty.call(conf, c.key);
@@ -1600,7 +1611,7 @@ function buildBcForm(reportId){
       '<span class="bc-saved" data-savefor="'+esc(c.key)+'"></span>'+
       '</div></div>';
   });
-  const preBiotin = conf.biotin_supplementation === true;
+  const preBiotin = profConf.biotin_supplementation === true;
   let sp = "";
   BC_SUPPLEMENTS.forEach(s=>{
     const sel = s.confounder ? preBiotin : window.__bc.supplements.has(s.v);
@@ -1631,13 +1642,13 @@ function buildBcForm(reportId){
       const value = tok === "yes" ? true : tok === "no" ? false : null;
       btn.closest(".bc-q").querySelectorAll(".bc-opt").forEach(b=>b.classList.remove("sel"));
       btn.classList.add("sel");
-      PROFILE.confounders = Object.assign({}, PROFILE.confounders||{}, { [key]: value });
+      window.__bc.reportConf = Object.assign({}, window.__bc.reportConf||{}, { [key]: value });   // per-draw, this report only
       // Saved state keyed to the RPC, never the tap: clear in-flight, then confirm only on clean resolve.
       const savedEl = host.querySelector('.bc-saved[data-savefor="'+CSS.escape(key)+'"]');
       const mySeq = (window.__bc.seq[key] = (window.__bc.seq[key]||0) + 1);   // latest tap for THIS question
       bcSetSaved(savedEl, 'clear');
       let error = null;
-      try{ const r = await sb.rpc("set_confounder", { p_key:key, p_value:value }); error = r && r.error; }
+      try{ const r = await sb.rpc("set_report_confounder", { p_report_id: reportId, p_key:key, p_value:value }); error = r && r.error; }
       catch(e){ error = e; }
       if(window.__bc.seq[key] === mySeq) bcSetSaved(savedEl, error ? 'error' : 'saved');   // superseded taps never write it
     };
@@ -2042,8 +2053,10 @@ function clarifyAnswered(marker_id){
 // Confounder chip answered? The signal is KEY PRESENCE in profiles.confounders (true / false /
 // null-for-not-sure all count as answered — she is never nagged). Key ABSENT = never asked -> show.
 function confounderAnswered(confounder_id){
-  const c = PROFILE.confounders;
-  return !!(c && Object.prototype.hasOwnProperty.call(c, confounder_id));
+  // Per-draw keys (0013): presence is checked on THIS report's confounders, not the profile, so a
+  // new draw never reads a prior draw's answer as "answered". Standing keys stay profile-level.
+  const c = PER_DRAW_CONFOUNDER_KEYS.has(confounder_id) ? (window.__rdReportConf || {}) : (PROFILE.confounders || {});
+  return Object.prototype.hasOwnProperty.call(c, confounder_id);
 }
 // Coverage line under the band (2026-07-13). Plain words, no ring change. COPY: completeness, not
 // score. Derives "N of your 7 areas" from the pills. Defensive: a LEGACY payload (pre-v51, no
@@ -2208,9 +2221,16 @@ async function onConfounderTap(confounder_id, ans, card, reportId){
       : "No problem. We will leave those out for now.";
   card.outerHTML = '<div class="clarify-ack">'+esc(ackMsg)+'</div>';
   // Reflect locally so the re-render suppresses the chip (key now present).
-  PROFILE.confounders = Object.assign({}, PROFILE.confounders || {}, { [confounder_id]: value });
-  // Persist via the jsonb-safe RPC (own row, whitelisted key, atomic, no clobber of other keys).
-  try{ await sb.rpc("set_confounder", { p_key: confounder_id, p_value: value }); }catch(_){}
+  // Per-draw keys (0013) persist to THIS report and reflect in the report-scoped store so the chip
+  // stays suppressed on re-render; standing keys stay on the profile. The fasting chip today is
+  // per-draw, so its rescore now reads the answer from reports.confounders where the worker looks.
+  if(PER_DRAW_CONFOUNDER_KEYS.has(confounder_id)){
+    window.__rdReportConf = Object.assign({}, window.__rdReportConf || {}, { [confounder_id]: value });
+    try{ await sb.rpc("set_report_confounder", { p_report_id: reportId, p_key: confounder_id, p_value: value }); }catch(_){}
+  } else {
+    PROFILE.confounders = Object.assign({}, PROFILE.confounders || {}, { [confounder_id]: value });
+    try{ await sb.rpc("set_confounder", { p_key: confounder_id, p_value: value }); }catch(_){}
+  }
   if(!definitive) return; // "not sure" -> answered, chip gone, systems stay deferred, no rescore.
   // Definitive -> same rescore tail as the marker chip. "yes" un-defers and completes the picture.
   const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
@@ -2890,6 +2910,10 @@ async function renderDashboard(p, reportId){
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
   window.__rdPayload = p; window.__rdReport = reportId;
+  // Per-draw confounders (0013) for THIS report — powers chip-visibility (confounderAnswered) so a
+  // per-draw answer is read from the report, not the profile. Non-fatal.
+  try{ const { data: __rc } = await sb.from("reports").select("confounders").eq("id", reportId).maybeSingle(); window.__rdReportConf = (__rc && __rc.confounders) || {}; }
+  catch(_){ window.__rdReportConf = window.__rdReportConf || {}; }
   // Stamp the library version this payload was generated against, so the
   // ranges-slim.json loader can warn if its own schema_version disagrees.
   if (p.library_schema_version) window.__LIBRARY_SCHEMA_VERSION_FROM_PAYLOAD = p.library_schema_version;
