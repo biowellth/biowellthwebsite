@@ -2077,7 +2077,7 @@ function renderCoverageLine(p){
   const scoring = names.filter(n => pills[n] && pills[n].score != null);
   const held = names.filter(n => pills[n] && pills[n].score == null);
   if(!held.length){ return hide(); }   // all areas read -> nothing to say
-  let line = "Read from " + scoring.length + " of your " + names.length + " areas.";
+  let line = "Based on " + scoring.length + " of the " + names.length + " systems behind your vitality score.";
   const rvals = Object.values(v.deferred_reasons || {});
   const fastingUnknown = rvals.some(r => r === "fasting_unknown");
   const notFasting = rvals.some(r => r === "not_fasting");
@@ -4226,7 +4226,7 @@ function buildDeck(p, reportId){
     '<section class="card card--hero">' +
       '<div class="eyebrow stag">Your results, read differently</div>' +
       '<h1 class="display h-hero stag">' + hero0 + '</h1>' +
-      '<p class="sub stag">This looks at how well you are, not just whether something is wrong. We will start with the good news.</p>' +
+      '<p class="sub stag">This looks at how well you are, not just whether something is wrong. Your body is doing a lot of things well, and a lot in here is working exactly as it should.</p>' +
     '</section>'
   );
 
@@ -4247,7 +4247,7 @@ function buildDeck(p, reportId){
             '</div>'
           )).join('') +
         '</div>' +
-        '<p class="qclose stag">No one flags these, because nothing is wrong with them. Worth knowing they are yours.</p>' +
+        '<p class="qclose stag">Labs only mark what is out of range. These are the systems doing well for you, and they are important to acknowledge too.</p>' +
       '</section>'
     );
   }
