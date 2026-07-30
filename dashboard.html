@@ -11,8 +11,8 @@
 :root{
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
   --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
-  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
-  --amber:#D4A94A; --amber-light:#FAF3E0;
+  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
+  --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30;
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
   --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
   --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
@@ -3007,7 +3007,7 @@ async function renderDashboard(p, reportId){
     statsEl.innerHTML =
       stat(flag,  "Worth a closer look", ST_COLOR['s-flag']) +
       stat(watch, "Worth watching",      ST_COLOR['s-watch']) +
-      stat(good,  "Looks good",          ST_COLOR['s-good']) +
+      stat(good,  "Looks good",          'var(--teal-mid)') +
       stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
