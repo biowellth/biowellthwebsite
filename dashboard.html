@@ -265,6 +265,15 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 /* Stage 2 restyle: the_connection variant only (a brown-soft tinted block); applied ALONGSIDE
    .prio-finding. why_this_matters / trajectory_promise keep plain .prio-finding. Dashboard-only. */
 .prio-connect{background:var(--brown-soft);border-radius:11px;padding:15px 18px;font-size:14px;line-height:1.6;color:var(--brown);margin-bottom:16px}
+/* Stage 2b: status-toned marker chips row (dashboard priority cards). Tones REUSE the existing
+   .sm-status colour values (no new palette); geometry per the ratified mock. */
+.prio-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
+.chip{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;padding:6px 12px;border-radius:7px}
+.chip.s-good{background:var(--teal-light);color:var(--teal-dark)}
+.chip.s-watch{background:var(--amber-light);color:#8A6D1F}
+.chip.s-flag{background:var(--coral-light);color:var(--coral-dark)}
+.chip.s-none{background:var(--brown-soft);color:var(--brown-mid)}
+.chip.s-ref{background:var(--teal-soft);color:var(--teal-dark)}
 .prio-action{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:10px 12px}
 .prio-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-top:10px}
 .prio-toggle:hover{color:var(--brown)}
@@ -3057,6 +3066,13 @@ async function renderDashboard(p, reportId){
 
   renderLongitudinal(p);
 
+  // Stage 2b: LOCAL marker_id -> system_id lookup for the per-marker sensitive-chip guard.
+  // Built from p.systems directly (before any deferred-dropping) so it is complete. SEPARATE
+  // from the mSys const in reportDropDeferredQW (that stays untouched). Defensive: absent /
+  // non-array p.systems -> empty map -> every chip resolves s-none, never teal, no throw.
+  const chipSysByMarker = {};
+  for(const s of (Array.isArray(p.systems) ? p.systems : []))
+    for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id) chipSysByMarker[m.marker_id] = s.system_id;
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
@@ -3086,10 +3102,22 @@ async function renderDashboard(p, reportId){
       (x.the_connection?'<div class="prio-finding prio-connect">'+esc(x.the_connection)+'</div>':'')+
       (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
       (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'');
+    // Stage 2b: status-toned chips (name + value, no unit) on the card face, below prio-top.
+    // Tone per marker via the shared sysStatus() -> .sm-status vocabulary; SENSITIVE GUARD:
+    // system heavy_metals/autoimmune OR an unmapped marker -> s-none (never teal; neutralizes
+    // both s-good and s-ref). The single .prio-marker pill is dropped (redundant); its CSS stays.
+    const chips = mkList.map(pm=>{
+      let cls = sysStatus(pm.position || pm.band || "").cls;
+      const sysId = chipSysByMarker[pm.marker_id];
+      if(!sysId || SENSITIVE_SYSTEMS.has(sysId)) cls = "s-none";
+      const label = [markerName(pm), pm.value].filter(v=>v!==null && v!==undefined && v!=="").join(" ");
+      return '<span class="chip '+cls+'">'+esc(label)+'</span>';
+    }).join('');
+    const chipsRow = mkList.length ? '<div class="prio-chips">'+chips+'</div>' : '';
     return '<div class="prio sev-'+sev+'">'+
       '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
-      '<span class="prio-title">'+esc(x.headline||"")+'</span>'+
-      (markerLine?'<span class="prio-marker">'+esc(markerLine)+'</span>':'')+'</div>'+
+      '<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+
+      chipsRow +
       (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
       (detail
         ? '<button class="prio-toggle" type="button" aria-expanded="false">See the detail <span class="prio-chev">&rsaquo;</span></button>'+
