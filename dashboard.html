@@ -349,6 +349,14 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bes-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:3px}
 .bes-status{font-size:13px;color:var(--brown-mid)}
 .bes-hidden{display:none}
+/* Stage 5: first-panel trajectory state (no baseline yet). Dot glyph only, never a line. */
+.fp-lead{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:14px}
+.fp-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.fp-row{display:flex;align-items:center;gap:11px}
+.fp-dot{width:8px;height:8px;border-radius:50%;background:var(--brown-mid);flex:none}
+.fp-name{font-size:14px;color:var(--brown);font-weight:500}
+.fp-val{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid)}
+.fp-close{font-size:13px;color:var(--brown-mid);line-height:1.6;font-style:italic}
 /* Longitudinal "Since your last panel" card */
 .longi-summary{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:16px}
 .longi-group{margin-bottom:18px}
@@ -942,6 +950,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         <button id="longi-toggle" class="longi-toggle" type="button" aria-expanded="false">See the markers <span class="longi-chev">&rsaquo;</span></button>
         <div class="longi-detail"><div id="longi"></div></div>
       </div>
+      <div id="longi-firstpanel" class="gap-card hidden"></div>
     </div>
 
     <div id="gap-wrap" class="hidden">
@@ -3284,6 +3293,39 @@ function longiOverview(L){
   }
   return sentences.join(" ");
 }
+// Stage 5: first-panel trajectory state. No baseline to compare, so list the markers this space
+// WILL track (priorities' primary_markers, deduped, priority order, cap 5) with a DOT ONLY — a line
+// would imply history we do not have. No priorities/markers -> keep the section hidden (an empty
+// first-panel shell is worse than no section). Does NOT reuse longiRow or miniSparkSVG.
+function renderFirstPanelTrajectory(p, wrap, fp, block){
+  const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
+  const seen = new Set(); const rows = [];
+  for(const x of pr){
+    for(const pm of (Array.isArray(x && x.primary_markers) ? x.primary_markers : [])){
+      const id = pm && pm.marker_id;
+      if(!id || seen.has(id)) continue;
+      seen.add(id); rows.push(pm);
+      if(rows.length >= 5) break;
+    }
+    if(rows.length >= 5) break;
+  }
+  if(!rows.length || !fp){ wrap.classList.add("hidden"); return; }
+  if(block) block.classList.add("hidden");
+  wrap.classList.remove("hidden");
+  $("longi-label").textContent = "Your trajectory";
+  const rowsHTML = rows.map(pm=>{
+    const hasVal = pm.value!==null && pm.value!==undefined && pm.value!=="";
+    return '<div class="fp-row"><span class="fp-dot"></span>'+
+      '<span class="fp-name">'+esc(markerName(pm))+'</span>'+
+      (hasVal ? '<span class="fp-val">'+esc(String(pm.value))+'</span>' : '')+
+    '</div>';
+  }).join('');
+  fp.innerHTML =
+    '<p class="fp-lead">This is your first panel. These are the markers this space will track.</p>'+
+    '<div class="fp-rows">'+rowsHTML+'</div>'+
+    '<p class="fp-close">One point each for now. A second panel turns each of these into a line.</p>';
+  fp.classList.remove("hidden");
+}
 function renderLongitudinal(p){
   const wrap = $("longi-wrap");
   const L = p && p.longitudinal;
@@ -3292,9 +3334,14 @@ function renderLongitudinal(p){
   const crossed = (L && L.newly_crossed) || [];
   const counts = (L && L.counts) || {};
 
+  // Stage 5: reset the first-panel container and restore the baseline block every render, so a panel
+  // switch never leaves stale state. No-op for a baseline user (fp already hidden, block shown), so
+  // the baseline render path below is byte-identical to today.
+  const fp = $("longi-firstpanel"); if(fp) fp.classList.add("hidden");
+  const lgBlock = $("longi-block"); if(lgBlock) lgBlock.classList.remove("hidden");
+
   if(!L || (open.length+resolved.length+crossed.length)===0){
-    wrap.classList.add("hidden");
-    return;
+    return renderFirstPanelTrajectory(p, wrap, fp, lgBlock);
   }
   wrap.classList.remove("hidden");
   $("longi-label").textContent = "Since your "+fmtPanelDate(L.baseline_panel_date)+" panel";
