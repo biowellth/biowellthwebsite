@@ -260,8 +260,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
 .prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown)}
-.prio-marker{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;background:var(--coral-light);color:var(--coral-dark);padding:3px 9px;border-radius:100px}
+.prio-marker{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;background:var(--coral-light);color:var(--coral-dark);padding:6px 12px;border-radius:7px}
 .prio-finding{font-size:14px;color:var(--brown);line-height:1.6;margin-bottom:8px}
+/* Stage 2 restyle: the_connection variant only (a brown-soft tinted block); applied ALONGSIDE
+   .prio-finding. why_this_matters / trajectory_promise keep plain .prio-finding. Dashboard-only. */
+.prio-connect{background:var(--brown-soft);border-radius:11px;padding:15px 18px;font-size:14px;line-height:1.6;color:var(--brown);margin-bottom:16px}
 .prio-action{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:10px 12px}
 .prio-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-top:10px}
 .prio-toggle:hover{color:var(--brown)}
@@ -3080,7 +3083,7 @@ async function renderDashboard(p, reportId){
       : '';
     const detail =
       markersBlock +
-      (x.the_connection?'<div class="prio-finding">'+esc(x.the_connection)+'</div>':'')+
+      (x.the_connection?'<div class="prio-finding prio-connect">'+esc(x.the_connection)+'</div>':'')+
       (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
       (x.trajectory_promise?'<div class="prio-finding">'+esc(x.trajectory_promise)+'</div>':'');
     return '<div class="prio sev-'+sev+'">'+
