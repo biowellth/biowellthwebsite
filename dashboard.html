@@ -3340,8 +3340,17 @@ function renderLongitudinal(p){
   const fp = $("longi-firstpanel"); if(fp) fp.classList.add("hidden");
   const lgBlock = $("longi-block"); if(lgBlock) lgBlock.classList.remove("hidden");
 
-  if(!L || (open.length+resolved.length+crossed.length)===0){
+  // Stage 5 fix: the first-panel test is baseline ABSENCE (no L, or no baseline_panel_date), NOT
+  // empty movement arrays. computeLongitudinal only runs when a prior panel exists, and always sets
+  // baseline_panel_date then; so a two-panel user whose markers all held steady has a real
+  // baseline_panel_date with empty arrays -> that is NOT a first panel.
+  if(!L || !L.baseline_panel_date){
     return renderFirstPanelTrajectory(p, wrap, fp, lgBlock);
+  }
+  // State 2: baseline exists but nothing moved -> keep the section hidden, exactly as before Stage 5.
+  if((open.length+resolved.length+crossed.length)===0){
+    wrap.classList.add("hidden");
+    return;
   }
   wrap.classList.remove("hidden");
   $("longi-label").textContent = "Since your "+fmtPanelDate(L.baseline_panel_date)+" panel";
