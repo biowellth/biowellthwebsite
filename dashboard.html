@@ -3895,9 +3895,13 @@ function miniSparkSVG(hist, color){
   const W=54,H=20,p=3, vals=hist.map(h=>h.value);
   if(!vals.length) return '<span style="width:54px;flex:none"></span>';
   if(vals.length<2){
+    // Single reading: a lone point at the series START (cx=p, the same slot X(0) the
+    // oldest point occupies once history grows), so the empty space to its RIGHT reads
+    // as room for future tests. No dashed line (a flat dashed line falsely implies a
+    // measured "no change"), and no right-edge orphan. Mirrors trendSummary's first-
+    // reading copy ("As you add more tests we will show whether it holds there.").
     return '<svg class="mk-spark" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+
-      '<line x1="'+p+'" y1="'+(H/2)+'" x2="'+(W-p)+'" y2="'+(H/2)+'" stroke="var(--brown-light)" stroke-width="1.5" stroke-dasharray="2 3"/>'+
-      '<circle cx="'+(W-p)+'" cy="'+(H/2)+'" r="2.6" fill="'+color+'"/></svg>';
+      '<circle cx="'+p+'" cy="'+(H/2)+'" r="2.6" fill="'+color+'"/></svg>';
   }
   const mn=Math.min(...vals),mx=Math.max(...vals),sp=(mx-mn)||1,n=vals.length;
   const X=i=>p+i*(W-2*p)/(n-1), Y=v=>p+(1-(v-mn)/sp)*(H-2*p);
