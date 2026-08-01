@@ -60,6 +60,19 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
    elsewhere too, is left untouched). */
 .dash-rail .report-cta-row{margin:0}
 .dash-rail .report-cta{width:100%;justify-content:center}
+/* Rail "Browse everything" nav card. Matches the rail card language: white bg, brown-light
+   border, 16px radius; rows split by a top border, first row borderless. Tokens only. */
+.rail-card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:4px 18px 8px}
+.rail-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:var(--brown-mid);text-transform:uppercase;letter-spacing:.07em;padding:12px 0 4px}
+.rail-row{width:100%;display:flex;align-items:center;gap:13px;padding:13px 0;background:none;border:none;border-top:1px solid var(--brown-light);cursor:pointer;text-align:left;font-family:inherit}
+.rail-row:first-of-type{border-top:none}
+.rail-row-icon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--brown-soft);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.rail-row-icon svg{width:17px;height:17px;stroke:var(--brown-mid);fill:none}
+.rail-row-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.rail-row-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:var(--brown)}
+.rail-row-sub{font-size:12.5px;color:var(--brown-mid);margin-top:1px}
+.rail-row-chev{flex:none;color:var(--brown-mid);opacity:.5;font-size:18px;line-height:1}
+.rail-row:hover .rail-row-icon{background:var(--brown-light)}
 @media(max-width:960px){
   .dash-grid{grid-template-columns:1fr}
   .dash-rail{position:static;max-height:none;overflow:visible}
@@ -978,6 +991,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       </div>
       <div id="longi-firstpanel" class="gap-card hidden"></div>
     </div>
+
+    <div id="rail-browse" class="rail-card hidden"></div>
 
     <div class="report-cta-row">
       <button class="report-cta" id="btn-report" type="button">
@@ -3211,6 +3226,45 @@ async function renderDashboard(p, reportId){
   ).join("");
 
   renderCoverageGap(p);
+  // Rail browse nav built LAST, so the hidden-class checks on #systems-wrap / #gap-wrap
+  // (toggled above) are accurate. Row omitted when its target is hidden; no live rows -> no card.
+  renderRailBrowse();
+}
+
+// Rail "Browse everything" nav card. Rows 1 & 3 only — #bes-wrap (the "all markers" grid) is
+// retired dead code (renderBrowseGrid is never called since d72ea1f), so that row is NOT built.
+// Each row scroll-targets a section that renders elsewhere; a row is offered ONLY when its target
+// is currently visible (a nav row to a hidden section is worse than no row). No live rows -> the
+// card hides. Layout/nav only: #systems-wrap and #gap-wrap are never modified here.
+function renderRailBrowse(){
+  const host = $("rail-browse"); if(!host) return;
+  const ROWS = [
+    { target:"systems-wrap",
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6"/><path d="M12 7.6v8.4M8 12h8M9.5 21l2.5-5 2.5 5"/></svg>',
+      heading:"Your body, system by system", sub:"All systems on the body map" },
+    { target:"gap-wrap",
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/></svg>',
+      heading:"What to test next", sub:"Gaps worth exploring" },
+  ];
+  const live = ROWS.filter(r => { const el = $(r.target); return el && !el.classList.contains("hidden"); });
+  if(!live.length){ host.classList.add("hidden"); host.innerHTML = ""; return; }
+  host.classList.remove("hidden");
+  host.innerHTML = '<div class="rail-card-title">Browse everything</div>' +
+    live.map(r =>
+      '<button class="rail-row" type="button" data-target="'+esc(r.target)+'">'+
+        '<span class="rail-row-icon">'+r.icon+'</span>'+
+        '<span class="rail-row-text"><span class="rail-row-h">'+esc(r.heading)+'</span>'+
+          '<span class="rail-row-sub">'+esc(r.sub)+'</span></span>'+
+        '<span class="rail-row-chev">›</span>'+
+      '</button>'
+    ).join('');
+  host.onclick = (e)=>{
+    const btn = e.target.closest('.rail-row');
+    if(btn && host.contains(btn)){
+      const el = $(btn.dataset.target);
+      if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+  };
 }
 
 // ── LONGITUDINAL "Since your last panel" ──────────────────────────────────
