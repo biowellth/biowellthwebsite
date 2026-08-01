@@ -3204,7 +3204,18 @@ function longiRow(m, opts){
   const move = longiMove(m);
   const tag = opts.win ? '<span class="longi-tag win">back in range</span>' : statusTag(m.current_status);
   const improving = (!opts.win && m.improving) ? '<span class="longi-improving">improving</span>' : '';
+  // Stage 4a: leading sparkline. Win rows read as "back in range" -> the s-good teal;
+  // every other row colors off the SAME status class the tag/dots derive from. No new
+  // colors (reuse ST_COLOR). Only draw a line with 2+ PLOTTABLE (normalized) points —
+  // a trend row's bucket can form on a raw-value fallback while the plottable series
+  // has <2 points (legacy/unnormalized prior), and a lone dot beside text claiming
+  // movement is exactly what we avoid, so <2 -> the empty 54px spacer (never a dot).
+  const color = opts.win ? ST_COLOR['s-good']
+                         : (ST_COLOR[sysStatus(m.current_status).cls] || ST_COLOR['s-none']);
+  const hist = markerHistory(m);
+  const spark = (hist && hist.length >= 2) ? miniSparkSVG(hist, color) : miniSparkSVG([]);
   return '<div class="'+cls+'">'+
+    spark+
     '<span class="longi-name">'+esc(markerName(m))+'</span>'+
     (move?'<span class="longi-move">'+esc(move)+'</span>':'')+
     improving+
