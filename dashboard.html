@@ -48,6 +48,22 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .report-picker:hover{color:var(--brown);border-color:var(--brown-mid)}
 .report-picker:focus{outline:none;border-color:var(--teal)}
 .app{max-width:1100px;margin:0 auto;padding:40px 24px}
+/* Two-column dashboard layout: main content + sticky rail (trends + generate button). Layout
+   only. minmax(0,1fr) is required so wide children (sparklines, tables) cannot overflow the
+   track; .dash-main{min-width:0} for the same reason. Rail max-height + overflow are required —
+   the longitudinal block can exceed the viewport when expanded, and without them the tail (incl.
+   the generate button) is unreachable. Below 960px it collapses to one column, sticky OFF. */
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:26px;align-items:start}
+.dash-main{min-width:0}
+.dash-rail{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 88px);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+/* Rail-scoped: the generate button goes full-width in the rail (base .report-cta-row rule, used
+   elsewhere too, is left untouched). */
+.dash-rail .report-cta-row{margin:0}
+.dash-rail .report-cta{width:100%;justify-content:center}
+@media(max-width:960px){
+  .dash-grid{grid-template-columns:1fr}
+  .dash-rail{position:static;max-height:none;overflow:visible}
+}
 h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(--brown)}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
 .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal)}
@@ -885,6 +901,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
   </div>
 
   <div id="view-dashboard" class="hidden">
+    <div class="dash-grid">
+      <div class="dash-main">
     <div class="reveal-head">
       <div class="reveal-head-left">
         <div class="score-ring" id="score-ring">
@@ -927,17 +945,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div id="clarify"></div>
     </div>
 
-    <div id="longi-wrap" class="hidden">
-      <div class="section-label" id="longi-label">Since your last panel</div>
-      <div id="longi-block" class="longi-block gap-card">
-        <div class="gap-card-title">How your markers have moved</div>
-        <div id="longi-overview" class="longi-overview"></div>
-        <button id="longi-toggle" class="longi-toggle" type="button" aria-expanded="false">See the markers <span class="longi-chev">&rsaquo;</span></button>
-        <div class="longi-detail"><div id="longi"></div></div>
-      </div>
-      <div id="longi-firstpanel" class="gap-card hidden"></div>
-    </div>
-
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
       <p class="quiet-intro" id="quiet-intro"></p>
@@ -957,6 +964,28 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     <div id="amh-beat-wrap" class="hidden">
       <div class="section-label acc-teal">One hormone we could read now</div>
       <div id="amh-beat"></div>
+    </div>
+      </div>
+
+      <div class="dash-rail">
+    <div id="longi-wrap" class="hidden">
+      <div class="section-label" id="longi-label">Since your last panel</div>
+      <div id="longi-block" class="longi-block gap-card">
+        <div class="gap-card-title">How your markers have moved</div>
+        <div id="longi-overview" class="longi-overview"></div>
+        <button id="longi-toggle" class="longi-toggle" type="button" aria-expanded="false">See the markers <span class="longi-chev">&rsaquo;</span></button>
+        <div class="longi-detail"><div id="longi"></div></div>
+      </div>
+      <div id="longi-firstpanel" class="gap-card hidden"></div>
+    </div>
+
+    <div class="report-cta-row">
+      <button class="report-cta" id="btn-report" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
+        Generate health report
+      </button>
+    </div>
+      </div>
     </div>
 
     <div id="systems-wrap" class="hidden">
@@ -992,13 +1021,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         <div class="bes-grid" id="bes-grid"></div>
         <div class="bes-results hidden" id="bes-results"></div>
       </div>
-    </div>
-
-    <div class="report-cta-row">
-      <button class="report-cta" id="btn-report" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
-        Generate health report
-      </button>
     </div>
 
     <div class="disclaimer">
