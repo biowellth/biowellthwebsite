@@ -262,7 +262,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-mk-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--brown-mid);margin:24px 0 4px}
 .sm-marker{border-top:1px solid var(--brown-light)}
 .sm-mk{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;background:none;border:none;cursor:pointer;text-align:left;font-family:inherit}
-.sm-mk .mn{font-size:14px;color:var(--brown);font-weight:500;display:flex;align-items:center;min-width:0}
+.sm-mk .mn{font-size:14px;color:var(--brown);font-weight:500;display:flex;align-items:center;flex:1;min-width:0}
+/* Name wraps (never truncates) and can break a long token, so the flex:none badge after it can never
+   be pushed past .mn into the flex:none .mr (spark cluster). .mn is flex:1 so it owns the space left
+   of .mr at every width; the name shrinks/wraps within it, badge stays snug after the name. */
+.sm-mk .mk-name{min-width:0;overflow-wrap:anywhere}
 .sm-mk .mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:9px;flex:none}
 .sm-mk .mdot.s-good{background:var(--teal)} .sm-mk .mdot.s-watch{background:var(--amber)} .sm-mk .mdot.s-flag{background:var(--coral)} .sm-mk .mdot.s-none{background:var(--brown-light)} .sm-mk .mdot.s-ref{background:var(--teal-mid)}
 .sm-mk .mr{display:flex;align-items:center;gap:10px;flex:none}
@@ -446,7 +450,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
    sensitive row's system modal opens on top. Reuses .sm-marker / .sm-mk / .bes-sens row styling. */
 .markers-view{position:fixed;inset:0;z-index:150;background:var(--cream);overflow-y:auto}
 .markers-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
-.markers-head-inner,.markers-list{max-width:760px;margin:0 auto}
+.markers-head-inner,.markers-list{max-width:1100px;margin:0 auto}   /* matches .app / #trends-groups */
 .markers-back{display:inline-flex;align-items:center;gap:6px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px}
 .markers-back:hover{color:var(--brown)}
 .markers-back svg{width:16px;height:16px}
@@ -499,6 +503,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 /* Row extras used ONLY by the all-markers view (markerRowHTML passes them; browse modal does not). */
 .mk-sysbadge{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:2px 8px;margin-left:9px;flex:none}
 .mk-range{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);white-space:nowrap}
+/* Below 540px the inline range (a nowrap ~140px block in the flex:none .mr) squeezes .mn until the
+   flex:none badge can no longer fit and would cross the spark. Measured overflow onset ~523px for the
+   worst realistic row (widest NON-sensitive system badge "Blood Cell Health" 123px + a wide value);
+   540px is where that row still keeps its full badge-to-spark clearance, so we drop the inline range
+   just before any encroachment. Hidden outright (not truncated) — a half range reads worse than none,
+   and the full directional string is one tap away in the expand (.sm-trend-range, never hidden). */
+@media(max-width:540px){ .markers-list .mk-range{display:none} }
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
 .msg.err{display:block;background:var(--coral-light);color:var(--coral-dark)}
@@ -4520,7 +4531,7 @@ function markerRowHTML(mk, sysLabel, range){
   const rangeHTML = (typeof range === 'string' && range && !unscored) ? '<span class="mk-range">'+esc(range)+'</span>' : '';
   return '<div class="sm-marker" data-mid="'+esc(mk.marker_id||'')+'">'+
     '<button class="sm-mk" type="button">'+
-      '<span class="mn">'+dot+name+badge+'</span>'+
+      '<span class="mn">'+dot+'<span class="mk-name">'+name+'</span>'+badge+'</span>'+
       '<span class="mr">'+spark+valHTML+rangeHTML+'<span class="mk-chev">\u203A</span></span>'+
     '</button>'+
     note+
