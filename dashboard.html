@@ -461,6 +461,20 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .markers-sort{flex:none;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 30px 9px 14px;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B5047' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .markers-sort:hover{border-color:var(--brown-mid)}
 .markers-sort:focus{outline:none;border-color:var(--teal)}
+/* Longitudinal rail preview card (title in #longi-label; date/preview/close/view-all in the card) */
+.longi-card-sub{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.02em;color:var(--brown-mid);margin-bottom:12px}
+.longi-preview{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.longi-prow{display:flex;align-items:center;gap:10px;padding:6px 0}
+.longi-pname{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:var(--brown);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.longi-pmove{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);flex:none}
+.longi-close-line{font-size:12.5px;color:var(--brown-mid);border-top:1px solid var(--brown-light);padding-top:11px;margin-top:2px}
+.longi-viewall{display:inline-flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:var(--teal-dark);background:none;border:none;cursor:pointer;padding:10px 0 0}
+.longi-viewall:hover{color:var(--teal)}
+/* Trends page overlay (full longitudinal detail) — z above #view-markers (150), below #sys-modal (200) */
+.trends-view{position:fixed;inset:0;z-index:160;background:var(--cream);overflow-y:auto}
+.trends-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
+.trends-head-inner,.trends-body{max-width:760px;margin:0 auto}
+.trends-body{padding:20px 24px 44px}
 .markers-search{width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:10px 18px;margin-top:14px;outline:none;transition:border-color .15s}
 .markers-search:focus{border-color:var(--brown-mid)}
 .markers-search::placeholder{color:var(--brown-mid)}
@@ -1023,10 +1037,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     <div id="longi-wrap" class="hidden">
       <div class="section-label" id="longi-label">Since your last panel</div>
       <div id="longi-block" class="longi-block gap-card">
-        <div class="gap-card-title">How your markers have moved</div>
-        <div id="longi-overview" class="longi-overview"></div>
-        <button id="longi-toggle" class="longi-toggle" type="button" aria-expanded="false">See the markers <span class="longi-chev">&rsaquo;</span></button>
-        <div class="longi-detail"><div id="longi"></div></div>
+        <div class="longi-card-sub" id="longi-card-sub"></div>
+        <div id="longi-preview" class="longi-preview"></div>
+        <div class="longi-close-line hidden" id="longi-close-line"></div>
+        <button class="longi-viewall" id="longi-viewall" type="button">View all <span aria-hidden="true">&rsaquo;</span></button>
       </div>
       <div id="longi-firstpanel" class="gap-card hidden"></div>
     </div>
@@ -1138,6 +1152,19 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
         </div>
       </div>
       <div class="markers-list" id="markers-list"></div>
+    </div>
+
+    <div id="view-trends" class="trends-view hidden">
+      <div class="trends-head">
+        <div class="trends-head-inner">
+          <button class="markers-back" id="trends-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <h2 class="markers-title" id="trends-title">Since your last panel</h2>
+        </div>
+      </div>
+      <div class="trends-body">
+        <div id="trends-overview" class="longi-overview"></div>
+        <div id="trends-groups"></div>
+      </div>
     </div>
   </div>
 
@@ -3706,30 +3733,37 @@ function renderLongitudinal(p){
     return;
   }
   wrap.classList.remove("hidden");
-  $("longi-label").textContent = "Since your "+fmtPanelDate(L.baseline_panel_date)+" panel";
+  $("longi-label").textContent = "Since your last panel";   // section title; date/range moves to the card sub-line
 
-  // Deterministic overview paragraph (primary), with the per-marker rows collapsed
-  // behind a click-to-expand. esc() for em-dash safety. Collapsed by default on
-  // every render (do not persist .open across panel switches).
-  $("longi-overview").innerHTML = esc(longiOverview(L));
-  const block = $("longi-block");
-  block.classList.remove("open");
-  const tog = $("longi-toggle");
-  tog.setAttribute("aria-expanded", "false");
-  tog.onclick = ()=>{
-    const isOpen = block.classList.toggle("open");
-    tog.setAttribute("aria-expanded", isOpen ? "true" : "false");
-  };
-
-  // Notable vs minor split for new crossings (the slight-variation rule).
+  // Notable vs minor split for new crossings (the slight-variation rule). Drives BOTH the rail
+  // preview selection and the trends-page groups.
   const newNotable = crossed.filter(m=>m.salience!=="minor");
   const newMinor = crossed.filter(m=>m.salience==="minor");
 
-  // Per-marker bucket detail (collapsed). The overview paragraph above replaces
-  // the old one-line summary, so it is not repeated here.
-  let html = '';
+  // ── Rail preview card (replaces the old overview paragraph + toggle + inline groups). ──
+  // Date sub-line: a range when the current panel date is known, else the existing phrasing.
+  const curDate = window.__rdPayload && window.__rdPayload.panel_date;
+  $("longi-card-sub").textContent = curDate
+    ? fmtPanelDate(L.baseline_panel_date) + " → " + fmtPanelDate(curDate)
+    : "Since your " + fmtPanelDate(L.baseline_panel_date) + " panel";
+  // Preview rows: newly-crossed (notable) first, then persistent_open, then resolved; first 3.
+  const preview = newNotable.concat(open, resolved).slice(0, 3);
+  $("longi-preview").innerHTML = preview.map(longiPreviewRow).join("");
+  // Closing line from counts: "N came back into range · N held steady" (omit a zero part).
+  const clParts = [];
+  if(counts.resolved > 0)        clParts.push(counts.resolved + " came back into range");
+  if(counts.steady_healthy > 0)  clParts.push(counts.steady_healthy + " held steady");
+  const closeEl = $("longi-close-line");
+  closeEl.textContent = clParts.join(" · ");
+  closeEl.classList.toggle("hidden", clParts.length === 0);
+  const va = $("longi-viewall"); if(va) va.onclick = openTrendsView;
 
-  // Header count helper: " · N marker(s)", singular when 1. Same dot-plus-label structure.
+  // ── Trends page (full detail: overview paragraph + all three groups + quiet line, via longiRow,
+  //    exactly as they rendered inline before). ──
+  $("trends-title").textContent = "Since your " + fmtPanelDate(L.baseline_panel_date) + " panel";
+  $("trends-overview").innerHTML = esc(longiOverview(L));
+  const tb = $("trends-back"); if(tb) tb.onclick = closeTrendsView;
+  let html = '';
   const cnt = (n)=> ' · '+n+' marker'+(n===1?'':'s');
   if(resolved.length){
     html += '<div class="longi-group"><div class="longi-group-h"><span class="longi-dot win"></span>Back in range'+cnt(resolved.length)+'</div>'+
@@ -3747,9 +3781,25 @@ function renderLongitudinal(p){
     html += '<div class="longi-quiet">'+newMinor.length+' other marker'+(newMinor.length===1?"":"s")+
       ' drifted slightly across a line. Small year-to-year moves like these are common and usually worth watching over time rather than acting on now.</div>';
   }
-
-  $("longi").innerHTML = html;
+  $("trends-groups").innerHTML = html;
 }
+// Compact rail preview row: spark + name + prior->current. SAME <2-plottable-points guard as
+// longiRow (empty 54px spacer, never a lone dot). Reuses longiMove/miniSparkSVG/markerHistory
+// unchanged; longiRow itself is untouched.
+function longiPreviewRow(m){
+  const color = ST_COLOR[sysStatus(m.current_status).cls] || ST_COLOR['s-none'];
+  const hist = markerHistory(m);
+  const spark = (hist && hist.length >= 2) ? miniSparkSVG(hist, color) : miniSparkSVG([]);
+  const move = longiMove(m);
+  return '<div class="longi-prow">'+spark+
+    '<span class="longi-pname">'+esc(markerName(m))+'</span>'+
+    (move ? '<span class="longi-pmove">'+esc(move)+'</span>' : '')+
+  '</div>';
+}
+// Trends page overlay (#view-trends, z 160): full longitudinal detail. NO cross-link to the
+// markers view. Opened from the rail card's "View all"; closed by its own back button.
+function openTrendsView(){ const v=$("view-trends"); if(v){ v.scrollTop=0; v.classList.remove("hidden"); } }
+function closeTrendsView(){ const v=$("view-trends"); if(v) v.classList.add("hidden"); }
 // esc(): strip em dashes (copy rule: model occasionally emits them) then HTML-escape.
 // Two-pass: ' \u2014 ' (space-flanked) becomes ', '; any remaining bare \u2014
 // becomes '-' so compound usages don't lose a glyph.
