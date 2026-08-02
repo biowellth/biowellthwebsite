@@ -3367,16 +3367,15 @@ async function renderDashboard(p, reportId){
   ).join("");
 
   renderCoverageGap(p);
-  // Rail browse nav built LAST, so the hidden-class checks on #systems-wrap / #gap-wrap
-  // (toggled above) are accurate. Row omitted when its target is hidden; no live rows -> no card.
+  // Rail browse nav built LAST (after renderCoverageGap sets RD_GAPS_SHOWN). Each row is gated on
+  // DATA PRESENCE in the payload, not section visibility; no live rows -> no card.
   renderRailBrowse(p);
 }
 
-// Rail "Browse everything" nav card. Rows 1 & 3 only — #bes-wrap (the "all markers" grid) is
-// retired dead code (renderBrowseGrid is never called since d72ea1f), so that row is NOT built.
-// Each row scroll-targets a section that renders elsewhere; a row is offered ONLY when its target
-// is currently visible (a nav row to a hidden section is worse than no row). No live rows -> the
-// card hides. Layout/nav only: #systems-wrap and #gap-wrap are never modified here.
+// Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: systems (body
+// map), markers (all-markers view), gaps ("what to test next"). Each row is gated on DATA PRESENCE
+// in the payload (systems.length / markerCountOf / RD_GAPS_SHOWN), not section visibility. No live
+// rows -> the card hides.
 function markerCountOf(p){
   return (p && Array.isArray(p.systems))
     ? p.systems.reduce((n,s)=> n + (Array.isArray(s.markers)?s.markers.length:0), 0)   // s.markers.length, not markersForSystem
@@ -3385,8 +3384,7 @@ function markerCountOf(p){
 function renderRailBrowse(p){
   const host = $("rail-browse"); if(!host) return;
   const n = markerCountOf(p);
-  // kind:"scroll" -> scrollIntoView its target (only if that section is visible).
-  // kind:"markers" -> open the all-markers view (only when there are markers). Row 2 by design.
+  // Each row opens its own overlay page (systems / markers / gaps); gated below on data presence.
   const ROWS = [
     { kind:"systems",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6"/><path d="M12 7.6v8.4M8 12h8M9.5 21l2.5-5 2.5 5"/></svg>',
@@ -3402,13 +3400,13 @@ function renderRailBrowse(p){
     if(r.kind==="systems") return Array.isArray(p.systems) && p.systems.length > 0;   // row 1: data presence, not section visibility
     if(r.kind==="markers") return n > 0;                                  // row 2 only when count > 0
     if(r.kind==="gaps") return RD_GAPS_SHOWN;                             // row 3 only when the gaps page has content (suppression preserved)
-    const el = $(r.target); return el && !el.classList.contains("hidden");
+    return false;                                                        // no other kinds
   });
   if(!live.length){ host.classList.add("hidden"); host.innerHTML = ""; return; }
   host.classList.remove("hidden");
   host.innerHTML = '<div class="rail-card-title">Browse everything</div>' +
     live.map(r =>
-      '<button class="rail-row" type="button" data-kind="'+r.kind+'"'+(r.target?' data-target="'+esc(r.target)+'"':'')+'>'+
+      '<button class="rail-row" type="button" data-kind="'+r.kind+'">'+
         '<span class="rail-row-icon">'+r.icon+'</span>'+
         '<span class="rail-row-text"><span class="rail-row-h">'+esc(r.heading)+'</span>'+
           '<span class="rail-row-sub">'+esc(r.sub)+'</span></span>'+
@@ -3421,8 +3419,6 @@ function renderRailBrowse(p){
     if(btn.dataset.kind === "systems"){ openSystemsView(); return; }
     if(btn.dataset.kind === "markers"){ openMarkersView(p); return; }
     if(btn.dataset.kind === "gaps"){ openGapsView(); return; }
-    const el = $(btn.dataset.target);
-    if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
   };
 }
 // Inline healthy range for a row, from lookupRange ONLY. Returns "" when RANGES_LOOKUP is not
