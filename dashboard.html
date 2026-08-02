@@ -3423,10 +3423,22 @@ function renderRailBrowse(p){
 }
 // Inline healthy range for a row, from lookupRange ONLY. Returns "" when RANGES_LOOKUP is not
 // loaded (lookupRange -> null) or the marker has no range — never a placeholder.
-function inlineRange(mk){
-  const ref = lookupRange(mk);
+// Directional "Healthy ..." copy from a {low, high} ref. Direction comes ONLY from which bound is
+// populated: both -> "X to Y"; high only -> "below Y" (a ceiling, do-not-exceed); low only ->
+// "above X" (a floor, at-least); neither -> "". This is the SINGLE source of the string — the old
+// undirected form (join both non-null bounds with " to ") printed a lone ceiling as "Healthy 20",
+// reading a limit as a target. It survived because the string was duplicated across two call sites
+// (inlineRange + markerDetailHTML); keep it in one place so they can never diverge again. Display
+// only — never infers direction from marker id, system, or status.
+function healthyRangeText(ref, unit){
   if(!ref || (ref.low==null && ref.high==null)) return "";
-  return "Healthy " + [ref.low, ref.high].filter(v=>v!=null).join(" to ") + (mk.unit?" "+mk.unit:"");
+  const u = unit ? " " + unit : "";
+  if(ref.low!=null && ref.high!=null) return "Healthy " + ref.low + " to " + ref.high + u;
+  if(ref.high!=null) return "Healthy below " + ref.high + u;
+  return "Healthy above " + ref.low + u;
+}
+function inlineRange(mk){
+  return healthyRangeText(lookupRange(mk), mk.unit);
 }
 // All-markers view (Commit A: shell + flat list). Overlay child of #view-dashboard; NOT in
 // showView's array. Flat list from p.systems, system_id from the ITERATION variable. Rows reuse
@@ -4386,8 +4398,8 @@ function markerDetailHTML(mk, cls){
   const cur = (mk.value!=null && mk.value!=='') ? mk.value : (info.points.length ? info.points[info.points.length-1].value : '');
   const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
   let rangeTxt = '';
-  if(!isQual && !isNotScored && ref && (ref.low!=null || ref.high!=null)){
-    rangeTxt = 'Healthy ' + [ref.low, ref.high].filter(v=>v!=null).join(' to ') + (mk.unit?' '+mk.unit:'');
+  if(!isQual && !isNotScored){
+    rangeTxt = healthyRangeText(ref, mk.unit);   // shared directional helper; "" when no usable bound
   }
   const cu = info.canonicalUnit;
   // Lp(a)-class reconciliation: when this panel's reported unit differs from the
