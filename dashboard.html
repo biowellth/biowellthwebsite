@@ -478,6 +478,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .trends-body{padding:20px 24px 44px}
 #trends-overview{max-width:760px;margin:0 auto 12px}   /* paragraph stays a narrow centred column */
 #trends-groups{max-width:1100px;margin:0 auto}          /* rows widen to .app width, still centred */
+/* Gaps page overlay ("what to test next") — z above trends (160), below sys-modal (200) */
+.gaps-view{position:fixed;inset:0;z-index:180;background:var(--cream);overflow-y:auto}
+.gaps-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
+.gaps-head-inner,.gaps-body{max-width:760px;margin:0 auto}
+.gaps-body{padding:20px 24px 44px}
 .markers-search{width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:10px 18px;margin-top:14px;outline:none;transition:border-color .15s}
 .markers-search:focus{border-color:var(--brown-mid)}
 .markers-search::placeholder{color:var(--brown-mid)}
@@ -1069,18 +1074,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="bm-systemic" id="bm-systemic"></div>
     </div>
 
-    <div id="gap-wrap" class="hidden">
-      <div class="section-label acc-amber">What to test next</div>
-      <div class="gap-card">
-        <div class="gap-card-title">Worth exploring over time</div>
-        <p id="gap-intro" class="gap-intro"></p>
-        <button class="gap-toggle" id="gap-toggle" type="button" aria-expanded="false">See what to test <span class="gap-chev">&rsaquo;</span></button>
-        <div class="gap-detail">
-          <div id="gap"></div>
-        </div>
-      </div>
-    </div>
-
     <div id="bes-wrap" class="hidden">
       <div class="section-label acc-amber">Browse everything</div>
       <div class="bes-card">
@@ -1167,6 +1160,19 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
       <div class="trends-body">
         <div id="trends-overview" class="longi-overview"></div>
         <div id="trends-groups"></div>
+      </div>
+    </div>
+
+    <div id="view-gaps" class="gaps-view hidden">
+      <div class="gaps-head">
+        <div class="gaps-head-inner">
+          <button class="markers-back" id="gaps-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <h2 class="markers-title" id="gaps-title">What to test next</h2>
+        </div>
+      </div>
+      <div class="gaps-body">
+        <p id="gap-intro" class="gap-intro"></p>
+        <div id="gap"></div>
       </div>
     </div>
   </div>
@@ -2483,10 +2489,15 @@ function renderEscalated(p){
 // on-screen framing logic exactly (incl. the iron_status specificity rule) so the
 // copied text never drifts from the cards. Takes the in-scope post-suppression
 // clusters only (direction-only is excluded by design). No esc()/HTML — plaintext.
+// The "what to test next" gaps now live on their own page (#view-gaps). Suppression is PRESERVED
+// EXACTLY (GATE 1: no ids; GATE 2: everything suppressed away). RD_GAPS_SHOWN = (ids>0 AND not
+// suppressed) is the single source of truth the rail "What to test next" row keys off, so a
+// suppressed payload renders no page AND no rail row. renderCoverageGap runs before renderRailBrowse.
+let RD_GAPS_SHOWN = false;
 function renderCoverageGap(p){
-  const wrap = $("gap-wrap");
+  RD_GAPS_SHOWN = false;
   const cg = p && p.coverage_gap;
-  if(!cg || !Array.isArray(cg.ids) || cg.ids.length===0){ wrap.classList.add("hidden"); return; }
+  if(!cg || !Array.isArray(cg.ids) || cg.ids.length===0){ return; }   // GATE 1: no gap ids
 
   // Rule (b): direction-only ids render under one clinician-routing line and are
   // excluded from their normal system cluster (no double-render). Suppressed
@@ -2507,7 +2518,7 @@ function renderCoverageGap(p){
   }
 
   // Everything suppressed away and no direction-only -> hide (empty path).
-  if(clusters.length === 0 && dirOnly.length === 0){ wrap.classList.add("hidden"); return; }
+  if(clusters.length === 0 && dirOnly.length === 0){ return; }   // GATE 2: suppressed away -> no page, no row
 
   // Largest cluster first; stable tiebreak by system display name.
   clusters.sort((a,b)=> (b.ids.length - a.ids.length) || gapSysName(a.sys).localeCompare(gapSysName(b.sys)));
@@ -2538,25 +2549,15 @@ function renderCoverageGap(p){
     '</div>';
   }
   $("gap").innerHTML = html;
-  // The old "Generate test request list" clipboard dump was removed in Report Generator
-  // v1a; its provider-facing list is now S5 "Provider discussion points" in the full
-  // health report (openReport). The gap chips remain here as an at-a-glance dashboard teaser.
-  // Whole-list collapse (Option A), mirrors the longi idiom: .open host is .gap-card;
-  // reset CLOSED on each render (no persist across renders/panel switches), in-memory
-  // class only (no storage), click (not hover). Only runs when the section has content
-  // (the early-returns above hide+return on an empty section, so no toggle-opens-nothing).
-  const gapCard = wrap.querySelector(".gap-card");
-  const gtog = $("gap-toggle");
-  if(gapCard && gtog){
-    gapCard.classList.remove("open");
-    gtog.setAttribute("aria-expanded", "false");
-    gtog.onclick = ()=>{
-      const isOpen = gapCard.classList.toggle("open");
-      gtog.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    };
-  }
-  wrap.classList.remove("hidden");
+  // Page absorbs the old "See what to test" toggle — the full #gap detail renders directly, no
+  // collapse. #gap-intro is the page lead. Wire the back button; mark content present for the rail.
+  const gb = $("gaps-back"); if(gb) gb.onclick = closeGapsView;
+  RD_GAPS_SHOWN = true;
 }
+// Gaps page overlay (#view-gaps, z 180): full "what to test next" detail. Opened from the rail's
+// "What to test next" row; closed by its own back button.
+function openGapsView(){ const v=$("view-gaps"); if(v){ v.scrollTop=0; v.classList.remove("hidden"); } }
+function closeGapsView(){ const v=$("view-gaps"); if(v) v.classList.add("hidden"); }
 
 // ══════════════════════════════════════════════════════════════════════════
 // REPORT GENERATOR v1a — in-app health report + provider-ready PDF.
@@ -3372,12 +3373,13 @@ function renderRailBrowse(p){
     { kind:"markers",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/></svg>',
       heading:"All "+n+" marker"+(n===1?"":"s"), sub:"Every value, range, and history" },
-    { kind:"scroll", target:"gap-wrap",
+    { kind:"gaps",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/></svg>',
       heading:"What to test next", sub:"Gaps worth exploring" },
   ];
   const live = ROWS.filter(r => {
     if(r.kind==="markers") return n > 0;                                  // row 2 only when count > 0
+    if(r.kind==="gaps") return RD_GAPS_SHOWN;                             // row 3 only when the gaps page has content (suppression preserved)
     const el = $(r.target); return el && !el.classList.contains("hidden");
   });
   if(!live.length){ host.classList.add("hidden"); host.innerHTML = ""; return; }
@@ -3395,6 +3397,7 @@ function renderRailBrowse(p){
     const btn = e.target.closest('.rail-row');
     if(!btn || !host.contains(btn)) return;
     if(btn.dataset.kind === "markers"){ openMarkersView(p); return; }
+    if(btn.dataset.kind === "gaps"){ openGapsView(); return; }
     const el = $(btn.dataset.target);
     if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
   };
