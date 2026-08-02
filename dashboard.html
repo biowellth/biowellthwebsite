@@ -441,6 +441,20 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .theme-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
 .theme-soon{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:3px 8px;flex:none}
 .theme-desc{font-size:13px;color:var(--brown-mid);line-height:1.5}
+/* All-markers view overlay (Commit A). Full-screen scrollable list; z below #sys-modal (200) so a
+   sensitive row's system modal opens on top. Reuses .sm-marker / .sm-mk / .bes-sens row styling. */
+.markers-view{position:fixed;inset:0;z-index:150;background:var(--cream);overflow-y:auto}
+.markers-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
+.markers-head-inner,.markers-list{max-width:760px;margin:0 auto}
+.markers-back{display:inline-flex;align-items:center;gap:6px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px}
+.markers-back:hover{color:var(--brown)}
+.markers-back svg{width:16px;height:16px}
+.markers-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--brown)}
+.markers-sub{font-size:13.5px;color:var(--brown-mid);margin-top:3px}
+.markers-list{padding:6px 24px 44px}
+/* Row extras used ONLY by the all-markers view (markerRowHTML passes them; browse modal does not). */
+.mk-sysbadge{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:2px 8px;margin-left:9px;flex:none}
+.mk-range{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);white-space:nowrap}
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
 .msg.err{display:block;background:var(--coral-light);color:var(--coral-dark)}
@@ -1093,6 +1107,17 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     </div>
 
     <div class="sys-modal" id="sys-modal"><div class="sm-card" id="sm-card"></div></div>
+
+    <div id="view-markers" class="markers-view hidden">
+      <div class="markers-head">
+        <div class="markers-head-inner">
+          <button class="markers-back" id="markers-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <h2 class="markers-title" id="markers-title">All markers</h2>
+          <div class="markers-sub">Every value, range, and history.</div>
+        </div>
+      </div>
+      <div class="markers-list" id="markers-list"></div>
+    </div>
   </div>
 
 </div>
@@ -3271,7 +3296,7 @@ async function renderDashboard(p, reportId){
   renderCoverageGap(p);
   // Rail browse nav built LAST, so the hidden-class checks on #systems-wrap / #gap-wrap
   // (toggled above) are accurate. Row omitted when its target is hidden; no live rows -> no card.
-  renderRailBrowse();
+  renderRailBrowse(p);
 }
 
 // Rail "Browse everything" nav card. Rows 1 & 3 only — #bes-wrap (the "all markers" grid) is
@@ -3279,22 +3304,36 @@ async function renderDashboard(p, reportId){
 // Each row scroll-targets a section that renders elsewhere; a row is offered ONLY when its target
 // is currently visible (a nav row to a hidden section is worse than no row). No live rows -> the
 // card hides. Layout/nav only: #systems-wrap and #gap-wrap are never modified here.
-function renderRailBrowse(){
+function markerCountOf(p){
+  return (p && Array.isArray(p.systems))
+    ? p.systems.reduce((n,s)=> n + (Array.isArray(s.markers)?s.markers.length:0), 0)   // s.markers.length, not markersForSystem
+    : 0;
+}
+function renderRailBrowse(p){
   const host = $("rail-browse"); if(!host) return;
+  const n = markerCountOf(p);
+  // kind:"scroll" -> scrollIntoView its target (only if that section is visible).
+  // kind:"markers" -> open the all-markers view (only when there are markers). Row 2 by design.
   const ROWS = [
-    { target:"systems-wrap",
+    { kind:"scroll", target:"systems-wrap",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6"/><path d="M12 7.6v8.4M8 12h8M9.5 21l2.5-5 2.5 5"/></svg>',
       heading:"Your body, system by system", sub:"All systems on the body map" },
-    { target:"gap-wrap",
+    { kind:"markers",
+      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/></svg>',
+      heading:"All "+n+" marker"+(n===1?"":"s"), sub:"Every value, range, and history" },
+    { kind:"scroll", target:"gap-wrap",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/></svg>',
       heading:"What to test next", sub:"Gaps worth exploring" },
   ];
-  const live = ROWS.filter(r => { const el = $(r.target); return el && !el.classList.contains("hidden"); });
+  const live = ROWS.filter(r => {
+    if(r.kind==="markers") return n > 0;                                  // row 2 only when count > 0
+    const el = $(r.target); return el && !el.classList.contains("hidden");
+  });
   if(!live.length){ host.classList.add("hidden"); host.innerHTML = ""; return; }
   host.classList.remove("hidden");
   host.innerHTML = '<div class="rail-card-title">Browse everything</div>' +
     live.map(r =>
-      '<button class="rail-row" type="button" data-target="'+esc(r.target)+'">'+
+      '<button class="rail-row" type="button" data-kind="'+r.kind+'"'+(r.target?' data-target="'+esc(r.target)+'"':'')+'>'+
         '<span class="rail-row-icon">'+r.icon+'</span>'+
         '<span class="rail-row-text"><span class="rail-row-h">'+esc(r.heading)+'</span>'+
           '<span class="rail-row-sub">'+esc(r.sub)+'</span></span>'+
@@ -3303,12 +3342,59 @@ function renderRailBrowse(){
     ).join('');
   host.onclick = (e)=>{
     const btn = e.target.closest('.rail-row');
-    if(btn && host.contains(btn)){
-      const el = $(btn.dataset.target);
-      if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
-    }
+    if(!btn || !host.contains(btn)) return;
+    if(btn.dataset.kind === "markers"){ openMarkersView(p); return; }
+    const el = $(btn.dataset.target);
+    if(el) el.scrollIntoView({ behavior:"smooth", block:"start" });
   };
 }
+// Inline healthy range for a row, from lookupRange ONLY. Returns "" when RANGES_LOOKUP is not
+// loaded (lookupRange -> null) or the marker has no range — never a placeholder.
+function inlineRange(mk){
+  const ref = lookupRange(mk);
+  if(!ref || (ref.low==null && ref.high==null)) return "";
+  return "Healthy " + [ref.low, ref.high].filter(v=>v!=null).join(" to ") + (mk.unit?" "+mk.unit:"");
+}
+// All-markers view (Commit A: shell + flat list). Overlay child of #view-dashboard; NOT in
+// showView's array. Flat list from p.systems, system_id from the ITERATION variable. Rows reuse
+// markerRowHTML(mk, sysName, range) EXCEPT sensitive-system markers, which render the .bes-sens
+// pattern (s-none dot + name + badge + chevron; no value/spark/range/expand) and route to the
+// system modal on click. Sort is payload order (sorting is Commit D).
+function openMarkersView(p){
+  const view = $("view-markers"); if(!view || !p) return;
+  const systems = Array.isArray(p.systems)?p.systems:[];
+  const flat = systems.flatMap(s =>
+    (Array.isArray(s.markers)?s.markers:[]).map(m => ({ mk:m, sysId:s.system_id,
+      sysName: CANONICAL_TITLE[s.system_id] || s.display_name || s.system_id || "" })));
+  const n = flat.length;
+  $("markers-title").textContent = "All " + n + " marker" + (n===1?"":"s");
+  const list = $("markers-list");
+  list.innerHTML = flat.map(f => {
+    if(SENSITIVE_SYSTEMS.has(f.sysId)){
+      // SAFETY GATE: never a value/spark/range/expand or a coloured status for a sensitive marker.
+      return '<button class="bes-sens" type="button" data-sysid="'+esc(f.sysId)+'">'+
+          '<span class="mn"><span class="mdot s-none"></span>'+esc(markerName(f.mk))+'</span>'+
+          '<span class="mr"><span class="bes-sens-badge">'+esc(f.sysName)+'</span>'+
+            '<span class="mk-chev">›</span></span>'+
+        '</button>';
+    }
+    return markerRowHTML(f.mk, f.sysName, inlineRange(f.mk));
+  }).join('');
+  list.onclick = (e)=>{
+    const sens = e.target.closest('.bes-sens');
+    if(sens && list.contains(sens)){
+      const s = systems.find(x => x.system_id === sens.dataset.sysid);
+      if(s){ closeMarkersView(); openSystem(p, s); }   // route to the system modal where the framing lives
+      return;
+    }
+    const row = e.target.closest('.sm-mk');
+    if(row && list.contains(row)) row.parentElement.classList.toggle('open');
+  };
+  const back = $("markers-back"); if(back) back.onclick = closeMarkersView;
+  view.scrollTop = 0;
+  view.classList.remove("hidden");
+}
+function closeMarkersView(){ const v=$("view-markers"); if(v) v.classList.add("hidden"); }
 
 // ── LONGITUDINAL "Since your last panel" ──────────────────────────────────
 // Reads the deterministic buckets the worker attached as p.longitudinal.
@@ -4186,7 +4272,10 @@ function isPregnantPanel(){
   const d = window.__rdPayload && window.__rdPayload.vitality && window.__rdPayload.vitality.display;
   return !!(d && d.mode === "pregnancy_per_marker");
 }
-function markerRowHTML(mk){
+function markerRowHTML(mk, sysLabel, range){
+  // sysLabel/range are OPTIONAL extras for the all-markers view. They are string-GUARDED because
+  // openSystem calls markers.map(markerRowHTML) -> (mk, index, array); a non-string 2nd/3rd arg
+  // (the map index/array) reads as absent, so the browse modal stays byte-identical.
   // unit unconfirmed: show the value as reported, neutral dot, no status chip,
   // and a quiet hedged note. We deliberately do not score an unmatched unit.
   const isUnknownUnit = String(mk.status||"").toLowerCase()==="unknown_unit";
@@ -4220,10 +4309,13 @@ function markerRowHTML(mk){
               : 'Levels here move with your cycle, so this is not scored against a single range.')
           : 'We do not have a scored reference range for this marker yet, so it is shown without a status.')+'</div>'
       : '';
+  // Optional extras, string-guarded so the map-call (mk,index,array) never triggers them.
+  const badge = (typeof sysLabel === 'string' && sysLabel) ? '<span class="mk-sysbadge">'+esc(sysLabel)+'</span>' : '';
+  const rangeHTML = (typeof range === 'string' && range && !unscored) ? '<span class="mk-range">'+esc(range)+'</span>' : '';
   return '<div class="sm-marker" data-mid="'+esc(mk.marker_id||'')+'">'+
     '<button class="sm-mk" type="button">'+
-      '<span class="mn">'+dot+name+'</span>'+
-      '<span class="mr">'+spark+valHTML+'<span class="mk-chev">\u203A</span></span>'+
+      '<span class="mn">'+dot+name+badge+'</span>'+
+      '<span class="mr">'+spark+valHTML+rangeHTML+'<span class="mk-chev">\u203A</span></span>'+
     '</button>'+
     note+
     '<div class="sm-mk-detail">'+markerDetailHTML(mk, cls)+'</div>'+
