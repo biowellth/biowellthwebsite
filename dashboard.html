@@ -387,6 +387,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bes-nomatch p{margin:0 0 6px}
 /* Sensitive-system result: no value, no spark, no expand — routes to the system modal. */
 .bes-sens{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;background:none;border:none;border-top:1px solid var(--brown-light);cursor:pointer;text-align:left;font-family:inherit}
+.sens-static{cursor:default}   /* sensitive rows inside openSystem: neutral, non-clickable (no route, already in-system) */
 .bes-sens .mn{font-size:14px;color:var(--brown);font-weight:500;display:flex;align-items:center;min-width:0}
 .bes-sens .mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:9px;flex:none}
 .bes-sens .mdot.s-good{background:var(--teal)} .bes-sens .mdot.s-watch{background:var(--amber)} .bes-sens .mdot.s-flag{background:var(--coral)} .bes-sens .mdot.s-none{background:var(--brown-light)} .bes-sens .mdot.s-ref{background:var(--teal-mid)}
@@ -4732,19 +4733,28 @@ function buildBodyMap(p, sys){
 }
 
 function openSystem(p, s){
+  // SENSITIVE_SYSTEMS guard applied HERE (openSystem has s), never inside markerRowHTML/Detail.
+  // Pill: cardStatus(s) so it matches the body map ("Tested"/"Worth discussing" for heavy_metals;
+  // cardStatus default for autoimmune — its override is a separate clinical ruling). Rows: neutral
+  // s-none dot + name only (no value/spark/range/expand, and no system badge — redundant in-system).
+  const sensitive = SENSITIVE_SYSTEMS.has(s.system_id);
   const st = sysStatus(s.status);
+  const pill = sensitive ? cardStatus(s) : { cls: st.cls, word: BES_WORD[st.cls] || st.label };
   const markers = markersForSystem(p, s);
   const card = $("sm-card");
   if(!card) return;
+  const markersHTML = markers.length
+    ? '<div class="sm-mk-label">Markers in this system</div>' + (sensitive
+        ? markers.map(mk => '<div class="bes-sens sens-static"><span class="mn"><span class="mdot s-none"></span>'+esc(markerName(mk))+'</span></div>').join('')
+        : markers.map(markerRowHTML).join(''))
+    : '<p class="sm-empty">The full marker list for this system will show here as your panel grows. The summary above reflects what we can read from this report.</p>';
   card.innerHTML =
     '<button class="sm-close" id="sm-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-    '<div class="sm-status '+st.cls+'"><span class="d"></span>'+esc(BES_WORD[st.cls] || st.label)+'</div>' +
+    '<div class="sm-status '+pill.cls+'"><span class="d"></span>'+esc(pill.word)+'</div>' +
     '<h2 class="sm-h">'+esc(CANONICAL_TITLE[s.system_id]||s.display_name||s.system_id||"")+'</h2>' +
     (s.summary_line && !SENSITIVE_SYSTEMS.has(s.system_id)
        ? '<p class="sm-summary">'+esc(s.summary_line)+'</p>' : '') +
-    (markers.length
-      ? '<div class="sm-mk-label">Markers in this system</div>' + markers.map(markerRowHTML).join('')
-      : '<p class="sm-empty">The full marker list for this system will show here as your panel grows. The summary above reflects what we can read from this report.</p>');
+    markersHTML;
   $("sm-close").addEventListener('click', closeSystem);
   card.onclick = (e)=>{
     const row = e.target.closest('.sm-mk');
