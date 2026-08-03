@@ -417,11 +417,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .longi-dot.new{background:var(--coral-dark)}
 .longi-row{background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:13px 16px;margin-bottom:8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .longi-row.win{background:var(--teal-soft);border-color:var(--teal-light)}
-.longi-improving{font-size:12px;color:var(--teal);font-style:italic;margin-left:2px}
+.longi-improving{font-size:12px;color:var(--teal);font-style:italic;margin-left:2px;flex:none}
 .mk-note{font-size:12px;color:var(--brown-mid);font-style:italic;padding:2px 0 6px 18px;line-height:1.4}
-.longi-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown)}
-.longi-move{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--brown-mid)}
-.longi-tag{margin-left:auto;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px}
+/* Name owns the space between spark and value; truncates (never wraps) — min 90px legible before the
+   ellipsis, matching the rail preview card (004bc8c). A trends row has a value + tag on the line, so
+   unlike .fp-name (first-panel rows wrap) it must truncate. */
+.longi-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown);flex:1;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Value pushes to the right edge (margin-left:auto, like .longi-pmove). Name's flex:1 absorbs the free
+   space, so this is the ONLY auto margin on the row — the value/improving/tag cluster packs at the
+   right, value flush against it, tag last. (The tag's former margin-left:auto is removed to avoid two
+   competing auto margins.) */
+.longi-move{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--brown-mid);margin-left:auto;white-space:nowrap;flex:none}
+.longi-tag{flex:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:100px}
 .longi-tag.flag{background:var(--coral-light);color:var(--coral-dark)}
 .longi-tag.watch{background:var(--amber-light);color:var(--amber)}
 .longi-tag.win{background:var(--teal-light);color:var(--teal-dark)}
