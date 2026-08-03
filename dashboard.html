@@ -453,6 +453,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .theme-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
 .theme-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
 .theme-soon{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:3px 8px;flex:none}
+.theme-count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);margin-bottom:6px}
+.theme-untested{color:var(--brown-light);font-style:italic}
 .theme-desc{font-size:13px;color:var(--brown-mid);line-height:1.5}
 /* All-markers view overlay (Commit A). Full-screen scrollable list; z below #sys-modal (200) so a
    sensitive row's system modal opens on top. Reuses .sm-marker / .sm-mk / .bes-sens row styling. */
@@ -1118,32 +1120,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
     <div id="theme-wrap">
       <div class="section-label acc-amber">Everything else, by theme</div>
       <div class="theme-sub">Grouped by how it shows up in daily life, not by where it sits in your body.</div>
-      <div class="theme-grid">
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Energy</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Iron, thyroid, and B vitamins.</div>
-        </div>
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Cycle and hormones</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Reproductive and adrenal markers.</div>
-        </div>
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Metabolic</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Glucose, insulin, and lipids.</div>
-        </div>
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Inflammation</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Inflammatory and immune signals.</div>
-        </div>
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Nutrients</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Vitamins and minerals.</div>
-        </div>
-        <div class="theme-card">
-          <div class="theme-card-head"><span class="theme-name">Organ function</span><span class="theme-soon">Coming soon</span></div>
-          <div class="theme-desc">Liver, kidney, and pancreas.</div>
-        </div>
-      </div>
+      <div class="theme-grid" id="theme-grid"></div>
     </div>
 
     <div class="disclaimer">
@@ -3405,6 +3382,9 @@ async function renderDashboard(p, reportId){
   // Rail browse nav built LAST (after renderCoverageGap sets RD_GAPS_SHOWN). Each row is gated on
   // DATA PRESENCE in the payload, not section visibility; no live rows -> no card.
   renderRailBrowse(p);
+  // Theme grid counts off RANGES_LOOKUP.themes_by_marker_id; if ranges load AFTER this render, the
+  // loader re-invokes renderThemeGrid (see the fetch IIFE) so the counts fill in.
+  renderThemeGrid(p);
 }
 
 // Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: systems (body
@@ -3455,6 +3435,65 @@ function renderRailBrowse(p){
     if(btn.dataset.kind === "markers"){ openMarkersView(p); return; }
     if(btn.dataset.kind === "gaps"){ openGapsView(); return; }
   };
+}
+// ── Theme grid: COUNTS ONLY, never a verdict ──────────────────────────────────
+// Six lived-life themes (label + desc match the ratified map / the old static markup). A marker's
+// theme membership comes from RANGES_LOOKUP.themes_by_marker_id (built over EVERY library marker,
+// not just the ranged ones — so cycle-phase hormones with no numeric range still count). The engine
+// scores markers and systems; it does NOT score themes, so a card shows a count and a concern
+// breakdown from PER-MARKER engine status, never a theme-level dot/word/colour/verdict.
+const THEME_DEFS = [
+  { key:"energy",         label:"Energy",             desc:"Iron, thyroid, and B vitamins." },
+  { key:"cycle_hormones", label:"Cycle and hormones", desc:"Reproductive and adrenal markers." },
+  { key:"metabolic",      label:"Metabolic",          desc:"Glucose, insulin, and lipids." },
+  { key:"inflammation",   label:"Inflammation",       desc:"Inflammatory and immune signals." },
+  { key:"nutrients",      label:"Nutrients",          desc:"Vitamins and minerals." },
+  { key:"organ_function", label:"Organ function",     desc:"Liver, kidney, and pancreas." },
+];
+function themesOf(mk){
+  const t = RANGES_LOOKUP && RANGES_LOOKUP.themes_by_marker_id;
+  const id = mk && mk.marker_id;
+  return (id && t && Array.isArray(t[id])) ? t[id] : [];
+}
+function renderThemeGrid(p){
+  const grid = $("theme-grid"); if(!grid) return;
+  const tally = {}; THEME_DEFS.forEach(d => tally[d.key] = { total:0, flag:0, watch:0 });
+  for(const s of (Array.isArray(p && p.systems) ? p.systems : [])){
+    // SENSITIVE GUARD (belt-and-suspenders): a heavy_metals / autoimmune marker must contribute to
+    // NOTHING. Their themes arrays are empty so they would not match anyway, but skip the system
+    // outright rather than trust that — same rule as every other marker surface.
+    if(SENSITIVE_SYSTEMS.has(s.system_id)) continue;
+    for(const mk of (Array.isArray(s.markers) ? s.markers : [])){
+      const keys = themesOf(mk);
+      if(!keys.length) continue;
+      const cls = sysStatus(mk.status || "").cls;   // per-marker ENGINE status bucket
+      for(const k of keys){
+        const t = tally[k]; if(!t) continue;
+        t.total++;
+        if(cls === "s-flag") t.flag++;
+        else if(cls === "s-watch") t.watch++;
+      }
+    }
+  }
+  grid.innerHTML = THEME_DEFS.map(d => {
+    const t = tally[d.key];
+    let count;
+    if(t.total === 0){
+      count = '<div class="theme-count theme-untested">Not tested on this panel</div>';
+    } else {
+      // "12 markers · 2 worth a closer look · 3 worth watching" — omit any zero segment. Only the
+      // two concern buckets are broken out; the rest of the total is implicitly fine (no verdict).
+      const segs = [ t.total + " marker" + (t.total===1?"":"s") ];
+      if(t.flag  > 0) segs.push(t.flag  + " worth a closer look");
+      if(t.watch > 0) segs.push(t.watch + " worth watching");
+      count = '<div class="theme-count">' + esc(segs.join(" · ")) + '</div>';
+    }
+    return '<div class="theme-card">'+
+      '<div class="theme-card-head"><span class="theme-name">'+esc(d.label)+'</span></div>'+
+      count +
+      '<div class="theme-desc">'+esc(d.desc)+'</div>'+
+    '</div>';
+  }).join("");
 }
 // Inline healthy range for a row, from lookupRange ONLY. Returns "" when RANGES_LOOKUP is not
 // loaded (lookupRange -> null) or the marker has no range — never a placeholder.
@@ -3929,6 +3968,9 @@ const RANGES_BUILD = "20260803b";
         '. Range info may be stale; rerun scripts/build-ranges-slim.py.'
       );
     }
+    // If the dashboard already rendered before ranges arrived, the theme grid painted all
+    // "Not tested" (themesOf had no data). Re-paint it now that themes_by_marker_id is loaded.
+    if (window.__rdPayload && typeof renderThemeGrid === 'function') renderThemeGrid(window.__rdPayload);
   } catch (e) {
     console.warn('ranges-slim.json failed to load:', e);
   }
