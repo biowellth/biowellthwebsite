@@ -80,12 +80,24 @@ def main(library_path, out_path):
     by_id = {}
     by_dn = {}
     by_alias = {}
+    themes_by_id = {}
     skipped = []
 
     for m in markers:
         mid = m.get('marker_id')
         dn = m.get('display_name')
         aliases = m.get('aliases', []) or []
+        # Themes are a SEPARATE map keyed by marker_id, built over EVERY library marker
+        # regardless of whether its range parses. The range maps (by_marker_id etc.) drop
+        # ~37 markers whose biowellth_optimal is non-numeric (cycle-phase hormones, qualitatives),
+        # and 16 of those are themed — so a themes-on-by_marker_id design would silently undercount
+        # cycle_hormones by 28%. Keying themes off the marker list, not the parsed range, keeps the
+        # theme grid's counts complete. Only non-empty arrays are emitted; an absent marker_id means
+        # "no theme" (same as an excluded marker's empty array), which the consumer treats as zero.
+        themes = m.get('themes') or []
+        if mid and themes:
+            themes_by_id[mid] = themes
+
         rng_str = (((m.get('ranges') or {}).get('default') or {})
                    .get('biowellth_optimal'))
         rng = parse_range(rng_str)
@@ -94,12 +106,9 @@ def main(library_path, out_path):
                             'display_name': dn,
                             'biowellth_optimal': rng_str})
             continue
-        # Themes ship on by_marker_id ONLY. The three maps otherwise share one rng
-        # object (Step 0b), so mutating rng would fan the themes array into every
-        # display-name and all 801 alias entries. Break the share for the id map with
-        # a shallow copy; the display-name and alias maps keep the bare {low, high}.
+        # The three range maps share one rng object (Step 0b) — do NOT attach per-map fields here.
         if mid:
-            by_id[mid] = {**rng, 'themes': m.get('themes', [])}
+            by_id[mid] = rng
         if dn:
             by_dn[dn.lower().strip()] = rng
         for a in aliases:
@@ -112,6 +121,7 @@ def main(library_path, out_path):
         'by_marker_id': by_id,
         'by_display_name_lc': by_dn,
         'by_alias_lc': by_alias,
+        'themes_by_marker_id': themes_by_id,
     }
     Path(out_path).write_text(json.dumps(out, separators=(',', ':')))
 
@@ -121,6 +131,7 @@ def main(library_path, out_path):
     print(f'  by_marker_id entries  : {len(by_id)}')
     print(f'  by_display_name_lc    : {len(by_dn)}')
     print(f'  by_alias_lc           : {len(by_alias)}')
+    print(f'  themes_by_marker_id   : {len(themes_by_id)}')
     print(f'  skipped (unparseable) : {len(skipped)}')
     if skipped[:5]:
         print('  first 5 skipped:')
