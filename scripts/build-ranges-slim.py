@@ -94,8 +94,12 @@ def main(library_path, out_path):
                             'display_name': dn,
                             'biowellth_optimal': rng_str})
             continue
+        # Themes ship on by_marker_id ONLY. The three maps otherwise share one rng
+        # object (Step 0b), so mutating rng would fan the themes array into every
+        # display-name and all 801 alias entries. Break the share for the id map with
+        # a shallow copy; the display-name and alias maps keep the bare {low, high}.
         if mid:
-            by_id[mid] = rng
+            by_id[mid] = {**rng, 'themes': m.get('themes', [])}
         if dn:
             by_dn[dn.lower().strip()] = rng
         for a in aliases:
