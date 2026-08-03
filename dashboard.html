@@ -317,6 +317,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-markers{margin-top:10px;display:flex;flex-direction:column;gap:7px}
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
+.prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
 /* Clarify chip (Deploy D2): the companion asking about an ambiguous marker. Calm teal-soft
    card, never a form/settings row. Suppressed once the user has answered (profile.supp_*). */
 .clarify-card{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:18px 20px;margin-bottom:10px;animation:escFade .4s ease}
@@ -3318,16 +3319,22 @@ async function renderDashboard(p, reportId){
     const lever = (x.action_layer && x.action_layer.primary_lever) || "";
     // SUMMARY (always visible): rank + headline + marker chip + why_this_matters.
     // DETAIL (per-card collapse, mirrors the longitudinal idiom): ALL primary_markers
-    // (name + status chip, no raw value/unit) then the_connection + "Start here" +
-    // trajectory_promise. The chip reads position (clean 5-value enum), falling back to
-    // band, through the shared sysStatus()/BES_WORD vocabulary so it matches every other
-    // status word on the surface. Guard: no detail blocks -> no toggle.
+    // (name + directional healthy range from ranges-slim) then the_connection + "Start here" +
+    // trajectory_promise. The range REPLACES the old status word; there is no value beside it here
+    // (the value lives in the chip on the card face), so the range keeps its unit. Guard: no detail
+    // blocks -> no toggle.
     const mkList = Array.isArray(x.primary_markers) ? x.primary_markers : [];
     const markersBlock = mkList.length
       ? '<div class="prio-markers">' + mkList.map(pm=>{
-          const st = sysStatus(pm.position || pm.band || "");
+          // SENSITIVE GUARD: resolve the marker's system via chipSysByMarker (built above).
+          // heavy_metals / autoimmune / unmapped -> NO range, name only (a range for a toxic marker
+          // is the "Healthy 150" bug the chips already guard against). Empty range (not in
+          // ranges-slim) -> name only too; never a status-word fallback.
+          const sysId = chipSysByMarker[pm.marker_id];
+          const sensitive = !sysId || SENSITIVE_SYSTEMS.has(sysId);
+          const range = sensitive ? '' : healthyRangeText(lookupRange(pm), pm.unit);
           return '<div class="prio-mk"><span class="prio-mk-name">'+esc(markerName(pm))+'</span>'+
-            '<span class="sm-status '+st.cls+'"><span class="d"></span>'+esc(BES_WORD[st.cls] || st.label)+'</span></div>';
+            (range ? '<span class="prio-mk-range">'+esc(range)+'</span>' : '')+'</div>';
         }).join('') + '</div>'
       : '';
     const detail =
@@ -3466,7 +3473,11 @@ function healthyRangeText(ref, unit){
   return "Healthy above " + ref.low + u;
 }
 function inlineRange(mk){
-  return healthyRangeText(lookupRange(mk), mk.unit);
+  // The row prints the value with its unit (.mv) right beside this range, so when a value is shown
+  // drop the unit here to avoid printing it twice ("46.5 µg/mg  Healthy below 10 µg/mg"). No value
+  // beside it -> keep the unit on the range. Same mk.unit on both, so identical by construction.
+  const hasValue = mk.value!==null && mk.value!==undefined && mk.value!=='';
+  return healthyRangeText(lookupRange(mk), hasValue ? '' : mk.unit);
 }
 // All-markers view (Commit A: shell + flat list). Overlay child of #view-dashboard; NOT in
 // showView's array. Flat list from p.systems, system_id from the ITERATION variable. Rows reuse
@@ -4428,7 +4439,10 @@ function markerDetailHTML(mk, cls){
   const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
   let rangeTxt = '';
   if(!isQual && !isNotScored){
-    rangeTxt = healthyRangeText(ref, mk.unit);   // shared directional helper; "" when no usable bound
+    // nowHTML prints cur + unit right beside this range (both live in .sm-trend-top). When a value
+    // is shown, drop the unit here so the same unit is not printed twice; no value -> keep the unit.
+    const valueShown = (cur !== '' && cur != null);
+    rangeTxt = healthyRangeText(ref, valueShown ? '' : mk.unit);
   }
   const cu = info.canonicalUnit;
   // Lp(a)-class reconciliation: when this panel's reported unit differs from the
