@@ -4873,20 +4873,44 @@ function renderBrowseGrid(p, sys){
 
 // Friendly status word keyed off st.cls, shared by the browse grid and body-map cards.
 const BES_WORD = { "s-good":"Looks good", "s-watch":"Worth watching", "s-flag":"Worth a closer look", "s-none":"Not tested yet" };
-// Status descriptor for a body-map card. Centralizes the heavy_metals neutral override
-// so neither the organ nor the tray path can ever render it green/"Healthy".
+// Status descriptor for a body-map card. Centralizes the safety-class neutral override
+// so neither the organ nor the tray path can ever render one green/"Healthy".
+// Safety-class systems: heavy metals, autoimmune, tumour markers. A clean
+// result in any of these must read NEUTRAL, never green/reassuring — a
+// toxicological ceiling, an absent antibody, and a tumour marker below
+// cutoff are all "we looked and found nothing", not "healthy". Defined by
+// the CLEAN bands, not the bad ones, so an unrecognised band flags rather
+// than passing quietly. One table, not three copies.
+const SAFETY_CLASS = {
+  heavy_metals: {
+    clean: new Set(["optimal","normal","low","normal_low","within_reference","negative"]),
+    flagWord: "Worth discussing"
+  },
+  autoimmune: {
+    clean: new Set(["negative","optimal"]),
+    flagWord: null            // null -> BES_WORD["s-flag"]
+  },
+  tumor_markers: {
+    clean: new Set(["optimal"]),
+    flagWord: null
+  }
+};
+const SAFETY_NEUTRAL_WORD = "Tested";
 function cardStatus(s){
   const st = sysStatus(s.status);
-  if(s && s.system_id === "heavy_metals"){
-    // Heavy metals: never green/reassuring. Neutral "Tested" when in range. A toxic
-    // element is only concerning ABOVE the reference interval (a low reading is not a
-    // concern), so flag on a HIGH-side band only. Calm word matches the prompt's
-    // above-range phrasing ("worth discussing with a doctor") — never an alarm word.
-    const HM_HIGH = new Set(["high","elevated","very_high","critical_high","high_concern","abnormal","suboptimal_high","borderline_high"]);
-    const outHigh = Array.isArray(s.markers) && s.markers.some(m => HM_HIGH.has(String((m && m.band) || "").toLowerCase()));
-    return outHigh
-      ? { cls: "s-flag", word: "Worth discussing", color: ST_COLOR["s-flag"] }
-      : { cls: "s-none", word: "Tested", color: ST_COLOR["s-none"] };
+  // Safety-class systems (heavy_metals / autoimmune / tumor_markers): NEVER green. Neutral
+  // "Tested" on a clean panel; s-flag the moment any marker's band is not a recognised clean
+  // band (an unknown band flags rather than passing quietly). Empty/missing band is not dirty.
+  const cfg = s && SAFETY_CLASS[s.system_id];
+  if(cfg){
+    const markers = Array.isArray(s.markers) ? s.markers : [];
+    const dirty = markers.some(m => {
+      const b = String((m && m.band) || "").toLowerCase();
+      return b !== "" && !cfg.clean.has(b);
+    });
+    return dirty
+      ? { cls: "s-flag", word: cfg.flagWord || BES_WORD["s-flag"], color: ST_COLOR["s-flag"] }
+      : { cls: "s-none", word: SAFETY_NEUTRAL_WORD, color: ST_COLOR["s-none"] };
   }
   if(s && s.system_id === "sex_hormones"){
     // AMH is cycle-INDEPENDENT, so a flagged AMH surfaces on the body map even while the
