@@ -55,7 +55,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
    the generate button) is unreachable. Below 960px it collapses to one column, sticky OFF. */
 .dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:26px;align-items:start}
 .dash-main{min-width:0}
-.dash-rail{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 88px);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.dash-rail{align-self:start;display:flex;flex-direction:column;gap:16px}
 /* Rail-scoped: the generate button goes full-width in the rail (base .report-cta-row rule, used
    elsewhere too, is left untouched). */
 .dash-rail .report-cta-row{margin:0}
@@ -86,7 +86,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .sysr-all{border-top:1px solid var(--cream-mid);padding:13px 0 0;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:center;font:inherit;font-size:14px;color:var(--teal);cursor:pointer}
 @media(max-width:960px){
   .dash-grid{grid-template-columns:1fr}
-  .dash-rail{position:static;max-height:none;overflow:visible}
 }
 h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(--brown)}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
