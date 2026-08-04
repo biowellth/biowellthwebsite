@@ -4982,7 +4982,7 @@ function buildBodyMap(p, sys){
       const chip = document.createElement('button');
       chip.className = 'sys-chip card flow ' + cs.cls;
       const mc = (it.s.markers && it.s.markers.length) || markersForSystem(p, it.s).length;
-      const countTxt = (cs.cls === 's-none' && it.s.system_id !== 'heavy_metals')
+      const countTxt = (cs.cls === 's-none' && !SAFETY_CLASS[it.s.system_id])
         ? 'untested'
         : (mc + ' marker' + (mc === 1 ? '' : 's'));
       chip.innerHTML =
