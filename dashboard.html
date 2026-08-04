@@ -48,11 +48,16 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .report-picker:hover{color:var(--brown);border-color:var(--brown-mid)}
 .report-picker:focus{outline:none;border-color:var(--teal)}
 .app{max-width:1180px;margin:0 auto;padding:40px 32px}
-/* Two-column dashboard layout: main content + sticky rail (trends + generate button). Layout
-   only. minmax(0,1fr) is required so wide children (sparklines, tables) cannot overflow the
-   track; .dash-main{min-width:0} for the same reason. Rail max-height + overflow are required —
-   the longitudinal block can exceed the viewport when expanded, and without them the tail (incl.
-   the generate button) is unreachable. Below 960px it collapses to one column, sticky OFF. */
+/* Two-column dashboard layout: main content + a fixed 350px rail (trends, systems, generate
+   button). Layout only. minmax(0,1fr) is required so wide children (sparklines, tables) cannot
+   overflow the track. .dash-main{min-width:0} for the same reason. The rail FLOWS with the page.
+   No sticky, no max-height, no independent scroll context. The document body is the only scroll
+   context on this page. WHY: the rail measured 886px baseline and 956px first-panel worst case,
+   against 812px available at a 900px viewport. So a capped or sticky rail put the Generate report
+   CTA below an invisible fold. Measured 2026-08-04, commit 687e236. The rail grows with panel
+   history. Do NOT reintroduce a height cap tuned to any particular viewport. Below 960px the grid
+   collapses to one column. The rail needs no position override there because it is static by
+   default. */
 .dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:26px;align-items:start}
 .dash-main{min-width:0}
 .dash-rail{align-self:start;display:flex;flex-direction:column;gap:16px}
