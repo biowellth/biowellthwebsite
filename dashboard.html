@@ -508,7 +508,7 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
    (both are a 1100 column centred in the viewport, inset 24). Title + back share the rows' left edge. */
 .trends-head-inner{max-width:1100px;margin:0 auto;padding:0 24px}
 .trends-body{max-width:1100px;margin:0 auto;padding:20px 24px 44px}   /* 1100 column, matches .app / .markers-list */
-#trends-overview{max-width:760px;margin:0 0 12px}       /* 760 measure, flush-LEFT in the column (no auto margin) */
+#trends-overview{max-width:640px;margin:0 auto 12px;text-align:center;text-wrap:balance}   /* centered lede; narrowed measure because centered text needs a tighter rag */
 #trends-groups{margin:0}                                 /* fills the 1100 body content; shares the paragraph's left edge */
 /* Gaps page overlay ("what to test next") — z above trends (160), below sys-modal (200) */
 .gaps-view{position:fixed;inset:0;z-index:180;background:var(--cream);overflow-y:auto}
