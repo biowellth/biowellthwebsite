@@ -50,17 +50,20 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .app{max-width:1180px;margin:0 auto;padding:40px 32px}
 /* Two-column dashboard layout: main content + a fixed 350px rail (trends, systems, generate
    button). Layout only. minmax(0,1fr) is required so wide children (sparklines, tables) cannot
-   overflow the track. .dash-main{min-width:0} for the same reason. The rail FLOWS with the page.
-   No sticky, no max-height, no independent scroll context. The document body is the only scroll
-   context on this page. WHY: the rail measured 886px baseline and 956px first-panel worst case,
-   against 812px available at a 900px viewport. So a capped or sticky rail put the Generate report
-   CTA below an invisible fold. Measured 2026-08-04, commit 687e236. The rail grows with panel
-   history. Do NOT reintroduce a height cap tuned to any particular viewport. Below 960px the grid
-   collapses to one column. The rail needs no position override there because it is static by
-   default. */
+   overflow the track. .dash-main{min-width:0} for the same reason. The rail is sticky. Its top
+   offset is COMPUTED in JS by syncRailOffset, not set in CSS, because the rail grows with panel
+   history and can exceed the viewport. Formula: min(72, innerHeight - railHeight - 16). A short
+   rail pins under the topbar at 72. A tall rail gets a negative offset, so it sticks above the
+   viewport top and its bottom edge lands 16px above the viewport bottom. That keeps the Generate
+   report CTA reachable. NO max-height and NO overflow on the rail, ever. Both were removed in
+   687e236 because they hid the CTA behind an invisible fold. Measured 2026-08-04: the rail is
+   886px baseline and 956px first-panel, against roughly 812px of viewport at a 900px window.
+   Below 960px the rail is position:static and the inline top is ignored. When the main column is
+   shorter than the rail (a sparse panel) there is no slack, so nothing pins. That is correct, not
+   a bug. */
 .dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:26px;align-items:start}
 .dash-main{min-width:0}
-.dash-rail{align-self:start;display:flex;flex-direction:column;gap:16px}
+.dash-rail{position:sticky;align-self:start;display:flex;flex-direction:column;gap:16px}
 /* Rail-scoped: the generate button goes full-width in the rail (base .report-cta-row rule, used
    elsewhere too, is left untouched). */
 .dash-rail .report-cta-row{margin:0}
@@ -91,6 +94,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .sysr-all{border-top:1px solid var(--cream-mid);padding:13px 0 0;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:center;font:inherit;font-size:14px;color:var(--teal);cursor:pointer}
 @media(max-width:960px){
   .dash-grid{grid-template-columns:1fr}
+  .dash-rail{position:static}
 }
 h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(--brown)}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
@@ -1499,6 +1503,32 @@ async function onbSave(){
     showView("dashboard");
   }
 })();
+
+// Rail sticky offset. The rail varies in height with the user's panel
+// history, so the offset is computed, not fixed. When the rail is
+// shorter than the viewport this resolves to 72 and behaves as normal
+// top-sticky under the topbar. When it is taller it goes negative, so
+// the rail sticks above the viewport top and its BOTTOM edge lands
+// 16px above the viewport bottom. That is what keeps the Generate
+// report CTA reachable. Never add max-height or overflow to the rail.
+// That was removed in 687e236 and it hid the CTA behind an invisible
+// fold. See the .dash-grid comment.
+function syncRailOffset(){
+  const rail = document.querySelector(".dash-rail");
+  if(!rail) return;
+  const top = Math.min(72, window.innerHeight - rail.offsetHeight - 16);
+  rail.style.top = top + "px";
+}
+function initRailOffset(){
+  const rail = document.querySelector(".dash-rail");
+  if(!rail) return;
+  syncRailOffset();
+  window.addEventListener("resize", syncRailOffset);
+  if(typeof ResizeObserver === "function"){
+    new ResizeObserver(syncRailOffset).observe(rail);
+  }
+}
+initRailOffset();
 
 $("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login"); };
 
