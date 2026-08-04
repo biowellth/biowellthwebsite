@@ -73,6 +73,17 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .rail-row-sub{font-size:12.5px;color:var(--brown-mid);margin-top:1px}
 .rail-row-chev{flex:none;color:var(--brown-mid);opacity:.5;font-size:18px;line-height:1}
 .rail-row:hover .rail-row-icon{background:var(--brown-light)}
+.sysr-head{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.sysr-fig{width:36px;height:36px;border-radius:10px;background:var(--cream-mid);display:flex;align-items:center;justify-content:center;color:var(--brown);flex:none}
+.sysr-fig svg{width:20px;height:20px}
+.sysr-t{font-size:15px;font-weight:600;color:var(--brown);line-height:1.3}
+.sysr-s{font-size:13px;color:var(--brown-mid)}
+.sysr-row{display:flex;align-items:center;gap:10px;width:100%;padding:11px 0;border:0;border-top:1px solid var(--cream-mid);background:none;text-align:left;cursor:pointer;font:inherit}
+.sysr-row:hover .sysr-nm{color:var(--teal)}
+.sysr-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.sysr-nm{flex:1;font-size:14px;color:var(--brown)}
+.sysr-n{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid)}
+.sysr-all{border-top:1px solid var(--cream-mid);padding:13px 0 0;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:center;font:inherit;font-size:14px;color:var(--teal);cursor:pointer}
 @media(max-width:960px){
   .dash-grid{grid-template-columns:1fr}
   .dash-rail{position:static;max-height:none;overflow:visible}
@@ -1103,6 +1114,8 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
       </div>
       <div id="longi-firstpanel" class="gap-card hidden"></div>
     </div>
+
+    <div id="rail-systems" class="rail-card hidden"></div>
 
     <div id="rail-browse" class="rail-card hidden"></div>
 
@@ -3286,6 +3299,7 @@ async function renderDashboard(p, reportId){
   const sys = Array.isArray(p.systems)?p.systems:[];
   buildBodyMap(p, sys);   // #bodymap / #bm-systemic now live in #view-systems (page); ids unchanged, targeted regardless of page visibility
   const sysBack = $("systems-back"); if(sysBack) sysBack.onclick = closeSystemsView;
+  renderRailSystems(p);
 
   renderLongitudinal(p);
 
@@ -3408,14 +3422,67 @@ function markerCountOf(p){
     ? p.systems.reduce((n,s)=> n + (Array.isArray(s.markers)?s.markers.length:0), 0)   // s.markers.length, not markersForSystem
     : 0;
 }
+// System-by-system rail card. Renders a STATUS COLOUR per system, so it
+// resolves status through cardStatus(s) — never sysStatus(s.status) —
+// which carries the heavy_metals and AMH overrides. No value, no range,
+// no sparkline: name, dot, count only. Rows open the existing #sys-modal
+// via openSystem; the footer opens the #view-systems page (z170) via
+// openSystemsView, which after this commit is its only caller.
+const SYSR_RANK = {"s-flag":0,"s-watch":1,"s-good":2,"s-ref":3,"s-none":4};
+// One shared helper for the footer string. Two copies is how a fixed bug
+// stays alive.
+function sysAllLabel(n){
+  return (n > 4) ? ("See all " + n + " systems ›") : "Open the body map ›";
+}
+function renderRailSystems(p){
+  const host = $("rail-systems"); if(!host) return;
+  const sys = Array.isArray(p.systems) ? p.systems : [];
+  if(!sys.length){ host.classList.add("hidden"); host.innerHTML = ""; return; }
+  const rows = sys.map(s => {
+    const cs = cardStatus(s);                       // SENSITIVE GUARD at the emit site
+    const mc = (s.markers && s.markers.length) || markersForSystem(p, s).length;
+    return {
+      s: s,
+      cls: cs.cls,
+      color: cs.color || ST_COLOR["s-none"],
+      name: CANONICAL_TITLE[s.system_id] || s.display_name || s.system_id || "",
+      n: mc
+    };
+  });
+  rows.sort((a,b) => {
+    const ra = (SYSR_RANK[a.cls] == null ? 9 : SYSR_RANK[a.cls]);
+    const rb = (SYSR_RANK[b.cls] == null ? 9 : SYSR_RANK[b.cls]);
+    if(ra !== rb) return ra - rb;
+    return b.n - a.n;
+  });
+  const top = rows.slice(0, 4);
+  const fig = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.4"/><path d="M12 7.4v7.2M7.6 11h8.8M9.6 20l2.4-5.4 2.4 5.4"/></svg>';
+  host.classList.remove("hidden");
+  host.innerHTML =
+    '<div class="sysr-head"><span class="sysr-fig">' + fig + '</span>' +
+      '<span><span class="sysr-t">Your body, system by system</span>' +
+      '<span class="sysr-s" style="display:block">All ' + sys.length + ' system' + (sys.length===1?'':'s') + '</span></span></div>' +
+    top.map((r,i) =>
+      '<button class="sysr-row" type="button" data-i="' + i + '">' +
+        '<span class="sysr-dot" style="background:' + esc(r.color) + '"></span>' +
+        '<span class="sysr-nm">' + esc(r.name) + '</span>' +
+        '<span class="sysr-n">' + r.n + '</span>' +
+      '</button>'
+    ).join('') +
+    '<button class="sysr-all" type="button" id="sysr-all">' + esc(sysAllLabel(sys.length)) + '</button>';
+  host.onclick = (e)=>{
+    if(e.target.closest("#sysr-all")){ openSystemsView(); return; }
+    const btn = e.target.closest(".sysr-row");
+    if(!btn || !host.contains(btn)) return;
+    const r = top[Number(btn.dataset.i)];
+    if(r) openSystem(p, r.s);
+  };
+}
 function renderRailBrowse(p){
   const host = $("rail-browse"); if(!host) return;
   const n = markerCountOf(p);
   // Each row opens its own overlay page (systems / markers / gaps); gated below on data presence.
   const ROWS = [
-    { kind:"systems",
-      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.6"/><path d="M12 7.6v8.4M8 12h8M9.5 21l2.5-5 2.5 5"/></svg>',
-      heading:"Your body, system by system", sub:"All systems on the body map" },
     { kind:"markers",
       icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/></svg>',
       heading:"All "+n+" marker"+(n===1?"":"s"), sub:"Every value, range, and history" },
@@ -3424,7 +3491,6 @@ function renderRailBrowse(p){
       heading:"What to test next", sub:"Gaps worth exploring" },
   ];
   const live = ROWS.filter(r => {
-    if(r.kind==="systems") return Array.isArray(p.systems) && p.systems.length > 0;   // row 1: data presence, not section visibility
     if(r.kind==="markers") return n > 0;                                  // row 2 only when count > 0
     if(r.kind==="gaps") return RD_GAPS_SHOWN;                             // row 3 only when the gaps page has content (suppression preserved)
     return false;                                                        // no other kinds
@@ -3443,7 +3509,6 @@ function renderRailBrowse(p){
   host.onclick = (e)=>{
     const btn = e.target.closest('.rail-row');
     if(!btn || !host.contains(btn)) return;
-    if(btn.dataset.kind === "systems"){ openSystemsView(); return; }
     if(btn.dataset.kind === "markers"){ openMarkersView(p); return; }
     if(btn.dataset.kind === "gaps"){ openGapsView(); return; }
   };
