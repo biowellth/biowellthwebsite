@@ -47,7 +47,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .report-picker{font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:7px 30px 7px 14px;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B5047' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .report-picker:hover{color:var(--brown);border-color:var(--brown-mid)}
 .report-picker:focus{outline:none;border-color:var(--teal)}
-.app{max-width:1100px;margin:0 auto;padding:40px 24px}
+.app{max-width:1180px;margin:0 auto;padding:40px 32px}
 /* Two-column dashboard layout: main content + sticky rail (trends + generate button). Layout
    only. minmax(0,1fr) is required so wide children (sparklines, tables) cannot overflow the
    track; .dash-main{min-width:0} for the same reason. Rail max-height + overflow are required —
@@ -55,7 +55,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
    the generate button) is unreachable. Below 960px it collapses to one column, sticky OFF. */
 .dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:26px;align-items:start}
 .dash-main{min-width:0}
-.dash-rail{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 88px);overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.dash-rail{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 88px);overflow-y:auto;display:flex;flex-direction:column;gap:16px}
 /* Rail-scoped: the generate button goes full-width in the rail (base .report-cta-row rule, used
    elsewhere too, is left untouched). */
 .dash-rail .report-cta-row{margin:0}
@@ -179,7 +179,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .proc-file strong{color:var(--brown)}
 /* Upload-time confounder ask lives on the Call A "Reading your report" screen (left-aligned, constrained). */
 #proc-ask{width:100%;max-width:560px;margin:22px auto 0;text-align:left}
-.reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:32px;margin-bottom:24px}
+.reveal-head{display:flex;flex-wrap:wrap;gap:28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:36px 40px;margin-bottom:24px}
 .score-ring{width:120px;height:120px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
 .score-ring::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--white)}
 .score-num{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-size:34px;font-weight:700;color:var(--brown);line-height:1}
@@ -189,7 +189,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .vitality-frame{margin-top:12px}
 .vitality-frame p{font-size:13.5px;color:var(--brown-mid);line-height:1.7;margin:0 0 8px}
 .vitality-frame p:last-child{margin-bottom:0}
-.section-label{display:flex;align-items:center;gap:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:28px 0 14px}
+.section-label{display:flex;align-items:center;gap:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:30px 0 4px}
 .section-label::before{content:"";width:18px;height:2px;border-radius:2px;background:var(--brown);flex:none}
 .section-label.acc-coral::before{background:var(--coral)}
 .section-label.acc-teal::before{background:var(--teal)}
@@ -286,13 +286,13 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-chart .dlabel{font-family:'JetBrains Mono',monospace;font-size:7px;fill:var(--brown-mid)}
 .sm-trend-note{font-size:12.5px;line-height:1.55;color:var(--brown-mid);margin-top:11px}
 .sm-empty{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin-top:18px;font-style:italic}
-.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:22px;margin-bottom:12px;border-left:4px solid var(--coral)}
+.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:26px 30px;margin-bottom:14px;border-left:4px solid var(--coral)}
 .prio.sev-watch{border-left-color:var(--amber)}
 .prio.sev-monitor{border-left-color:var(--orange)}
 .prio.sev-low{border-left-color:var(--coral)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
-.prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown)}
+.prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;line-height:1.25;font-weight:700;color:var(--brown);margin:6px 0 14px}
 .prio-marker{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;background:var(--coral-light);color:var(--coral-dark);padding:6px 12px;border-radius:7px}
 .prio-finding{font-size:14px;color:var(--brown);line-height:1.6;margin-bottom:8px}
 /* Stage 2 restyle: the_connection variant only (a brown-soft tinted block); applied ALONGSIDE
@@ -465,7 +465,7 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
    sensitive row's system modal opens on top. Reuses .sm-marker / .sm-mk / .bes-sens row styling. */
 .markers-view{position:fixed;inset:0;z-index:150;background:var(--cream);overflow-y:auto}
 .markers-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
-.markers-head-inner,.markers-list{max-width:1100px;margin:0 auto}   /* matches .app / #trends-groups */
+.markers-head-inner,.markers-list{max-width:1180px;margin:0 auto}   /* tracks .app (1180) — bumped 2026-08-xx */
 .markers-back{display:inline-flex;align-items:center;gap:6px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;padding:0;margin-bottom:10px}
 .markers-back:hover{color:var(--brown)}
 .markers-back svg{width:16px;height:16px}
@@ -506,14 +506,14 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
 .trends-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 0 14px}
 /* Head-inner carries the horizontal 24px so its content edge lines up with the body content edge
    (both are a 1100 column centred in the viewport, inset 24). Title + back share the rows' left edge. */
-.trends-head-inner{max-width:1100px;margin:0 auto;padding:0 24px}
-.trends-body{max-width:1100px;margin:0 auto;padding:20px 24px 44px}   /* 1100 column, matches .app / .markers-list */
+.trends-head-inner{max-width:1180px;margin:0 auto;padding:0 24px}
+.trends-body{max-width:1180px;margin:0 auto;padding:20px 24px 44px}   /* tracks .app (1180); header-inner bumped to match */
 #trends-overview{max-width:640px;margin:0 auto 12px;text-align:center;text-wrap:balance}   /* centered lede; narrowed measure because centered text needs a tighter rag */
 #trends-groups{margin:0}                                 /* fills the 1100 body content; shares the paragraph's left edge */
 /* Gaps page overlay ("what to test next") — z above trends (160), below sys-modal (200) */
 .gaps-view{position:fixed;inset:0;z-index:180;background:var(--cream);overflow-y:auto}
 .gaps-head{position:sticky;top:0;z-index:2;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
-.gaps-head-inner,.gaps-body{max-width:1100px;margin:0 auto}   /* matches .app / #trends-groups / .markers-list */
+.gaps-head-inner,.gaps-body{max-width:1180px;margin:0 auto}   /* tracks .app (1180) */
 .gaps-body{padding:20px 24px 44px}
 /* Body map page overlay — z 170 (below trends/gaps? no: above them is fine; below sys-modal 200).
    NO overflow:hidden / transform (keeps #sys-modal, a sibling at z 200, layering above). Header z
@@ -521,7 +521,7 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
    (1560→824) self-centre exactly as they did full-width on the dashboard. */
 .systems-view{position:fixed;inset:0;z-index:170;background:var(--cream);overflow-y:auto}
 .systems-head{position:sticky;top:0;z-index:10;background:var(--cream);border-bottom:1px solid var(--brown-light);padding:18px 24px 14px}
-.systems-head-inner{max-width:1100px;margin:0 auto}
+.systems-head-inner{max-width:1180px;margin:0 auto}   /* header matches the other overlay headers (1180); .systems-body is uncapped, body map unaffected */
 .systems-head-inner .bm-hint{margin-top:4px}
 .systems-body{padding:20px 24px 44px}
 .markers-search{width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:10px 18px;margin-top:14px;outline:none;transition:border-color .15s}
@@ -733,9 +733,9 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
 .coverage-line{font-size:13.5px;line-height:1.6;color:rgba(250,248,244,.78);margin-top:6px}
 .sparse-sub{font-size:14px;line-height:1.6;color:rgba(250,248,244,.72);margin-top:8px;font-weight:400}
 .coverage-line.hidden{display:none}
-.hero-stats{display:flex;flex-wrap:wrap;gap:14px 28px;flex:0 0 100%;order:3;margin-top:20px;padding-top:18px;border-top:1px solid rgba(250,248,244,.14)}
+.hero-stats{display:flex;flex-wrap:wrap;gap:14px 36px;flex:0 0 100%;order:3;margin-top:26px;padding-top:24px;border-top:1px solid rgba(250,248,244,.14)}
 .hero-stat{min-width:60px}
-.hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;line-height:1}
+.hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;line-height:1}
 .hs-lbl{font-size:11px;color:rgba(250,248,244,.6);margin-top:5px;line-height:1.3}
 .hero-trend{margin-top:16px;font-size:13px;font-style:italic;color:var(--teal-mid)}
 .hero-trend.hidden{display:none}
