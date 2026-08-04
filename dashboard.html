@@ -1453,7 +1453,7 @@ async function onbSave(){
 
 (async ()=>{
   const { data } = await sb.auth.getSession();
-  if(!data.session){ location.replace("/login.html?mode=login"); return; }
+  if(!data.session){ location.replace("/login?mode=login"); return; }
   USER = data.session.user;
   document.body.classList.add("ready");
   await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
@@ -1483,7 +1483,7 @@ async function onbSave(){
   }
 })();
 
-$("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login.html"); };
+$("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login"); };
 
 // Account deletion (audit H1). Opens a typed-confirm modal; on confirm calls the delete-account edge
 // fn (self-only, JWT-derived uid — no id is passed), which purges the user's storage PDFs then deletes
@@ -1507,7 +1507,7 @@ $("del-confirm").onclick = async ()=>{
     const { data, error } = await sb.functions.invoke("delete-account");
     if(error || !data || data.ok === false) throw new Error("delete failed");
     await sb.auth.signOut();
-    location.replace("/login.html");
+    location.replace("/login");
   }catch(_){
     btn.disabled = false; btn.textContent = "Delete everything";
     $("del-msg").className = "del-msg err";
