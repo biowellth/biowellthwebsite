@@ -2238,7 +2238,7 @@ function humanizeMarkerId(id){
   const s = String(id||'').trim();
   if(!s) return '';
   return s.split(/[_\s-]+/).filter(Boolean)
-          .map(w => w.charAt(0).toUpperCase()+w.slice(1))
+          .map(w => capitalise(w))
           .join(' ');
 }
 function markerName(m){
@@ -2388,7 +2388,7 @@ function renderCoverageLine(p){
   if(notFasting || (fastingUnknown && answered)){
     line += " A fasting retest would let us read " + joined + ".";
   } else if(fastingUnknown && !answered){
-    line += " " + joined.charAt(0).toUpperCase() + joined.slice(1) + " is waiting on one answer.";
+    line += " " + capitalise(joined) + " is waiting on one answer.";
   }
   el.textContent = line;
   el.classList.remove("hidden");
@@ -3064,6 +3064,9 @@ function closeReport(){
 // verdict field) or any empty verdict falls back to the band template below, so an
 // old stored panel never blanks. Suppressed panels never reach here (the caller
 // renders SR-1..SR-3 instead), so the signed suppressed copy still owns that screen.
+// Shared first-letter capitaliser. Byte-identical to the charAt(0).toUpperCase()+slice(1) idiom it
+// replaces (empty/falsy in -> "" out).
+function capitalise(s){ s = (s == null) ? "" : String(s); return s.charAt(0).toUpperCase() + s.slice(1); }
 const VERDICT_BAND = {
   thriving:           "Your body's in a really good <strong>place</strong>",
   solid_foundation:   "You've got a <strong>solid</strong> foundation",
@@ -3074,30 +3077,36 @@ const VERDICT_BAND = {
   running_on_reserve: "A few of your markers are worth a <strong>look</strong>",
   needs_attention:    "A few of your markers <strong>need attention</strong>",
 };
+// Hero-summary band clause, keyed on vitality.band.key. Authored (NOT reusing VERDICT_BAND, whose key
+// drift is a separate open ruling). No entry for suppressed — that branch owns its own screen.
+const BAND_CLAUSE = {
+  running_strong:     "You are running strong",
+  steady:             "You are holding steady",
+  running_on_reserve: "You are running on reserve",
+  stretched_thin:     "You are stretched thin",
+};
 // Deterministic reveal hero verdict, assembled from stored priorities[] by canonical marker_id.
 // No system-level fallback (priority.system_id is model-chosen and unstable). A sensitive priority
 // (safety-class system OR any SENSITIVE_MARKER_IDS marker) at rank 1 or 2 routes the whole verdict
 // to one clinician line, no direction or value. Otherwise up to 2 directional phrases (a 3rd only
 // if that priority is severe), deduped on the phrase string. Returns null when fewer than 2 phrases
 // resolve, so the caller falls back to deriveVerdict.
-function buildVerdict(p){
+// A priority is sensitive if its system is a safety class OR any of its primary markers is a
+// heavy-metal / autoimmune / tumour-marker id. Shared by buildVerdict and verdictFragment.
+function prioritySensitive(x){
+  const pm = Array.isArray(x && x.primary_markers) ? x.primary_markers : [];
+  return (!!x && !!x.system_id && !!SAFETY_CLASS[x.system_id]) ||
+         pm.some(m => m && SENSITIVE_MARKER_IDS.has(m.marker_id));
+}
+// The joined driver phrases WITHOUT leading capital and WITHOUT trailing period, or null (<2 phrases).
+// buildVerdict wraps this as capitalise(fragment) + "." so its own output is byte-identical to before;
+// buildHeroSummary consumes the fragment mid-sentence (after "Right now ").
+function verdictFragment(p){
   const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
-  const isSensitive = (x)=>{
-    const pm = Array.isArray(x && x.primary_markers) ? x.primary_markers : [];
-    return (!!x && !!x.system_id && !!SAFETY_CLASS[x.system_id]) ||
-           pm.some(m => m && SENSITIVE_MARKER_IDS.has(m.marker_id));
-  };
-  for(const x of pr){
-    if(x && (x.rank === 1 || x.rank === 2) && isSensitive(x)){
-      return "Your panel flagged something in your " +
-        (CANONICAL_TITLE[x.system_id] || x.system_id || "") +
-        " results that is worth taking to a clinician.";
-    }
-  }
   const phrases = [];
   const seen = new Set();
   for(const x of pr){
-    if(isSensitive(x)) continue;                       // skip sensitive priorities entirely
+    if(prioritySensitive(x)) continue;                 // skip sensitive priorities entirely
     const pm = Array.isArray(x && x.primary_markers) ? x.primary_markers : [];
     const driver = pm.find(m => m && m.flag_status === "critical") || pm[0];
     if(!driver) continue;
@@ -3112,10 +3121,65 @@ function buildVerdict(p){
     break;
   }
   if(phrases.length < 2) return null;
-  const joined = (phrases.length === 2)
-    ? (phrases[0] + " and " + phrases[1] + ".")
-    : (phrases[0] + ", " + phrases[1] + ", and " + phrases[2] + ".");
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
+  return (phrases.length === 2)
+    ? (phrases[0] + " and " + phrases[1])
+    : (phrases[0] + ", " + phrases[1] + ", and " + phrases[2]);
+}
+// The two-sided trajectory as a fragment: { text, worse } | null. text is the standalone sentence
+// WITHOUT its leading capital and WITHOUT its trailing period; worse is true only on the N > R branch.
+// Same four branches / words / since-clause as the standalone line. Null when there is no history.
+function trajectoryFragment(p){
+  const L = p && p.longitudinal;
+  const base = L && L.baseline_panel_date;
+  if(!L || !base) return null;
+  const c = L.counts || {};
+  const R = Number(c.resolved) || 0;
+  const N = Number(c.newly_crossed) || 0;
+  const since = base ? ("since your "+fmtPanelDate(base)+" panel") : "since your last panel";
+  let body, worse = false;
+  if(R > N)                   body = "More of your markers came back into range than moved out " + since;
+  else if(R === N && R > 0)   body = "About as many markers came back into range as moved out " + since;
+  else if(R === N && R === 0) body = "Your markers held their ground " + since;
+  else                      { body = "More of your markers moved out of range than came back " + since; worse = true; }
+  return { text: body.charAt(0).toLowerCase() + body.slice(1), worse };
+}
+// The clinician line for a sensitive (safety-class or sensitive-marker) priority at rank 1 or 2, or
+// null. THE ONLY place this string literal lives. Both buildVerdict and buildHeroSummary route the
+// sensitive path through here, so the guard is STRUCTURAL (prioritySensitive), never a string match on
+// the copy — rewording the sentence cannot break the guard.
+function sensitiveVerdict(p){
+  const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
+  for(const x of pr){
+    if(x && (x.rank === 1 || x.rank === 2) && prioritySensitive(x)){
+      return "Your panel flagged something in your " +
+        (CANONICAL_TITLE[x.system_id] || x.system_id || "") +
+        " results that is worth taking to a clinician.";
+    }
+  }
+  return null;
+}
+// Deterministic reveal hero verdict, assembled from stored priorities[] by canonical marker_id.
+// Sensitive rank-1/2 priorities route to one clinician line; otherwise capitalise(verdictFragment)+".".
+// Returns null when fewer than 2 phrases resolve, so the caller falls back to deriveVerdict.
+function buildVerdict(p){
+  const sv = sensitiveVerdict(p);
+  if(sv !== null) return sv;
+  const f = verdictFragment(p);
+  return f === null ? null : capitalise(f) + ".";
+}
+// One shared helper: band clause + trajectory + drivers as ONE hero sentence, or null so the caller
+// falls back to today's behaviour. The sensitive clinician line owns the hero alone.
+function buildHeroSummary(p){
+  const sv = sensitiveVerdict(p);
+  if(sv !== null) return sv;                                       // sensitive clinician line, alone
+  const V = verdictFragment(p);
+  if(V === null) return null;                                      // <2 phrases -> caller falls back
+  const band = (p && p.vitality && p.vitality.band) || {};
+  const B = BAND_CLAUSE[band.key];
+  if(!B) return null;                                              // suppressed / unknown key -> fall back
+  const T = trajectoryFragment(p);
+  if(T) return B + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + V + ".";
+  return B + ". Right now " + V + ".";
 }
 function deriveVerdict(p){
   // Band + priority-count fallback ONLY. The personalized verdict now comes from buildVerdict(p)
@@ -3249,6 +3313,7 @@ async function renderDashboard(p, reportId){
   const showComposite = v.display ? v.display.show_composite !== false : true;
   const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
   const bandLabel = (v.band && v.band.label) || "Your results";
+  let heroSummaryShown = false;   // true once buildHeroSummary has absorbed the trajectory into #headline
   if(isSuppressed(v)){
     // Sparse-reveal hero (SIGNED): the score is replaced by SR-1..SR-3. No number, no band label,
     // no verdict clause (the old headline fell through VERDICT_BAND["suppressed"] being undefined).
@@ -3262,8 +3327,9 @@ async function renderDashboard(p, reportId){
     $("score-num").textContent = score!==null ? score : "";
     $("score-ring").style.setProperty("--p", score!==null ? score : 0);
     $("band").textContent = bandLabel;
-    const v = buildVerdict(p);
-    $("headline").innerHTML = v ? esc(v) : deriveVerdict(p);
+    const s = buildHeroSummary(p);
+    if(s !== null){ $("headline").innerHTML = esc(s); heroSummaryShown = true; }
+    else { const vd = buildVerdict(p); $("headline").innerHTML = vd ? esc(vd) : deriveVerdict(p); }
   }
   renderCoverageLine(p);
 
@@ -3336,30 +3402,14 @@ async function renderDashboard(p, reportId){
       stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
-  // Two-sided trajectory line from the engine's own longitudinal counts. R = came back into range,
-  // N = moved out (newly crossed a line); both are TRUE totals (the arrays are capped samples).
-  // Pure arithmetic, no thresholds, no judgement. Shows whenever there is history (a baseline), even
-  // when nothing came back (R = 0) — the old resolved-only line could only ever deliver good news.
-  // Hidden only for first-panel users (no longitudinal, or no baseline date).
+  // Standalone trajectory line. Rendered ONLY when the hero summary did not absorb it into #headline
+  // (heroSummaryShown). trajectoryFragment owns the four-branch two-count logic; here we only
+  // capitalise and show/hide. Byte-identical to the pre-refactor line: capitalise(fragment.text) + ".".
   const trendEl = $("hero-trend");
   if(trendEl){
-    const L = p.longitudinal;
-    const base = L && L.baseline_panel_date;
-    if(!L || !base){
-      trendEl.textContent = ""; trendEl.classList.add("hidden");
-    } else {
-      const c = L.counts || {};
-      const R = Number(c.resolved) || 0;
-      const N = Number(c.newly_crossed) || 0;
-      const since = base ? ("since your "+fmtPanelDate(base)+" panel") : "since your last panel";
-      let line;
-      if(R > N)                   line = "More of your markers came back into range than moved out " + since + ".";
-      else if(R === N && R > 0)   line = "About as many markers came back into range as moved out " + since + ".";
-      else if(R === N && R === 0) line = "Your markers held their ground " + since + ".";
-      else                        line = "More of your markers moved out of range than came back " + since + ".";
-      trendEl.textContent = line;
-      trendEl.classList.remove("hidden");
-    }
+    const tf = heroSummaryShown ? null : trajectoryFragment(p);
+    if(tf){ trendEl.textContent = capitalise(tf.text) + "."; trendEl.classList.remove("hidden"); }
+    else  { trendEl.textContent = ""; trendEl.classList.add("hidden"); }
   }
 
   // ── STAGE 2: companion slot. Surfaces the engine's narrative_headline as the
