@@ -3336,20 +3336,30 @@ async function renderDashboard(p, reportId){
       stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
-  // One authored trend line from longitudinal RESOLVED total (real prior->current
-  // transitions). counts.resolved is the TRUE total (resolved[] is a capped sample).
-  // Verb matches longiOverview exactly ("came back into range"). Omitted entirely
-  // when no baseline / 0 resolved (first-panel users get no line).
+  // Two-sided trajectory line from the engine's own longitudinal counts. R = came back into range,
+  // N = moved out (newly crossed a line); both are TRUE totals (the arrays are capped samples).
+  // Pure arithmetic, no thresholds, no judgement. Shows whenever there is history (a baseline), even
+  // when nothing came back (R = 0) — the old resolved-only line could only ever deliver good news.
+  // Hidden only for first-panel users (no longitudinal, or no baseline date).
   const trendEl = $("hero-trend");
   if(trendEl){
-    const Lc = (p.longitudinal && p.longitudinal.counts) || null;
-    const n = (Lc && typeof Lc.resolved === "number") ? Lc.resolved : 0;
-    if(p.longitudinal && n > 0){
-      const base = p.longitudinal.baseline_panel_date;
+    const L = p.longitudinal;
+    const base = L && L.baseline_panel_date;
+    if(!L || !base){
+      trendEl.textContent = ""; trendEl.classList.add("hidden");
+    } else {
+      const c = L.counts || {};
+      const R = Number(c.resolved) || 0;
+      const N = Number(c.newly_crossed) || 0;
       const since = base ? ("since your "+fmtPanelDate(base)+" panel") : "since your last panel";
-      trendEl.textContent = n + " marker" + (n===1?"":"s") + " came back into range " + since + ".";
+      let line;
+      if(R > N)                   line = "More of your markers came back into range than moved out " + since + ".";
+      else if(R === N && R > 0)   line = "About as many markers came back into range as moved out " + since + ".";
+      else if(R === N && R === 0) line = "Your markers held their ground " + since + ".";
+      else                        line = "More of your markers moved out of range than came back " + since + ".";
+      trendEl.textContent = line;
       trendEl.classList.remove("hidden");
-    } else { trendEl.textContent = ""; trendEl.classList.add("hidden"); }
+    }
   }
 
   // ── STAGE 2: companion slot. Surfaces the engine's narrative_headline as the
