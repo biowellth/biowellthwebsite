@@ -3074,11 +3074,53 @@ const VERDICT_BAND = {
   running_on_reserve: "A few of your markers are worth a <strong>look</strong>",
   needs_attention:    "A few of your markers <strong>need attention</strong>",
 };
+// Deterministic reveal hero verdict, assembled from stored priorities[] by canonical marker_id.
+// No system-level fallback (priority.system_id is model-chosen and unstable). A sensitive priority
+// (safety-class system OR any SENSITIVE_MARKER_IDS marker) at rank 1 or 2 routes the whole verdict
+// to one clinician line, no direction or value. Otherwise up to 2 directional phrases (a 3rd only
+// if that priority is severe), deduped on the phrase string. Returns null when fewer than 2 phrases
+// resolve, so the caller falls back to deriveVerdict.
+function buildVerdict(p){
+  const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
+  const isSensitive = (x)=>{
+    const pm = Array.isArray(x && x.primary_markers) ? x.primary_markers : [];
+    return (!!x && !!x.system_id && !!SAFETY_CLASS[x.system_id]) ||
+           pm.some(m => m && SENSITIVE_MARKER_IDS.has(m.marker_id));
+  };
+  for(const x of pr){
+    if(x && (x.rank === 1 || x.rank === 2) && isSensitive(x)){
+      return "Your panel flagged something in your " +
+        (CANONICAL_TITLE[x.system_id] || x.system_id || "") +
+        " results that is worth taking to a clinician.";
+    }
+  }
+  const phrases = [];
+  const seen = new Set();
+  for(const x of pr){
+    if(isSensitive(x)) continue;                       // skip sensitive priorities entirely
+    const pm = Array.isArray(x && x.primary_markers) ? x.primary_markers : [];
+    const driver = pm.find(m => m && m.flag_status === "critical") || pm[0];
+    if(!driver) continue;
+    const dir = driver.position;
+    if(dir !== "low" && dir !== "high") continue;      // accept only low or high
+    const row = MARKER_PHRASE[driver.marker_id];
+    const phrase = row && row[dir];
+    if(!phrase) continue;                              // no match -> skip, never approximate
+    if(seen.has(phrase)) continue;                     // dedup on the phrase; pull the next priority
+    if(phrases.length < 2){ seen.add(phrase); phrases.push(phrase); continue; }
+    if(x.severity === "severe"){ seen.add(phrase); phrases.push(phrase); }  // a 3rd only if severe
+    break;
+  }
+  if(phrases.length < 2) return null;
+  const joined = (phrases.length === 2)
+    ? (phrases[0] + " and " + phrases[1] + ".")
+    : (phrases[0] + ", " + phrases[1] + ", and " + phrases[2] + ".");
+  return joined.charAt(0).toUpperCase() + joined.slice(1);
+}
 function deriveVerdict(p){
-  const nh = (p && p.narrative_headline) || {};
-  const personalized = typeof nh.verdict === "string" ? nh.verdict.trim() : "";
-  if(personalized) return esc(personalized);   // F3: her own drivers, doctor register
-  // Fallback (legacy/empty): the pre-F3 band + priority-count template.
+  // Band + priority-count fallback ONLY. The personalized verdict now comes from buildVerdict(p)
+  // at the emit site; narrative_headline.verdict is no longer read here. (VERDICT_BAND key drift
+  // is a separate commit, per brief.)
   const v = (p && p.vitality) || {};
   const band = v.band || {};
   const foundation = VERDICT_BAND[band.key] || esc(band.label || "Your results");
@@ -3220,7 +3262,8 @@ async function renderDashboard(p, reportId){
     $("score-num").textContent = score!==null ? score : "";
     $("score-ring").style.setProperty("--p", score!==null ? score : 0);
     $("band").textContent = bandLabel;
-    $("headline").innerHTML = deriveVerdict(p);
+    const v = buildVerdict(p);
+    $("headline").innerHTML = v ? esc(v) : deriveVerdict(p);
   }
   renderCoverageLine(p);
 
@@ -4262,6 +4305,46 @@ function isQualitative(mk, info){
   const inf = info || markerSeriesInfo(mk);
   return (mk.value==null || mk.value==='') && inf.points.length===0 && mk.band==null;
 }
+// Reveal hero verdict phrases, keyed marker_id -> { low, high }. Deterministic authored copy
+// (verbatim, no paraphrase, no colon, no em dash). buildVerdict looks these up by a priority's
+// driving marker_id + its observed position; a marker with no entry for that direction is skipped,
+// never approximated. marker_id-keyed, mirroring the DERIVED_EXPLAIN / MEASURED_EXPLAIN precedent.
+const MARKER_PHRASE = {
+  ferritin:               { low:  "your iron stores are running low" },
+  iron_serum:             { low:  "your iron is running low" },
+  transferrin_saturation: { low:  "your iron is not moving where it needs to go" },
+  vitamin_d_25oh_total:   { low:  "your vitamin D is running low" },
+  vitamin_b9_folate:      { low:  "your folate is running low" },
+  vitamin_b12:            { low:  "your B12 is running low" },
+  zinc:                   { low:  "your zinc is running low" },
+  copper:                 { high: "your copper is sitting high" },
+  tsh:                    { high: "your thyroid is working harder than it should" },
+  total_t3:               { low:  "your thyroid is running slower than it could" },
+  free_t3:                { low:  "your thyroid is running slower than it could" },
+  hs_crp:                 { high: "you are carrying some background inflammation" },
+  homocysteine:           { high: "a marker that links your B vitamins to your heart is running high" },
+  fasting_insulin:        { high: "early insulin signals are showing up" },
+  homa_ir:                { high: "early insulin signals are showing up" },
+  tyg_index:              { high: "early insulin signals are showing up" },
+  hba1c:                  { high: "your blood sugar is trending up" },
+  ldl_cholesterol:        { high: "your cholesterol is running high" },
+  non_hdl_cholesterol:    { high: "your cholesterol is running high" },
+  total_cholesterol:      { high: "your cholesterol is running high" },
+  apolipoprotein_b:       { high: "your cholesterol is running high" },
+  apolipoprotein_a1:      { low:  "your protective cholesterol is running low" },
+  triglycerides:          { high: "your triglycerides are running high" },
+  progesterone:           { low:  "your progesterone is running low" },
+  testosterone_total:     { high: "your testosterone is running high" },
+  testosterone_free:      { high: "your testosterone is running high", low: "your free testosterone is running low" },
+  dhea_sulfate:           { low:  "your stress reserve is running low" },
+  "11_deoxycortisol":     { high: "your stress hormone pathway is under load" },
+  urinary_microalbumin:   { high: "your kidneys are showing an early strain signal" },
+  uacr:                   { high: "your kidneys are showing an early strain signal" },
+  alt:                    { high: "your liver is under some load" },
+  ast:                    { high: "your liver is under some load" },
+  ggt:                    { high: "your liver is under some load" },
+  amylase:                { high: "your pancreas markers are running high" },
+};
 // Authored "what it is, why it matters" line for each calculated marker, in plain
 // language for a non-clinical reader. No colon, no em dash.
 // Keyed by marker_id; covers the 11 derived indices. A measured-marker
@@ -4930,6 +5013,11 @@ const SAFETY_CLASS = {
   }
 };
 const SAFETY_NEUTRAL_WORD = "Tested";
+// The 29 heavy_metals / autoimmune / tumor_markers marker_ids (re-derived from the WORKER biomarker
+// library). A priority carrying any of these never yields a directional hero phrase; it routes to
+// the clinician line in buildVerdict. Sibling of SAFETY_CLASS (system-level); this is the marker-
+// level guard, because a sensitive marker can ride a priority filed under any model-chosen system_id.
+const SENSITIVE_MARKER_IDS = new Set(["lead","arsenic","mercury","cadmium","chromium","aluminum","barium","cobalt","cesium","silver","beryllium","bismuth","nickel","antimony","tin","strontium","thallium","uranium","vanadium","ana","rheumatoid_factor","anti_ccp","aso","afp","beta_hcg_nonpregnant","cea","ca_15_3","ca_19_9","ca_125"]);
 function cardStatus(s){
   const st = sysStatus(s.status);
   // Safety-class systems (heavy_metals / autoimmune / tumor_markers): NEVER green. Neutral
