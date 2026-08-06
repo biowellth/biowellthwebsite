@@ -386,10 +386,13 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
 .footer-disclaimer{font-size:11px;color:rgba(255,255,255,0.35);width:100%;margin-top:12px;line-height:1.5;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
 
 /* MOBILE */
+@media(max-width:1024px){
+  .hero-inner{grid-template-columns:1fr;gap:40px}
+  .hero-card{max-width:520px}
+}
 @media(max-width:768px){
   .hero{padding:100px 5% 72px;min-height:auto}
   .hero-orb{display:none}
-  .hero-inner{grid-template-columns:1fr;gap:40px}
   .hero h1{font-size:2.2rem}
   .strip-inner{grid-template-columns:1fr 1fr;gap:0}
   .strip-item{border-right:none;border-bottom:1px solid rgba(255,255,255,0.1);padding:18px 12px}
