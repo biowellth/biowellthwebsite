@@ -3182,8 +3182,13 @@ function buildHeroSummary(p){
   const B = BAND_CLAUSE[band.key];
   if(!B) return null;                                              // suppressed / unknown key -> fall back
   const T = trajectoryFragment(p);
-  if(T) return B + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + V + ".";
-  return B + ". Right now " + V + ".";
+  // Open with the user's first name from signup (profiles.full_name via PROFILE), same access pattern
+  // as the report/reveal call sites. Fail closed: no name -> the current sentence byte-for-byte, no
+  // orphan comma. The nameless case is the common one (only a minority of stored users have a name).
+  const fn = firstName(PROFILE && PROFILE.full_name);
+  const opener = fn ? (fn + ", " + B.charAt(0).toLowerCase() + B.slice(1)) : B;
+  if(T) return opener + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + V + ".";
+  return opener + ". Right now " + V + ".";
 }
 // Hero #headline size tier by summary length. One threshold set, no second copy.
 function headlineTier(s){ const n = (s == null ? "" : String(s)).length; return n <= 130 ? "h-lg" : (n <= 230 ? "h-md" : "h-sm"); }
