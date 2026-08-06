@@ -740,8 +740,13 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
 .reveal-head .score-cap{color:rgba(250,248,244,.55)}
 .reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0;display:inline-flex;align-items:center;gap:8px}
 .reveal-head-text .band::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex:none}
-.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(22px,3.2vw,34px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px}
+.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(22px,3.2vw,34px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px;max-width:78%}
 .reveal-head-text .headline strong{font-weight:600;color:inherit}
+/* Hero summary size tiers (compound + hero-scoped so they never collide with #view-reveal .h-lg/.h-md
+   on the reveal deck). Each sets its own line-height, else it inherits the base 1.32. */
+.reveal-head-text .headline.h-lg{font-size:clamp(24px,3.2vw,34px);line-height:1.2}
+.reveal-head-text .headline.h-md{font-size:clamp(21px,2.6vw,28px);line-height:1.25}
+.reveal-head-text .headline.h-sm{font-size:clamp(19px,2.1vw,23px);line-height:1.35}
 .reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
 /* STAGE: hero stat strip + trend line + demoted score caption (dark-hero context) */
 .reveal-head-left{display:flex;flex-direction:column;align-items:center;gap:10px;flex:none;max-width:220px;order:2}
@@ -3116,9 +3121,8 @@ function verdictFragment(p){
     const phrase = row && row[dir];
     if(!phrase) continue;                              // no match -> skip, never approximate
     if(seen.has(phrase)) continue;                     // dedup on the phrase; pull the next priority
-    if(phrases.length < 2){ seen.add(phrase); phrases.push(phrase); continue; }
-    if(x.severity === "severe"){ seen.add(phrase); phrases.push(phrase); }  // a 3rd only if severe
-    break;
+    seen.add(phrase); phrases.push(phrase);            // collect up to 3 phrases unconditionally
+    if(phrases.length >= 3) break;                     // ceiling is 3, never 4
   }
   if(phrases.length < 2) return null;
   return (phrases.length === 2)
@@ -3181,6 +3185,8 @@ function buildHeroSummary(p){
   if(T) return B + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + V + ".";
   return B + ". Right now " + V + ".";
 }
+// Hero #headline size tier by summary length. One threshold set, no second copy.
+function headlineTier(s){ const n = (s == null ? "" : String(s)).length; return n <= 130 ? "h-lg" : (n <= 230 ? "h-md" : "h-sm"); }
 function deriveVerdict(p){
   // Band + priority-count fallback ONLY. The personalized verdict now comes from buildVerdict(p)
   // at the emit site; narrative_headline.verdict is no longer read here. (VERDICT_BAND key drift
@@ -3314,6 +3320,9 @@ async function renderDashboard(p, reportId){
   const score = (showComposite && typeof v.composite === "number") ? v.composite : null;
   const bandLabel = (v.band && v.band.label) || "Your results";
   let heroSummaryShown = false;   // true once buildHeroSummary has absorbed the trajectory into #headline
+  // Clear any prior size tier BEFORE either branch. renderDashboard runs on panel switch, so a stale
+  // tier class would otherwise persist across panels. Non-suppressed re-adds one; suppressed stays base.
+  $("headline").classList.remove("h-lg","h-md","h-sm");
   if(isSuppressed(v)){
     // Sparse-reveal hero (SIGNED): the score is replaced by SR-1..SR-3. No number, no band label,
     // no verdict clause (the old headline fell through VERDICT_BAND["suppressed"] being undefined).
@@ -3328,8 +3337,14 @@ async function renderDashboard(p, reportId){
     $("score-ring").style.setProperty("--p", score!==null ? score : 0);
     $("band").textContent = bandLabel;
     const s = buildHeroSummary(p);
-    if(s !== null){ $("headline").innerHTML = esc(s); heroSummaryShown = true; }
-    else { const vd = buildVerdict(p); $("headline").innerHTML = vd ? esc(vd) : deriveVerdict(p); }
+    let headlineText;
+    if(s !== null){ headlineText = s; $("headline").innerHTML = esc(s); heroSummaryShown = true; }
+    else {
+      const vd = buildVerdict(p);
+      if(vd){ headlineText = vd; $("headline").innerHTML = esc(vd); }
+      else { const dv = deriveVerdict(p); headlineText = dv; $("headline").innerHTML = dv; }
+    }
+    $("headline").classList.add(headlineTier(headlineText));
   }
   renderCoverageLine(p);
 
@@ -4387,12 +4402,12 @@ const MARKER_PHRASE = {
   homa_ir:                { high: "early insulin signals are showing up" },
   tyg_index:              { high: "early insulin signals are showing up" },
   hba1c:                  { high: "your blood sugar is trending up" },
-  ldl_cholesterol:        { high: "your cholesterol is running high" },
-  non_hdl_cholesterol:    { high: "your cholesterol is running high" },
-  total_cholesterol:      { high: "your cholesterol is running high" },
-  apolipoprotein_b:       { high: "your cholesterol is running high" },
-  apolipoprotein_a1:      { low:  "your protective cholesterol is running low" },
-  triglycerides:          { high: "your triglycerides are running high" },
+  // Lipid markers deliberately OMITTED (ldl / non_hdl / total cholesterol, apolipoprotein_b,
+  // apolipoprotein_a1, triglycerides). Framing high cholesterol as downstream of inflammation is a
+  // causal cluster claim, advisor-gated; stating it as a bare hero finding reads as a verdict we have
+  // not earned. A lipid-driven priority falls through the no-match path (absence from this table IS
+  // the exclusion) and the next eligible priority takes the slot. The priority card below still
+  // carries it in full. Revisit when the cluster rules are signed.
   progesterone:           { low:  "your progesterone is running low" },
   testosterone_total:     { high: "your testosterone is running high" },
   testosterone_free:      { high: "your testosterone is running high", low: "your free testosterone is running low" },
