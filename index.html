@@ -165,12 +165,12 @@ nav.scrolled .nav-link:hover{color:var(--brown);background:var(--cream-mid)}
 .hero-grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.06;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
 @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.03)}}
 @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,15px) scale(0.97)}}
-.hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2}
+.hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:56px;align-items:center}
 .hero-badge{display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:32px;padding:8px 15px;border:1px solid rgba(184,228,212,0.28);border-radius:100px;background:rgba(184,228,212,0.05);animation:fadeIn 0.5s 0.1s ease both}
 .hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;box-shadow:0 0 0 0 rgba(12,142,107,0.6);animation:ping 2.6s ease-in-out infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(12,142,107,0.5)}70%,100%{box-shadow:0 0 0 8px rgba(12,142,107,0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-optical-sizing:auto;font-size:clamp(2.6rem,5.4vw,4.1rem);line-height:1.05;color:var(--white);font-weight:500;letter-spacing:-0.015em;margin-bottom:26px;max-width:900px;animation:slideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both}
+.hero h1{font-family:'Fraunces',Georgia,serif;font-optical-sizing:auto;font-size:clamp(2.6rem,4.6vw,3.15rem);line-height:1.05;color:var(--white);font-weight:500;letter-spacing:-0.015em;margin-bottom:26px;max-width:900px;animation:slideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both}
 .hero h1 em{font-family:'Fraunces',Georgia,serif;font-style:italic;color:#9FD9C5;font-weight:400;position:relative;display:inline-block}
 .hero h1 em::after{content:'';position:absolute;left:0;right:0;bottom:0.04em;height:3px;background:linear-gradient(90deg,var(--teal),var(--coral));opacity:0.7;border-radius:2px}
 .hero-sub{font-size:clamp(16px,1.5vw,18.5px);color:rgba(251,249,245,0.74);max-width:560px;line-height:1.75;margin-bottom:40px;animation:slideUp 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both}
@@ -182,6 +182,24 @@ nav.scrolled .nav-link:hover{color:var(--brown);background:var(--cream-mid)}
 .hero-spots{margin-top:20px;font-size:13px;color:rgba(250,248,244,0.38);font-style:italic;animation:fadeIn 0.5s 0.7s ease both}
 @keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* HERO EXAMPLE CARD */
+.hero-card{background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:26px 24px;backdrop-filter:blur(10px);box-shadow:0 24px 60px rgba(0,0,0,0.28);animation:fadeIn 0.6s 0.45s ease both}
+.hero-card .kicker{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.13em;text-transform:uppercase;color:rgba(184,228,212,0.75);margin-bottom:16px}
+.hero-card .marker{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
+.hero-card .marker .name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;color:var(--white)}
+.hero-card .marker .val{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--white)}
+.hero-card .marker .val span{font-size:11px;color:rgba(255,255,255,0.5)}
+.hero-card .read{border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.hero-card .read .who{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px}
+.hero-card .read .what{font-size:14px;line-height:1.55}
+.hero-card .read.lab{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)}
+.hero-card .read.lab .who{color:rgba(255,255,255,0.45)}
+.hero-card .read.lab .what{color:rgba(255,255,255,0.62)}
+.hero-card .read.bw{background:rgba(12,142,107,0.14);border:1px solid rgba(12,142,107,0.4)}
+.hero-card .read.bw .who{color:var(--teal-mid)}
+.hero-card .read.bw .what{color:#EAF6F0}
+.hero-card .foot{font-size:12px;color:rgba(255,255,255,0.4);font-style:italic;margin-top:6px}
 
 /* WHAT YOU GET STRIP */
 .strip{background:var(--teal);padding:0 5%}
@@ -371,6 +389,7 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
 @media(max-width:768px){
   .hero{padding:100px 5% 72px;min-height:auto}
   .hero-orb{display:none}
+  .hero-inner{grid-template-columns:1fr;gap:40px}
   .hero h1{font-size:2.2rem}
   .strip-inner{grid-template-columns:1fr 1fr;gap:0}
   .strip-item{border-right:none;border-bottom:1px solid rgba(255,255,255,0.1);padding:18px 12px}
@@ -499,14 +518,29 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
   <div class="hero-orb o3" aria-hidden="true"></div>
   <div class="hero-grain" aria-hidden="true"></div>
   <div class="hero-inner">
-    <div class="hero-badge">Built for South Asian Women</div>
-    <h1>Your tests came back normal.<br/><em>You're still exhausted.</em></h1>
-    <p class="hero-sub">Upload your existing blood work. A "normal" result only means you're not sick enough to be labeled with a condition, not that your body is functioning at its best. We read it against functional ranges built for South Asian women's biology, and show you what a standard report misses. So you walk into every appointment knowing what to ask.</p>
-    <div class="hero-btns">
-      <a href="#" onclick="showPage('early-access')" class="btn-teal">Get early access · 100 spots</a>
-      <a href="#how" class="btn-outline">How it works</a>
+    <div>
+      <div class="hero-badge">Built for South Asian Women</div>
+      <h1>Your tests came back normal.<br/><em>You're still exhausted.</em></h1>
+      <p class="hero-sub">Upload your existing blood work. A "normal" result only means you're not sick enough to be labeled with a condition, not that your body is functioning at its best. We read it against functional ranges built for South Asian women's biology, and show you what a standard report misses. So you walk into every appointment knowing what to ask.</p>
+      <div class="hero-btns">
+        <a href="#" onclick="showPage('early-access')" class="btn-teal">Get early access · 100 spots</a>
+        <a href="#how" class="btn-outline">How it works</a>
+      </div>
+      <p class="hero-spots">We're building this with you.</p>
     </div>
-    <p class="hero-spots">We're building this with you.</p>
+    <div class="hero-card">
+      <div class="kicker">Same result · two readings</div>
+      <div class="marker"><span class="name">Ferritin</span><span class="val">22 <span>ng/mL</span></span></div>
+      <div class="read lab">
+        <div class="who">Standard report</div>
+        <div class="what">Within range. No action needed.</div>
+      </div>
+      <div class="read bw">
+        <div class="who">BioWellth read</div>
+        <div class="what">In range, but low for steady energy. May be worth raising at your next visit.</div>
+      </div>
+      <div class="foot">Illustrative example. Not medical advice.</div>
+    </div>
   </div>
 </section>
 
