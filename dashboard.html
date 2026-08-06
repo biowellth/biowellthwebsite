@@ -198,8 +198,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .proc-file strong{color:var(--brown)}
 /* Upload-time confounder ask lives on the Call A "Reading your report" screen (left-aligned, constrained). */
 #proc-ask{width:100%;max-width:560px;margin:22px auto 0;text-align:left}
-.reveal-head{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:30px 40px;margin-bottom:24px}
-.score-ring{width:120px;height:120px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
+.reveal-head{display:flex;flex-wrap:wrap;gap:14px 30px;align-items:flex-start;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:30px 40px;margin-bottom:24px}
+.score-ring{width:104px;height:104px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
 .score-ring::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--white)}
 .score-num{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-size:34px;font-weight:700;color:var(--brown);line-height:1}
 .score-cap{position:relative;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-mid);margin-top:3px}
@@ -744,9 +744,14 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
 .reveal-head-text .headline strong{font-weight:600;color:inherit}
 /* Hero summary size tiers (compound + hero-scoped so they never collide with #view-reveal .h-lg/.h-md
    on the reveal deck). Each sets its own line-height, else it inherits the base 1.32. */
-.reveal-head-text .headline.h-lg{font-size:clamp(24px,3.2vw,34px);line-height:1.2}
-.reveal-head-text .headline.h-md{font-size:clamp(21px,2.6vw,28px);line-height:1.25}
-.reveal-head-text .headline.h-sm{font-size:clamp(19px,2.1vw,23px);line-height:1.35}
+.reveal-head-text .headline.h-lg{font-size:clamp(19px,2.2vw,24px);line-height:1.3}
+.reveal-head-text .headline.h-md{font-size:clamp(18px,2.0vw,22px);line-height:1.35}
+.reveal-head-text .headline.h-sm{font-size:clamp(17px,1.8vw,20px);line-height:1.4}
+/* Driver-phrase emphasis: italic 400 (against the 300 base) in soft-teal, matching the existing
+   .hero-trend treatment on the dark hero (#hero-trend is hidden whenever the summary renders, so no
+   visual conflict). Scoped to the hero headline so it cannot leak. Applied per-segment by
+   buildHeroSummaryHTML, never by string replacement. */
+.reveal-head-text .headline .hl{font-style:italic;font-weight:400;color:var(--teal-mid)}
 .reveal-head .vitality-frame p{color:rgba(250,248,244,.70)}
 /* STAGE: hero stat strip + trend line + demoted score caption (dark-hero context) */
 .reveal-head-left{display:flex;flex-direction:column;align-items:center;gap:10px;flex:none;max-width:220px;order:2}
@@ -3103,10 +3108,10 @@ function prioritySensitive(x){
   return (!!x && !!x.system_id && !!SAFETY_CLASS[x.system_id]) ||
          pm.some(m => m && SENSITIVE_MARKER_IDS.has(m.marker_id));
 }
-// The joined driver phrases WITHOUT leading capital and WITHOUT trailing period, or null (<2 phrases).
-// buildVerdict wraps this as capitalise(fragment) + "." so its own output is byte-identical to before;
-// buildHeroSummary consumes the fragment mid-sentence (after "Right now ").
-function verdictFragment(p){
+// THE SINGLE SOURCE of the hero's driver phrases: the ordered array (up to 3, deduped on the phrase
+// string), or null if fewer than 2 resolve. Both verdictFragment (plain join) and buildHeroSummaryHTML
+// (per-phrase <em> wrap) consume this same array, so the two can never drift in phrase set or order.
+function verdictPhrases(p){
   const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
   const phrases = [];
   const seen = new Set();
@@ -3124,10 +3129,21 @@ function verdictFragment(p){
     seen.add(phrase); phrases.push(phrase);            // collect up to 3 phrases unconditionally
     if(phrases.length >= 3) break;                     // ceiling is 3, never 4
   }
-  if(phrases.length < 2) return null;
-  return (phrases.length === 2)
-    ? (phrases[0] + " and " + phrases[1])
-    : (phrases[0] + ", " + phrases[1] + ", and " + phrases[2]);
+  return phrases.length < 2 ? null : phrases;
+}
+// THE ONE join rule for driver phrases: "A and B" for two, "A, B, and C" for three. Takes an array of
+// already-rendered tokens (plain phrases for text, <em>-wrapped for html) so text and html join the same.
+function joinPhrases(a){
+  return (a.length === 2)
+    ? (a[0] + " and " + a[1])
+    : (a[0] + ", " + a[1] + ", and " + a[2]);
+}
+// The joined driver phrases WITHOUT leading capital and WITHOUT trailing period, or null (<2 phrases).
+// buildVerdict wraps this as capitalise(fragment) + "." so its own output is byte-identical to before;
+// buildHeroSummary consumes the fragment mid-sentence (after "Right now ").
+function verdictFragment(p){
+  const a = verdictPhrases(p);
+  return a === null ? null : joinPhrases(a);
 }
 // The two-sided trajectory as a fragment: { text, worse } | null. text is the standalone sentence
 // WITHOUT its leading capital and WITHOUT its trailing period; worse is true only on the N > R branch.
@@ -3189,6 +3205,34 @@ function buildHeroSummary(p){
   const opener = fn ? (fn + ", " + B.charAt(0).toLowerCase() + B.slice(1)) : B;
   if(T) return opener + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + V + ".";
   return opener + ". Right now " + V + ".";
+}
+// Same sentence as buildHeroSummary, returned as { html, text }:
+//   text = byte-identical to buildHeroSummary(p) — used by headlineTier so the tag characters in html
+//          never inflate the measured length.
+//   html = the same sentence assembled per-SEGMENT: every segment passed through esc(), and each DRIVER
+//          phrase (and ONLY the driver phrases — not the band clause, name, or trajectory) wrapped in
+//          <em class="hl">. Built by concatenation, NEVER by searching/replacing inside finished text.
+// The sensitive clinician line returns first with NO markup (esc() of a plain line, no <em>), exactly
+// as buildHeroSummary. Phrases and join come from the shared verdictPhrases + joinPhrases, so html and
+// text can never disagree on the driver set or order. Returns null on the same conditions as buildHeroSummary.
+function buildHeroSummaryHTML(p){
+  const sv = sensitiveVerdict(p);
+  if(sv !== null) return { html: esc(sv), text: sv };             // clinician line alone, no emphasis
+  const arr = verdictPhrases(p);
+  if(arr === null) return null;                                   // <2 phrases -> caller falls back
+  const band = (p && p.vitality && p.vitality.band) || {};
+  const B = BAND_CLAUSE[band.key];
+  if(!B) return null;                                             // suppressed / unknown key -> fall back
+  const T = trajectoryFragment(p);
+  const fn = firstName(PROFILE && PROFILE.full_name);
+  const opener = fn ? (fn + ", " + B.charAt(0).toLowerCase() + B.slice(1)) : B;
+  const Vtext = joinPhrases(arr);                                 // plain drivers (same as verdictFragment)
+  const Vhtml = joinPhrases(arr.map(ph => '<em class="hl">' + esc(ph) + '</em>'));  // each driver wrapped
+  const text = T ? (opener + (T.worse ? ", though " : ", and ") + T.text + ". Right now " + Vtext + ".")
+                 : (opener + ". Right now " + Vtext + ".");
+  const html = T ? (esc(opener) + esc(T.worse ? ", though " : ", and ") + esc(T.text) + esc(". Right now ") + Vhtml + esc("."))
+                 : (esc(opener) + esc(". Right now ") + Vhtml + esc("."));
+  return { html, text };
 }
 // Hero #headline size tier by summary length. One threshold set, no second copy.
 function headlineTier(s){ const n = (s == null ? "" : String(s)).length; return n <= 130 ? "h-lg" : (n <= 230 ? "h-md" : "h-sm"); }
@@ -3341,9 +3385,9 @@ async function renderDashboard(p, reportId){
     $("score-num").textContent = score!==null ? score : "";
     $("score-ring").style.setProperty("--p", score!==null ? score : 0);
     $("band").textContent = bandLabel;
-    const s = buildHeroSummary(p);
+    const hs = buildHeroSummaryHTML(p);
     let headlineText;
-    if(s !== null){ headlineText = s; $("headline").innerHTML = esc(s); heroSummaryShown = true; }
+    if(hs !== null){ headlineText = hs.text; $("headline").innerHTML = hs.html; heroSummaryShown = true; }
     else {
       const vd = buildVerdict(p);
       if(vd){ headlineText = vd; $("headline").innerHTML = esc(vd); }
