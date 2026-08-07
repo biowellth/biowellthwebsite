@@ -480,6 +480,17 @@ button.theme-card{width:100%;text-align:left;font:inherit;cursor:pointer;transit
 button.theme-card:hover{border-color:var(--brown-mid)}
 button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .theme-desc{font-size:13px;color:var(--brown-mid);line-height:1.5}
+.theme-panel{margin-top:14px;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:24px 26px}
+.theme-panel:empty{display:none}
+.tp-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--brown-light)}
+.tp-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown)}
+.tp-close{font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
+.tp-close:hover{color:var(--brown)}
+.tp-all{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 0;margin-top:22px}
+.tp-all:hover{color:var(--brown)}
+.theme-chev{display:inline-block;font-size:15px;line-height:1;color:var(--brown-mid);opacity:.45;transition:transform .2s;flex:none}
+button.theme-card.active{box-shadow:inset 0 0 0 1px var(--brown);border-color:var(--brown)}
+button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 /* All-markers view overlay (Commit A). Full-screen scrollable list; z below #sys-modal (200) so a
    sensitive row's system modal opens on top. Reuses .sm-marker / .sm-mk / .bes-sens row styling. */
 .markers-view{position:fixed;inset:0;z-index:150;background:var(--cream);overflow-y:auto}
@@ -1163,6 +1174,7 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
       <div class="section-label acc-amber">Everything else, by theme</div>
       <div class="theme-sub">Grouped by how it shows up in daily life, not by where it sits in your body.</div>
       <div class="theme-grid" id="theme-grid"></div>
+      <div class="theme-panel" id="theme-panel"></div>
     </div>
 
     <div class="disclaimer">
@@ -3733,8 +3745,20 @@ function themesOf(mk){
   const id = mk && mk.marker_id;
   return (id && t && Array.isArray(t[id])) ? t[id] : [];
 }
+// Theme panel (opens below #theme-grid). OPEN_THEME is the SOURCE OF TRUTH for open state, not the
+// DOM: the 4301 late-ranges re-invoke rewrites #theme-grid wholesale and would wipe .active off the
+// cards while the panel node survives. THEME_TALLY holds renderThemeGrid's last tally so the panel
+// reads the SAME counts without a parallel recompute.
+let OPEN_THEME = null;
+let THEME_TALLY = {};
+let THEME_PANEL_PAYLOAD = null;   // the payload OBJECT the open panel belongs to (identity, not a field)
 function renderThemeGrid(p){
   const grid = $("theme-grid"); if(!grid) return;
+  // Reset open state when the PAYLOAD changes (panel switch / new report), but NOT on the 4372
+  // late-ranges re-invoke, which passes the SAME window.__rdPayload object renderDashboard already
+  // handed us. Identity compare on the object reference: same object -> panel survives; a different
+  // report (loadPayload returns a new object) -> panel closes.
+  if(THEME_PANEL_PAYLOAD !== p){ THEME_PANEL_PAYLOAD = p; OPEN_THEME = null; }
   const tally = {}; THEME_DEFS.forEach(d => tally[d.key] = { total:0, flag:0, watch:0 });
   for(const s of (Array.isArray(p && p.systems) ? p.systems : [])){
     // SENSITIVE GUARD (belt-and-suspenders): a heavy_metals / autoimmune marker must contribute to
@@ -3758,6 +3782,7 @@ function renderThemeGrid(p){
   // returned [] for everything so every tally is 0 -> no card is a button -> no click can open an
   // empty view. The loader re-invokes renderThemeGrid once themes_by_marker_id arrives, so real
   // counts AND clickability appear together. A zero-marker theme stays a plain, non-clickable note.
+  THEME_TALLY = tally;   // share the SAME tally with renderThemePanel (no parallel recompute)
   const themesReady = !!(RANGES_LOOKUP && RANGES_LOOKUP.themes_by_marker_id);
   grid.innerHTML = THEME_DEFS.map(d => {
     const t = tally[d.key];
@@ -3774,20 +3799,75 @@ function renderThemeGrid(p){
     }
     const clickable = themesReady && t.total > 0;
     const inner =
-      '<div class="theme-card-head"><span class="theme-name">'+esc(d.label)+'</span></div>'+
+      '<div class="theme-card-head"><span class="theme-name">'+esc(d.label)+'</span>'+
+        (clickable ? '<span class="theme-chev">&#8250;</span>' : '')+
+      '</div>'+
       count +
       '<div class="theme-desc">'+esc(d.desc)+'</div>';
     return clickable
       ? '<button class="theme-card" type="button" data-theme="'+esc(d.key)+'">'+inner+'</button>'
       : '<div class="theme-card">'+inner+'</div>';
   }).join("");
-  // Delegated open: a clickable card filters the markers view to its theme. Non-clickable cards
-  // carry no data-theme, so they no-op. Bound to the grid with p captured from this render.
+  // Re-apply .active to the card matching OPEN_THEME. OPEN_THEME (not the DOM) is the source of truth,
+  // so the 4301 late-ranges re-invoke that regenerates the card buttons stays idempotent.
+  if(OPEN_THEME){
+    const ac = grid.querySelector('.theme-card[data-theme="'+OPEN_THEME+'"]');
+    if(ac) ac.classList.add("active");
+  }
+  // Delegated toggle: click a clickable card to open its panel below the grid; click the ACTIVE card
+  // again to close. One panel open at a time (OPEN_THEME is a single value). renderThemePanel owns the
+  // panel body; here we toggle state, render it, re-apply .active across all cards, and scroll the
+  // opened panel into view using the file's one existing idiom.
   grid.onclick = (e)=>{
     const card = e.target.closest('.theme-card[data-theme]');
     if(!card || !grid.contains(card)) return;
-    openMarkersView(p, card.dataset.theme);
+    const key = card.dataset.theme;
+    OPEN_THEME = (OPEN_THEME === key) ? null : key;                 // same card -> close
+    renderThemePanel(p);
+    grid.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === OPEN_THEME));
+    if(OPEN_THEME){
+      const panel = $("theme-panel");
+      if(panel) panel.scrollIntoView({behavior:"smooth", block:"center"});
+    }
   };
+  // Panel delegation (tp-close / tp-all), bound ONCE — #theme-panel's innerHTML is rewritten by
+  // renderThemePanel, so the handler must live on the persistent node, not its children. Uses
+  // window.__rdPayload (render-independent), never a captured p.
+  const tpanel = $("theme-panel");
+  if(tpanel && !tpanel.__wired){
+    tpanel.__wired = true;
+    tpanel.onclick = (e)=>{
+      if(e.target.closest('[data-tp-close]')){
+        OPEN_THEME = null;
+        renderThemePanel(window.__rdPayload);
+        const g = $("theme-grid"); if(g) g.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        return;
+      }
+      if(e.target.closest('[data-tp-all]')){
+        if(OPEN_THEME) openMarkersView(window.__rdPayload, OPEN_THEME);
+      }
+    };
+  }
+  // Keep the panel body in sync with this render: clears it to "" when OPEN_THEME was reset above
+  // (payload changed), and re-renders it with the current tally on the same-payload re-invoke.
+  renderThemePanel(p);
+}
+// Theme panel body. Reads OPEN_THEME + THEME_TALLY (renderThemeGrid's own tally). Null -> "" so the
+// .theme-panel:empty rule collapses it. THIS COMMIT renders only the head (title + close) and a
+// "See all N markers" link — no movement line, no markers (those are commits 2 and 3).
+function renderThemePanel(p){
+  const panel = $("theme-panel"); if(!panel) return;
+  if(OPEN_THEME === null){ panel.innerHTML = ""; return; }
+  const d = THEME_DEFS.find(x => x.key === OPEN_THEME);
+  const label = d ? d.label : OPEN_THEME;
+  const t = THEME_TALLY[OPEN_THEME];
+  const n = (t && t.total) || 0;
+  panel.innerHTML =
+    '<div class="tp-head">'+
+      '<span class="tp-title">'+esc(label)+'</span>'+
+      '<button class="tp-close" type="button" data-tp-close="1">Close</button>'+
+    '</div>'+
+    '<button class="tp-all" type="button" data-tp-all="1">See all '+n+' marker'+(n===1?'':'s')+' <span aria-hidden="true">&#8250;</span></button>';
 }
 // Inline healthy range for a row, from lookupRange ONLY. Returns "" when RANGES_LOOKUP is not
 // loaded (lookupRange -> null) or the marker has no range — never a placeholder.
