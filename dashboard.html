@@ -3180,7 +3180,9 @@ function trajectoryFragment(p){
 // sensitive path through here, so the guard is STRUCTURAL (prioritySensitive), never a string match on
 // the copy — rewording the sentence cannot break the guard.
 function sensitiveVerdict(p){
-  const pr = Array.isArray(p && p.priorities) ? p.priorities : [];
+  // Reads the PARTITIONED-OUT sensitive set (renderDashboard splits these off p.priorities before any
+  // consumer). Rank 1/2 condition preserved exactly — the array is now the sensitive priorities.
+  const pr = Array.isArray(p && p.__sensitivePriorities) ? p.__sensitivePriorities : [];
   for(const x of pr){
     if(x && (x.rank === 1 || x.rank === 2) && prioritySensitive(x)){
       return "Your panel flagged something in your " +
@@ -3361,7 +3363,23 @@ function dropSuppressedQW(list, payload){
   });
 }
 
+// Sensitive-priority partition state: the payload OBJECT whose priorities have already been split
+// (identity, not a field). Mirrors THEME_PANEL_PAYLOAD.
+let PARTITIONED_PAYLOAD = null;
 async function renderDashboard(p, reportId){
+  // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
+  // prioritySensitive) must NOT appear in the wellness "priorities" list — they are referrals, not
+  // wellness tasks (their dedicated surface lands in a later commit). Split them off ONCE per payload
+  // object. The identity guard is MANDATORY: renderDashboard re-runs on the SAME object (panel switch /
+  // rescore), and a second pass over the already-filtered array would find no sensitive entries and
+  // overwrite __sensitivePriorities with [], silently disarming the hero clinician line. Same guard
+  // pattern as THEME_PANEL_PAYLOAD.
+  if(PARTITIONED_PAYLOAD !== p){
+    PARTITIONED_PAYLOAD = p;
+    const all = Array.isArray(p.priorities) ? p.priorities : [];
+    p.__sensitivePriorities = all.filter(prioritySensitive);
+    p.priorities = all.filter(x => !prioritySensitive(x));
+  }
   // Stash so the dashboard's "Replay the reveal" button can re-open the deck
   // without re-querying. Set in both entry paths since renderDashboard runs in both.
   window.__rdPayload = p; window.__rdReport = reportId;
