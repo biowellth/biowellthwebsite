@@ -3133,9 +3133,14 @@ function verdictPhrases(p){
     const driver = pm.find(m => m && m.flag_status === "critical") || pm[0];
     if(!driver) continue;
     const dir = driver.position;
-    if(dir !== "low" && dir !== "high") continue;      // accept only low or high
+    // Fold borderline priorities to their same-direction bucket for PHRASE SELECTION ONLY —
+    // a borderline priority the engine ranked first is still the most important thing on the
+    // panel and should contribute a hero phrase. Local to verdictPhrases; no other consumer
+    // of `position` is affected.
+    const fdir = dir === "borderline_low" ? "low" : dir === "borderline_high" ? "high" : dir;
+    if(fdir !== "low" && fdir !== "high") continue;    // accept low/high (borderline folded above)
     const row = MARKER_PHRASE[driver.marker_id];
-    const phrase = row && row[dir];
+    const phrase = row && row[fdir];
     if(!phrase) continue;                              // no match -> skip, never approximate
     if(seen.has(phrase)) continue;                     // dedup on the phrase; pull the next priority
     seen.add(phrase); phrases.push(phrase);            // collect up to 3 phrases unconditionally
