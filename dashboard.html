@@ -5686,10 +5686,6 @@ function buildDeck(p, reportId){
     const skip = new Set(['headline','system_id','severity','rank','primary_markers','action_layer','why_this_matters','the_connection','trajectory_promise']);
     Object.keys(pr).forEach(k=>{ if(skip.has(k)) return; const v=pr[k]; if(typeof v==='string' && v.trim().length>20) txt(v); });
 
-    // TEMP DIAGNOSTIC: if we found no detail, show the raw object so we can see the real field names.
-    try{ console.log('[prio]', i, JSON.parse(JSON.stringify(pr))); }catch(e){ console.log('[prio]', i, pr); }
-    if(!body) body = '<div class="pm-debug"><div class="pm-debug-lbl">debug, raw priority data</div><pre>'+esc(JSON.stringify(pr,null,2))+'</pre></div>';
-
     pmcard.className = 'pm-card ' + toneFor(pr, i);
     pmcard.innerHTML =
       '<button class="pm-close" id="rd-pmclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
