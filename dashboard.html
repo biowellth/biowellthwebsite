@@ -704,6 +704,16 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 #view-reveal .markerline b{font-size:20px;font-weight:600}
 #view-reveal .connection{margin-top:18px;background:var(--teal-soft);border-left:3px solid var(--teal);
   border-radius:0 12px 12px 0;padding:13px 15px;font-size:14px;line-height:1.5;color:var(--teal-dark)}
+/* Beat 5 foundations — the calm floor (restyle). Teal register, deliberately lighter than the
+   dashboard found-panel and never competing with the coral priority beats. */
+#view-reveal .b5-eyebrow{display:inline-flex;align-items:center;gap:8px;font:600 12px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:14px}
+#view-reveal .b5-eyebrow::before{content:"";width:16px;height:16px;border-radius:50%;background:var(--teal-mid);flex:none}
+#view-reveal .b5-lead{font-family:'Plus Jakarta Sans',sans-serif;font-weight:300;font-size:18px;line-height:1.55;color:var(--brown);margin-bottom:22px}
+#view-reveal .b5-lever{background:var(--white);border:1px solid var(--teal-light);border-left:3px solid var(--teal-mid);border-radius:12px;padding:15px 18px;margin-bottom:12px}
+#view-reveal .b5-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:6px}
+#view-reveal .b5-conn{font-size:13.5px;line-height:1.6;color:var(--brown-mid)}
+#view-reveal .b5-relates{margin-top:10px;font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
+#view-reveal .b5-closing{margin-top:8px;font-size:14.5px;line-height:1.7;color:var(--teal-dark);font-style:italic}
 #view-reveal .lever{margin-top:14px;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:14px 15px}
 #view-reveal .lever .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--coral-dark);margin-bottom:6px}
 #view-reveal .lever .txt{font-size:14px;line-height:1.5;color:var(--brown)}
@@ -5992,22 +6002,33 @@ function buildDeck(p, reportId){
     );
   }
 
-  // Beat 5: Foundations (lead, levers, closing)
+  // Beat 5: Foundations — the calm floor (restyled: light teal lever cards + relates-to-priority thread).
+  // Prose is model-authored payload content, rendered VERBATIM (its em dashes are content; esc handles
+  // only &<>"). markerName is NOT used on a lever object (type mismatch) — use L.display_name with an
+  // explicit fallback. Levers are DIRECT children of the card so the .stag stagger stays flat (eyebrow,
+  // lead, three levers, closing). The relates thread maps appears_in_priority_ids -> priority rank and is
+  // OMITTED when ids are absent or unmatched, never a wrong number.
+  const b5Rank = {};
+  (Array.isArray(p.priorities) ? p.priorities : []).forEach((x, i) => {
+    if(x && x.priority_id) b5Rank[x.priority_id] = (typeof x.rank === "number" ? x.rank : (i + 1));
+  });
   beats.push(
     '<section class="card">' +
-      '<div class="eyebrow stag">The basics it all rests on</div>' +
-      (f.lead
-        ? '<p class="sub stag" style="margin-top:0;color:var(--brown);font-size:17.5px">' + esc(f.lead) + '</p>'
-        : '') +
-      levers.map(L => (
-        '<div class="lever-row stag">' +
-          '<div class="dot"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg></div>' +
-          '<div><div class="nm">' + esc(markerName(L)) + '</div>' +
-            // Deploy B: action-first when present (INSTEAD of connection); else today's connection.
-            '<div class="cn">' + esc(L.action || L.connection || '') + '</div></div>' +
-        '</div>'
-      )).join('') +
-      (f.closing ? '<p class="closing stag">' + esc(f.closing) + '</p>' : '') +
+      '<div class="b5-eyebrow stag">The basics it all rests on</div>' +
+      (f.lead ? '<p class="b5-lead stag">' + esc(f.lead) + '</p>' : '') +
+      levers.map(L => {
+        const ranks = (Array.isArray(L.appears_in_priority_ids) ? L.appears_in_priority_ids : [])
+          .map(id => b5Rank[id]).filter(r => r != null).sort((a, b) => a - b);
+        const relates = ranks.length
+          ? '<div class="b5-relates">Relates to ' + (ranks.length === 1 ? 'priority ' : 'priorities ') + ranks.map(r => '#' + r).join(', ') + '</div>'
+          : '';
+        return '<div class="b5-lever stag">' +
+          '<div class="b5-name">' + esc(L.display_name || L.lever || '') + '</div>' +
+          ((L.action || L.connection) ? '<div class="b5-conn">' + esc(L.action || L.connection) + '</div>' : '') +
+          relates +
+        '</div>';
+      }).join('') +
+      (f.closing ? '<p class="b5-closing stag">' + esc(f.closing) + '</p>' : '') +
     '</section>'
   );
 
