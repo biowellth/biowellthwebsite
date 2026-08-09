@@ -326,9 +326,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-trend-note{font-size:12.5px;line-height:1.55;color:var(--brown-mid);margin-top:11px}
 .sm-empty{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin-top:18px;font-style:italic}
 .prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:26px 30px;margin-bottom:14px;border-left:4px solid var(--coral)}
-.prio.sev-watch{border-left-color:var(--amber)}
-.prio.sev-monitor{border-left-color:var(--orange)}
-.prio.sev-low{border-left-color:var(--coral)}
+.prio.t-amber{border-left-color:var(--amber)}
+.prio.t-neutral{border-left-color:var(--brown-light)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
 .prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;line-height:1.25;font-weight:700;color:var(--brown);margin:6px 0 14px}
@@ -717,12 +716,12 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   background:var(--teal-soft);border:1px solid var(--teal-light)}
 #view-reveal .prio-card.t-coral{background:var(--coral-light);border-color:#F0DAD2}
 #view-reveal .prio-card.t-amber{background:var(--amber-light);border-color:#F0E3C2}
-#view-reveal .prio-card.t-teal{background:var(--teal-soft);border-color:var(--teal-light)}
+#view-reveal .prio-card.t-neutral{background:var(--brown-soft);border-color:var(--brown-light)}
 #view-reveal .prio-card .pnum{flex:none;width:42px;text-align:center;font-family:'JetBrains Mono',monospace;
   font-weight:600;font-size:34px;line-height:1;letter-spacing:-.04em;color:var(--teal-dark)}
 #view-reveal .prio-card.t-coral .pnum{color:var(--coral-dark)}
 #view-reveal .prio-card.t-amber .pnum{color:var(--orange-dark)}
-#view-reveal .prio-card.t-teal .pnum{color:var(--teal-dark)}
+#view-reveal .prio-card.t-neutral .pnum{color:var(--brown-mid)}
 #view-reveal .prio-card .pbody{min-width:0}
 #view-reveal .prio-card .ph{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;line-height:1.3;color:var(--brown);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -747,7 +746,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   font-family:'JetBrains Mono',monospace;font-weight:600;font-size:16px;margin-bottom:14px;background:var(--teal-light);color:var(--teal-dark)}
 #view-reveal .pm-card.t-coral .pm-num{background:var(--coral-light);color:var(--coral-dark)}
 #view-reveal .pm-card.t-amber .pm-num{background:var(--amber-light);color:var(--orange-dark)}
-#view-reveal .pm-card.t-teal .pm-num{background:var(--teal-light);color:var(--teal-dark)}
+#view-reveal .pm-card.t-neutral .pm-num{background:var(--brown-light);color:var(--brown-mid)}
 #view-reveal .pm-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;line-height:1.25;letter-spacing:-.02em;color:var(--brown)}
 #view-reveal .pm-debug{margin-top:16px;background:var(--brown-soft);border:1px solid var(--brown-light);border-radius:12px;padding:14px 16px}
 #view-reveal .pm-debug-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--coral-dark);margin-bottom:8px}
@@ -3550,6 +3549,37 @@ function dropSuppressedQW(list, payload){
 // Sensitive-priority partition state: the payload OBJECT whose priorities have already been split
 // (identity, not a field). Mirrors THEME_PANEL_PAYLOAD.
 let PARTITIONED_PAYLOAD = null;
+// Priority card tone — ENGINE-DERIVED (retires model `severity` from the visual entirely). Resolve the
+// DRIVER marker (the critical one among primary_markers, else the first that resolves to a real engine
+// status), read its ENGINE band/status from p.systems (authoritative), and map through sysStatus:
+// s-flag -> t-coral, s-watch -> t-amber, everything else -> t-neutral. A sensitive priority neutralises
+// across ALL its primary markers (never colour-coded). NO teal tone, NO index fallback, `severity` is
+// never read. Systems map memoised on the current payload identity (window.__rdPayload).
+let TONE_SYS_PAYLOAD = null, TONE_SYS_MAP = {};
+function toneSysMap(){
+  const P = window.__rdPayload;
+  if(TONE_SYS_PAYLOAD !== P){
+    TONE_SYS_PAYLOAD = P; TONE_SYS_MAP = {};
+    for(const s of (Array.isArray(P && P.systems) ? P.systems : []))
+      for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id) TONE_SYS_MAP[m.marker_id] = m;
+  }
+  return TONE_SYS_MAP;
+}
+function toneFor(pr){
+  if(prioritySensitive(pr)) return 't-neutral';                  // sensitive -> neutral, never colour-coded
+  const pm = Array.isArray(pr && pr.primary_markers) ? pr.primary_markers : [];
+  const eng = toneSysMap();
+  const clsOf = (m)=>{
+    if(!m) return 's-none';
+    const em = eng[m.marker_id];
+    const src = (em && (em.band || em.status)) || m.band || m.position || "";
+    return sysStatus(src).cls;
+  };
+  let driver = pm.find(m => m && m.flag_status === 'critical');   // critical primary marker if any
+  if(!driver) driver = pm.find(m => clsOf(m) !== 's-none');       // else first resolvable through p.systems
+  const cls = driver ? clsOf(driver) : 's-none';
+  return cls === 's-flag' ? 't-coral' : cls === 's-watch' ? 't-amber' : 't-neutral';
+}
 async function renderDashboard(p, reportId){
   // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
   // prioritySensitive) must NOT appear in the wellness "priorities" list — they are referrals, not
@@ -3728,7 +3758,6 @@ async function renderDashboard(p, reportId){
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
-    const sev = (x.severity||"low").toLowerCase();
     const rank = (typeof x.rank === "number" ? x.rank : (i+1));
     const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
     const markerLine = pm
@@ -3772,7 +3801,7 @@ async function renderDashboard(p, reportId){
       return '<span class="chip '+cls+'">'+esc(label)+'</span>';
     }).join('');
     const chipsRow = mkList.length ? '<div class="prio-chips">'+chips+'</div>' : '';
-    return '<div class="prio sev-'+sev+'">'+
+    return '<div class="prio '+toneFor(x)+'">'+
       '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
       '<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+
       chipsRow +
@@ -5809,13 +5838,7 @@ function buildDeck(p, reportId){
   const beats = [];
 
   // Severity wash used by both the priority list and the detail popup.
-  function toneFor(pr, i){
-    const s = (pr && pr.severity || '').toLowerCase();
-    if(s === 'high' || s === 'severe') return 't-coral';
-    if(s === 'moderate' || s === 'medium' || s === 'mod') return 't-amber';
-    if(s === 'low' || s === 'mild') return 't-teal';
-    return ['t-coral','t-amber','t-teal'][i % 3];
-  }
+  // toneFor is module-level + engine-derived (see the definition above renderDashboard). severity retired.
 
   // Beat 0: Frame. Name greeting is defensive (same pattern as lever.action in Deploy A):
   // present -> "Hi {FirstName}! Here is..."; absent -> today's string byte-identical.
@@ -5982,7 +6005,7 @@ function buildDeck(p, reportId){
         '<p class="prio-hint stag">Tap any one to see what it means and where to begin.</p>' +
         '<div class="priolist">' +
         p.priorities.map((pr, i) => {
-          return '<div class="prio-card ' + toneFor(pr, i) + ' stag" data-prio-index="' + i + '" style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's">' +
+          return '<div class="prio-card ' + toneFor(pr) + ' stag" data-prio-index="' + i + '" style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's">' +
             '<div class="pnum">' + (i+1) + '</div>' +
             '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
             '<div class="pchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>' +
@@ -6091,7 +6114,7 @@ function buildDeck(p, reportId){
     const skip = new Set(['headline','system_id','severity','rank','primary_markers','action_layer','why_this_matters','the_connection','trajectory_promise']);
     Object.keys(pr).forEach(k=>{ if(skip.has(k)) return; const v=pr[k]; if(typeof v==='string' && v.trim().length>20) txt(v); });
 
-    pmcard.className = 'pm-card ' + toneFor(pr, i);
+    pmcard.className = 'pm-card ' + toneFor(pr);
     pmcard.innerHTML =
       '<button class="pm-close" id="rd-pmclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '<div class="pm-num">' + (i+1) + '</div>' +
