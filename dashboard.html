@@ -747,6 +747,30 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   #view-reveal .card,#view-reveal .seg i,#view-reveal .card.active .stag,#view-reveal .card--hero::before,#view-reveal .card[data-beat-kind="ring"]::before{transition:none!important;animation:none!important}
   #view-reveal .ring .fg{transition:none!important}
 }
+/* Report vault ("Your reports") — approved mock tokens */
+#report-vault{margin-top:26px}
+.rv{background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 28px}
+.rv-head{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.rv-sub{font-size:13px;color:var(--brown-mid);margin-bottom:20px}
+.rv-list{display:flex;flex-direction:column}
+.rv-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--brown-light)}
+.rv-row:first-child{border-top:none}
+.rv-ico{flex:none;width:38px;height:38px;border-radius:10px;background:var(--brown-light);display:flex;align-items:center;justify-content:center;color:var(--brown-mid)}
+.rv-ico svg{width:19px;height:19px}
+.rv-meta{flex:1 1 auto;min-width:0}
+.rv-name{font-size:15px;font-weight:600;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-date{font:400 12px 'JetBrains Mono',monospace;color:var(--brown-mid);margin-top:3px}
+.rv-view{flex:none;display:inline-flex;align-items:center;gap:7px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:13px;color:var(--teal);background:rgba(12,142,107,.08);border:1px solid rgba(12,142,107,.22);border-radius:10px;padding:8px 15px;cursor:pointer}
+.rv-view:hover{background:rgba(12,142,107,.14)}
+.rv-view:disabled{opacity:.6;cursor:default}
+.rv-view svg{width:14px;height:14px}
+.rv-status{flex:none;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.04em;padding:6px 12px;border-radius:20px}
+.rv-status.proc{background:rgba(222,160,74,.15);color:#A06F24}
+.rv-status.fail{background:rgba(212,124,101,.14);color:#B4593F}
+.rv-note{font-size:12.5px;color:#B4593F;margin-top:7px}
+.rv-row.muted .rv-name{color:var(--brown-mid)}
+.rv-empty{padding:30px 4px;text-align:center;color:var(--brown-mid);font-size:14px}
+@media(max-width:480px){.rv{padding:20px 18px;border-radius:16px}}
 .replay-row{display:flex;justify-content:center;margin-top:28px}
 .replay-btn{display:inline-flex;align-items:center;gap:9px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown-mid);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 20px;cursor:pointer;transition:color .15s,border-color .15s,transform .15s}
 .replay-btn:hover{color:var(--brown);border-color:var(--brown-mid);transform:translateY(-1px)}
@@ -1198,6 +1222,8 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
       <div class="theme-panel" id="theme-panel"></div>
     </div>
 
+    <div id="report-vault"></div>
+
     <div class="disclaimer">
       <strong>This is educational, not a diagnosis.</strong> We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.
     </div>
@@ -1367,14 +1393,92 @@ async function loadPayload(reportId){
   return (data && data.payload) ? data.payload : null;
 }
 
+// ── Report vault ("Your reports") ──────────────────────────────────────────
+// Lists EVERY report the user has added (not just completed panels), newest first
+// by COALESCE(collected_on, created_at). Status pill comes from the SAME per-report
+// signal the pipeline maintains — reports.status ('done' <=> a results row exists;
+// 'error' = failed; anything else = still processing) — no second derivation.
+const RV_DOC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+const RV_EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+function rvFmtDate(iso){
+  if(!iso) return "";
+  const d = new Date(iso); if(isNaN(d)) return "";
+  return d.getUTCDate() + " " + ["January","February","March","April","May","June","July","August","September","October","November","December"][d.getUTCMonth()] + " " + d.getUTCFullYear();
+}
+// Filename from the STORED path only (never rebuilt): strip the "{uid}/" folder and the
+// "{timestamp}-" prefix the uploader prepends. No path -> calm "Lab report" fallback.
+function rvFilename(fp){
+  if(!fp) return "Lab report";
+  const seg = String(fp).split('/').pop() || "";
+  const name = seg.replace(/^\d+-/, "");
+  return name || "Lab report";
+}
+function renderReportVault(reports){
+  const host = $("report-vault"); if(!host) return;
+  const rows = (Array.isArray(reports) ? reports.slice() : []).sort((a,b)=>{
+    const da = new Date(a.collected_on || a.created_at), db = new Date(b.collected_on || b.created_at);
+    return db - da;   // newest first by COALESCE(collected_on, created_at)
+  });
+  if(!rows.length){
+    host.innerHTML = '<section class="rv"><div class="rv-head">Your reports</div>'+
+      '<div class="rv-empty">Your uploaded reports will live here.</div></section>';
+    return;
+  }
+  const body = rows.map(r=>{
+    const viewable = r.status === "done";
+    const failed   = r.status === "error";
+    // Date label rule: Collected + collected_on when the draw date is known, else Added + created_at.
+    const dateLabel = r.collected_on
+      ? ("Collected " + rvFmtDate(r.collected_on))
+      : ("Added " + rvFmtDate(r.created_at));
+    const meta = '<div class="rv-meta"><div class="rv-name">'+esc(rvFilename(r.file_path))+'</div>'+
+                 '<div class="rv-date">'+esc(dateLabel)+'</div></div>';
+    const icon = '<div class="rv-ico">'+RV_DOC_SVG+'</div>';
+    if(viewable){
+      // data-vault-path carries the STORAGE PATH, never a URL — the signed URL is minted on click
+      // and never lives in the DOM.
+      return '<div class="rv-row">'+icon+meta+
+        '<button class="rv-view" type="button" data-vault-path="'+esc(r.file_path||"")+'">'+RV_EYE_SVG+'View</button></div>';
+    }
+    const pill = failed
+      ? '<span class="rv-status fail">could not be processed</span>'
+      : '<span class="rv-status proc">processing</span>';
+    return '<div class="rv-row muted">'+icon+meta+pill+'</div>';
+  }).join("");
+  host.innerHTML = '<section class="rv"><div class="rv-head">Your reports</div>'+
+    '<div class="rv-sub">Every lab report you have added, newest first.</div>'+
+    '<div class="rv-list">'+body+'</div></section>';
+  host.querySelectorAll('.rv-view[data-vault-path]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const path = btn.getAttribute("data-vault-path");
+      if(!path) return;
+      const meta = btn.parentElement.querySelector(".rv-meta");
+      const prevNote = meta && meta.querySelector(".rv-note"); if(prevNote) prevNote.remove();
+      btn.disabled = true;
+      try{
+        // Owner-scoped by RLS: createSignedUrl only succeeds for a path the user can SELECT.
+        // 60s TTL, minted ON CLICK, opened via window.open, never rendered into the DOM.
+        const { data, error } = await sb.storage.from("reports").createSignedUrl(path, 60);
+        if(error || !data || !data.signedUrl) throw (error || new Error("mint failed"));
+        window.open(data.signedUrl, "_blank", "noopener");
+      }catch(_){
+        // No raw error to DOM or console — one calm retry line per the mock.
+        if(meta){ const n = document.createElement("div"); n.className = "rv-note";
+          n.textContent = "This report could not be opened. Try again in a moment."; meta.appendChild(n); }
+      }finally{ btn.disabled = false; }
+    };
+  });
+}
+
 // (Re)build the switcher from the user's panels that have a finished result.
 // Returns the list of completed panels (newest first) so the caller can pick a default.
 async function buildPicker(selectedId){
   const { data: reports } = await sb.from("reports")
-    .select("id, collected_on, created_at, lab_name, reveal_seen_at, clarify_prompts")
+    .select("id, collected_on, created_at, lab_name, reveal_seen_at, clarify_prompts, file_path, status")
     .eq("user_id", USER.id)
     .is("archived_at", null)
     .order("created_at",{ascending:false});
+  renderReportVault(reports || []);   // vault shows ALL reports (incl. processing/failed); empty state on []
   if(!reports || !reports.length) return [];
   // Clarify chip source (Deploy D2): reports.clarify_prompts per report_id, read by
   // renderDashboard for the open panel. Column-listed above (was missing it) so the chip
