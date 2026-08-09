@@ -961,6 +961,17 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .report-sys-frame{font-size:12.5px;color:var(--brown-mid);line-height:1.55}
 .report-mono{color:var(--brown-mid)}
 .report-retest{font-size:12.5px;color:var(--teal-dark);font-weight:600;margin-top:8px}
+.report-snap-list{margin:12px 0 14px}
+.report-snap-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--brown-light)}
+.report-snap-row:last-child{border-bottom:none}
+.report-snap-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.report-snap-txt{flex:1;font-size:13.5px;line-height:1.5;color:var(--brown)}
+.report-card{border:1px solid var(--brown-light);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+.report-part{margin-top:13px}
+.report-part-label{font-family:'Instrument Sans',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:6px}
+.report-retest-badge{display:inline-block;font-family:'Instrument Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);border-radius:100px;padding:4px 11px;margin-top:8px}
+.report-aligned{font-size:12px;line-height:1.5;color:var(--brown-mid);margin-top:6px}
+.report-xref{font-style:italic;color:var(--brown-mid)}
 .report-disc{border-top:2px solid var(--brown-light);margin-top:30px;padding-top:18px;font-size:12px;line-height:1.6;color:var(--brown-mid)}
 .report-disc strong{color:var(--brown)}
 .report-print-footer{display:none}
@@ -972,7 +983,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   .report-scroll{overflow:visible!important;padding:0!important}
   /* FIX B: per-page fixed footer removed (it stays display:none in print), so no reserved bottom pad. */
   .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0!important}
-  .report-item,.report-note{break-inside:avoid}
+  .report-item,.report-note,.report-card,.report-snap-row{break-inside:avoid;page-break-inside:avoid}
   /* FIX A: scale report text ~1.2x for print legibility (body -> ~12pt); print-only, size hierarchy preserved. */
   .report-doc-title{font-size:34px!important}
   .report-doc-meta{font-size:18.5px!important}
@@ -985,6 +996,8 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   .report-chip{font-size:17.5px!important}
   .report-tag{font-size:14px!important}
   .report-sys-name,.report-sys-frame,.report-retest{font-size:18px!important}
+  .report-snap-txt,.report-aligned{font-size:18px!important}
+  .report-part-label,.report-retest-badge{font-size:14px!important}
   .report-disc{font-size:17.5px!important}
   @page{margin:14mm}
 }
@@ -3018,9 +3031,31 @@ function reportDropDeferredQW(list, p){
   });
 }
 
-// S1 — Executive snapshot. Deterministic: composite band + honest coverage count
-// + top findings from priorities (the_connection, else headline) + a positives line.
-function reportS1(p){
+// Short display name for a priority: raw text with (pN) cross-refs stripped, truncated at the
+// first comma or period, or at 64 characters with a trailing ellipsis, whichever comes first.
+// Returns RAW text; every caller esc()s it. Used by the snapshot list and the retest-alignment line.
+function reportShort(h){
+  let t = String(h==null?"":h)
+    .replace(/\s*\((?:Priority|priority)\s*\d+[^)]*\)/g,"")
+    .replace(/\s*\(p\d+\)/gi,"")
+    .replace(/\s{2,}/g," ")
+    .replace(/\s+([,.;])/g,"$1")
+    .trim();
+  const pi = t.search(/[,.]/);
+  if(pi >= 0 && pi <= 64) return t.slice(0, pi).trim();
+  if(t.length <= 64) return t;
+  return t.slice(0, 64).trim() + "…";
+}
+// Provider-followup urgency, read defensively. Only an explicit "prompt" is soon-tier; every
+// other value (routine, null, missing, anything unrecognized) falls back to routine.
+function reportUrgencyPrompt(x){
+  return String((x && x.provider_followup_urgency) || "").trim().toLowerCase() === "prompt";
+}
+
+// Snapshot — deterministic. Composite band + honest coverage count (the lead prose is UNCHANGED
+// from the prior bullet snapshot), then a compact one-line-per-priority list (dot + short name
+// + tag), then the quietly-working line. Full headlines live only on the priority cards below.
+function snapshotSection(p){
   const v = p.vitality || {};
   const suppressed = isSuppressed(v);
   const band = (v.band && v.band.label) || null;
@@ -3037,9 +3072,6 @@ function reportS1(p){
       ? ("Your overall reading is <span class=\"report-band\">"+esc(band)+"</span>"+(score!==null?(", a composite of "+score+" out of 100"):"")+". ")
       : "";
     const covPart = "We read "+cov.n+" of your markers from this panel against functional health ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
-    // Honesty line: markers that arrived but could not be read (no value / no confirmed unit).
-    // Factual, non-alarmist; pre-empts "why is marker X not in my report". Cycle-gated and
-    // reference-only markers are NOT counted here (they are deferred / shown honestly elsewhere).
     let unreadPart = "";
     if(cov.unread > 0){
       const one = cov.unread === 1;
@@ -3048,31 +3080,38 @@ function reportS1(p){
     lead = bandPart+covPart+unreadPart;
   }
 
-  // Bullets are pattern-level TOP FINDINGS. The headline is the clean standalone
-  // statement of each finding; the_connection is mechanistic and cross-references
-  // other priorities by number (better placed in S5), so headline leads here and
-  // the_connection is only the fallback when a headline is somehow absent.
-  const items = [];
+  // Compact priority rows: one short line per priority (headline truncated by reportShort, else
+  // the_connection), a coral dot for soon-tier urgency and amber otherwise, and a right-aligned
+  // tag. The full headline is NOT rendered here; it renders once, on the card.
+  let rows = "";
   for(let i=0;i<Math.min(pr.length,5);i++){
-    const x = pr[i];
-    const txt = (x && typeof x.headline==="string" && x.headline.trim())
-      ? x.headline.trim()
-      : (x && typeof x.the_connection==="string" && x.the_connection.trim() ? x.the_connection.trim() : "");
-    if(txt) items.push(reportProse(txt));
+    const x = pr[i]; if(!x) continue;
+    const short = reportShort((typeof x.headline==="string"&&x.headline.trim()) ? x.headline : (x.the_connection||""));
+    if(!short) continue;
+    const prompt = reportUrgencyPrompt(x);
+    rows += '<div class="report-snap-row">'+
+      '<span class="report-snap-dot" style="background:'+(prompt?"var(--coral)":"var(--amber)")+'"></span>'+
+      '<span class="report-snap-txt">'+esc(short)+'</span>'+
+      '<span class="report-tag '+(prompt?"prompt":"routine")+'">'+(prompt?"Raise soon":"Routine")+'</span>'+
+    '</div>';
   }
+
+  // Quietly-working line stays exactly as before: one teal-dot bullet.
   const qw = reportDropDeferredQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p);
+  let qwHtml = "";
   if(qw.length){
     const more = qw.length>1 ? (" "+(qw.length-1)+" more system"+(qw.length-1===1?" is":"s are")+" quietly steady too.") : "";
-    items.push(reportProse(qw[0].finding || "Several systems are quietly doing well.")+more);
+    qwHtml = '<ul class="report-bullets"><li>'+reportProse(qw[0].finding || "Several systems are quietly doing well.")+more+'</li></ul>';
   } else if(!pr.length && !suppressed && !reportAmhFlagged(p)){
-    // Guard: a flagged AMH (cycle-independent, no priority card because sex_hormones is deferred)
-    // means the panel IS asking for attention, so never claim "nothing" — S5 raises the AMH point.
-    items.push("Nothing in this panel is asking for your attention right now. Your readings sit within the ranges we would want to see.");
+    // Flagged AMH (cycle-independent, no priority card since sex_hormones is deferred) means the
+    // panel IS asking for attention, so never claim "nothing" here — Further testing raises AMH.
+    qwHtml = '<ul class="report-bullets"><li>Nothing in this panel is asking for your attention right now. Your readings sit within the ranges we would want to see.</li></ul>';
   }
 
   let html = '<div class="report-sec"><div class="report-sec-h">Snapshot</div>'+
     '<div class="report-lead">'+lead+'</div>';
-  if(items.length) html += '<ul class="report-bullets">'+items.map(t=>'<li>'+t+'</li>').join("")+'</ul>';
+  if(rows) html += '<div class="report-snap-list">'+rows+'</div>';
+  html += qwHtml;
   html += reportDeferredNote(p);
   return html+'</div>';
 }
@@ -3182,65 +3221,123 @@ function reportAmhPoint(p){
     '<span class="report-tag routine">Consider raising</span></div>'+
     '<div class="report-item-body"><p>'+esc(body)+'</p></div></div>';
 }
-function reportS5(p){
-  const pr = Array.isArray(p.priorities) ? p.priorities : [];
-  let html = '<div class="report-sec"><div class="report-sec-h">Provider discussion points</div>'+
-    '<div class="report-sec-sub">Points you may want to raise with your doctor. None of these is a prescription or a diagnosis. Your provider decides what is appropriate for you.</div>';
-  // Each point is the FINDING framed for discussion: headline + urgency + why it matters.
-  // why_this_matters is a standalone explanation (no "Priority N" cross-refs, not an
-  // instruction), so S5 stays non-prescriptive. The daily action lever lives in S6.
-  const points = [];
-  pr.forEach((x,i)=>{
-    if(!x || !x.headline) return;
-    const urg = (x.provider_followup_urgency||"").toLowerCase();
-    const tag = urg==="prompt" ? '<span class="report-tag prompt">Consider raising soon</span>'
-              : urg==="routine" ? '<span class="report-tag routine">Routine</span>' : '';
-    const why = (typeof x.why_this_matters==="string" && x.why_this_matters.trim()) ? reportProse(x.why_this_matters) : "";
-    points.push('<div class="report-item"><div class="report-item-h"><span>'+reportProse(x.headline)+'</span>'+tag+'</div>'+
-      (why?'<div class="report-item-body"><p>'+why+'</p></div>':'')+'</div>');
+// Retest reconciliation (deterministic, render-time). Two priorities connect if their
+// retest_markers sets share any marker (compared trim+lowercase; originals still display).
+// For each connected component the effective window is the minimum retest_in_months in it —
+// transitive chaining is accepted by design (pull-earlier is conservative). Returns, per
+// priority index, the effective month window and the short names of the other cards it is
+// aligned with (empty for singleton components).
+function reportRetestComponents(pr){
+  const n = pr.length;
+  const sets = pr.map(x=>{
+    const al=(x&&x.action_layer)||{};
+    const rm=Array.isArray(al.retest_markers)?al.retest_markers:[];
+    return new Set(rm.map(m=>String(m==null?"":m).trim().toLowerCase()).filter(Boolean));
   });
-  const amhPt = reportAmhPoint(p);
-  if(amhPt) points.push(amhPt);
-  html += points.join("");
-  const gap = reportGapList(p);
-  html += gap;
-  if(!points.length && !gap){
-    html += '<div class="report-lead">Nothing additional is flagged for discussion from this panel. Your regular check-ups with your doctor remain the right place to review your health over time.</div>';
+  const months = pr.map(x=>{ const m=x&&x.action_layer&&x.action_layer.retest_in_months; return typeof m==="number"?m:null; });
+  const parent = Array.from({length:n},(_,i)=>i);
+  const find = a => { while(parent[a]!==a){ parent[a]=parent[parent[a]]; a=parent[a]; } return a; };
+  const union = (a,b) => { const ra=find(a), rb=find(b); if(ra!==rb) parent[ra]=rb; };
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    let share=false;
+    for(const m of sets[i]){ if(sets[j].has(m)){ share=true; break; } }
+    if(share) union(i,j);
   }
+  const members = {};
+  for(let i=0;i<n;i++){ const r=find(i); (members[r]=members[r]||[]).push(i); }
+  const out = pr.map((x,i)=>({ months: months[i], aligned: [] }));
+  Object.keys(members).forEach(r=>{
+    const grp = members[r];
+    const defined = grp.map(i=>months[i]).filter(m=>m!=null);
+    const eff = defined.length ? Math.min.apply(null, defined) : null;
+    const multi = grp.length > 1;
+    grp.forEach(i=>{
+      out[i].months = eff;
+      if(multi) out[i].aligned = grp.filter(j=>j!==i).map(j=>reportShort((pr[j]&&pr[j].headline)||"")).filter(Boolean);
+    });
+  });
+  return out;
+}
+// Lever normalization for EXACT-match dedupe only: lowercase, strip punctuation, collapse
+// whitespace. No fuzzy or substring matching — near-duplicates are left for a later pass.
+function reportLeverNorm(s){
+  return String(s==null?"":s).toLowerCase().replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
+}
+
+// Priority cards — one unified card per priority. The card header carries the ONLY full render
+// of the headline in the whole document. WHAT WE SEE = why_this_matters. YOUR PLAN = levers
+// (an exact-duplicate lever already shown on an earlier card is cross-referenced, not repeated),
+// retest markers as chips, the reconciled retest badge, and the alignment line. Every field is
+// defensive: an absent field omits only its own part, never renders "undefined".
+function priorityCards(p){
+  const pr = Array.isArray(p.priorities) ? p.priorities : [];
+  if(!pr.length) return "";
+  const recon = reportRetestComponents(pr);
+  const seen = {};   // normalized lever -> short name of the earlier card that owns it
+  let html = '<div class="report-sec"><div class="report-sec-h">Your priorities</div>'+
+    '<div class="report-sec-sub">One card per finding. What we see, and the plan within your control.</div>';
+  pr.forEach((x,i)=>{
+    if(!x) return;
+    const prompt = reportUrgencyPrompt(x);
+    const chip = '<span class="report-tag '+(prompt?"prompt":"routine")+'">'+(prompt?"Raise soon":"Routine")+'</span>';
+    const fallbackName = "Priority "+(typeof x.rank==="number"?x.rank:(i+1));
+    const headFull = (typeof x.headline==="string" && x.headline.trim()) ? reportProse(x.headline) : fallbackName;
+    let card = '<div class="report-card"><div class="report-item-h"><span>'+headFull+'</span>'+chip+'</div>';
+
+    // WHAT WE SEE
+    const why = (typeof x.why_this_matters==="string" && x.why_this_matters.trim()) ? reportProse(x.why_this_matters) : "";
+    if(why){
+      card += '<div class="report-part"><div class="report-part-label">What we see</div>'+
+        '<div class="report-item-body"><p>'+why+'</p></div></div>';
+    }
+
+    // YOUR PLAN
+    const al = x.action_layer || {};
+    const levers = [al.primary_lever].concat(Array.isArray(al.supporting_levers)?al.supporting_levers:[]).filter(v=>typeof v==="string" && v.trim());
+    const retest = (Array.isArray(al.retest_markers)?al.retest_markers:[]).filter(v=>typeof v==="string" && v.trim());
+    const eff = recon[i] || { months:null, aligned:[] };
+    if(levers.length || retest.length || eff.months!=null){
+      let plan = '<div class="report-part"><div class="report-part-label">Your plan</div>';
+      const lis = [];
+      levers.forEach(l=>{
+        const norm = reportLeverNorm(l);
+        if(norm && Object.prototype.hasOwnProperty.call(seen, norm)){
+          lis.push('<li class="report-xref">This lives under your '+esc(seen[norm])+' finding. That plan serves this finding too.</li>');
+        } else {
+          if(norm) seen[norm] = reportShort((typeof x.headline==="string" && x.headline.trim()) ? x.headline : fallbackName);
+          const s = reportProse(l);
+          lis.push('<li>'+(/[.!?]$/.test(s)?s:s+".")+'</li>');
+        }
+      });
+      if(lis.length) plan += '<ul class="report-bullets">'+lis.join("")+'</ul>';
+      if(retest.length){
+        const chips = retest.map(m=>{ const nm=reportMarkerName(m); return nm?'<span class="report-chip">'+esc(nm)+'</span>':''; }).join("");
+        if(chips) plan += '<div class="report-chips">'+chips+'</div>';
+      }
+      if(eff.months!=null){
+        plan += '<div><span class="report-retest-badge">Re-test ~'+eff.months+' month'+(eff.months===1?"":"s")+'</span></div>';
+        if(eff.aligned && eff.aligned.length){
+          plan += '<div class="report-aligned">Aligned with your '+reportJoinNames(eff.aligned.map(esc))+', which share markers with this one.</div>';
+        }
+      }
+      plan += '</div>';
+      card += plan;
+    }
+    card += '</div>';
+    html += card;
+  });
   return html+'</div>';
 }
 
-// S6 — Monitoring strategy. Priority markers to re-test, the re-test window, and the
-// daily behavioural levers, all from action_layer.
-function reportS6(p){
-  const pr = Array.isArray(p.priorities) ? p.priorities : [];
-  let html = '<div class="report-sec"><div class="report-sec-h">Monitoring strategy</div>'+
-    '<div class="report-sec-sub">What to keep an eye on, when to re-test, and the daily levers within your control.</div>';
-  const items = [];
-  pr.forEach((x,i)=>{
-    const al = x.action_layer || {};
-    const rank = (typeof x.rank==="number"?x.rank:(i+1));
-    const retest = Array.isArray(al.retest_markers)?al.retest_markers:[];
-    const months = (typeof al.retest_in_months==="number") ? al.retest_in_months : null;
-    const windowTxt = months!=null ? ("about "+months+" month"+(months===1?"":"s")) : "6 to 12 months";
-    const levers = [al.primary_lever].concat(Array.isArray(al.supporting_levers)?al.supporting_levers:[]).filter(Boolean);
-    if(!retest.length && !levers.length && !x.headline) return;
-    const chips = retest.map(m=>{ const nm=reportMarkerName(m); return nm?'<span class="report-chip">'+esc(nm)+'</span>':''; }).join("");
-    // Levers are complete sentences; join with a space (each already carries its own
-    // terminal period, add one only if missing) so we never emit a double period.
-    const leverText = levers.map(l=>{ const s=reportProse(l); return /[.!?]$/.test(s)?s:s+"."; }).join(" ");
-    items.push('<div class="report-item"><div class="report-item-h"><span>'+reportProse(x.headline||("Priority "+rank))+'</span></div>'+
-      '<div class="report-item-body">'+
-        (leverText?'<p>'+leverText+'</p>':'')+
-        (chips?'<div class="report-chips">'+chips+'</div>':'')+
-        '<div class="report-retest">Re-test in '+esc(windowTxt)+'.</div>'+
-      '</div></div>');
-  });
-  if(!items.length){
-    html += '<div class="report-lead">There are no priority markers to actively monitor from this panel. Re-testing a broad panel every 6 to 12 months is a reasonable way to keep watch as things change over time.</div>';
-  } else {
-    html += items.join("");
-  }
+// Further testing — migrates the deterministic AMH cycle-timing point and the coverage-gap list
+// out of the old provider-discussion section. Nothing is dropped. Omits itself when both empty.
+function furtherTesting(p){
+  const amhPt = reportAmhPoint(p);
+  const gap = reportGapList(p);
+  if(!amhPt && !gap) return "";
+  let html = '<div class="report-sec"><div class="report-sec-h">Further testing</div>'+
+    '<div class="report-sec-sub">Worth raising with your doctor or keeping in mind as you test over time. None of this is a prescription or a diagnosis.</div>';
+  html += amhPt + gap;
   return html+'</div>';
 }
 
@@ -3252,11 +3349,11 @@ function reportDocHtml(p){
   if(fn) meta.push("Prepared for "+esc(fn));
   if(drawDate) meta.push("Blood draw "+esc(drawDate));
   if(lab) meta.push("Source "+esc(lab));
-  const head = '<div class="report-doc-head"><div class="report-doc-title">Your BioWellth health report</div>'+
+  const head = '<!-- REPORT_CARDS_V1 --><div class="report-doc-head"><div class="report-doc-title">Your BioWellth health report</div>'+
     (meta.length?'<div class="report-doc-meta">'+meta.join("<br>")+'</div>':'')+'</div>';
   const disc = '<div class="report-disc"><strong>This report is intended to support conversations with your healthcare provider and does not constitute medical advice.</strong> '+
     'It is educational. We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.</div>';
-  return head + reportS1(p) + reportS2(p) + reportS5(p) + reportS6(p) + disc;
+  return head + snapshotSection(p) + reportS2(p) + priorityCards(p) + furtherTesting(p) + disc;
 }
 
 function openReport(){
