@@ -328,6 +328,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:26px 30px;margin-bottom:14px;border-left:4px solid var(--coral)}
 .prio.t-amber{border-left-color:var(--amber)}
 .prio.t-neutral{border-left-color:var(--brown-light)}
+.prio-bridge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:6px 0;margin-top:2px}
+.prio-bridge:hover{color:var(--brown)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
 .prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;line-height:1.25;font-weight:700;color:var(--brown);margin:6px 0 14px}
@@ -3684,6 +3686,7 @@ async function renderDashboard(p, reportId){
   // uses, at marker level) over systems[].markers[]; gaps via coverage_gap AFTER the
   // SAME suppression renderCoverageGap applies (GAP_SUPPRESS_SYSTEMS/_MARKERS +
   // direction_only). No parallel bucket list / gap filter — strip and grid can't drift.
+  let heroFlagN = 0;   // hero "worth a closer look" count; hoisted so the priorities bridge reuses the SAME number
   const statsEl = $("hero-stats");
   if(statsEl){
     let flag=0, watch=0, good=0;
@@ -3692,6 +3695,7 @@ async function renderDashboard(p, reportId){
         const c = sysStatus(m.status||"").cls;
         if(c==="s-flag") flag++; else if(c==="s-watch") watch++; else if(c==="s-good") good++;
       }
+    heroFlagN = flag;   // share the SAME count with the priorities bridge line (no recompute, no subtraction)
     let gaps=0;
     const cg = p.coverage_gap;
     if(cg && cg.by_system && typeof cg.by_system==="object"){
@@ -3811,7 +3815,15 @@ async function renderDashboard(p, reportId){
           '<div class="prio-detail">'+detail+'</div>'
         : '')+
     '</div>';
-  }).join("");
+  }).join("") +
+    // Bridge line: renders ONLY when more markers are flagged than the 5 cards can show. N is the SAME
+    // hero flag count (heroFlagN), no arithmetic / no subtraction. Click -> markers view pre-filtered to
+    // the s-flag pill via the new statusKey arg.
+    (heroFlagN > 5
+      ? '<button class="prio-bridge" type="button">These are your top 5. See all '+heroFlagN+' markers worth a closer look <span aria-hidden="true">&#8250;</span></button>'
+      : "");
+  const prioBridge = $("prios").querySelector(".prio-bridge");
+  if(prioBridge) prioBridge.onclick = ()=> openMarkersView(p, null, 's-flag');
   // Per-card toggle wiring — mirrors longi: every card starts CLOSED on each render
   // (no persist across renders/panel switches), in-memory class only (no storage),
   // each card toggles independently.
@@ -4402,7 +4414,7 @@ function sortMarkers(items, sortKey){
   }
   return arr;
 }
-function openMarkersView(p, themeKey){
+function openMarkersView(p, themeKey, statusKey){
   const view = $("view-markers"); if(!view || !p) return;
   const systems = Array.isArray(p.systems)?p.systems:[];
   const flat = systems.flatMap(s =>
@@ -4415,7 +4427,7 @@ function openMarkersView(p, themeKey){
   const total = flat.length;
   const list = $("markers-list"), searchEl = $("markers-search"), pillsHost = $("markers-pills"),
         sortEl = $("markers-sort"), themeHost = $("markers-theme");
-  let active = 'all', sortKey = 'status', theme = themeKey || null;   // search/sort/pill reset each open; theme INITIALISES from the arg
+  let active = statusKey || 'all', sortKey = 'status', theme = themeKey || null;   // search/sort reset; active + theme INITIALISE from the args (statusKey mirrors themeKey)
   const themeLabel = k => { const d = THEME_DEFS.find(x=>x.key===k); return d ? d.label : k; };
   // The set the pills + title describe: the themed subset when a theme is active, else the whole panel.
   // Counts must always describe the VISIBLE set (the theme is an AND-clause the pills sit inside).
