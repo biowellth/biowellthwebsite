@@ -5079,6 +5079,15 @@ function isQualitative(mk, info){
   const inf = info || markerSeriesInfo(mk);
   return (mk.value==null || mk.value==='') && inf.points.length===0 && mk.band==null;
 }
+// Captured qualitative dipstick reading. Call A emits value_text as a normalized ordinal; the
+// engine scores it (status + band) so mk.band is NOT null and isQualitative is false. qualDisplay
+// returns the display word for the value slot, or "" when this is not a recognized captured
+// qualitative (old payloads / unrecognized tokens fall back to the unscored path).
+const QUAL_DISPLAY = { negative:"Negative", trace:"Trace", "1+":"1+", "2+":"2+", "3+":"3+", "4+":"4+", positive_ungraded:"Positive" };
+function qualDisplay(mk){
+  const vt = (mk && typeof mk.value_text === "string") ? mk.value_text.trim().toLowerCase() : "";
+  return Object.prototype.hasOwnProperty.call(QUAL_DISPLAY, vt) ? QUAL_DISPLAY[vt] : "";
+}
 // Reveal hero verdict phrases, keyed marker_id -> { low, high }. Deterministic authored copy
 // (verbatim, no paraphrase, no colon, no em dash). buildVerdict looks these up by a priority's
 // driving marker_id + its observed position; a marker with no entry for that direction is skipped,
@@ -5558,7 +5567,10 @@ function markerDetailHTML(mk, cls){
   }
   // Bare unit with no number reads as broken, so qualitatives show a muted
   // "result not scored" in the header instead of an empty value plus unit.
-  const nowHTML = (isQual || isNotScored)
+  const qdNow = qualDisplay(mk);
+  const nowHTML = qdNow
+    ? '<div class="sm-trend-now">'+esc(qdNow)+'</div>'
+    : (isQual || isNotScored)
     ? '<div class="sm-trend-now" style="font-weight:400;color:var(--brown-mid)">result not scored</div>'
     : '<div class="sm-trend-now">'+esc(String(cur))+unit+canonParen+'</div>';
   // Any marker with an authored explanation (derived OR measured) shows a
@@ -5595,17 +5607,24 @@ function markerRowHTML(mk, sysLabel, range){
   // not_scored: the engine has no scored band for this marker (genuinely unbandable, or
   // cycle-gated). Same unscored register as above \u2014 grey dot, no value/spark, honest note.
   const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
-  const cls  = (isUnknownUnit || isQual || isNotScored) ? 's-none' : sysStatus(mk.status||'').cls;
+  // Captured qualitative dipstick reading (value null, engine-scored via value_text): it shows its
+  // display word and takes the engine status colour exactly like a numeric marker (marker below).
+  const qd = qualDisplay(mk);
+  const cls  = qd ? sysStatus(mk.status||'').cls
+             : (isUnknownUnit || isQual || isNotScored) ? 's-none'
+             : sysStatus(mk.status||'').cls;
   const color= ST_COLOR[cls] || ST_COLOR['s-none'];
   const name = esc(markerName(mk));
   const val  = [mk.value, mk.unit].filter(v => v!==null && v!==undefined && v!=="").join(" ");
   // A bare unit with no number reads as broken, so qualitatives AND not_scored markers show
   // a muted "result not scored" placeholder rather than the value, and suppress the spark.
   const unscored = isQual || isNotScored;
-  const valHTML = unscored
+  const valHTML = qd
+    ? '<!-- QUAL_RENDER_V1 --><span class="mv">'+esc(qd)+'</span>'
+    : unscored
     ? '<span class="mv" style="color:var(--brown-mid)">result not scored</span>'
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
-  const spark = unscored ? miniSparkSVG([], color) : miniSparkSVG(markerHistory(mk), color);
+  const spark = (qd || unscored) ? miniSparkSVG([], color) : miniSparkSVG(markerHistory(mk), color);
   const dot  = '<span class="mdot '+cls+'"></span>';
   const note = isUnknownUnit
     ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
