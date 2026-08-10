@@ -3691,20 +3691,27 @@ function toneSysMap(){
   }
   return TONE_SYS_MAP;
 }
+// Priority card tone — ENGINE-DERIVED, TONEFOR_V2. Color source is the engine
+// systems map ONLY (p.systems markers, status-first). Driver = worst engine
+// class among primary_markers (s-flag > s-watch > else), tie broken by
+// primary_markers order. No model fields feed color: flag_status is not read,
+// no band/position fallback — engine-silent markers are s-none. A sensitive
+// priority neutralises across ALL its primary markers. severity is never read.
 function toneFor(pr){
-  if(prioritySensitive(pr)) return 't-neutral';                  // sensitive -> neutral, never colour-coded
+  if(prioritySensitive(pr)) return 't-neutral';
   const pm = Array.isArray(pr && pr.primary_markers) ? pr.primary_markers : [];
   const eng = toneSysMap();
   const clsOf = (m)=>{
-    if(!m) return 's-none';
+    if(!m || !m.marker_id) return 's-none';
     const em = eng[m.marker_id];
-    const src = (em && (em.band || em.status)) || m.band || m.position || "";
+    if(!em) return 's-none';                       // engine silent -> no color
+    const src = em.status || em.band || "";        // status FIRST (qual-safe)
     return sysStatus(src).cls;
   };
-  let driver = pm.find(m => m && m.flag_status === 'critical');   // critical primary marker if any
-  if(!driver) driver = pm.find(m => clsOf(m) !== 's-none');       // else first resolvable through p.systems
-  const cls = driver ? clsOf(driver) : 's-none';
-  return cls === 's-flag' ? 't-coral' : cls === 's-watch' ? 't-amber' : 't-neutral';
+  const rank = (c)=> c === 's-flag' ? 2 : c === 's-watch' ? 1 : 0;
+  let best = 's-none';
+  for(const m of pm){ const c = clsOf(m); if(rank(c) > rank(best)) best = c; }
+  return best === 's-flag' ? 't-coral' : best === 's-watch' ? 't-amber' : 't-neutral';
 }
 async function renderDashboard(p, reportId){
   // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
