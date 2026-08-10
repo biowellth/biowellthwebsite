@@ -699,6 +699,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
 #view-reveal .vischip i{width:7px;height:7px;border-radius:50%;background:var(--amber)}
 #view-reveal .caveat{margin-top:18px;font-size:11.5px;color:var(--brown-mid);opacity:.8;max-width:34ch;line-height:1.5}
+#view-reveal .vis-bridge{margin-top:14px;font-size:12.5px;color:var(--brown-mid);line-height:1.55;max-width:40ch}
 #view-reveal .markerline{display:inline-flex;align-items:baseline;gap:8px;margin:4px 0 14px;
   font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--coral-dark)}
 #view-reveal .markerline b{font-size:20px;font-weight:600}
@@ -3071,7 +3072,15 @@ function snapshotSection(p){
     const bandPart = band
       ? ("Your overall reading is <span class=\"report-band\">"+esc(band)+"</span>"+(score!==null?(", a composite of "+score+" out of 100"):"")+". ")
       : "";
-    const covPart = "We read "+cov.n+" of your markers from this panel against functional health ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
+    // COUNT_BRIDGE_V1: give the read-count its denominator (reuse markerCountOf). Guard: if TOTAL
+    // is not a finite positive number, keep today's scored-only sentence exactly (never break it).
+    const covTotal = markerCountOf(p);
+    const covTail = " on this panel against functional health ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
+    const covPart = (Number.isFinite(covTotal) && covTotal > 0)
+      ? ((cov.n === covTotal)
+          ? "We read all "+covTotal+" markers"+covTail
+          : "We read "+cov.n+" of the "+covTotal+" markers"+covTail)
+      : "We read "+cov.n+" of your markers from this panel against functional health ranges, the tighter ranges built for feeling well rather than only the standard cutoffs for illness.";
     let unreadPart = "";
     if(cov.unread > 0){
       const one = cov.unread === 1;
@@ -5989,6 +5998,18 @@ function buildDeck(p, reportId){
   const composite = (typeof v.composite === 'number') ? v.composite : null;
   const bandLabel = (v.band && v.band.label) || '';
   const visibility = (typeof v.visibility === 'number') ? Math.round(v.visibility) : null;
+  // COUNT_BRIDGE_V1: give the visibility % its referent. REUSE the SAME scored/total the report
+  // doc (reportCoverageCount) and rail (markerCountOf) already show, so the three completeness
+  // framings share arithmetic. Omit entirely on any missing / zero / NaN count (never garbage).
+  const visBridge = (() => {
+    if(!Array.isArray(p.systems)) return "";
+    const total = markerCountOf(p);
+    const scored = (reportCoverageCount(p) || {}).n;
+    if(!Number.isFinite(total) || total <= 0 || !Number.isFinite(scored) || scored <= 0) return "";
+    const read = (scored === total) ? "we read all of them" : "we read " + scored + " of them";
+    return '<p class="vis-bridge stag">This panel gave us ' + total + ' markers and ' + read +
+      '. The full picture also counts markers this panel did not include.</p>';
+  })();
   const qw = dropSuppressedQW(Array.isArray(p.quietly_working) ? p.quietly_working : [], p);
   const pri = Array.isArray(p.priorities) && p.priorities[0] ? p.priorities[0] : null;
   const f = p.foundations || {};
@@ -6065,6 +6086,7 @@ function buildDeck(p, reportId){
           (visibility != null
             ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
             : '') +
+          visBridge +
           '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our medical team.</p>' +
         '</div>' +
       '</section>'
