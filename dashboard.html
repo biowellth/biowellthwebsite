@@ -6093,6 +6093,21 @@ function buildDeck(p, reportId){
     );
   }
 
+  // WALKTHROUGH_TIERS_V1: status-vocabulary teaching beat. Static by
+  // design (identical for every user, safety-reviewed once, never
+  // model-authored). Teaches the three shipped status words before
+  // the first status-colored content (Beat 3 markerline, Beat 7 tone
+  // cards). Does NOT re-teach functional ranges (saturated elsewhere).
+  beats.push(
+    '<section class="card">' +
+      '<div class="eyebrow stag">How to read what comes next</div>' +
+      '<h1 class="display h-lg stag">Most markers land in one of three places.</h1>' +
+      '<p class="sub stag">Looks good means a marker is sitting where feeling well expects it to be.</p>' +
+      '<p class="sub stag">Worth watching means it is still inside standard lab limits but has drifted from that zone. That is an early signal, not a verdict. It is the kind of thing daily habits can often move, and catching it here is the point of testing.</p>' +
+      '<p class="sub stag">Worth a closer look means it sits outside the standard limits too. It deserves attention, and sometimes a conversation with your doctor.</p>' +
+    '</section>'
+  );
+
   // Beat 3: One to watch (skip if priorities is empty)
   if(pri){
     const pm = Array.isArray(pri.primary_markers) && pri.primary_markers[0] ? pri.primary_markers[0] : null;
