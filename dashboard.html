@@ -969,6 +969,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .report-snap-dot{width:8px;height:8px;border-radius:50%;flex:none}
 .report-snap-txt{flex:1;font-size:13.5px;line-height:1.5;color:var(--brown)}
 .report-card{border:1px solid var(--brown-light);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+.report-overflow{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-top:14px}
 .report-part{margin-top:13px}
 .report-part-label{font-family:'Instrument Sans',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:6px}
 .report-retest-badge{display:inline-block;font-family:'Instrument Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);border-radius:100px;padding:4px 11px;margin-top:8px}
@@ -3336,6 +3337,9 @@ function priorityCards(p){
     card += '</div>';
     html += card;
   });
+  // REPORT_OVERFLOW_BEAT_V1 — static overflow line after the last priority card, before furtherTesting.
+  // Renders whenever priorityCards renders at all (the pr.length===0 guard above already returned "").
+  html += '<p class="report-overflow">These are the patterns that matter most. Every other marker worth a closer look sits in its body system section, with the full picture around it.</p>';
   return html+'</div>';
 }
 
