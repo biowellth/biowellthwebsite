@@ -505,6 +505,7 @@ button.theme-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px
 .theme-panel{margin-top:14px;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:24px 26px}
 .theme-panel:empty{display:none}
 .tp-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--brown-light)}
+.tp-intro{font-size:14px;line-height:1.6;color:var(--brown-mid);margin:18px 0 2px}
 .tp-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown)}
 .tp-close{font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
 .tp-close:hover{color:var(--brown)}
@@ -4123,6 +4124,16 @@ const THEME_DEFS = [
   { key:"nutrients",      label:"Nutrients",          desc:"Vitamins and minerals." },
   { key:"organ_function", label:"Organ function",     desc:"Liver, kidney, and pancreas." },
 ];
+// SYSTEM_INTRO_V1 — static, never model-authored, keyed by THEME_DEFS cluster key. Rendered between
+// the popup header and the first tier label; a missing key renders nothing (never a placeholder).
+const SYSTEM_INTRO = {
+  energy: "Your energy is shaped by how well your blood carries oxygen and how steadily your body makes fuel. Iron and ferritin build the red cells that deliver oxygen, thyroid markers set the pace of your metabolism, and B vitamins help convert food into usable energy. When any of these run low, tiredness is often one of the first things women notice, and it tends to improve once the underlying marker is addressed.",
+  cycle_hormones: "These markers reflect the messengers that guide your cycle, mood, sleep, and stress response. Reproductive hormones rise and fall through the month, while adrenal markers show how your body is handling stress. When they drift out of balance, it can show up as irregular cycles, low mood, disrupted sleep, or feeling wired but tired.",
+  metabolic: "Glucose, insulin, and lipids show how your body processes and stores energy from food. When these markers sit in a healthy range, energy tends to feel steady through the day. When they drift, it can show up as afternoon crashes, cravings, or weight that feels harder to shift, often years before anything reaches a clinical threshold.",
+  inflammation: "Inflammatory and immune markers show how hard your body is working behind the scenes. A little inflammation is normal and protective. When it runs persistently high, it can quietly drain energy, affect recovery and skin, and put strain on other systems over time, which is why it is worth watching even when you feel fine.",
+  nutrients: "Vitamins and minerals are the raw materials nearly every process in your body depends on, from making energy to building hormones to keeping hair and skin healthy. Low levels often build slowly and show up as vague symptoms like fatigue, brain fog, or low mood, and they are usually among the more straightforward things to address once you can see them.",
+  organ_function: "Liver, kidney, and pancreas markers show how well your body's core processing systems are keeping up. These organs filter, detoxify, and regulate quietly in the background, so shifts here rarely cause obvious symptoms early on. Watching these markers over time helps you catch gradual drift while it is still easy to act on.",
+};
 function themesOf(mk){
   const t = RANGES_LOOKUP && RANGES_LOOKUP.themes_by_marker_id;
   const id = mk && mk.marker_id;
@@ -4447,11 +4458,13 @@ function renderThemePanel(p){
       '<div class="tp-inrange-rows">'+names+'</div>');
   }
 
+  const intro = SYSTEM_INTRO[OPEN_THEME];   // static intro; undefined key -> no paragraph
   panel.innerHTML =
     '<div class="tp-head">'+
       '<span class="tp-title">'+esc(label)+'</span>'+
       '<button class="tp-close" type="button" data-tp-close="1">Close</button>'+
     '</div>'+
+    (intro ? '<p class="tp-intro">'+intro+'</p>' : '')+
     '<div class="tp-tiers">'+tiers.join("")+'</div>'+
     '<button class="tp-all" type="button" data-tp-all="1">See all '+n+' marker'+(n===1?'':'s')+' <span aria-hidden="true">&#8250;</span></button>';
 }
