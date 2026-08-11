@@ -3957,11 +3957,13 @@ async function renderDashboard(p, reportId){
         : '')+
     '</div>';
   }).join("") +
-    // Bridge line: renders ONLY when more markers are flagged than the 5 cards can show. N is the SAME
-    // hero flag count (heroFlagN), no arithmetic / no subtraction. Click -> markers view pre-filtered to
-    // the s-flag pill via the new statusKey arg.
-    (heroFlagN > 5
-      ? '<button class="prio-bridge" type="button">These are your top 5. See all '+heroFlagN+' markers worth a closer look <span aria-hidden="true">&#8250;</span></button>'
+    // Bridge line: renders ONLY when more markers are flagged than the cards can show. N is the SAME
+    // hero flag count (heroFlagN), no arithmetic / no subtraction. Gate is count-agnostic — compares
+    // heroFlagN against pr.length (the priorities actually rendered above), so it stays truthful at any
+    // priority count. Click -> markers view pre-filtered to the s-flag pill via the new statusKey arg.
+    // PRIO_BRIDGE_DYNAMIC_V1
+    (heroFlagN > pr.length
+      ? '<button class="prio-bridge" type="button">These are the patterns that matter most. See all '+heroFlagN+' markers worth a closer look <span aria-hidden="true">&#8250;</span></button>'
       : "");
   const prioBridge = $("prios").querySelector(".prio-bridge");
   if(prioBridge) prioBridge.onclick = ()=> openMarkersView(p, null, 's-flag');
