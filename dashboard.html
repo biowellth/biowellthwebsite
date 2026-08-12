@@ -141,6 +141,21 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .upload-meta{margin-top:22px;display:flex;flex-direction:column;gap:9px}
 .upload-meta-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--brown-mid)}
 .upload-meta-item svg{width:14px;height:14px;color:var(--teal);flex-shrink:0}
+.cyc-block{margin-top:22px;padding-top:20px;border-top:1px solid var(--brown-light);text-align:left}
+.cyc-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:6px}
+.cyc-intro,.cyc-q2{font-size:13px;line-height:1.55;color:var(--brown-mid);margin:0 0 12px}
+.cyc-q{font-size:13px;font-weight:600;color:var(--brown);margin:14px 0 8px}
+.cyc-opts{display:flex;flex-direction:column;gap:7px}
+.cyc-opts.row{flex-direction:row;flex-wrap:wrap}
+.cyc-opts.row .cyc-opt{flex:1 1 auto;justify-content:center}
+.cyc-opt{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 13px;cursor:pointer;text-align:left}
+.cyc-opt:hover{border-color:var(--teal-mid)}
+.cyc-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
+.cyc-num,.cyc-date{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 12px;margin-bottom:4px}
+.cyc-alt,.cyc-decline{display:block;margin-top:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--teal-dark);background:none;border:none;padding:2px 0;cursor:pointer;text-align:left}
+.cyc-decline{color:var(--brown-mid)}
+.cyc-decline.sel{color:var(--teal-dark);font-weight:700}
+.cyc-l{display:block;font-size:11.5px;color:var(--brown-mid);margin:8px 0 5px}
 #view-processing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 140px);text-align:center}
 .spinner{width:46px;height:46px;border-radius:50%;border:3px solid var(--brown-light);border-top-color:var(--teal);animation:spin .9s linear infinite;margin-bottom:24px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -202,14 +217,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bc-note-l{font-size:11.5px;color:var(--brown-mid);margin:12px 0 5px}
 .bc-note{width:100%;font-family:inherit;font-size:12.5px;color:var(--brown);background:transparent;border:none;border-bottom:1px solid var(--brown-light);padding:5px 2px}
 .bc-note:focus{outline:none;border-bottom-color:var(--teal)}
-.bc-cycle{margin-top:16px;padding-top:14px;border-top:1px solid var(--brown-light)}
-.bc-cycle-q{font-size:13px;line-height:1.5;color:var(--brown-mid);margin:0 0 10px}
-.bc-cycle-date,.bc-cycle-num{font-family:inherit;font-size:13px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:10px;padding:9px 11px}
-.bc-cycle-alt,.bc-cycle-decline{display:block;margin-top:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--teal-dark);background:none;border:none;padding:2px 0;cursor:pointer;text-align:left}
-.bc-cycle-decline{color:var(--brown-mid)}
-.bc-cycle-decline.sel{color:var(--teal-dark);font-weight:700}
-.bc-cycle-cd{margin-top:10px}
-.bc-cycle-l{display:block;font-size:11.5px;color:var(--brown-mid);margin-bottom:5px}
 /* Save-state feedback (per-answer + block + persistent bottom line). No submit button. */
 .bc-saved{font-size:11.5px;font-weight:600;margin-left:auto;align-self:center;white-space:nowrap}
 .bc-saved.is-saved{color:var(--teal-dark)}
@@ -1166,6 +1173,43 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
         <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Private to your account. Encrypted and stored in India.</div>
         <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>This takes up to about ten minutes. You can close the page and your results will be waiting.</div>
       </div>
+      <!-- CYCLE_CAPTURE_V1 -->
+      <div class="cyc-block hidden" id="cyc-profile">
+        <div class="cyc-h">Your cycle</div>
+        <p class="cyc-intro">This helps us read your hormone markers in the right context. You can skip anything.</p>
+        <div class="cyc-q">Which best describes your cycle right now?</div>
+        <div class="cyc-opts" id="cyc-menstrual">
+          <button type="button" class="cyc-opt" data-m="regular">Regular cycles</button>
+          <button type="button" class="cyc-opt" data-m="irregular">Irregular cycles</button>
+          <button type="button" class="cyc-opt" data-m="perimenopausal">In the transition (perimenopause)</button>
+          <button type="button" class="cyc-opt" data-m="postmenopausal">Postmenopausal</button>
+          <button type="button" class="cyc-opt" data-m="pregnant">Currently pregnant</button>
+          <button type="button" class="cyc-opt" data-m="decline">Prefer not to say</button>
+        </div>
+        <div class="cyc-q">Are you currently using hormonal contraception (pill, IUD with hormones, implant, injection)?</div>
+        <div class="cyc-opts row" id="cyc-hc">
+          <button type="button" class="cyc-opt" data-hc="yes">Yes</button>
+          <button type="button" class="cyc-opt" data-hc="no">No</button>
+          <button type="button" class="cyc-opt" data-hc="decline">Prefer not to say</button>
+        </div>
+        <div id="cyc-lens" class="hidden">
+          <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
+          <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
+          <div class="cyc-q">How many days does your period usually last?</div>
+          <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+        </div>
+      </div>
+      <!-- CYCLE_CAPTURE_V1 -->
+      <div class="cyc-block" id="cyc-perupload">
+        <p class="cyc-q2">One question that helps us read your hormones. When did your last period start before this test was taken?</p>
+        <input class="cyc-date" id="cyc-lmp" type="date"/>
+        <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
+        <div class="cyc-cd hidden" id="cyc-cd-wrap">
+          <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
+          <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+        </div>
+        <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
+      </div>
       <div class="msg" id="upload-msg"></div>
     </div>
   </div>
@@ -1176,7 +1220,6 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <p>We are reading every result and comparing it against functional ranges built for South Asian women. This can take up to about ten minutes. You can close this page and come back, and your results will be saved.</p>
     <div class="proc-file" id="proc-file"></div>
     <div id="proc-ask"></div>
-    <div id="proc-cycle"></div>
   </div>
 
   <div id="view-interim" class="hidden">
@@ -1690,7 +1733,7 @@ const ONB_Q2 = {
   pcos:     { cycle_status:"pcos",        life_stage:null },
   none:     { cycle_status:"amenorrheic", life_stage:null },
 };
-const onbSel = { period:null, diet:null, preg:null, menstrual:null, hc:null };
+const onbSel = { period:null, diet:null, preg:null };
 function onbWireGroup(id, key, attr){
   document.querySelectorAll("#"+id+" .onb-opt").forEach(btn=>{
     btn.onclick = ()=>{
@@ -1711,16 +1754,6 @@ async function maybeShowOnboarding(){
     onbWireGroup("onb-periods","period","data-k");
     onbWireGroup("onb-diet","diet","data-v");
     onbWireGroup("onb-preg","preg","data-b");
-    // cycle status selection also reveals the typical-length questions for regular/irregular
-    document.querySelectorAll("#onb-menstrual .onb-opt").forEach(btn=>{
-      btn.onclick = ()=>{
-        onbSel.menstrual = btn.getAttribute("data-m");
-        document.querySelectorAll("#onb-menstrual .onb-opt").forEach(b=>b.classList.toggle("sel", b===btn));
-        const show = (onbSel.menstrual === "regular" || onbSel.menstrual === "irregular");
-        $("onb-cyclelen").classList.toggle("hidden", !show);
-      };
-    });
-    onbWireGroup("onb-hc","hc","data-hc");
     $("onb-skip").onclick = ()=> $("onb-modal").classList.remove("show");
     $("onb-save").onclick = onbSave;
     $("onb-modal").classList.add("show");
@@ -1733,16 +1766,6 @@ async function onbSave(){
   if(onbSel.period){ const m = ONB_Q2[onbSel.period]; payload.cycle_status = m.cycle_status; if(m.life_stage) payload.life_stage = m.life_stage; }
   if(onbSel.diet) payload.vegetarian_status = onbSel.diet;
   if(onbSel.preg) payload.pregnant_or_postpartum_within_6_months = (onbSel.preg === "yes");
-  // cycle capture profile fields — prefer-not-to-say and blank both persist as NULL, never coerced.
-  if(onbSel.menstrual && onbSel.menstrual !== "decline") payload.menstrual_status = onbSel.menstrual;
-  if(onbSel.hc === "yes") payload.on_hormonal_contraception = true;
-  else if(onbSel.hc === "no") payload.on_hormonal_contraception = false;
-  if(onbSel.menstrual === "regular" || onbSel.menstrual === "irregular"){
-    const cl = parseInt(($("onb-cyclelen-in").value || "").trim(), 10);
-    if(Number.isFinite(cl) && cl >= 15 && cl <= 90) payload.typical_cycle_length_days = cl;
-    const pd = parseInt(($("onb-perdur-in").value || "").trim(), 10);
-    if(Number.isFinite(pd) && pd >= 1 && pd <= 15) payload.typical_period_duration_days = pd;
-  }
   if(!Object.keys(payload).length){ $("onb-modal").classList.remove("show"); return; }   // nothing answered = skip
   $("onb-save").disabled = true; $("onb-msg").textContent = "";
   const { error } = await sb.from("profiles").update(payload).eq("id", USER.id);
@@ -1888,6 +1911,52 @@ dz.ondragover = e=>{e.preventDefault(); if(!consentReady()) return; dz.classList
 dz.ondragleave = ()=>dz.classList.remove("drag");
 dz.ondrop = e=>{e.preventDefault();dz.classList.remove("drag"); if(!consentReady()) return; if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);};
 fileInput.onchange = ()=>{ if(!consentReady()) return; if(fileInput.files[0]) handleFile(fileInput.files[0]); };
+// Optional cycle-context capture on the upload card. Answers append to the process-report payload in
+// handleFile (no new network calls, no client-side table writes; the function validates + persists).
+const cycSel = { menstrual:null, hc:null, declined:false };
+function initCycleCapture(){
+  const lmp = document.getElementById("cyc-lmp");
+  if(lmp) lmp.max = new Date().toISOString().slice(0,10);   // date input rejects future dates
+  // Block 1 (durable) shows only on first upload — gated on a localStorage flag, since the dashboard
+  // loads no cycle profile fields today (tradeoff: per-device, so it can re-show on a new device).
+  const prof = document.getElementById("cyc-profile");
+  if(prof && !localStorage.getItem("bw_cycle_captured")) prof.classList.remove("hidden");
+  document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(btn=>{
+    btn.onclick = ()=>{
+      cycSel.menstrual = btn.getAttribute("data-m");
+      document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+      const show = (cycSel.menstrual === "regular" || cycSel.menstrual === "irregular");
+      const lens = document.getElementById("cyc-lens"); if(lens) lens.classList.toggle("hidden", !show);
+    };
+  });
+  document.querySelectorAll("#cyc-hc .cyc-opt").forEach(btn=>{
+    btn.onclick = ()=>{ cycSel.hc = btn.getAttribute("data-hc"); document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn)); };
+  });
+  const alt = document.getElementById("cyc-alt"); if(alt) alt.onclick = ()=>{ const w=document.getElementById("cyc-cd-wrap"); if(w) w.classList.toggle("hidden"); };
+  const decl = document.getElementById("cyc-decline");
+  if(decl) decl.onclick = ()=>{ cycSel.declined = !cycSel.declined; decl.classList.toggle("sel", cycSel.declined);
+    if(cycSel.declined){ const l=document.getElementById("cyc-lmp"); const c=document.getElementById("cyc-cd"); if(l) l.value=""; if(c) c.value=""; } };
+}
+// Read the optional cycle blocks into a partial payload (only fields with a value; the upload function
+// re-validates server-side). Full skip -> {} (no cycle keys in the payload).
+function collectCycle(){
+  const out = {};
+  const inRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
+  if(cycSel.menstrual && cycSel.menstrual !== "decline") out.menstrual_status = cycSel.menstrual;
+  if(cycSel.hc === "yes") out.on_hormonal_contraception = true; else if(cycSel.hc === "no") out.on_hormonal_contraception = false;
+  if(cycSel.menstrual === "regular" || cycSel.menstrual === "irregular"){
+    const cl = inRange((document.getElementById("cyc-len")||{}).value, 15, 90); if(cl!=null) out.typical_cycle_length_days = cl;
+    const du = inRange((document.getElementById("cyc-dur")||{}).value, 1, 15); if(du!=null) out.typical_period_duration_days = du;
+  }
+  if(cycSel.declined){ out.cycle_context_declined = true; }
+  else {
+    const lmpV = (document.getElementById("cyc-lmp")||{}).value; const today = new Date().toISOString().slice(0,10);
+    if(lmpV && lmpV <= today) out.lmp_date_before_draw = lmpV;
+    const cd = inRange((document.getElementById("cyc-cd")||{}).value, 1, 120); if(cd!=null) out.cycle_day_at_draw = cd;
+  }
+  return out;
+}
+initCycleCapture();
 
 const CONSENT_FALLBACK_COPY = "Please accept the privacy terms before we upload your report. If you already have, refresh and try again.";
 function isConsentRefusal(err){
@@ -1926,8 +1995,10 @@ async function handleFile(file){
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
     renderConfounderAsk(reportId);   // ask lives on the "Reading your report" (Call A) screen, non-blocking
-    renderCycleAsk(reportId);        // per-draw cycle context, same non-blocking surface
-    try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId } }); }catch(_){}
+    const cyc = collectCycle();   // optional cycle context appended to the upload payload
+    try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
+    // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
+    if(cyc.menstrual_status || ("on_hormonal_contraception" in cyc) || cyc.typical_cycle_length_days || cyc.typical_period_duration_days){ try{ localStorage.setItem("bw_cycle_captured","1"); }catch(_){} }
     pollForResult(reportId);
   }catch(err){
     showView("upload");
@@ -1974,7 +2045,6 @@ function pollForResult(reportId){
       showView("interim");
     } else {
       renderConfounderAsk(reportId);   // Call A still running -> ensure the ask is present (built once)
-      renderCycleAsk(reportId);        // per-draw cycle context, same non-blocking surface
       showView("processing");
     }
   }, 3000);
@@ -2154,34 +2224,6 @@ function renderConfounderAsk(reportId){
   // indicator, so an earlier-tapped-later-resolving call can never confirm "saved" against a stale value.
   window.__bc = { reportId, built:true, state:"active", supplements: preSupp, note:(PROFILE.context_note || ""), noteTimer:null, seq:{}, blockSeq:0 };
   buildBcForm(reportId);
-}
-// CYCLE_CAPTURE_V1 — per-draw cycle context on the "Reading your report" screen (same non-blocking
-// surface as the per-draw confounders; the single-step upload flow has no pre-submit gate). Optional;
-// writes lmp_date_before_draw / cycle_day_at_draw / cycle_context_declined to the report row (RLS "own
-// reports" allows the owner update). A full skip stores nothing.
-function renderCycleAsk(reportId){
-  const host = $("proc-cycle");
-  if(!host) return;
-  if(host.dataset.reportId === reportId) return;   // build once per report; poll re-renders must not wipe input
-  host.dataset.reportId = reportId;
-  const today = new Date().toISOString().slice(0,10);
-  host.innerHTML =
-    '<div class="bc-cycle">'+
-      '<p class="bc-cycle-q">One question that helps us read your hormones. When did your last period start before this test was taken?</p>'+
-      '<input class="bc-cycle-date" id="pc-lmp" type="date" max="'+today+'"/>'+
-      '<button type="button" class="bc-cycle-alt" id="pc-alt">I know my cycle day instead</button>'+
-      '<div class="bc-cycle-cd hidden" id="pc-cd-wrap">'+
-        '<label class="bc-cycle-l" for="pc-cd">Cycle day on the day of the test</label>'+
-        '<input class="bc-cycle-num" id="pc-cd" type="number" inputmode="numeric" min="1" max="120"/>'+
-      '</div>'+
-      '<button type="button" class="bc-cycle-decline" id="pc-decline">I don\'t remember</button>'+
-    '</div>';
-  const upd = async (patch)=>{ try{ await sb.from("reports").update(patch).eq("id", reportId); }catch(_){} };
-  const lmp = $("pc-lmp"), cd = $("pc-cd"), decl = $("pc-decline"), cdWrap = $("pc-cd-wrap");
-  lmp.onchange = ()=>{ const v = lmp.value; if(v && v <= today){ decl.classList.remove("sel"); upd({ lmp_date_before_draw: v, cycle_context_declined: false }); } };
-  $("pc-alt").onclick = ()=> cdWrap.classList.toggle("hidden");
-  cd.onchange = ()=>{ const n = parseInt((cd.value||"").trim(),10); if(Number.isFinite(n) && n>=1 && n<=120){ decl.classList.remove("sel"); upd({ cycle_day_at_draw: n, cycle_context_declined: false }); } };
-  decl.onclick = ()=>{ decl.classList.add("sel"); if(lmp) lmp.value=""; if(cd) cd.value=""; upd({ cycle_context_declined: true, lmp_date_before_draw: null, cycle_day_at_draw: null }); };
 }
 // Persist the optional tier (supplements[] + free text) per-change via the EXISTING atomic RPC. The
 // four confounders + biotin are already durable per-tap via set_confounder. commit_between_calls writes
@@ -6598,33 +6640,6 @@ async function stampSeen(reportId){
       <div class="onb-opts row" id="onb-preg">
         <button type="button" class="onb-opt" data-b="yes">Yes</button>
         <button type="button" class="onb-opt" data-b="no">No</button>
-      </div>
-    </div>
-
-    <!-- CYCLE_CAPTURE_V1 -->
-    <div class="onb-q" id="onb-cycle-block">
-      <div class="onb-q-label">Your cycle</div>
-      <p class="onb-sub" style="margin:2px 0 12px">This helps us read your hormone markers in the right context. You can skip anything and change it any time.</p>
-      <div class="onb-q-label">Which best describes your cycle right now?</div>
-      <div class="onb-opts" id="onb-menstrual">
-        <button type="button" class="onb-opt" data-m="regular">Regular cycles</button>
-        <button type="button" class="onb-opt" data-m="irregular">Irregular cycles</button>
-        <button type="button" class="onb-opt" data-m="perimenopausal">In the transition (perimenopause)</button>
-        <button type="button" class="onb-opt" data-m="postmenopausal">Postmenopausal</button>
-        <button type="button" class="onb-opt" data-m="pregnant">Currently pregnant</button>
-        <button type="button" class="onb-opt" data-m="decline">Prefer not to say</button>
-      </div>
-      <div class="onb-q-label" style="margin-top:16px">Are you currently using hormonal contraception (pill, IUD with hormones, implant, injection)?</div>
-      <div class="onb-opts row" id="onb-hc">
-        <button type="button" class="onb-opt" data-hc="yes">Yes</button>
-        <button type="button" class="onb-opt" data-hc="no">No</button>
-        <button type="button" class="onb-opt" data-hc="decline">Prefer not to say</button>
-      </div>
-      <div id="onb-cyclelen" class="hidden">
-        <div class="onb-q-label" style="margin-top:16px">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
-        <input class="onb-year" id="onb-cyclelen-in" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
-        <div class="onb-q-label" style="margin-top:12px">How many days does your period usually last?</div>
-        <input class="onb-year" id="onb-perdur-in" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
       </div>
     </div>
 
