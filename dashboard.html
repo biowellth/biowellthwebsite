@@ -4,7 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow"/>
-<title>BioWellth · Your dashboard</title>
+<title>BioWellth · Sana</title>
+<!-- SANA_V1 companion + home surface identity -->
+
 <link rel="icon" href="/favicon.ico"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -1215,9 +1217,9 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 
     <div class="companion" id="companion">
       <div class="comp-head">
-        <span class="comp-avatar">B</span>
+        <span class="comp-avatar">S</span>
         <div class="comp-titlewrap">
-          <span class="comp-title">BioWellth companion</span>
+          <span class="comp-title">Sana</span>
           <span class="comp-status">Reading from your panel</span>
         </div>
         <span class="comp-badge">Arriving soon</span>
@@ -1327,7 +1329,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <div id="view-markers" class="markers-view hidden">
       <div class="markers-head">
         <div class="markers-head-inner">
-          <button class="markers-back" id="markers-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <button class="markers-back" id="markers-back" type="button" aria-label="Back to Sana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
           <h2 class="markers-title" id="markers-title">All markers</h2>
           <div class="markers-sub">Every value, range, and history.</div>
           <div class="markers-theme" id="markers-theme"></div>
@@ -1347,7 +1349,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <div id="view-trends" class="trends-view hidden">
       <div class="trends-head">
         <div class="trends-head-inner">
-          <button class="markers-back" id="trends-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <button class="markers-back" id="trends-back" type="button" aria-label="Back to Sana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
           <h2 class="markers-title" id="trends-title">Since your last panel</h2>
         </div>
       </div>
@@ -1360,7 +1362,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <div id="view-gaps" class="gaps-view hidden">
       <div class="gaps-head">
         <div class="gaps-head-inner">
-          <button class="markers-back" id="gaps-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <button class="markers-back" id="gaps-back" type="button" aria-label="Back to Sana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
           <h2 class="markers-title" id="gaps-title">What to test next</h2>
         </div>
       </div>
@@ -1373,7 +1375,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <div id="view-systems" class="systems-view hidden">
       <div class="systems-head">
         <div class="systems-head-inner">
-          <button class="markers-back" id="systems-back" type="button" aria-label="Back to dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+          <button class="markers-back" id="systems-back" type="button" aria-label="Back to Sana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
           <h2 class="markers-title">Your body, system by system</h2>
           <p class="bm-hint">Tap a system to see what it covers and the markers behind it.</p>
         </div>
@@ -4051,7 +4053,7 @@ function renderCompanionChips(p, score){
   const lead = (nh && typeof nh.lead === "string") ? nh.lead.trim() : "";
   if(!lead) return;   // no read -> no chips (the shell's own comp-read behavior governs the shell)
 
-  const CLOSING = "This is a small preview. The full companion, which can answer anything about your panel, is arriving soon.";
+  const CLOSING = "This is a small preview. Sana, your full companion who can answer anything about your panel, is arriving soon.";
   const items = [];
 
   // Q1 — first priority (in payload order) whose system is NOT sensitive; its lead marker + why.
@@ -6274,7 +6276,7 @@ function buildDeck(p, reportId){
       '<section class="card">' +
         '<div class="eyebrow brown stag">What to track next</div>' +
         '<h1 class="display h-lg stag">You\'ve covered the essentials.</h1>' +
-        '<p class="sub stag">A few more markers are worth exploring over time — they\'re waiting in your dashboard under “Worth exploring over time.” Testing them rounds out the picture, and keeps the trend going from one report to the next.</p>' +
+        '<p class="sub stag">A few more markers are worth exploring over time — they\'re waiting with Sana under “Worth exploring over time.” Testing them rounds out the picture, and keeps the trend going from one report to the next.</p>' +
       '</section>'
     );
   } else {
@@ -6329,7 +6331,7 @@ function buildDeck(p, reportId){
         : '<h1 class="display h-lg stag">Everything is laid out and ready.</h1>') +
       (priCount > 0
         ? '<p class="sub stag">Everything that is going well for you is in there too, along with what to test next. Here they are, in order.</p>'
-        : '<p class="sub stag">Everything that is going well for you is in there too, along with what to test next. It is all waiting in your dashboard.</p>') +
+        : '<p class="sub stag">Everything that is going well for you is in there too, along with what to test next. It is all waiting with Sana.</p>') +
     '</section>'
   );
 
@@ -6379,7 +6381,7 @@ function buildDeck(p, reportId){
     paintSegs();
     back.classList.toggle('hide', n===0);
     next.innerHTML = (n===BEATS-1)
-      ? 'Go to Dashboard <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+      ? 'Open Sana <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
       : ((n===0 ? 'Begin' : 'Next') + ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>');
     if(cards[n].dataset.beatKind === 'ring' && !ringDone) animateRing();
   }
