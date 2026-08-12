@@ -875,13 +875,18 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .comp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .comp-titlewrap{display:flex;flex-direction:column;line-height:1.2}
 .comp-status{font-size:11px;color:var(--brown-mid);margin-top:2px}
-.comp-q{flex:0 0 100%;width:100%}
-.comp-chip{width:100%;text-align:left;font-family:'Instrument Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--brown);background:var(--white);border:1px solid var(--teal-light);border-radius:12px;padding:11px 14px;cursor:pointer}
+.comp-chip{font-family:'Instrument Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--brown);background:var(--white);border:1px solid var(--teal-light);border-radius:100px;padding:10px 16px;cursor:pointer}
 .comp-chip:hover{border-color:var(--teal-mid)}
-.comp-q.open .comp-chip{border-color:var(--teal-mid);border-bottom-left-radius:0;border-bottom-right-radius:0}
-.comp-answer{display:none;border:1px solid var(--teal-light);border-top:none;border-radius:0 0 12px 12px;padding:12px 14px;background:var(--teal-soft)}
-.comp-q.open .comp-answer{display:block}
-.comp-answer p{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin:0}
+.comp-chip.active{border-color:var(--teal-mid);background:var(--teal-soft)}
+.comp-response{display:none;margin-top:12px;border:1px solid var(--teal-light);border-radius:12px;padding:12px 14px;background:var(--teal-soft)}
+.comp-response.show{display:block}
+.comp-response p{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin:0}
+.comp-dots{display:flex;gap:5px;align-items:center;padding:3px 0}
+.comp-dot{width:6px;height:6px;border-radius:50%;background:var(--teal-mid);animation:compDotPulse 1s ease-in-out infinite}
+.comp-dot:nth-child(2){animation-delay:.15s}
+.comp-dot:nth-child(3){animation-delay:.30s}
+@keyframes compDotPulse{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.comp-dot{animation:none}}
 @media(prefers-reduced-motion:reduce){.reveal-head::before{animation:none!important}}
 
 /* ── STAGE 3b: foundations — "What's already strong" (calm strengths beat;
@@ -1219,6 +1224,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
       </div>
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
+      <div class="comp-response" id="comp-answer" aria-live="polite"></div>
     </div>
 
     <div id="prios-wrap" class="hidden">
@@ -4072,21 +4078,31 @@ function renderCompanionChips(p, score){
   items.push({ q: "What should I do next?",
     a: "Start with your priority cards. Each one carries a plan you can act on now. Your retest window is the heartbeat, since the real story is how your markers move over time. Everything else worth a look sits in its body system section with the full picture around it. " + CLOSING });
 
-  chipsEl.innerHTML = items.map((it)=>
-    '<div class="comp-q">'+
-      '<button class="comp-chip" type="button" aria-expanded="false">'+esc(it.q)+'</button>'+
-      '<div class="comp-answer"><p>'+esc(it.a)+'</p></div>'+
-    '</div>').join("");
+  // COMPANION_CHAT_POLISH_V1 — inline pill chips + one shared #comp-answer response area with a brief
+  // thinking-dots delay before the answer swaps in. One answer visible at a time; tapping the active
+  // chip closes the area; tapping another chip mid-dots clears the pending timer and retargets cleanly.
+  // Reduced motion: dots skipped, answer immediate. aria-live on the response area announces the swap.
+  const ansEl = $("comp-answer");
+  chipsEl.innerHTML = items.map((it,i)=>
+    '<button class="comp-chip" type="button" data-i="'+i+'" aria-expanded="false">'+esc(it.q)+'</button>').join("");
+  if(!ansEl) return;
+  ansEl.className = "comp-response"; ansEl.innerHTML = "";
 
-  chipsEl.querySelectorAll(".comp-chip").forEach(btn=>{
+  const chips = [...chipsEl.querySelectorAll(".comp-chip")];
+  let pending = null, activeIdx = -1;
+  const reduce = ()=> matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const setActive = (idx)=> chips.forEach((c,j)=>{ c.classList.toggle("active", j===idx); c.setAttribute("aria-expanded", j===idx ? "true" : "false"); });
+  const showAnswer = (idx)=>{ ansEl.innerHTML = '<p>'+esc(items[idx].a)+'</p>'; };
+  const closeArea = ()=>{ if(pending){ clearTimeout(pending); pending=null; } ansEl.classList.remove("show"); ansEl.innerHTML = ""; activeIdx = -1; setActive(-1); };
+
+  chips.forEach((btn,idx)=>{
     btn.onclick = ()=>{
-      const qEl = btn.closest(".comp-q");
-      const wasOpen = qEl.classList.contains("open");
-      chipsEl.querySelectorAll(".comp-q.open").forEach(o=>{
-        o.classList.remove("open");
-        const b = o.querySelector(".comp-chip"); if(b) b.setAttribute("aria-expanded","false");
-      });
-      if(!wasOpen){ qEl.classList.add("open"); btn.setAttribute("aria-expanded","true"); }
+      if(idx === activeIdx){ closeArea(); return; }         // tap the active chip -> close
+      if(pending){ clearTimeout(pending); pending = null; }  // retarget mid-dots -> no double timers
+      activeIdx = idx; setActive(idx); ansEl.classList.add("show");
+      if(reduce()){ showAnswer(idx); return; }              // reduced motion -> answer immediately
+      ansEl.innerHTML = '<div class="comp-dots" aria-hidden="true"><span class="comp-dot"></span><span class="comp-dot"></span><span class="comp-dot"></span></div>';
+      pending = setTimeout(()=>{ pending = null; showAnswer(idx); }, 800);
     };
   });
 }
