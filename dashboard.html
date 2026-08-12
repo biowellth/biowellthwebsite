@@ -4074,6 +4074,22 @@ function renderCompanionChips(p, score){
       a: "Your vitality score is " + score + ". It is one number that summarizes how your markers sit against optimal ranges, weighted toward the systems that shape how you feel day to day. It is not a diagnosis and it does not predict illness. It gives you a steady way to watch your overall picture move as you retest. " + CLOSING });
   }
 
+  // COMPANION_Q4_V1 — "what's already going well?" from the first non-suppressed quietly_working entry.
+  // Sourced through dropSuppressedQW (the SAME copy-safety filter the dashboard strengths beat uses), so
+  // a heavy-metals/autoimmune "win" can never surface here; the per-entry system_id sensitive-walk is
+  // belt-and-braces since qw entries carry no system_id (schema). Sits between Q2 and Q3 so "what should
+  // I do next?" stays last.
+  const qwSafe = dropSuppressedQW(Array.isArray(p.quietly_working) ? p.quietly_working : [], p);
+  let qw4 = null;
+  for(const e of qwSafe){ if(e && (!e.system_id || !SENSITIVE_SYSTEMS.has(e.system_id))){ qw4 = e; break; } }
+  if(qw4){
+    const fnd = (typeof qw4.finding === "string" && qw4.finding.trim()) ? qw4.finding.trim() : "";
+    if(fnd){
+      const frame4 = "Not everything on a panel is a problem to fix. Some of your markers are quietly doing their job well, and that is worth knowing too. Here is one your report called out.";
+      items.push({ q: "What's already going well?", a: frame4 + " " + fnd + " " + CLOSING });
+    }
+  }
+
   // Q3 — always renders when chips render.
   items.push({ q: "What should I do next?",
     a: "Start with your priority cards. Each one carries a plan you can act on now. Your retest window is the heartbeat, since the real story is how your markers move over time. Everything else worth a look sits in its body system section with the full picture around it. " + CLOSING });
