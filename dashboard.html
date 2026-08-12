@@ -873,6 +873,15 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .comp-read p:last-child{margin-bottom:0}
 .comp-read.hidden{display:none}
 .comp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.comp-titlewrap{display:flex;flex-direction:column;line-height:1.2}
+.comp-status{font-size:11px;color:var(--brown-mid);margin-top:2px}
+.comp-q{flex:0 0 100%;width:100%}
+.comp-chip{width:100%;text-align:left;font-family:'Instrument Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--brown);background:var(--white);border:1px solid var(--teal-light);border-radius:12px;padding:11px 14px;cursor:pointer}
+.comp-chip:hover{border-color:var(--teal-mid)}
+.comp-q.open .comp-chip{border-color:var(--teal-mid);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.comp-answer{display:none;border:1px solid var(--teal-light);border-top:none;border-radius:0 0 12px 12px;padding:12px 14px;background:var(--teal-soft)}
+.comp-q.open .comp-answer{display:block}
+.comp-answer p{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin:0}
 @media(prefers-reduced-motion:reduce){.reveal-head::before{animation:none!important}}
 
 /* ── STAGE 3b: foundations — "What's already strong" (calm strengths beat;
@@ -1202,7 +1211,10 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
     <div class="companion" id="companion">
       <div class="comp-head">
         <span class="comp-avatar">B</span>
-        <span class="comp-title">BioWellth companion</span>
+        <div class="comp-titlewrap">
+          <span class="comp-title">BioWellth companion</span>
+          <span class="comp-status">Reading from your panel</span>
+        </div>
         <span class="comp-badge">Arriving soon</span>
       </div>
       <div class="comp-read" id="comp-read"></div>
@@ -3887,6 +3899,9 @@ async function renderDashboard(p, reportId){
       compRead.classList.add("hidden");
     }
   }
+  // Populate the companion's three preloaded question chips. Reuses `score` (the ring's own value,
+  // null when suppressed/non-numeric) so Q2 can never disagree with the ring.
+  renderCompanionChips(p, score);
 
   renderFoundations(p);
 
@@ -4014,6 +4029,66 @@ async function renderDashboard(p, reportId){
   // Theme grid counts off RANGES_LOOKUP.themes_by_marker_id; if ranges load AFTER this render, the
   // loader re-invokes renderThemeGrid (see the fetch IIFE) so the counts fill in.
   renderThemeGrid(p);
+}
+
+// COMPANION_TEASER_V1 — populate the existing #comp-chips shell with three static, preloaded
+// question-and-answer chips (accordion, one open at a time, tap toggles). All answer copy is static
+// and verbatim; only the marker name + why_this_matters (Q1) and the score (Q2) come from the payload.
+// Chips render only when the shell has a read (narrative_headline.lead present). `score` is passed in
+// from renderDashboard (the ring's own value, null when suppressed/non-numeric) so Q2 can never
+// disagree with the ring.
+function renderCompanionChips(p, score){
+  const chipsEl = $("comp-chips");
+  if(!chipsEl) return;
+  chipsEl.innerHTML = "";
+  const nh = p && p.narrative_headline;
+  const lead = (nh && typeof nh.lead === "string") ? nh.lead.trim() : "";
+  if(!lead) return;   // no read -> no chips (the shell's own comp-read behavior governs the shell)
+
+  const CLOSING = "This is a small preview. The full companion, which can answer anything about your panel, is arriving soon.";
+  const items = [];
+
+  // Q1 — first priority (in payload order) whose system is NOT sensitive; its lead marker + why.
+  const pr = Array.isArray(p.priorities) ? p.priorities : [];
+  let q1 = null;
+  for(const x of pr){ if(x && x.system_id && !SENSITIVE_SYSTEMS.has(x.system_id)){ q1 = x; break; } }
+  if(q1){
+    const pm = (Array.isArray(q1.primary_markers) && q1.primary_markers[0]) ? q1.primary_markers[0] : null;
+    const nm = markerName(pm);
+    const why = (typeof q1.why_this_matters === "string" && q1.why_this_matters.trim()) ? q1.why_this_matters.trim() : "";
+    if(nm && why){
+      const frame = "Standard lab ranges are built to catch disease, not to show where you feel your best. A value can sit inside the lab range and still be lower or higher than where women tend to feel well. Here is what your report says about it.";
+      items.push({ q: "Why is my " + nm + " flagged?", a: frame + " " + why + " " + CLOSING });
+    }
+  }
+
+  // Q2 — vitality meaning; renders only when the ring shows a number (score non-null here).
+  if(score !== null && score !== undefined){
+    items.push({ q: "What does my vitality score actually mean?",
+      a: "Your vitality score is " + score + ". It is one number that summarizes how your markers sit against optimal ranges, weighted toward the systems that shape how you feel day to day. It is not a diagnosis and it does not predict illness. It gives you a steady way to watch your overall picture move as you retest. " + CLOSING });
+  }
+
+  // Q3 — always renders when chips render.
+  items.push({ q: "What should I do next?",
+    a: "Start with your priority cards. Each one carries a plan you can act on now. Your retest window is the heartbeat, since the real story is how your markers move over time. Everything else worth a look sits in its body system section with the full picture around it. " + CLOSING });
+
+  chipsEl.innerHTML = items.map((it)=>
+    '<div class="comp-q">'+
+      '<button class="comp-chip" type="button" aria-expanded="false">'+esc(it.q)+'</button>'+
+      '<div class="comp-answer"><p>'+esc(it.a)+'</p></div>'+
+    '</div>').join("");
+
+  chipsEl.querySelectorAll(".comp-chip").forEach(btn=>{
+    btn.onclick = ()=>{
+      const qEl = btn.closest(".comp-q");
+      const wasOpen = qEl.classList.contains("open");
+      chipsEl.querySelectorAll(".comp-q.open").forEach(o=>{
+        o.classList.remove("open");
+        const b = o.querySelector(".comp-chip"); if(b) b.setAttribute("aria-expanded","false");
+      });
+      if(!wasOpen){ qEl.classList.add("open"); btn.setAttribute("aria-expanded","true"); }
+    };
+  });
 }
 
 // Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: systems (body
