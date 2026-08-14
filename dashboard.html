@@ -3927,23 +3927,50 @@ function dcPick(items, seedStr, k, rankMap){
   return keyed.slice(0, k).map(x => x.a);
 }
 
-// Same (local day + report) -> same three, always. Excludes yesterday's three unless
-// that would leave fewer than three to choose from.
+function dcRank(mk, rankMap){ return rankMap.has(mk) ? rankMap.get(mk) : 999; }
+
+// Scheduler diversity (v1.1) — one action per priority, priorities walked in ascending rank order,
+// until DC_TOTAL are chosen (so rank-1 is always represented). excludeIds (yesterday's picks) are
+// avoided per-priority, but a priority whose actions are ALL excluded may REPEAT rather than vanish
+// (never drop a priority just to honor an exclusion). dcPick is reused unchanged.
+function dcPickDiverse(items, seedStr, rankMap, excludeIds){
+  const byPrio = new Map();
+  for(const a of items){ if(!byPrio.has(a.priority_marker_id)) byPrio.set(a.priority_marker_id, []); byPrio.get(a.priority_marker_id).push(a); }
+  const order = [...byPrio.keys()].sort((x,y) => (dcRank(x,rankMap) - dcRank(y,rankMap)) || (x < y ? -1 : 1));
+  const chosen = [];
+  for(const mk of order){
+    if(chosen.length >= DC_TOTAL) break;
+    const acts = byPrio.get(mk);
+    const pref = excludeIds ? acts.filter(a => !excludeIds.has(a.action_id)) : acts;
+    const pickFrom = pref.length ? pref : acts;   // all excluded -> allow repeat, never vanish
+    const one = dcPick(pickFrom, seedStr, 1, rankMap);
+    if(one.length) chosen.push(one[0]);
+  }
+  return chosen;
+}
+
+// Same (local day + report) -> same three, always. Diversity when the pool spans 3+ distinct
+// priorities (v1.1): max one action per priority. Small pool (< 3 distinct) falls back to the plain
+// weighted pick with yesterday-exclusion, so a thin pool never starves the card.
 function dcSchedule(pool, reportId, rankMap){
   const today = dcYMD(dcTodayLocalDate());
   const yd = dcTodayLocalDate(); yd.setDate(yd.getDate()-1); const yday = dcYMD(yd);
-  let candidates = pool;
-  if(pool.length > DC_TOTAL){
-    const yPick = new Set(dcPick(pool, yday + '|' + reportId, DC_TOTAL, rankMap).map(a => a.action_id));
-    const excl = pool.filter(a => !yPick.has(a.action_id));
-    if(excl.length >= DC_TOTAL) candidates = excl;
+  const distinct = new Set(pool.map(a => a.priority_marker_id)).size;
+  let three;
+  if(distinct >= DC_TOTAL){
+    // Diversity path. Yesterday's picks use the SAME v1.1 algorithm (self-consistent, one-level lookback).
+    const yPick = new Set(dcPickDiverse(pool, yday + '|' + reportId, rankMap, null).map(a => a.action_id));
+    three = dcPickDiverse(pool, today + '|' + reportId, rankMap, yPick);
+  } else {
+    let candidates = pool;
+    if(pool.length > DC_TOTAL){
+      const yPick = new Set(dcPick(pool, yday + '|' + reportId, DC_TOTAL, rankMap).map(a => a.action_id));
+      const excl = pool.filter(a => !yPick.has(a.action_id));
+      if(excl.length >= DC_TOTAL) candidates = excl;
+    }
+    three = dcPick(candidates, today + '|' + reportId, DC_TOTAL, rankMap);
   }
-  const three = dcPick(candidates, today + '|' + reportId, DC_TOTAL, rankMap);
-  three.sort((a,b) => {
-    const ra = rankMap.has(a.priority_marker_id) ? rankMap.get(a.priority_marker_id) : 999;
-    const rb = rankMap.has(b.priority_marker_id) ? rankMap.get(b.priority_marker_id) : 999;
-    return (ra - rb) || (a.action_id < b.action_id ? -1 : 1);
-  });
+  three.sort((a,b) => (dcRank(a.priority_marker_id,rankMap) - dcRank(b.priority_marker_id,rankMap)) || (a.action_id < b.action_id ? -1 : 1));
   return three;
 }
 
