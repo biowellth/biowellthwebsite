@@ -882,6 +882,29 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 
 /* ── STAGE 2: companion slot (lighter card, distinct from the dark hero above) */
 .companion{background:linear-gradient(135deg,var(--white),var(--teal-soft));border:1px solid var(--teal-light);border-radius:18px;padding:22px 24px;margin-bottom:24px}
+/* Sana daily actions card — mock-faithful, tokens native to the Sana surface */
+.daily-card{background:linear-gradient(135deg,var(--white),var(--teal-soft));border:1px solid var(--teal-light);border-radius:18px;padding:20px 18px 16px;margin-bottom:24px;box-shadow:var(--shadow)}
+.dc-head{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.dc-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px}
+.dc-titlewrap{display:flex;flex-direction:column;line-height:1.2}
+.dc-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14.5px;color:var(--brown)}
+.dc-status{font-size:11px;color:var(--brown-mid);margin-top:2px}
+.dc-prog{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--teal-dark);background:var(--white);border:1px solid var(--teal-light);border-radius:100px;padding:5px 11px;white-space:nowrap}
+.dc-actions{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.dc-act{display:flex;gap:13px;align-items:flex-start;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:14px 15px;cursor:pointer;transition:background .22s ease,border-color .22s ease;min-height:56px}
+.dc-act:hover{border-color:var(--teal-mid)}
+.dc-tick{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--teal-mid);background:transparent;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:background .22s ease,border-color .22s ease}
+.dc-tick svg{width:14px;height:14px;stroke:var(--white);stroke-width:2.6;fill:none;opacity:0;transform:scale(.6);transition:opacity .22s ease,transform .22s ease}
+.dc-body{flex:1}
+.dc-base{font-size:14.5px;font-weight:500;color:var(--brown);transition:color .22s ease}
+.dc-flavor{font-size:12px;font-weight:400;color:var(--teal-dark);opacity:.82;margin-top:5px;display:flex;gap:7px;align-items:flex-start}
+.dc-flavor::before{content:"";flex:none;width:14px;height:1.5px;background:var(--teal-mid);margin-top:8px;border-radius:2px}
+.dc-act.done{background:var(--teal-soft);border-color:var(--teal-light)}
+.dc-act.done .dc-tick{background:var(--teal);border-color:var(--teal)}
+.dc-act.done .dc-tick svg{opacity:1;transform:scale(1)}
+.dc-act.done .dc-base{color:var(--brown-mid)}
+.dc-closing{margin-top:16px;text-align:center;font-size:13px;color:var(--teal-dark);padding:2px 8px 4px;display:none}
+.daily-card.all-done .dc-closing{display:block}
 .comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
 .comp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
@@ -1249,6 +1272,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   <div id="view-dashboard" class="hidden">
     <div class="dash-grid">
       <div class="dash-main">
+    <div class="daily-card hidden" id="daily-card"></div>
     <div class="reveal-head">
       <div class="reveal-head-left">
         <div class="score-ring" id="score-ring">
@@ -3849,6 +3873,185 @@ function toneFor(pr){
   for(const m of pm){ const c = clsOf(m); if(rank(c) > rank(best)) best = c; }
   return best === 's-flag' ? 't-coral' : best === 's-watch' ? 't-amber' : 't-neutral';
 }
+// ────────────────────────────────────────────────────────────────────────────
+// DAILY_CARD_V1 — Sana daily actions card + deterministic scheduler.
+// Renders as the first element on the Sana home surface, above the report reveal.
+// Reuses the existing `sb` client and `USER` session — never a second client. An
+// empty action_pool renders NO card at all (no placeholder, no error state). Phase
+// flavor lines are gated by the LOCKED Option-A rule (founder-ratified): they render
+// ONLY for a 'regular' cycler with a usable recent LMP and in-range cycle length +
+// period duration; any other case is base text only, zero phase language. The BE
+// phaseKeyFor stub is deliberately NOT mirrored (it has no menstrual phase and is
+// non-final) — this FE display mapping diverges on purpose, queued for advisor eyes.
+// ────────────────────────────────────────────────────────────────────────────
+const DC_TOTAL = 3;
+let __dcState = null;   // { reportId, todayYMD, three:[{action, phase}], done:Set<action_id> }
+
+function dcTodayLocalDate(){ const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function dcYMD(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function dcParseYMD(s){ if(typeof s!=='string') return null; const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return null; const d = new Date(+m[1], +m[2]-1, +m[3]); return isNaN(d) ? null : d; }
+// FNV-1a 32-bit — stable string hash for the deterministic seed.
+function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619)>>>0; } return h>>>0; }
+
+// LOCKED phase mapping (Option A + amendments). Returns menstrual|follicular|ovulatory|
+// luteal, or null (unphased) on ANY eligibility failure. Precedence on collision:
+// menstrual > ovulatory > luteal > follicular.
+function dcResolvePhase(profile, lmpRaw){
+  if(!profile || profile.menstrual_status !== 'regular') return null;
+  const lmp = dcParseYMD(lmpRaw); if(!lmp) return null;
+  const days = Math.round((dcTodayLocalDate() - lmp) / 86400000);
+  if(!(days >= 0 && days <= 90)) return null;
+  let L = profile.typical_cycle_length_days; if(typeof L!=='number' || !isFinite(L)) L = 28;
+  if(!(L >= 21 && L <= 35)) return null;
+  let P = profile.typical_period_duration_days; if(typeof P!=='number' || !isFinite(P)) P = 5;
+  if(!(P >= 2 && P <= 8)) return null;
+  const cd = (((days % L) + L) % L) + 1;   // ((today - LMP) mod L) + 1, local dates
+  const ov = L - 14;
+  if(cd >= 1 && cd <= P) return 'menstrual';
+  if(cd >= ov-1 && cd <= ov+1) return 'ovulatory';
+  if(cd >= L-13 && cd <= L) return 'luteal';
+  return 'follicular';
+}
+
+// Deterministic rank-weighted pick of k (A-Res weighted sampling; per-item u derived
+// from hash(seed:action_id) so it is order-independent). Rank 1 = largest weight;
+// unmatched marker -> rank 999 (effectively last).
+function dcPick(items, seedStr, k, rankMap){
+  const keyed = items.map(a => {
+    const rank = rankMap.has(a.priority_marker_id) ? rankMap.get(a.priority_marker_id) : 999;
+    const w = 1/(rank+1);
+    const u = (dcHash(seedStr + ':' + a.action_id) >>> 0) / 4294967296;
+    return { a, key: Math.pow(u, 1/w) };
+  });
+  keyed.sort((x,y) => (y.key - x.key) || (x.a.action_id < y.a.action_id ? -1 : 1));
+  return keyed.slice(0, k).map(x => x.a);
+}
+
+// Same (local day + report) -> same three, always. Excludes yesterday's three unless
+// that would leave fewer than three to choose from.
+function dcSchedule(pool, reportId, rankMap){
+  const today = dcYMD(dcTodayLocalDate());
+  const yd = dcTodayLocalDate(); yd.setDate(yd.getDate()-1); const yday = dcYMD(yd);
+  let candidates = pool;
+  if(pool.length > DC_TOTAL){
+    const yPick = new Set(dcPick(pool, yday + '|' + reportId, DC_TOTAL, rankMap).map(a => a.action_id));
+    const excl = pool.filter(a => !yPick.has(a.action_id));
+    if(excl.length >= DC_TOTAL) candidates = excl;
+  }
+  const three = dcPick(candidates, today + '|' + reportId, DC_TOTAL, rankMap);
+  three.sort((a,b) => {
+    const ra = rankMap.has(a.priority_marker_id) ? rankMap.get(a.priority_marker_id) : 999;
+    const rb = rankMap.has(b.priority_marker_id) ? rankMap.get(b.priority_marker_id) : 999;
+    return (ra - rb) || (a.action_id < b.action_id ? -1 : 1);
+  });
+  return three;
+}
+
+function dcEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const DC_CHECK_SVG = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
+
+function dcUpdateProgress(){
+  const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
+  const done = __dcState.done.size, total = __dcState.three.length;
+  const prog = host.querySelector('.dc-prog'); if(prog) prog.textContent = done + ' of ' + total + ' today';
+  const st = host.querySelector('.dc-status'); if(st) st.textContent = (total>0 && done===total) ? 'All done for today' : 'Three small invitations';
+  host.classList.toggle('all-done', total>0 && done===total);
+}
+
+async function dcToggle(el){
+  if(!__dcState) return;
+  const aid = el.getAttribute('data-aid');
+  if(!__dcState.three.some(t => t.action.action_id === aid)) return;
+  const wasDone = __dcState.done.has(aid);
+  if(wasDone){ __dcState.done.delete(aid); el.classList.remove('done'); }
+  else { __dcState.done.add(aid); el.classList.add('done'); }
+  dcUpdateProgress();
+  try{
+    if(!wasDone){
+      const { error } = await sb.from('action_completions').insert({ user_id: USER.id, action_date: __dcState.todayYMD, action_id: aid, report_id: __dcState.reportId });
+      if(error && error.code !== '23505') throw error;
+    } else {
+      const { error } = await sb.from('action_completions').delete().eq('user_id', USER.id).eq('action_date', __dcState.todayYMD).eq('action_id', aid);
+      if(error) throw error;
+    }
+  } catch(e){
+    console.error('[daily_card] completion write failed, reverting:', e);
+    if(wasDone){ __dcState.done.add(aid); el.classList.add('done'); }
+    else { __dcState.done.delete(aid); el.classList.remove('done'); }
+    dcUpdateProgress();
+  }
+}
+
+function dcRenderCard(){
+  const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
+  const rows = __dcState.three.map(t => {
+    const done = __dcState.done.has(t.action.action_id);
+    const pn = t.action.phase_notes;
+    const flavor = (t.phase && pn && typeof pn === 'object') ? pn[t.phase] : null;
+    return '<div class="dc-act' + (done ? ' done' : '') + '" data-aid="' + dcEsc(t.action.action_id) + '" role="button" tabindex="0">'
+      + '<div class="dc-tick">' + DC_CHECK_SVG + '</div>'
+      + '<div class="dc-body"><div class="dc-base">' + dcEsc(t.action.base_text) + '</div>'
+      + (flavor ? '<div class="dc-flavor">' + dcEsc(flavor) + '</div>' : '')
+      + '</div></div>';
+  }).join('');
+  host.innerHTML =
+    '<div class="dc-head"><div class="dc-avatar">S</div>'
+    + '<div class="dc-titlewrap"><div class="dc-title">Today with Sana</div><div class="dc-status">Three small invitations</div></div>'
+    + '<div class="dc-prog">0 of ' + __dcState.three.length + ' today</div></div>'
+    + '<div class="dc-actions">' + rows + '</div>'
+    + '<div class="dc-closing">That is all three for today, a quiet kind of progress.</div>';
+  host.classList.remove('hidden');
+  host.querySelectorAll('.dc-act').forEach(el => {
+    el.addEventListener('click', () => dcToggle(el));
+    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); dcToggle(el); } });
+  });
+  dcUpdateProgress();
+}
+
+// Entry point — called from renderDashboard with the loaded payload + reportId. Fully
+// guarded: any failure just hides the card. Additive surface, never blocks the report.
+async function dcRenderDailyCard(p, reportId){
+  const host = document.getElementById('daily-card'); if(!host) return;
+  try{
+    host.classList.add('hidden'); host.innerHTML = ''; __dcState = null;
+    if(!USER || !USER.id || !reportId) return;
+    const { data: pool } = await sb.from('action_pool')
+      .select('action_id, priority_marker_id, base_text, phase_notes').eq('report_id', reportId);
+    if(!Array.isArray(pool) || pool.length === 0) return;   // empty pool -> no card
+    const rankMap = new Map();
+    const prios = (p && Array.isArray(p.priorities)) ? p.priorities : [];
+    for(const pr of prios){
+      const pm = Array.isArray(pr.primary_markers) ? pr.primary_markers[0] : null;
+      const mk = pm && pm.marker_id;
+      if(mk && typeof pr.rank === 'number' && !rankMap.has(mk)) rankMap.set(mk, pr.rank);
+    }
+    const three = dcSchedule(pool, reportId, rankMap);
+    if(three.length === 0) return;
+    let profile = null, lmpRaw = null;
+    try{
+      const { data: prof } = await sb.from('profiles')
+        .select('menstrual_status, typical_cycle_length_days, typical_period_duration_days').eq('id', USER.id).maybeSingle();
+      profile = prof || null;
+      const { data: rep } = await sb.from('reports').select('lmp_date_before_draw').eq('id', reportId).maybeSingle();
+      lmpRaw = rep ? rep.lmp_date_before_draw : null;
+    } catch(e){ console.error('[daily_card] cycle context read failed (unphased):', e); }
+    const phase = dcResolvePhase(profile, lmpRaw);   // null -> every row unphased
+    const todayYMD = dcYMD(dcTodayLocalDate());
+    let done = new Set();
+    try{
+      const { data: comps } = await sb.from('action_completions').select('action_id').eq('user_id', USER.id).eq('action_date', todayYMD);
+      if(Array.isArray(comps)) for(const c of comps) done.add(c.action_id);
+    } catch(e){ console.error('[daily_card] completions read failed:', e); }
+    const shown = new Set(three.map(a => a.action_id));
+    done = new Set([...done].filter(id => shown.has(id)));   // only the three shown
+    __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done };
+    dcRenderCard();
+  } catch(e){
+    console.error('[daily_card] render failed (card hidden):', e);
+    host.classList.add('hidden'); host.innerHTML = ''; __dcState = null;
+  }
+}
+
 async function renderDashboard(p, reportId){
   // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
   // prioritySensitive) must NOT appear in the wellness "priorities" list — they are referrals, not
@@ -4012,6 +4215,9 @@ async function renderDashboard(p, reportId){
   // Populate the companion's three preloaded question chips. Reuses `score` (the ring's own value,
   // null when suppressed/non-numeric) so Q2 can never disagree with the ring.
   renderCompanionChips(p, score);
+
+  // Sana daily actions card — additive, self-guarded, hides on empty pool or any error.
+  dcRenderDailyCard(p, reportId);
 
   renderFoundations(p);
 
