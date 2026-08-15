@@ -2992,7 +2992,11 @@ function renderClarify(reportId){
     // answered (key present in profiles.confounders). data-confounder routes the tap.
     if(pr.kind === "confounder"){
       const cid = pr.confounder_id;
-      if(confounderAnswered(cid)) return;
+      // CLARIFY_DEDUP_V1: suppress any clarify prompt whose confounder already carries a NON-NULL
+      // (definitive Yes/No) answer in reports.confounders — generalized across all per-draw keys, not
+      // B12-specific. A "Not sure" (null) or absent answer still shows the chip (a chance to resolve).
+      const __ddStore = PER_DRAW_CONFOUNDER_KEYS.has(cid) ? (window.__rdReportConf || {}) : (PROFILE.confounders || {});
+      if(Object.prototype.hasOwnProperty.call(__ddStore, cid) && __ddStore[cid] !== null) return;
       const opts = (Array.isArray(pr.options) && pr.options.length) ? pr.options : ["Yes","No","Not sure"];
       parts.push('<div class="clarify-card" data-confounder="'+esc(cid)+'">'+
         '<div class="clarify-q">'+esc(pr.question || "")+'</div>'+
