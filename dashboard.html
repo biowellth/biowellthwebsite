@@ -5277,7 +5277,12 @@ function renderFirstPanelTrajectory(p, wrap, fp, block){
       (hasVal ? '<span class="fp-val">'+esc(String(pm.value))+'</span>' : '')+
     '</div>';
   }).join('');
+  // TRAJECTORY_CONTAINER_V1 — the first-panel state renders in the SAME card treatment as the multi-panel
+  // "Since your last panel" state: the identical .longi-card-head title header inside the same .gap-card,
+  // so the two trajectory states present consistently. Container/header alignment only — no copy change;
+  // the "one point each for now" line (.fp-close) stays inside the card as before.
   fp.innerHTML =
+    '<div class="longi-card-head"><span class="longi-card-title">Your trajectory</span></div>'+
     '<p class="fp-lead">This is your first panel. These are the markers this space will track.</p>'+
     '<div class="fp-rows">'+rowsHTML+'</div>'+
     '<p class="fp-close">One point each for now. A second panel turns each of these into a line.</p>';
