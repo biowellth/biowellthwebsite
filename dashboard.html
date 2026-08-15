@@ -232,6 +232,30 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bc-calm{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
 .bc-calm-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:5px}
 .bc-calm-b{font-size:13.5px;color:var(--brown-mid);line-height:1.55}
+/* DRAW_CONTEXT_SUBMIT_V1 — consolidated "About this draw" surface (Brief B) */
+.file-row{display:flex;align-items:center;gap:11px;background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+.file-row .fdoc{flex:none;width:20px;height:20px;color:var(--teal-dark)}
+.file-row .fname{font-size:13.5px;font-weight:600;color:var(--brown);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-row .fok{flex:none;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--teal-dark)}
+.file-row .fok svg{width:14px;height:14px;stroke:var(--teal);fill:none;stroke-width:2.6}
+.cyc-opt-l{display:block;font-size:13.5px;font-weight:600;color:var(--brown)}
+.cyc-opt-help{display:block;font-size:11.5px;font-weight:400;color:var(--brown-mid);margin-top:3px;line-height:1.4}
+.cyc-guidance{font-size:11.5px;color:var(--brown-mid);line-height:1.5;margin-top:11px}
+.cyc-confirm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.cyc-confirm-t{font-size:14px;color:var(--brown);flex:1 1 100%}
+.cyc-mini{font-family:inherit;font-size:13px;font-weight:600;border-radius:100px;padding:8px 18px;cursor:pointer;border:1px solid var(--brown-light);background:var(--cream);color:var(--brown-mid)}
+.cyc-mini.sel{background:var(--teal);color:#fff;border-color:var(--teal)}
+.ad-submit{border-top:1px solid var(--brown-light);margin-top:8px;padding-top:16px}
+.bc-start{width:100%;font-family:inherit;font-size:15px;font-weight:700;color:#fff;background:var(--teal);border:none;border-radius:100px;padding:14px 26px;cursor:pointer;transition:background .15s}
+.bc-start:hover{background:var(--teal-dark)}
+.bc-start[disabled]{background:var(--teal-mid);cursor:default}
+.bc-start.retry{background:var(--coral)}
+.bc-start.retry:hover{background:var(--coral-dark)}
+.bc-quiet{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:10px}
+.bc-ready{text-align:center;font-size:12px;font-weight:600;color:var(--teal-dark);margin-top:10px}
+.bc-err-card{display:flex;gap:11px;align-items:flex-start;background:var(--coral-light);border:1px solid var(--coral);border-radius:12px;padding:13px 15px;margin-bottom:14px}
+.bc-err-card svg{flex:none;width:19px;height:19px;stroke:var(--coral-dark);fill:none;stroke-width:2;margin-top:1px}
+.bc-err-t{font-size:13.5px;color:var(--coral-dark);font-weight:600;line-height:1.45}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
 /* Upload-time confounder ask lives on the Call A "Reading your report" screen (left-aligned, constrained). */
@@ -1179,60 +1203,104 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 
   <div id="view-upload" class="hidden">
     <div class="upload-card">
-      <div class="eyebrow">Functional health intelligence for South Asian women</div>
-      <h1>Upload your blood work. <em>See what your report didn't say.</em></h1>
-      <p>Drop in any blood test PDF. Old, recent, or incomplete, we'll work with what you have.</p>
-      <label class="consent-row" id="consent-row">
-        <input type="checkbox" id="consent-check"/>
-        <span>I agree to BioWellth reading my report to prepare my wellness interpretation. I have read the <a href="/privacy" target="_blank" rel="noopener">privacy page</a>.</span>
-      </label>
-      <div class="dropzone locked" id="dropzone">
-        <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-        <div class="dz-title">Drop your PDF here, or tap to choose</div>
-        <div class="dz-sub">PDF only, up to 20 MB</div>
-        <input type="file" id="file" accept="application/pdf" style="display:none"/>
-      </div>
-      <div class="upload-meta">
-        <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Private to your account. Encrypted and stored in India.</div>
-        <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>This takes up to about ten minutes. You can close the page and your results will be waiting.</div>
-      </div>
-      <!-- CYCLE_CAPTURE_V1 -->
-      <div class="cyc-block hidden" id="cyc-profile">
-        <div class="cyc-h">Your cycle</div>
-        <p class="cyc-intro">This helps us read your hormone markers in the right context. You can skip anything.</p>
-        <div class="cyc-q">Which best describes your cycle right now?</div>
-        <div class="cyc-opts" id="cyc-menstrual">
-          <button type="button" class="cyc-opt" data-m="regular">Regular cycles</button>
-          <button type="button" class="cyc-opt" data-m="irregular">Irregular cycles</button>
-          <button type="button" class="cyc-opt" data-m="perimenopausal">In the transition (perimenopause)</button>
-          <button type="button" class="cyc-opt" data-m="postmenopausal">Postmenopausal</button>
-          <button type="button" class="cyc-opt" data-m="pregnant">Currently pregnant</button>
-          <button type="button" class="cyc-opt" data-m="decline">Prefer not to say</button>
+      <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): pre-file page has NO questions, no standalone LMP -->
+      <div id="up-prefile">
+        <div class="eyebrow">Functional health intelligence for South Asian women</div>
+        <h1>Upload your blood work. <em>See what your report didn't say.</em></h1>
+        <p>Drop in any blood test PDF. Old, recent, or incomplete, we'll work with what you have.</p>
+        <label class="consent-row" id="consent-row">
+          <input type="checkbox" id="consent-check"/>
+          <span>I agree to BioWellth reading my report to prepare my wellness interpretation. I have read the <a href="/privacy" target="_blank" rel="noopener">privacy page</a>.</span>
+        </label>
+        <div class="dropzone locked" id="dropzone">
+          <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+          <div class="dz-title">Drop your PDF here, or tap to choose</div>
+          <div class="dz-sub">PDF only, up to 20 MB</div>
+          <input type="file" id="file" accept="application/pdf" style="display:none"/>
         </div>
-        <div class="cyc-q">Are you currently using hormonal contraception (pill, IUD with hormones, implant, injection)?</div>
-        <div class="cyc-opts row" id="cyc-hc">
-          <button type="button" class="cyc-opt" data-hc="yes">Yes</button>
-          <button type="button" class="cyc-opt" data-hc="no">No</button>
-          <button type="button" class="cyc-opt" data-hc="decline">Prefer not to say</button>
-        </div>
-        <div id="cyc-lens" class="hidden">
-          <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
-          <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
-          <div class="cyc-q">How many days does your period usually last?</div>
-          <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+        <div class="upload-meta">
+          <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Private to your account. Encrypted and stored in India.</div>
+          <div class="upload-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>This takes up to about ten minutes. You can close the page and your results will be waiting.</div>
         </div>
       </div>
-      <!-- CYCLE_CAPTURE_V1 -->
-      <div class="cyc-block" id="cyc-perupload">
-        <p class="cyc-q2">One question that helps us read your hormones. When did your last period start before this test was taken?</p>
-        <input class="cyc-date" id="cyc-lmp" type="date"/>
-        <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
-        <div class="cyc-cd hidden" id="cyc-cd-wrap">
-          <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
-          <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+
+      <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): consolidated "About this draw", shown after file pick -->
+      <div id="up-postfile" class="hidden">
+        <div class="file-row"><svg class="fdoc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="up-fname">your file</span><span class="fok"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>Uploaded</span></div>
+        <div class="bc-lead">A few quick things about this draw</div>
+        <div class="bc-sublead">We have started reading your file. Answer these while we do.</div>
+        <div class="bc-card">
+          <!-- CYCLE_CAPTURE_V1 (relocated into the DRAW_CONTEXT_SUBMIT_V1 consolidated block) -->
+          <div class="cyc-block" style="border-top:none;padding-top:0;margin-top:0">
+            <div class="cyc-h">Your cycle</div>
+            <div class="cyc-confirm hidden" id="cyc-confirm">
+              <div class="cyc-confirm-t" id="cyc-confirm-t">We have your cycle noted. Still right?</div>
+              <button class="cyc-mini sel" type="button" id="cyc-confirm-yes">Yes</button>
+              <button class="cyc-mini" type="button" id="cyc-confirm-update">Update</button>
+            </div>
+            <div id="cyc-selector">
+              <div class="cyc-q">How would you describe your cycle?</div>
+              <div class="cyc-opts" id="cyc-menstrual">
+                <button type="button" class="cyc-opt" data-m="regular"><span class="cyc-opt-l">Regular cycles</span><span class="cyc-opt-help">Comes roughly when you expect it</span></button>
+                <button type="button" class="cyc-opt" data-m="irregular"><span class="cyc-opt-l">Irregular cycles</span><span class="cyc-opt-help">Unpredictable timing, but no other menopause related changes</span></button>
+                <button type="button" class="cyc-opt" data-m="perimenopausal"><span class="cyc-opt-l">Perimenopause</span><span class="cyc-opt-help">Cycles becoming less predictable, along with changes like new hot flashes, sleep changes, or shifts in flow</span></button>
+                <button type="button" class="cyc-opt" data-m="postmenopausal"><span class="cyc-opt-l">Postmenopause</span></button>
+                <button type="button" class="cyc-opt" data-m="pregnant"><span class="cyc-opt-l">Currently pregnant</span></button>
+                <button type="button" class="cyc-opt" data-m="decline"><span class="cyc-opt-l">Prefer not to say</span></button>
+              </div>
+              <div class="cyc-guidance">If you think you may be in perimenopause, choose that even if your cycles are irregular.</div>
+              <!-- CYCLE_CAPTURE_V1 (per-upload LMP, relocated) -->
+              <div id="cyc-lens" class="hidden">
+                <label class="cyc-l" for="cyc-lmp">When did your last period start?</label>
+                <input class="cyc-date" id="cyc-lmp" type="date"/>
+                <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
+                <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
+                <div class="cyc-cd hidden" id="cyc-cd-wrap">
+                  <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
+                  <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+                </div>
+                <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
+                <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
+                <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
+                <div class="cyc-q">How many days does your period usually last?</div>
+                <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+              </div>
+            </div>
+          </div>
+          <div class="cyc-block" id="ad-confounders">
+            <div class="bc-q"><div class="bc-q-t">Was this blood test done fasting?</div><div class="bc-opts" data-key="true_fasting_at_draw"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+            <div class="bc-q"><div class="bc-q-t">Were you unwell in the four weeks before this test?</div><div class="bc-opts" data-key="recent_illness_within_4_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+            <div class="bc-q"><div class="bc-q-t">Were you under unusual stress in the two weeks before this test?</div><div class="bc-opts" data-key="acute_stress_within_2_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+            <div class="bc-q" style="margin-bottom:2px"><div class="bc-q-t">Did you do hard exercise in the three days before this test?</div><div class="bc-opts" data-key="hard_training_within_72_hours"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+          </div>
+          <div class="cyc-block" id="ad-supplements">
+            <div class="bc-extra" style="margin-top:2px">
+              <div class="bc-extra-h">Anything you take regularly? A quick tap helps us read your vitamins right.</div>
+              <div class="bc-supp" id="ad-supp">
+                <button class="bc-sp" type="button" data-v="iron">Iron</button>
+                <button class="bc-sp" type="button" data-v="b12">Vitamin B12</button>
+                <button class="bc-sp" type="button" data-v="folate">Folate</button>
+                <button class="bc-sp" type="button" data-v="vitamin_d">Vitamin D</button>
+                <button class="bc-sp" type="button" data-v="omega3">Omega 3</button>
+                <button class="bc-sp" type="button" data-v="multivitamin">Multivitamin</button>
+                <button class="bc-sp" type="button" data-v="probiotic">Probiotic</button>
+                <button class="bc-sp bc-biotin" type="button" data-v="biotin" data-confounder="1">Biotin</button>
+                <button class="bc-sp" type="button" data-v="thyroid medication">Thyroid medication</button>
+                <button class="bc-sp" type="button" data-v="hormonal contraception or HRT">Contraception or HRT</button>
+                <button class="bc-sp" type="button" data-v="none of these" data-sentinel="1">None of these</button>
+              </div>
+              <div class="bc-note-l">Anything else you take regularly?</div>
+              <input class="bc-note" id="ad-note" type="text" maxlength="500" placeholder="A brand or medicine name is fine"/>
+            </div>
+          </div>
+          <div class="ad-submit">
+            <div class="bc-err-card hidden" id="ad-error"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><div class="bc-err-t">We could not save your answers. Tap to try again.</div></div>
+            <button class="bc-start" type="button" id="ad-start">Start my reading</button>
+            <div class="bc-quiet" id="ad-quiet">We will start on our own in a few minutes if you step away.</div>
+          </div>
         </div>
-        <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
       </div>
+
       <div class="msg" id="upload-msg"></div>
     </div>
   </div>
@@ -1982,6 +2050,115 @@ function collectCycle(){
 }
 initCycleCapture();
 
+// ── DRAW_CONTEXT_SUBMIT_V1 (Brief B) — consolidated "About this draw" surface + submit-mode wiring.
+// Mounts on the upload card after file pick (Call A already running). Per-tap RPCs keep firing silently
+// (best-effort partial capture for abandoners; ALL save-state UI removed, errors to console only). "Start
+// my reading" sends ONE process-report submit-mode invoke with the complete final state, which wins per
+// key via Brief A's jsonb-merge, stamps draw_context_submitted_at, and flips the interpretation window.
+// The reveal poll is HELD while this block is up + unsubmitted (amendment 1) — submit is the only door.
+const __ad = { conf:{}, supp:new Set(), biotin:false, noteTimer:null, wired:false };
+async function __adCommit(){
+  try{ await sb.rpc("commit_between_calls", { p_report_id: window.__drawReportId, p_supplements: [...__ad.supp], p_context_note: (document.getElementById("ad-note")||{}).value || null }); }
+  catch(e){ console.error("[about] commit_between_calls (non-fatal):", e); }
+}
+function initAboutDraw(){
+  if(__ad.wired) return; __ad.wired = true;
+  document.querySelectorAll("#ad-confounders .bc-opts").forEach(grp=>{
+    const key = grp.getAttribute("data-key");
+    grp.querySelectorAll(".bc-opt").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const tok = btn.getAttribute("data-val");
+        const value = tok==="yes" ? true : tok==="no" ? false : null;
+        grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+        __ad.conf[key] = value;
+        try{ await sb.rpc("set_report_confounder", { p_report_id: window.__drawReportId, p_key:key, p_value:value }); }
+        catch(e){ console.error("[about] set_report_confounder (non-fatal):", e); }
+      };
+    });
+  });
+  document.querySelectorAll("#ad-supp .bc-sp").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const v = btn.getAttribute("data-v");
+      if(btn.getAttribute("data-confounder")){
+        const on = !btn.classList.contains("sel"); btn.classList.toggle("sel", on); __ad.biotin = on;
+        try{ await sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value:on }); }catch(e){ console.error("[about] biotin (non-fatal):", e); }
+        return;
+      }
+      if(btn.getAttribute("data-sentinel")){
+        const on = !btn.classList.contains("sel");
+        if(on){ __ad.supp.clear(); document.querySelectorAll("#ad-supp .bc-sp").forEach(b=>{ if(b!==btn) b.classList.remove("sel"); }); btn.classList.add("sel"); }
+        else { btn.classList.remove("sel"); }
+        __adCommit(); return;
+      }
+      const none = document.querySelector('#ad-supp .bc-sp[data-sentinel]');
+      const on = !btn.classList.contains("sel");
+      if(on){ if(none) none.classList.remove("sel"); __ad.supp.add(v); btn.classList.add("sel"); }
+      else { __ad.supp.delete(v); btn.classList.remove("sel"); }
+      __adCommit();
+    };
+  });
+  const note = document.getElementById("ad-note");
+  if(note) note.oninput = ()=>{ if(__ad.noteTimer) clearTimeout(__ad.noteTimer); __ad.noteTimer = setTimeout(__adCommit, 700); };
+  const upd = document.getElementById("cyc-confirm-update");
+  if(upd) upd.onclick = ()=>{ const c=document.getElementById("cyc-confirm"), s=document.getElementById("cyc-selector"); if(c) c.classList.add("hidden"); if(s) s.classList.remove("hidden");
+    if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); const show=(cycSel.menstrual==="regular"||cycSel.menstrual==="irregular"); const lens=document.getElementById("cyc-lens"); if(lens) lens.classList.toggle("hidden", !show); } };
+  const yes = document.getElementById("cyc-confirm-yes");
+  if(yes) yes.onclick = ()=>{ yes.classList.add("sel"); };
+  const start = document.getElementById("ad-start");
+  if(start) start.onclick = submitAboutDraw;
+}
+async function mountAboutDraw(reportId, fileName){
+  window.__drawReportId = reportId; window.__drawBlockActive = true; window.__drawReady = null;
+  __ad.conf = {}; __ad.supp = new Set(); __ad.biotin = false;
+  const fn = document.getElementById("up-fname"); if(fn) fn.textContent = fileName || "your file";
+  const pre = document.getElementById("up-prefile"); if(pre) pre.classList.add("hidden");
+  const post = document.getElementById("up-postfile"); if(post) post.classList.remove("hidden");
+  initAboutDraw();
+  try{
+    const { data } = await sb.from("profiles").select("menstrual_status").eq("id", USER.id).maybeSingle();
+    const ms = data && data.menstrual_status;
+    const confirm = document.getElementById("cyc-confirm"), selector = document.getElementById("cyc-selector");
+    if(ms && confirm && selector){
+      cycSel.menstrual = ms;
+      const label = { regular:"regular cycles", irregular:"irregular cycles", perimenopausal:"perimenopause", postmenopausal:"postmenopause", pregnant:"currently pregnant" }[ms];
+      const t = document.getElementById("cyc-confirm-t"); if(t && label) t.textContent = "We have your cycle as " + label + ". Still right?";
+      confirm.classList.remove("hidden"); selector.classList.add("hidden");
+    } else if(confirm && selector){ confirm.classList.add("hidden"); selector.classList.remove("hidden"); }
+  }catch(e){ console.error("[about] prefill read (non-fatal):", e); }
+}
+function drawReadyAck(kind){
+  window.__drawReady = { kind };
+  const q = document.getElementById("ad-quiet");
+  if(q) q.textContent = "Your reading is ready. Press start when you are done.";
+}
+function navigateAfterSubmit(){
+  const rd = window.__drawReady;
+  if(rd && rd.kind === "reveal") showView("reveal");
+  else if(rd && rd.kind === "interim") showView("interim");
+  else showView("processing");
+}
+async function submitAboutDraw(){
+  const btn = document.getElementById("ad-start"), err = document.getElementById("ad-error"), q = document.getElementById("ad-quiet");
+  if(!btn) return;
+  if(err) err.classList.add("hidden");
+  btn.disabled = true; btn.classList.remove("retry"); btn.textContent = "Starting your reading";
+  const cyc = collectCycle();
+  const body = Object.assign({ report_id: window.__drawReportId, mode:"submit", per_draw_confounders: __ad.conf, supplements: [...__ad.supp], context_note: (document.getElementById("ad-note")||{}).value || null }, cyc);
+  try{
+    const r = await sb.functions.invoke("process-report", { body });
+    if(r && r.error) throw r.error;
+    window.__drawBlockActive = false;
+    const post = document.getElementById("up-postfile");
+    if(post) post.innerHTML = '<div class="bc-calm"><div class="bc-calm-h">Saved. Your reading is underway.</div><div class="bc-calm-b">We are reading your report now. This takes a few minutes.</div></div>';
+    setTimeout(navigateAfterSubmit, 1400);
+  }catch(e){
+    console.error("[about] submit failed:", e);
+    btn.disabled = false; btn.classList.add("retry"); btn.textContent = "Try again";
+    if(err) err.classList.remove("hidden");
+    if(q) q.textContent = "Your reading will not start until this saves.";
+  }
+}
+
 const CONSENT_FALLBACK_COPY = "Please accept the privacy terms before we upload your report. If you already have, refresh and try again.";
 function isConsentRefusal(err){
   if(!err) return false;
@@ -2008,7 +2185,8 @@ async function handleFile(file){
   }
 
   $("proc-file").innerHTML = "Reading <strong>"+esc(file.name)+"</strong>";
-  showView("processing");
+  // DRAW_CONTEXT_SUBMIT_V1: stay on the upload view; the card transforms into the About-this-draw block
+  // (mountAboutDraw). We do NOT jump to the processing screen here anymore — submit is the door forward.
   try{
     const path = USER.id + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]/g,"_");
     const up = await sb.storage.from("reports").upload(path, file, { contentType:"application/pdf" });
@@ -2018,8 +2196,8 @@ async function handleFile(file){
       .select("id").single();
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
-    renderConfounderAsk(reportId);   // ask lives on the "Reading your report" (Call A) screen, non-blocking
-    const cyc = collectCycle();   // optional cycle context appended to the upload payload
+    mountAboutDraw(reportId, file.name);   // DRAW_CONTEXT_SUBMIT_V1 — consolidated About-this-draw block
+    const cyc = collectCycle();   // empty at upload now (cycle is carried by submit-mode); harmless
     try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
     // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
     if(cyc.menstrual_status || ("on_hormonal_contraception" in cyc) || cyc.typical_cycle_length_days || cyc.typical_period_duration_days){ try{ localStorage.setItem("bw_cycle_captured","1"); }catch(_){} }
@@ -2047,6 +2225,9 @@ function pollForResult(reportId){
       await buildPicker(reportId);
       await renderDashboard(data.payload, reportId);
       buildDeck(data.payload, reportId);
+      // DRAW_CONTEXT_SUBMIT_V1 (amendment 1): reveal is BUILT but HELD while the About block is mounted
+      // and unsubmitted — submit is the only door forward. navigateAfterSubmit reads __drawReady.
+      if(window.__drawBlockActive){ drawReadyAck("reveal"); return; }
       showView("reveal");
       return;
     }
@@ -2059,17 +2240,19 @@ function pollForResult(reportId){
     if(rep && rep.status === "error"){
       clearInterval(pollTimer);
       $("proc-file").innerHTML = '<span class="proc-err">Something went wrong reading this report. Please try uploading it again.</span>';
+      window.__drawBlockActive = false;
       showView("processing");
       return;
     }
     if(rep && rep.transcription_json){
-      // Call A done -> the ask on the processing screen is over; the interim screen is now a pure
-      // confidence beat (the confounder ask lived on #proc-ask during Call A, already committed).
+      // Interim numbers are prepared; while the About block is mounted the reveal is HELD (amendment 1).
       renderInterim(rep.transcription_json);
+      if(window.__drawBlockActive){ drawReadyAck("interim"); return; }
       showView("interim");
     } else {
-      renderConfounderAsk(reportId);   // Call A still running -> ensure the ask is present (built once)
-      showView("processing");
+      // Call A still running. DRAW_CONTEXT_SUBMIT_V1: the old processing-screen ask is retired; while the
+      // About block is mounted we stay on it (degraded/revisit with no block -> the processing screen).
+      if(!window.__drawBlockActive) showView("processing");
     }
   }, 3000);
 }
@@ -2239,6 +2422,8 @@ window.__bc = window.__bc || null;
 // Renders as soon as upload succeeds and Call A is in flight; non-blocking. Taps commit per-tap; when
 // Call A finishes the poll transitions to the interim confidence beat (no Done, no timeout).
 function renderConfounderAsk(reportId){
+  return;   // DRAW_CONTEXT_SUBMIT_V1 (Brief B): RETIRED — the ask is now the consolidated About-this-draw
+            // block on the upload card (mountAboutDraw), submitted once via process-report submit-mode.
   const host = $("proc-ask");
   if(!host) return;
   // Build once per report. Poll re-renders of the processing screen must not wipe her taps/typed note.
