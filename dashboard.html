@@ -1251,19 +1251,23 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
               <div class="cyc-guidance">If you think you may be in perimenopause, choose that even if your cycles are irregular.</div>
               <!-- CYCLE_CAPTURE_V1 (per-upload LMP, relocated) -->
               <div id="cyc-lens" class="hidden">
-                <label class="cyc-l" for="cyc-lmp">When did your last period start?</label>
+                <label class="cyc-l" for="cyc-lmp" id="cyc-lmp-label">When did your last period start?</label>
                 <input class="cyc-date" id="cyc-lmp" type="date"/>
                 <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
-                <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
-                <div class="cyc-cd hidden" id="cyc-cd-wrap">
-                  <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
-                  <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+                <div id="cyc-cdgroup">
+                  <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
+                  <div class="cyc-cd hidden" id="cyc-cd-wrap">
+                    <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
+                    <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+                  </div>
                 </div>
                 <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
-                <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
-                <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
-                <div class="cyc-q">How many days does your period usually last?</div>
-                <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+                <div id="cyc-lengroup">
+                  <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
+                  <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
+                  <div class="cyc-q">How many days does your period usually last?</div>
+                  <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+                </div>
               </div>
             </div>
           </div>
@@ -2006,6 +2010,22 @@ fileInput.onchange = ()=>{ if(!consentReady()) return; if(fileInput.files[0]) ha
 // Optional cycle-context capture on the upload card. Answers append to the process-report payload in
 // handleFile (no new network calls, no client-side table writes; the function validates + persists).
 const cycSel = { menstrual:null, hc:null, declined:false };
+// DRAW_CONTEXT_SUBMIT_V1 — status-aware cycle lens. regular/irregular/perimenopausal get the full lens;
+// pregnant/postmenopausal get LMP + microcopy + "I don't remember" only (no cycle-day, no typical
+// length/duration); postmenopausal softens the LMP label; decline hides the lens entirely. Submit-mode
+// accepts these fields for any status (Brief A validators are status-agnostic); phase-flavor eligibility
+// stays regular-only, untouched.
+function applyCycleLens(status){
+  const lens = document.getElementById("cyc-lens"); if(!lens) return;
+  const withLens = !!(status && status !== "decline");
+  lens.classList.toggle("hidden", !withLens);
+  if(!withLens) return;
+  const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
+  const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
+  const len = document.getElementById("cyc-lengroup"); if(len) len.classList.toggle("hidden", !cycling);
+  const lbl = document.getElementById("cyc-lmp-label");
+  if(lbl) lbl.textContent = (status === "postmenopausal") ? "When did your last period start, if you remember" : "When did your last period start?";
+}
 function initCycleCapture(){
   const lmp = document.getElementById("cyc-lmp");
   if(lmp) lmp.max = new Date().toISOString().slice(0,10);   // date input rejects future dates
@@ -2017,8 +2037,7 @@ function initCycleCapture(){
     btn.onclick = ()=>{
       cycSel.menstrual = btn.getAttribute("data-m");
       document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
-      const show = (cycSel.menstrual === "regular" || cycSel.menstrual === "irregular");
-      const lens = document.getElementById("cyc-lens"); if(lens) lens.classList.toggle("hidden", !show);
+      applyCycleLens(cycSel.menstrual);
     };
   });
   document.querySelectorAll("#cyc-hc .cyc-opt").forEach(btn=>{
@@ -2036,7 +2055,7 @@ function collectCycle(){
   const inRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
   if(cycSel.menstrual && cycSel.menstrual !== "decline") out.menstrual_status = cycSel.menstrual;
   if(cycSel.hc === "yes") out.on_hormonal_contraception = true; else if(cycSel.hc === "no") out.on_hormonal_contraception = false;
-  if(cycSel.menstrual === "regular" || cycSel.menstrual === "irregular"){
+  if(cycSel.menstrual === "regular" || cycSel.menstrual === "irregular" || cycSel.menstrual === "perimenopausal"){
     const cl = inRange((document.getElementById("cyc-len")||{}).value, 15, 90); if(cl!=null) out.typical_cycle_length_days = cl;
     const du = inRange((document.getElementById("cyc-dur")||{}).value, 1, 15); if(du!=null) out.typical_period_duration_days = du;
   }
@@ -2101,7 +2120,7 @@ function initAboutDraw(){
   if(note) note.oninput = ()=>{ if(__ad.noteTimer) clearTimeout(__ad.noteTimer); __ad.noteTimer = setTimeout(__adCommit, 700); };
   const upd = document.getElementById("cyc-confirm-update");
   if(upd) upd.onclick = ()=>{ const c=document.getElementById("cyc-confirm"), s=document.getElementById("cyc-selector"); if(c) c.classList.add("hidden"); if(s) s.classList.remove("hidden");
-    if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); const show=(cycSel.menstrual==="regular"||cycSel.menstrual==="irregular"); const lens=document.getElementById("cyc-lens"); if(lens) lens.classList.toggle("hidden", !show); } };
+    if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); applyCycleLens(cycSel.menstrual); } };
   const yes = document.getElementById("cyc-confirm-yes");
   if(yes) yes.onclick = ()=>{ yes.classList.add("sel"); };
   const start = document.getElementById("ad-start");
