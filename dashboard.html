@@ -1261,6 +1261,15 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
                 <button type="button" class="cyc-opt" data-m="decline"><span class="cyc-opt-l">Prefer not to say</span></button>
               </div>
               <div class="cyc-guidance">If you think you may be in perimenopause, choose that even if your cycles are irregular.</div>
+              <!-- CYCLE_CAPTURE_V1 (hormonal contraception; visibility via applyCycleLens) -->
+              <div id="cyc-hcgroup" class="hidden">
+                <div class="cyc-q">Are you currently using hormonal contraception (pill, IUD with hormones, implant, injection)?</div>
+                <div class="cyc-opts" id="cyc-hc">
+                  <button type="button" class="cyc-opt" data-hc="yes"><span class="cyc-opt-l">Yes</span></button>
+                  <button type="button" class="cyc-opt" data-hc="no"><span class="cyc-opt-l">No</span></button>
+                  <button type="button" class="cyc-opt" data-hc="decline"><span class="cyc-opt-l">Prefer not to say</span></button>
+                </div>
+              </div>
               <!-- CYCLE_CAPTURE_V1 (per-upload LMP, relocated) -->
               <div id="cyc-lens" class="hidden">
                 <label class="cyc-l" for="cyc-lmp" id="cyc-lmp-label">When did your last period start?</label>
@@ -2028,6 +2037,12 @@ const cycSel = { menstrual:null, hc:null, declined:false };
 // accepts these fields for any status (Brief A validators are status-agnostic); phase-flavor eligibility
 // stays regular-only, untouched.
 function applyCycleLens(status){
+  // Hormonal-contraception question: shown for regular/irregular/perimenopausal AND postmenopausal
+  // (HRT-adjacent relevance); hidden for pregnant and decline. Own visibility, independent of the lens
+  // (which shows LMP for pregnant too), so toggle it before the decline early-return below.
+  const hc = document.getElementById("cyc-hcgroup");
+  const showHc = (status === "regular" || status === "irregular" || status === "perimenopausal" || status === "postmenopausal");
+  if(hc) hc.classList.toggle("hidden", !showHc);
   const lens = document.getElementById("cyc-lens"); if(!lens) return;
   const withLens = !!(status && status !== "decline");
   lens.classList.toggle("hidden", !withLens);
@@ -2143,7 +2158,8 @@ function initAboutDraw(){
   if(note) note.oninput = ()=>{ if(__ad.noteTimer) clearTimeout(__ad.noteTimer); __ad.noteTimer = setTimeout(__adCommit, 700); };
   const upd = document.getElementById("cyc-confirm-update");
   if(upd) upd.onclick = ()=>{ const c=document.getElementById("cyc-confirm"), s=document.getElementById("cyc-selector"); if(c) c.classList.add("hidden"); if(s) s.classList.remove("hidden");
-    if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); applyCycleLens(cycSel.menstrual); } };
+    if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); applyCycleLens(cycSel.menstrual); }
+    if(cycSel.hc){ document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-hc")===cycSel.hc)); } };
   const yes = document.getElementById("cyc-confirm-yes");
   if(yes) yes.onclick = ()=>{ yes.classList.add("sel"); };
   const start = document.getElementById("ad-start");
@@ -2192,8 +2208,12 @@ async function mountAboutDraw(reportId, fileName){
   const post = document.getElementById("up-postfile"); if(post) post.classList.remove("hidden");
   initAboutDraw();
   try{
-    const { data } = await sb.from("profiles").select("menstrual_status").eq("id", USER.id).maybeSingle();
+    const { data } = await sb.from("profiles").select("menstrual_status, on_hormonal_contraception").eq("id", USER.id).maybeSingle();
     const ms = data && data.menstrual_status;
+    // Seed cycSel.hc from the stored value so the full-selector (Update) path pre-selects it; on the
+    // confirm path the selector is hidden, so a "Yes" confirm never re-asks and the stored value stands.
+    if(data && data.on_hormonal_contraception === true) cycSel.hc = "yes";
+    else if(data && data.on_hormonal_contraception === false) cycSel.hc = "no";
     const confirm = document.getElementById("cyc-confirm"), selector = document.getElementById("cyc-selector");
     if(ms && confirm && selector){
       cycSel.menstrual = ms;
