@@ -780,19 +780,30 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 #view-reveal .lever-row .cn{font-size:13.5px;line-height:1.5;color:var(--brown-mid);margin-top:3px}
 #view-reveal .closing{margin-top:20px;font-size:14.5px;line-height:1.55;color:var(--brown);font-style:italic;border-top:1px solid var(--brown-light);padding-top:15px}
 #view-reveal .priolist{margin-top:20px;display:flex;flex-direction:column;gap:10px}
-#view-reveal .prio-card{display:flex;gap:16px;align-items:center;border-radius:15px;padding:15px 18px;
-  background:var(--teal-soft);border:1px solid var(--teal-light)}
-#view-reveal .prio-card.t-coral{background:var(--coral-light);border-color:#F0DAD2}
-#view-reveal .prio-card.t-amber{background:var(--amber-light);border-color:#F0E3C2}
-#view-reveal .prio-card.t-neutral{background:var(--brown-soft);border-color:var(--brown-light)}
-#view-reveal .prio-card .pnum{flex:none;width:42px;text-align:center;font-family:'JetBrains Mono',monospace;
-  font-weight:600;font-size:34px;line-height:1;letter-spacing:-.04em;color:var(--teal-dark)}
-#view-reveal .prio-card.t-coral .pnum{color:var(--coral-dark)}
-#view-reveal .prio-card.t-amber .pnum{color:var(--orange-dark)}
-#view-reveal .prio-card.t-neutral .pnum{color:var(--brown-mid)}
+/* PRIORITIES_COLLAPSE_V1 — reveal priority cards take the approved mock's treatment: white card,
+   left tone stripe, small rank chip, full priority text (no 2-line clamp). Stripe tone stays
+   engine-derived through toneFor (TONEFOR_V2); model `severity` is still never read. t-neutral
+   takes the quiet brown stripe, NOT the mock's illustrative teal — t-neutral also covers the
+   engine-silent marker, and a no-data marker must never read as reassuring (the same rule
+   sysStatus applies to no_value). */
+#view-reveal .prio-card{display:flex;gap:13px;align-items:flex-start;border-radius:13px;padding:13px 15px;
+  background:var(--white);border:1px solid var(--brown-light);border-left-width:4px}
+#view-reveal .prio-card.t-coral{border-left-color:var(--coral)}
+#view-reveal .prio-card.t-amber{border-left-color:var(--amber)}
+#view-reveal .prio-card.t-neutral{border-left-color:var(--brown-light)}
+#view-reveal .prio-card .pnum{flex:0 0 auto;min-width:25px;height:25px;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;
+  font-weight:500;font-size:12px;color:var(--brown-mid);background:var(--brown-soft);border-radius:7px}
 #view-reveal .prio-card .pbody{min-width:0}
-#view-reveal .prio-card .ph{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;line-height:1.3;color:var(--brown);
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#view-reveal .prio-card .ph{font-family:'Instrument Sans',sans-serif;font-weight:500;font-size:14.5px;line-height:1.45;color:var(--brown)}
+/* PRIORITIES_COLLAPSE_V1 — ranks 4..N behind the see-all toggle. Teal-soft fill, teal-mid border,
+   teal-dark text: an invitation to read on, never a concealment. */
+#view-reveal .prio-rest{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+#view-reveal .prio-rest.prio-hidden{display:none}
+#view-reveal .prio-seeall{width:100%;margin-top:12px;font-family:'Instrument Sans',sans-serif;font-size:13.5px;
+  font-weight:600;color:var(--teal-dark);background:var(--teal-soft);border:1px solid var(--teal-mid);
+  border-radius:12px;padding:12px;cursor:pointer}
+#view-reveal .prio-seeall:hover{background:var(--teal-light)}
 #view-reveal .prio-hint{margin-top:14px;font-size:13.5px;color:var(--brown-mid);font-style:italic}
 #view-reveal .prio-card{cursor:pointer;transition:transform .15s ease,box-shadow .2s ease}
 #view-reveal .prio-card:hover{transform:translateY(-1px);box-shadow:0 12px 26px -18px rgba(71,55,43,.55)}
@@ -6989,19 +7000,40 @@ function buildDeck(p, reportId){
 
   // Beat 7: Priorities listed one at a time, then the dashboard handoff.
   if(priCount > 0){
+    // PRIORITIES_COLLAPSE_V1 — the reveal opens on the top 3 priorities; ranks 4..N sit behind a
+    // "See all N priorities" toggle. N is p.priorities.length (priCount), never a hardcoded 7.
+    // Rank order is rankPriorities' deterministic truth and is NEVER re-sorted here — slice only.
+    // data-prio-index stays the ABSOLUTE index so the tap-to-open detail modal still resolves
+    // ranks 4..N once expanded. With 3 or fewer priorities every card renders and NO toggle is
+    // emitted, so the button text is never asked to be singular.
+    const COLLAPSE_AT = 3;
+    const prioCard = (pr, i, stag) =>
+      '<div class="prio-card ' + toneFor(pr) + (stag ? ' stag' : '') + '" data-prio-index="' + i + '"' +
+        (stag ? ' style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's"' : '') + '>' +
+        '<div class="pnum">' + (i+1) + '</div>' +
+        '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
+        '<div class="pchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>' +
+      '</div>';
+    const collapsed = priCount > COLLAPSE_AT;
+    const shown = p.priorities.slice(0, collapsed ? COLLAPSE_AT : priCount);
+    const rest  = collapsed ? p.priorities.slice(COLLAPSE_AT) : [];
     beats.push(
       '<section class="card">' +
         '<div class="eyebrow coral stag">Your priorities, in order</div>' +
-        '<h1 class="display h-lg stag">Here is where to start.</h1>' +
-        '<p class="prio-hint stag">Tap any one to see what it means and where to begin.</p>' +
+        (collapsed
+          ? '<h1 class="display h-lg stag">Start with these three.</h1>' +
+            '<p class="prio-hint stag">These three carry the most of your picture. The rest are here when you want them. Tap any one to see where to begin.</p>'
+          : '<h1 class="display h-lg stag">Here is where to start.</h1>' +
+            '<p class="prio-hint stag">Tap any one to see what it means and where to begin.</p>') +
         '<div class="priolist">' +
-        p.priorities.map((pr, i) => {
-          return '<div class="prio-card ' + toneFor(pr) + ' stag" data-prio-index="' + i + '" style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's">' +
-            '<div class="pnum">' + (i+1) + '</div>' +
-            '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
-            '<div class="pchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>' +
-          '</div>';
-        }).join('') +
+        shown.map((pr, i) => prioCard(pr, i, true)).join('') +
+        (rest.length
+          ? '<div class="prio-rest prio-hidden" id="rd-priorest">' +
+              rest.map((pr, i) => prioCard(pr, i + COLLAPSE_AT, false)).join('') +
+            '</div>' +
+            '<button type="button" class="prio-seeall stag" id="rd-prioseeall" aria-expanded="false" aria-controls="rd-priorest"' +
+              ' style="animation-delay:' + (0.3 + shown.length*0.18).toFixed(2) + 's">See all ' + priCount + ' priorities</button>'
+          : '') +
         '</div>' +
     '</section>'
   );
@@ -7125,6 +7157,19 @@ function buildDeck(p, reportId){
   };
   window.__rdPrioClick = onPrioClick;
   deck.addEventListener('click', onPrioClick);
+
+  // PRIORITIES_COLLAPSE_V1 — see-all toggle. The button and the rest-block are rebuilt with the
+  // deck on every buildDeck run, so the listener binds to a fresh node and needs no teardown.
+  // The button is not a .prio-card, so onPrioClick above never fires on it.
+  const seeAllBtn = $('rd-prioseeall'), prioRest = $('rd-priorest');
+  if(seeAllBtn && prioRest){
+    seeAllBtn.addEventListener('click', ()=>{
+      const opening = prioRest.classList.contains('prio-hidden');
+      prioRest.classList.toggle('prio-hidden', !opening);
+      seeAllBtn.setAttribute('aria-expanded', String(opening));
+      seeAllBtn.textContent = opening ? 'Show fewer' : ('See all ' + priCount + ' priorities');
+    });
+  }
 
   const onKey = (e)=>{
     if(!$('view-reveal') || $('view-reveal').classList.contains('hidden')) return;
