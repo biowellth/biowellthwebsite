@@ -959,11 +959,13 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
 </footer>
 
 <script>
-/* Page switching */
-function showPage(id){
+/* Page switching - no URL side effects, safe to call from the router */
+function activatePage(id){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   var target=document.getElementById('page-'+id);
   if(target) target.classList.add('active');
+  // scrollTo stays here: the nav state below reads window.scrollY immediately
+  // after, so the two are entangled and splitting them would flip the wrong class.
   window.scrollTo(0,0);
   // Force nav scrolled state on non-home pages
   var nav=document.getElementById('sitenav');
@@ -973,6 +975,10 @@ function showPage(id){
   setTimeout(function(){
     document.querySelectorAll('.reveal:not(.visible)').forEach(function(el){obs.observe(el);});
   },60);
+}
+
+function showPage(id){
+  activatePage(id);
   // Reflect the page in the URL. Compare normalized hashes so home ('' or '#')
   // never pushes a duplicate entry - otherwise back would re-push and trap itself.
   if(location.hash.replace('#','')!==(id==='home'?'':id)){
@@ -980,12 +986,30 @@ function showPage(id){
   }
 }
 
-/* Hash router - only intercepts known page names, never in-page anchors */
+/* Scroll to a section, switching pages first when it lives on another one */
+function goToSection(hash,settle){
+  var el=hash&&document.getElementById(hash.slice(1));
+  if(!el) return false;
+  var page=el.closest('.page');
+  if(!page) return false; // section outside any page - not ours to route
+  var scroll=function(){el.scrollIntoView({behavior:'smooth',block:'start'});};
+  if(!page.classList.contains('active')){
+    activatePage(page.id.replace(/^page-/,''));
+    settle=true; // .page is display:none until now, so it has no layout to measure yet
+  }
+  if(settle) setTimeout(scroll,60); else scroll();
+  // Already-correct hash (cold load, back/forward) must not push a duplicate entry.
+  if(location.hash!==hash) history.pushState(null,'',hash);
+  return true;
+}
+
+/* Hash router - page names first, then sections, else leave the hash alone */
 function routeFromHash(){
   var h=location.hash.replace('#','');
   if(h&&document.getElementById('page-'+h)){showPage(h);return true;}
   if(!h){showPage('home');return true;}
-  return false; // unknown hash = in-page anchor, leave it alone
+  if(goToSection(location.hash,true)) return true;
+  return false; // unknown hash - not a page, not a section
 }
 window.addEventListener('hashchange',routeFromHash);
 
@@ -999,8 +1023,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a){
   a.addEventListener('click',function(e){
     var href=this.getAttribute('href');
     if(href==='#') return;
-    var el=document.getElementById(href.slice(1));
-    if(el){e.preventDefault();el.scrollIntoView({behavior:'smooth',block:'start'});}
+    if(goToSection(href)) e.preventDefault();
   });
 });
 
