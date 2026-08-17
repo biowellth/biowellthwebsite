@@ -973,7 +973,21 @@ function showPage(id){
   setTimeout(function(){
     document.querySelectorAll('.reveal:not(.visible)').forEach(function(el){obs.observe(el);});
   },60);
+  // Reflect the page in the URL. Compare normalized hashes so home ('' or '#')
+  // never pushes a duplicate entry - otherwise back would re-push and trap itself.
+  if(location.hash.replace('#','')!==(id==='home'?'':id)){
+    history.pushState(null,'',id==='home'?'#':'#'+id);
+  }
 }
+
+/* Hash router - only intercepts known page names, never in-page anchors */
+function routeFromHash(){
+  var h=location.hash.replace('#','');
+  if(h&&document.getElementById('page-'+h)){showPage(h);return true;}
+  if(!h){showPage('home');return true;}
+  return false; // unknown hash = in-page anchor, leave it alone
+}
+window.addEventListener('hashchange',routeFromHash);
 
 /* Prevent bare hash */
 document.querySelectorAll('a[href="#"]').forEach(function(a){
@@ -1006,6 +1020,9 @@ var obs=new IntersectionObserver(function(entries){
   });
 },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+
+/* Land on the right page for a direct visit to /#early-access */
+routeFromHash();
 </script>
 <script src="https://embed.typeform.com/next/embed.js"></script>
 </body>
