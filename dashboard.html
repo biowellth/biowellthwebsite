@@ -238,6 +238,17 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .file-row .fname{font-size:13.5px;font-weight:600;color:var(--brown);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-row .fok{flex:none;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--teal-dark)}
 .file-row .fok svg{width:14px;height:14px;stroke:var(--teal);fill:none;stroke-width:2.6}
+/* DRAW_CONTEXT_SUBMIT_V1 — file-row upload states (uploading / uploaded / error). Row mounts in the
+   uploading state on file-pick and flips as storage upload + report insert resolve. */
+.file-row.uploading{background:var(--amber-light);border-color:var(--amber-light)}
+.file-row.uploading .fdoc,.file-row.error .fdoc{color:var(--brown-mid)}
+.file-row.uploading .fok{color:var(--amber-dark)}
+.file-row.error{background:var(--coral-light);border-color:var(--coral-light)}
+.file-row.error .fok{color:var(--coral-dark);cursor:pointer}
+.file-row.error .fok svg{stroke:var(--coral)}
+.file-row .fspin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(156,125,48,.25);border-top-color:var(--amber-dark);animation:spin .9s linear infinite}
+.up-ferr{color:var(--coral-dark);font-size:12.5px;line-height:1.5;margin:-8px 0 14px}
+#up-postfile.errored > *:not(#up-filerow):not(#up-ferr){display:none}
 .cyc-opt-l{display:block;font-size:13.5px;font-weight:600;color:var(--brown)}
 .cyc-opt-help{display:block;font-size:11.5px;font-weight:400;color:var(--brown-mid);margin-top:3px;line-height:1.4}
 .cyc-guidance{font-size:11.5px;color:var(--brown-mid);line-height:1.5;margin-top:11px}
@@ -1226,7 +1237,8 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 
       <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): consolidated "About this draw", shown after file pick -->
       <div id="up-postfile" class="hidden">
-        <div class="file-row"><svg class="fdoc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="up-fname">your file</span><span class="fok"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>Uploaded</span></div>
+        <div class="file-row uploading" id="up-filerow"><svg class="fdoc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="up-fname">your file</span><span class="fok" id="up-fstate"><span class="fspin"></span>Uploading</span></div>
+        <div id="up-ferr" class="up-ferr hidden"></div>
         <div class="bc-lead">A few quick things about this draw</div>
         <div class="bc-sublead">We have started reading your file. Answer these while we do.</div>
         <div class="bc-card">
@@ -2077,6 +2089,9 @@ initCycleCapture();
 // The reveal poll is HELD while this block is up + unsubmitted (amendment 1) — submit is the only door.
 const __ad = { conf:{}, supp:new Set(), biotin:false, noteTimer:null, wired:false };
 async function __adCommit(){
+  // DRAW_CONTEXT_SUBMIT_V1 — report-scoped; skipped until the reportId lands (buffered in __ad, resent
+  // by submit's complete state). Pre-reportId taps not captured for abandoners; window is seconds.
+  if(!window.__drawReportId) return;
   try{ await sb.rpc("commit_between_calls", { p_report_id: window.__drawReportId, p_supplements: [...__ad.supp], p_context_note: (document.getElementById("ad-note")||{}).value || null }); }
   catch(e){ console.error("[about] commit_between_calls (non-fatal):", e); }
 }
@@ -2090,8 +2105,14 @@ function initAboutDraw(){
         const value = tok==="yes" ? true : tok==="no" ? false : null;
         grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
         __ad.conf[key] = value;
-        try{ await sb.rpc("set_report_confounder", { p_report_id: window.__drawReportId, p_key:key, p_value:value }); }
-        catch(e){ console.error("[about] set_report_confounder (non-fatal):", e); }
+        // DRAW_CONTEXT_SUBMIT_V1 — report-scoped per-tap RPC is skipped until the reportId lands (block
+        // mounts on file-pick, before upload+insert). The tap is buffered in __ad and resent by submit's
+        // complete state. Tradeoff: pre-reportId taps are NOT captured for abandoners, acceptable since
+        // the window is seconds.
+        if(window.__drawReportId){
+          try{ await sb.rpc("set_report_confounder", { p_report_id: window.__drawReportId, p_key:key, p_value:value }); }
+          catch(e){ console.error("[about] set_report_confounder (non-fatal):", e); }
+        }
       };
     });
   });
@@ -2100,6 +2121,8 @@ function initAboutDraw(){
       const v = btn.getAttribute("data-v");
       if(btn.getAttribute("data-confounder")){
         const on = !btn.classList.contains("sel"); btn.classList.toggle("sel", on); __ad.biotin = on;
+        // biotin is profile-scoped (set_confounder, no report_id) and NOT carried by submit's body, so it
+        // fires immediately regardless of reportId — gating it would silently drop a completer's answer.
         try{ await sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value:on }); }catch(e){ console.error("[about] biotin (non-fatal):", e); }
         return;
       }
@@ -2125,6 +2148,41 @@ function initAboutDraw(){
   if(yes) yes.onclick = ()=>{ yes.classList.add("sel"); };
   const start = document.getElementById("ad-start");
   if(start) start.onclick = submitAboutDraw;
+}
+// DRAW_CONTEXT_SUBMIT_V1 — file-row upload-state driver. 'uploading' shows a spinner + "Uploading";
+// 'uploaded' the teal check + "Uploaded"; 'error' a coral "Try again" that returns to the pre-file state.
+function setUploadRowState(state){
+  const row = document.getElementById("up-filerow"), st = document.getElementById("up-fstate");
+  if(!row || !st) return;
+  row.classList.remove("uploading","error"); st.onclick = null;
+  if(state === "uploading"){ row.classList.add("uploading"); st.innerHTML = '<span class="fspin"></span>Uploading'; }
+  else if(state === "error"){ row.classList.add("error"); st.innerHTML = '<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>Try again'; st.onclick = resetToPreFile; }
+  else { st.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>Uploaded'; }
+}
+// Submit stays disabled with a quiet "Preparing your file" until the reportId lands. Unlikely she reaches
+// the button first (the block's questions sit above it), but the door is held shut until the file is durable.
+const AD_QUIET_DEFAULT = "We will start on our own in a few minutes if you step away.";
+function setSubmitPending(pending){
+  const btn = document.getElementById("ad-start"), q = document.getElementById("ad-quiet");
+  if(btn) btn.disabled = !!pending;
+  if(q) q.textContent = pending ? "Preparing your file" : AD_QUIET_DEFAULT;
+}
+// Upload/insert failure: coral file-row + "Try again", hide the questions, release the reveal hold.
+function uploadRowFail(text){
+  setUploadRowState("error");
+  const e = document.getElementById("up-ferr"); if(e){ e.textContent = text || "Upload failed. Please try again."; e.classList.remove("hidden"); }
+  const post = document.getElementById("up-postfile"); if(post) post.classList.add("errored");
+  window.__drawBlockActive = false; window.__drawReportId = null;
+  setSubmitPending(false);
+}
+// Return to the pre-file dropzone so she can pick again (on error retry).
+function resetToPreFile(){
+  const post = document.getElementById("up-postfile"); if(post){ post.classList.add("hidden"); post.classList.remove("errored"); }
+  const pre = document.getElementById("up-prefile"); if(pre) pre.classList.remove("hidden");
+  const row = document.getElementById("up-filerow"); if(row) row.classList.remove("uploading","error");
+  const e = document.getElementById("up-ferr"); if(e){ e.classList.add("hidden"); e.textContent = ""; }
+  window.__drawBlockActive = false; window.__drawReportId = null;
+  const fi = document.getElementById("file"); if(fi) fi.value = "";
 }
 async function mountAboutDraw(reportId, fileName){
   window.__drawReportId = reportId; window.__drawBlockActive = true; window.__drawReady = null;
@@ -2203,21 +2261,28 @@ async function handleFile(file){
   if(file.type!=="application/pdf"){ msg.className="msg err"; msg.textContent="Please upload a PDF."; return; }
   if(file.size > 20*1024*1024){ msg.className="msg err"; msg.textContent="That file is over 20 MB. Try a smaller PDF."; return; }
 
-  // STEP 0 (consent gate): record consent BEFORE any storage upload or DB write. consent-accept
-  // is idempotent, so a consented profile gets a no-op success. If it fails, stop and show the
-  // fallback copy — nothing is stored and no model call is made.
+  // DRAW_CONTEXT_SUBMIT_V1 — collapse the dropzone into the file row (uploading) and mount the About
+  // block IMMEDIATELY on file-pick, before consent + storage upload + report insert resolve, so there
+  // is no silent gap. The block mounts with a null reportId; taps buffer into __ad and report-scoped
+  // per-tap RPCs are skipped until the reportId lands (see initAboutDraw / __adCommit). Submit is held
+  // disabled with a quiet "Preparing your file" until then.
+  mountAboutDraw(null, file.name);
+  setUploadRowState("uploading");
+  setSubmitPending(true);
+
+  // Consent gate: record consent BEFORE any storage upload or DB write. consent-accept is idempotent,
+  // so a consented profile gets a no-op success. On failure nothing is stored and no model call is made;
+  // roll the row back to the coral error state (Try again -> pre-file).
   try{
     const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_version: "v1" } });
     if(consentRes.error) throw consentRes.error;
     CONSENTED = true;
     applyConsentUI();
   }catch(_){
-    msg.className="msg err"; msg.textContent = CONSENT_FALLBACK_COPY; return;
+    uploadRowFail(CONSENT_FALLBACK_COPY); return;
   }
 
   $("proc-file").innerHTML = "Reading <strong>"+esc(file.name)+"</strong>";
-  // DRAW_CONTEXT_SUBMIT_V1: stay on the upload view; the card transforms into the About-this-draw block
-  // (mountAboutDraw). We do NOT jump to the processing screen here anymore — submit is the door forward.
   try{
     const path = USER.id + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]/g,"_");
     const up = await sb.storage.from("reports").upload(path, file, { contentType:"application/pdf" });
@@ -2227,16 +2292,16 @@ async function handleFile(file){
       .select("id").single();
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
-    mountAboutDraw(reportId, file.name);   // DRAW_CONTEXT_SUBMIT_V1 — consolidated About-this-draw block
+    window.__drawReportId = reportId;   // reportId is durable — per-tap RPCs go live, submit unlocks
+    setUploadRowState("uploaded");
+    setSubmitPending(false);
     const cyc = collectCycle();   // empty at upload now (cycle is carried by submit-mode); harmless
     try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
     // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
     if(cyc.menstrual_status || ("on_hormonal_contraception" in cyc) || cyc.typical_cycle_length_days || cyc.typical_period_duration_days){ try{ localStorage.setItem("bw_cycle_captured","1"); }catch(_){} }
     pollForResult(reportId);
   }catch(err){
-    showView("upload");
-    const msg = $("upload-msg"); msg.className="msg err";
-    msg.textContent = isConsentRefusal(err) ? CONSENT_FALLBACK_COPY : ("Upload failed: " + (err.message||"please try again."));
+    uploadRowFail(isConsentRefusal(err) ? CONSENT_FALLBACK_COPY : ("Upload failed: " + (err.message||"please try again.")));
   }
 }
 
