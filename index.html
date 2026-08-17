@@ -986,12 +986,18 @@ function pageForPath(p){
   return document.getElementById('page-'+id)?id:null;
 }
 
+/* A URL is path?query#hash - always compose and compare in that order.
+   location.search is '' when absent, so no-query URLs keep their old shape. */
+function composeURL(path,hash){return path.replace(/\/+$/,'')+location.search+(hash||'');}
+function currentURL(){return location.pathname.replace(/\/+$/,'')+location.search+location.hash;}
+
 function showPage(id){
   activatePage(id);
-  // Push the clean path. The ||location.hash also clears a stale #section from
-  // the bar; comparing trimmed paths keeps a repeat click from stacking entries.
-  if(location.pathname.replace(/\/+$/,'')!==pathForPage(id).replace(/\/+$/,'')||location.hash){
-    history.pushState(null,'',pathForPage(id));
+  // Push path?query, carrying the query so ?src=ig survives a page switch.
+  // Comparing the whole composed URL keeps a repeat click from stacking entries
+  // while still pushing when only a stale #section differs, which clears it.
+  if(currentURL()!==composeURL(pathForPage(id),'')){
+    history.pushState(null,'',pathForPage(id)+location.search);
   }
 }
 
@@ -1007,9 +1013,10 @@ function goToSection(hash,settle){
     settle=true; // .page is display:none until now, so it has no layout to measure yet
   }
   if(settle) setTimeout(scroll,60); else scroll();
-  // Sections hang off the root path. Comparing path+hash together means a cold
-  // load, a back/forward, or a repeat click never pushes a duplicate entry.
-  if((location.pathname+location.hash)!=='/'+hash) history.pushState(null,'','/'+hash);
+  // Sections hang off the root path, so the composed target is /?query#hash.
+  // Comparing the whole composed URL means a cold load, a back/forward, or a
+  // repeat click never pushes a duplicate entry.
+  if(currentURL()!==composeURL('/',hash)) history.pushState(null,'','/'+location.search+hash);
   return true;
 }
 
@@ -1023,7 +1030,7 @@ function route(){
     if(document.getElementById('page-'+h)){
       // legacy shared link /#early-access - settle it onto the clean path
       activatePage(h);
-      history.replaceState(null,'',pathForPage(h));
+      history.replaceState(null,'',pathForPage(h)+location.search);
       return;
     }
     // Section hash. Sections live on home, so arriving on a page path
@@ -1034,14 +1041,17 @@ function route(){
     // Gated on the section existing so an unknown hash falls through untouched.
     if(document.getElementById(h)){
       if(pg&&pg!=='home') activatePage('home');
-      if(location.pathname!=='/') history.replaceState(null,'','/'+location.hash);
+      if(location.pathname!=='/') history.replaceState(null,'','/'+location.search+location.hash);
       if(goToSection(location.hash,true)) return;
     }
   }
   if(pg){
     activatePage(pg);
-    // normalize a trailing slash: /early-access/ -> /early-access
-    if(location.pathname!==pathForPage(pg)) history.replaceState(null,'',pathForPage(pg));
+    // normalize a trailing slash: /early-access/ -> /early-access. Guard stays
+    // path-only: the query is identical on both sides so it cannot change the
+    // comparison, and comparing composed URLs here would strip an unknown hash
+    // that this branch is meant to leave untouched.
+    if(location.pathname!==pathForPage(pg)) history.replaceState(null,'',pathForPage(pg)+location.search);
     return;
   }
   activatePage('home');
