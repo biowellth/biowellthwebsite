@@ -496,8 +496,8 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 /* Stage 5: first-panel trajectory state (no baseline yet). Dot glyph only, never a line. */
 .fp-lead{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:14px}
 .fp-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.fp-row{display:flex;align-items:center;gap:11px}
-.fp-dot{width:8px;height:8px;border-radius:50%;background:var(--brown-mid);flex:none}
+.fp-row{display:flex;align-items:flex-start;gap:11px}
+.fp-dot{width:8px;height:8px;border-radius:50%;background:var(--brown-mid);flex:none;margin-top:6px}
 .fp-name{font-size:14px;color:var(--brown);font-weight:500}
 .fp-val{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--brown-mid)}
 .fp-close{font-size:13px;color:var(--brown-mid);line-height:1.6;font-style:italic}
@@ -5553,8 +5553,7 @@ function renderFirstPanelTrajectory(p, wrap, fp, block){
   if(!rows.length || !fp){ wrap.classList.add("hidden"); return; }
   if(block) block.classList.add("hidden");
   wrap.classList.remove("hidden");
-  $("longi-label").classList.remove("hidden");   // first-panel: keep the outside dash-label ("Your trajectory")
-  $("longi-label").textContent = "Your trajectory";
+  $("longi-label").classList.add("hidden");   // first-panel: hide the outside dash-label — title now lives inside the card (.longi-card-title "Your first panel"), identical to the multi-panel path
   const rowsHTML = rows.map(pm=>{
     const hasVal = pm.value!==null && pm.value!==undefined && pm.value!=="";
     return '<div class="fp-row"><span class="fp-dot"></span>'+
