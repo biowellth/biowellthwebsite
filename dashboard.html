@@ -152,6 +152,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .cyc-opt:hover{border-color:var(--teal-mid)}
 .cyc-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
 .cyc-num,.cyc-date{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 12px;margin-bottom:4px}
+.cyc-num::placeholder{color:var(--brown-mid)}
 .cyc-alt,.cyc-decline{display:block;margin-top:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--teal-dark);background:none;border:none;padding:2px 0;cursor:pointer;text-align:left}
 .cyc-decline{color:var(--brown-mid)}
 .cyc-decline.sel{color:var(--teal-dark);font-weight:700}
@@ -1285,9 +1286,9 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
                 <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
                 <div id="cyc-lengroup">
                   <div class="cyc-q">How long is your typical cycle, from the first day of one period to the first day of the next?</div>
-                  <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="28"/>
+                  <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90" placeholder="e.g. 28"/>
                   <div class="cyc-q">How many days does your period usually last?</div>
-                  <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="5"/>
+                  <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15" placeholder="e.g. 5"/>
                 </div>
               </div>
             </div>
