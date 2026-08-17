@@ -2166,6 +2166,18 @@ async function submitAboutDraw(){
   try{
     const r = await sb.functions.invoke("process-report", { body });
     if(r && r.error) throw r.error;
+    // DRAW_CONTEXT_SUBMIT_V1 — mirror the just-submitted draw context into the client caches the
+    // clarify dedup reads. submit-mode writes the DB (supp_b12/folate via commit, per-draw confounders
+    // via merge), but supplementAnswered() reads PROFILE.supp_* and renderClarify reads
+    // window.__rdReportConf / PROFILE.confounders — both loaded at page init, hence STALE relative to
+    // this submit. Mirroring here closes the stale-cache asymmetry so the reveal's clarify does not
+    // re-ask what this draw already answered (flow2 B12 re-ask, diagnosis case (c)).
+    const __subSupp = [...__ad.supp];
+    if(__subSupp.includes("b12")) PROFILE.supp_b12 = true;
+    if(__subSupp.includes("folate")) PROFILE.supp_folate = true;
+    PROFILE.supp_status_updated_at = new Date().toISOString();
+    PROFILE.supplements = __subSupp;
+    window.__rdReportConf = Object.assign({}, window.__rdReportConf || {}, __ad.conf);
     window.__drawBlockActive = false;
     const post = document.getElementById("up-postfile");
     if(post) post.innerHTML = '<div class="bc-calm"><div class="bc-calm-h">Saved. Your reading is underway.</div><div class="bc-calm-b">We are reading your report now. This takes a few minutes.</div></div>';
