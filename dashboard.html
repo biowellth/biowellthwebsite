@@ -4207,9 +4207,13 @@ function dcResolvePhase(profile, lmpRaw){
   const lmp = dcParseYMD(lmpRaw); if(!lmp) return null;
   const days = Math.round((dcTodayLocalDate() - lmp) / 86400000);
   if(!(days >= 0 && days <= 90)) return null;
-  let L = profile.typical_cycle_length_days; if(typeof L!=='number' || !isFinite(L)) L = 28;
+  // Blank stays blank. A missing cycle length or duration used to default to 28/5, which
+  // fabricated a phase for a woman who never answered — the same "28/5 as implicit truth"
+  // the placeholders carried. Null fails the range guards below (null >= 21 coerces to
+  // 0 >= 21, false), so she resolves as unphased rather than silently averaged.
+  let L = profile.typical_cycle_length_days; if(typeof L!=='number' || !isFinite(L)) L = null;
   if(!(L >= 21 && L <= 35)) return null;
-  let P = profile.typical_period_duration_days; if(typeof P!=='number' || !isFinite(P)) P = 5;
+  let P = profile.typical_period_duration_days; if(typeof P!=='number' || !isFinite(P)) P = null;
   if(!(P >= 2 && P <= 8)) return null;
   const cd = (((days % L) + L) % L) + 1;   // ((today - LMP) mod L) + 1, local dates
   const ov = L - 14;
