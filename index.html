@@ -977,12 +977,21 @@ function activatePage(id){
   },60);
 }
 
+/* Pages are clean paths (/ and /early-access); sections stay #fragments */
+function pathForPage(id){return id==='home'?'/':'/'+id;}
+function pageForPath(p){
+  p=p.replace(/\/+$/,'')||'/';
+  if(p==='/') return 'home';
+  var id=p.slice(1);
+  return document.getElementById('page-'+id)?id:null;
+}
+
 function showPage(id){
   activatePage(id);
-  // Reflect the page in the URL. Compare normalized hashes so home ('' or '#')
-  // never pushes a duplicate entry - otherwise back would re-push and trap itself.
-  if(location.hash.replace('#','')!==(id==='home'?'':id)){
-    history.pushState(null,'',id==='home'?'#':'#'+id);
+  // Push the clean path. The ||location.hash also clears a stale #section from
+  // the bar; comparing trimmed paths keeps a repeat click from stacking entries.
+  if(location.pathname.replace(/\/+$/,'')!==pathForPage(id).replace(/\/+$/,'')||location.hash){
+    history.pushState(null,'',pathForPage(id));
   }
 }
 
@@ -998,20 +1007,47 @@ function goToSection(hash,settle){
     settle=true; // .page is display:none until now, so it has no layout to measure yet
   }
   if(settle) setTimeout(scroll,60); else scroll();
-  // Already-correct hash (cold load, back/forward) must not push a duplicate entry.
-  if(location.hash!==hash) history.pushState(null,'',hash);
+  // Sections hang off the root path. Comparing path+hash together means a cold
+  // load, a back/forward, or a repeat click never pushes a duplicate entry.
+  if((location.pathname+location.hash)!=='/'+hash) history.pushState(null,'','/'+hash);
   return true;
 }
 
-/* Hash router - page names first, then sections, else leave the hash alone */
-function routeFromHash(){
-  var h=location.hash.replace('#','');
-  if(h&&document.getElementById('page-'+h)){showPage(h);return true;}
-  if(!h){showPage('home');return true;}
-  if(goToSection(location.hash,true)) return true;
-  return false; // unknown hash - not a page, not a section
+/* The one router. Idempotent: popstate and hashchange both fire on a hash
+   traversal, and every push/replace below is guarded, so a double call is a
+   no-op beyond re-activating the page it already activated. */
+function route(){
+  var pg=pageForPath(location.pathname);
+  if(location.hash){
+    var h=location.hash.replace('#','');
+    if(document.getElementById('page-'+h)){
+      // legacy shared link /#early-access - settle it onto the clean path
+      activatePage(h);
+      history.replaceState(null,'',pathForPage(h));
+      return;
+    }
+    // Section hash. Sections live on home, so arriving on a page path
+    // (/early-access#how) has to go home first. Settle the bar to /#hash BEFORE
+    // scrolling: goToSection's own guard then sees a matching URL and does not
+    // push a second entry, which on a cold load would otherwise leave a
+    // /early-access#how entry behind the /#how one and make back look dead.
+    // Gated on the section existing so an unknown hash falls through untouched.
+    if(document.getElementById(h)){
+      if(pg&&pg!=='home') activatePage('home');
+      if(location.pathname!=='/') history.replaceState(null,'','/'+location.hash);
+      if(goToSection(location.hash,true)) return;
+    }
+  }
+  if(pg){
+    activatePage(pg);
+    // normalize a trailing slash: /early-access/ -> /early-access
+    if(location.pathname!==pathForPage(pg)) history.replaceState(null,'',pathForPage(pg));
+    return;
+  }
+  activatePage('home');
 }
-window.addEventListener('hashchange',routeFromHash);
+window.addEventListener('popstate',route);
+window.addEventListener('hashchange',route);
 
 /* Prevent bare hash */
 document.querySelectorAll('a[href="#"]').forEach(function(a){
@@ -1044,8 +1080,8 @@ var obs=new IntersectionObserver(function(entries){
 },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
 
-/* Land on the right page for a direct visit to /#early-access */
-routeFromHash();
+/* Land on the right page for a direct visit to /early-access or /#how */
+route();
 </script>
 <script src="https://embed.typeform.com/next/embed.js"></script>
 </body>
