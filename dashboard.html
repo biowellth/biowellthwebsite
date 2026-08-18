@@ -1741,11 +1741,13 @@ function renderReportVault(reports){
     '<div class="rv-sub">Every lab report you have added, newest first.</div>'+
     '<div class="rv-list">'+body+'</div></section>';
   host.querySelectorAll('[data-fail-report]').forEach(btn=>{
-    btn.onclick = ()=>{
+    btn.onclick = async ()=>{
       const rid = btn.getAttribute("data-fail-report"); if(!rid) return;
       // A report with a results row is never routed here (payload wins), matching the boot fork.
       if((window.__doneReportIds || new Set()).has(rid)) return;
-      pcRenderFailure(rid, false);
+      // FAIL6_V1 (proactive, vault route) — same decision as the cold-load fork.
+      const __unret = await pcUnretryableIds([rid]);
+      pcRenderFailure(rid, __unret.has(rid) ? "unretryable" : "retryable");
       showView("processing");
     };
   });
@@ -1963,7 +1965,10 @@ async function onbSave(){
     .filter(r => r.status === "error" && !(window.__doneReportIds || new Set()).has(r.id));
   if(!completed.length && failedNoPayload.length){
     // Newest first: buildPicker already ordered by created_at desc.
-    pcRenderFailure(failedNoPayload[0].id, false);
+    // FAIL6_V1 (proactive, cold load) — decide retryable vs unretryable BEFORE rendering, so the
+    // retry control never appears on a report that cannot be retried.
+    const __unret = await pcUnretryableIds([failedNoPayload[0].id]);
+    pcRenderFailure(failedNoPayload[0].id, __unret.has(failedNoPayload[0].id) ? "unretryable" : "retryable");
     showView("processing");
     return;
   }
@@ -2407,6 +2412,13 @@ const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten mi
 // SECOND-failure state: the one retry is spent, so no control is offered that would be refused.
 const PC_FAIL2 = "Your report is saved and nothing is lost. Something went wrong while we were reading it. You can try again, or tell us and we will look at it with you.";
 const PC_FAIL5 = "We tried again and it still did not finish. Your report is saved and nothing is lost. Tell us and we will look at it with you.";
+// FAIL6_V1 — FAIL-6, byte-exact from the artifact (signed Aditi Pillai 2026-08-19). UNRETRYABLE: the
+// report failed before or during transcription, so there is nothing to re-read and RETRY_MODE_V1 can
+// never rescue it. Distinct from FAIL-2 (retry available) and FAIL-5 (retry spent) because BOTH of
+// those strings are false here — FAIL-2 promises a retry the backend refuses, FAIL-5 claims we tried
+// when we never did. The body states WHY there is no retry control, so its absence reads as honesty.
+const PC_FAIL6 = "Your report is saved and nothing is lost. We could not read this file, so trying again will not help. Upload it again, or tell us and we will look at it with you.";
+const PC_FAIL6_CTA = "Upload it again";
 // Set once the retry has been used in this session, so a second failure renders FAIL-5 directly.
 let __pcRetrySpent = false;
 // True ONLY when the server refused because the single retry is already spent. supabase-js surfaces a
@@ -2421,6 +2433,36 @@ async function pcRetrySpentFromError(error, data){
       return body && body.retried === true;
     }
   }catch(_){ /* unreadable body -> not a spent signal */ }
+  return false;
+}
+// FAIL6_V1 — true ONLY when the server refused because there is no transcription to re-read. Same
+// shape as pcRetrySpentFromError: a network failure carries no body and must never be read as a
+// capability refusal.
+// FAIL6_V1 — of the given report ids, which have NO transcription_json (so FAIL-6 applies).
+// Selects "id" ONLY and filters server-side: transcription_json is ~27KB per report and we never
+// need its contents here, only whether it exists. Returns a Set; on query failure returns an EMPTY
+// set, which degrades to FAIL-2 rather than wrongly telling her a retry cannot help.
+async function pcUnretryableIds(ids){
+  const out = new Set();
+  if(!ids || !ids.length) return out;
+  try{
+    const { data, error } = await sb.from("reports")
+      .select("id").in("id", ids).not("transcription_json", "is", null);
+    if(error) return out;
+    const withTj = new Set((data || []).map(r => r.id));
+    ids.forEach(id => { if(!withTj.has(id)) out.add(id); });
+  }catch(_){ /* degrade to FAIL-2 */ }
+  return out;
+}
+async function pcRetryNotPossibleFromError(error, data){
+  if(data && data.code === "RETRY_NOT_POSSIBLE") return true;
+  try{
+    const res = error && error.context;
+    if(res && typeof res.json === "function"){
+      const body = await res.json();
+      return body && body.code === "RETRY_NOT_POSSIBLE";
+    }
+  }catch(_){ /* unreadable body -> not a capability refusal */ }
   return false;
 }
 let __pcPollStart = 0;
@@ -2442,7 +2484,13 @@ function pcRestoreProcessing(){
   const v = $("view-processing");
   if(v && __pcProcMarkup !== null){ v.innerHTML = __pcProcMarkup; __pcProcMarkup = null; }
 }
-function pcRenderFailure(reportId, spent){
+// FAIL6_V1 — mode is 'retryable' (FAIL-2), 'spent' (FAIL-5) or 'unretryable' (FAIL-6). Booleans are
+// still accepted so no call site can silently mean the wrong thing during the migration.
+function pcRenderFailure(reportId, mode){
+  if(mode === true) mode = "spent";
+  if(mode === false || mode == null) mode = "retryable";
+  const unretryable = (mode === "unretryable");
+  const spent = (mode === "spent");
   const v = $("view-processing");
   if(!v) return;
   if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
@@ -2454,9 +2502,12 @@ function pcRenderFailure(reportId, spent){
         '</svg>' +
       '</div>' +
       '<h1>We could not finish this reading</h1>' +
-      '<p>' + esc(spent ? PC_FAIL5 : PC_FAIL2) + '</p>' +
+      '<p>' + esc(unretryable ? PC_FAIL6 : (spent ? PC_FAIL5 : PC_FAIL2)) + '</p>' +
       '<div class="pc-fail-actions">' +
-        (spent ? '' : '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>') +
+        // FAIL6_V1: the retry control NEVER renders in the unretryable state. Its primary control is a
+        // fresh upload, which is the capability that actually applies.
+        (unretryable ? '<button class="pc-btn" id="pc-reupload" type="button">' + esc(PC_FAIL6_CTA) + '</button>'
+                     : (spent ? '' : '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>')) +
         '<button class="pc-btn-quiet" id="pc-todash" type="button">Go to my dashboard</button>' +
       '</div>' +
     '</div>';
@@ -2473,7 +2524,10 @@ function pcRenderFailure(reportId, spent){
         // this handler fell back to FAIL-5 on ANY error, which told her we had tried when a network
         // blip meant we never did. Only a 409 carrying retried:true is the spent signal; anything
         // else keeps FAIL-2 with the button live so she can try again for real.
-        if(await pcRetrySpentFromError(error, data)){ pcRenderFailure(reportId, true); return; }
+        // FAIL6_V1 BACKSTOP (reactive). The proactive check below normally renders FAIL-6 before this
+        // button ever exists, so reaching here means the state changed under us. Read it either way.
+        if(await pcRetryNotPossibleFromError(error, data)){ pcRenderFailure(reportId, "unretryable"); return; }
+        if(await pcRetrySpentFromError(error, data)){ pcRenderFailure(reportId, "spent"); return; }
         rt.disabled = false; rt.textContent = "Try this report again";
         return;
       }
@@ -2482,6 +2536,10 @@ function pcRenderFailure(reportId, spent){
       pollForResult(reportId);     // status is back to 'processing'; resume the normal lifecycle
     }catch(_e){ rt.disabled = false; rt.textContent = "Try this report again"; }
   };
+  // FAIL6_V1 — the fresh-upload control. pcRestoreProcessing() puts #proc-file back before we leave,
+  // so the upload surface is intact when she gets there.
+  const ru = $("pc-reupload");
+  if(ru) ru.onclick = ()=>{ pcRestoreProcessing(); showView("upload"); };
   const dh = $("pc-todash");   if(dh) dh.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
 }
 
@@ -2520,7 +2578,10 @@ function pollForResult(reportId){
       // told it was working and that it had failed at the same time, with no control to act on.
       clearInterval(pollTimer);
       window.__drawBlockActive = false;
-      pcRenderFailure(reportId, __pcRetrySpent);
+      // FAIL6_V1 (proactive). This select already carries transcription_json, so the unretryable case
+      // is free here. A failure with no transcription can never be rescued by a re-enqueue, so she is
+      // never shown a retry control that the backend would refuse.
+      pcRenderFailure(reportId, !rep.transcription_json ? "unretryable" : (__pcRetrySpent ? "spent" : "retryable"));
       __pcRetrySpent = true;   // any FURTHER failure this session is the second one
       showView("processing");
       return;
