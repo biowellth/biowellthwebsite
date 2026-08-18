@@ -879,6 +879,10 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .rv-status{flex:none;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.04em;padding:6px 12px;border-radius:20px}
 .rv-status.proc{background:rgba(222,160,74,.15);color:#A06F24}
 .rv-status.fail{background:rgba(212,124,101,.14);color:#B4593F}
+/* FAILURE_REVISIT_V1 — the failed pill is a real button now (it routes to the failure state), so it
+   needs the chrome reset the span never did. Appearance is unchanged. */
+button.rv-status{border:none;cursor:pointer;font-family:'JetBrains Mono',monospace}
+button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .rv-note{font-size:12.5px;color:#B4593F;margin-top:7px}
 .rv-row.muted .rv-name{color:var(--brown-mid)}
 .rv-empty{padding:22px 4px;text-align:center;color:var(--brown-mid);font-size:14px}
@@ -1721,14 +1725,25 @@ function renderReportVault(reports){
       return '<div class="rv-row">'+icon+meta+
         '<button class="rv-view" type="button" data-vault-path="'+esc(r.file_path||"")+'">'+RV_EYE_SVG+'View</button></div>';
     }
+    // FAILURE_REVISIT_V1: a failed row is TAPPABLE and routes to the same failure state the boot fork
+    // renders, so the pill explains itself instead of being a dead label in Account.
     const pill = failed
-      ? '<span class="rv-status fail">could not be processed</span>'
+      ? '<button class="rv-status fail" type="button" data-fail-report="'+esc(r.id)+'">could not be processed</button>'
       : '<span class="rv-status proc">processing</span>';
     return '<div class="rv-row muted">'+icon+meta+pill+'</div>';
   }).join("");
   host.innerHTML = '<section class="rv"><div class="rv-head">Your reports</div>'+
     '<div class="rv-sub">Every lab report you have added, newest first.</div>'+
     '<div class="rv-list">'+body+'</div></section>';
+  host.querySelectorAll('[data-fail-report]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const rid = btn.getAttribute("data-fail-report"); if(!rid) return;
+      // A report with a results row is never routed here (payload wins), matching the boot fork.
+      if((window.__doneReportIds || new Set()).has(rid)) return;
+      pcRenderFailure(rid, false);
+      showView("processing");
+    };
+  });
   host.querySelectorAll('.rv-view[data-vault-path]').forEach(btn=>{
     btn.onclick = async ()=>{
       const path = btn.getAttribute("data-vault-path");
@@ -1773,6 +1788,9 @@ async function buildPicker(selectedId){
     .is("archived_at", null)
     .order("created_at",{ascending:false});
   renderReportVault(reports || []);   // vault shows ALL reports (incl. processing/failed); empty state on []
+  // FAILURE_REVISIT_V1 — the boot fork needs the FULL list, not just the completed ones, so a report
+  // that failed with no results row can be routed to the failure state instead of the upload screen.
+  window.__allReports = reports || [];
   if(!reports || !reports.length) return [];
   // Clarify chip source (Deploy D2): reports.clarify_prompts per report_id, read by
   // renderDashboard for the open panel. Column-listed above (was missing it) so the chip
@@ -1784,6 +1802,7 @@ async function buildPicker(selectedId){
     .select("report_id, payload").in("report_id", ids);
   const payloadByReport = new Map((doneRows||[]).map(r=>[r.report_id, r.payload]));
   const doneSet = new Set((doneRows||[]).map(r=>r.report_id));
+  window.__doneReportIds = doneSet;   // FAILURE_REVISIT_V1: "has a results row", the payload-wins test
   const completed = reports.filter(r=>doneSet.has(r.id));
 
   // A panel can be reprocessed, leaving several finished reports for the same
@@ -1926,6 +1945,23 @@ async function onbSave(){
   // processing but an older panel is done, we show that done panel rather than
   // bouncing to the upload screen.
   const completed = await buildPicker(null);
+  // FAILURE_REVISIT_V1 — before bouncing to the upload screen, check whether she actually has a
+  // FAILED report. Until now a woman whose only report failed landed on "Upload your blood work" as
+  // if nothing had happened; the failure state existed but was reachable ONLY inside the live poll.
+  //
+  // PAYLOAD WINS UNCONDITIONALLY (doctrine, not recency). A report that HAS a results row is never
+  // routed here, even when status is 'error'. There is no errored_at column, so "is the payload newer
+  // than the error" is not computable; and the natural route to error-with-payload is a failed
+  // RESCORE, which preserves the stored reading byte-for-byte. Hiding a good reading behind a failure
+  // screen is the worse error.
+  const failedNoPayload = (window.__allReports || [])
+    .filter(r => r.status === "error" && !(window.__doneReportIds || new Set()).has(r.id));
+  if(!completed.length && failedNoPayload.length){
+    // Newest first: buildPicker already ordered by created_at desc.
+    pcRenderFailure(failedNoPayload[0].id, false);
+    showView("processing");
+    return;
+  }
   if(!completed.length){ showView("upload"); return; }
 
   const current = completed[0];
@@ -2368,6 +2404,20 @@ const PC_FAIL2 = "Your report is saved and nothing is lost. Something went wrong
 const PC_FAIL5 = "We tried again and it still did not finish. Your report is saved and nothing is lost. Tell us and we will look at it with you.";
 // Set once the retry has been used in this session, so a second failure renders FAIL-5 directly.
 let __pcRetrySpent = false;
+// True ONLY when the server refused because the single retry is already spent. supabase-js surfaces a
+// non-2xx as FunctionsHttpError with the Response on `.context`, so the 409 body is readable; a
+// network/CORS failure has no body and must NOT be read as "we tried".
+async function pcRetrySpentFromError(error, data){
+  if(data && data.retried === true) return true;
+  try{
+    const res = error && error.context;
+    if(res && typeof res.json === "function"){
+      const body = await res.json();
+      return body && body.retried === true;
+    }
+  }catch(_){ /* unreadable body -> not a spent signal */ }
+  return false;
+}
 let __pcPollStart = 0;
 function pcInterimSub(elapsedMs){
   return (typeof elapsedMs === "number" && elapsedMs >= PC_LONG_MS) ? PC_IN4 : PC_IN3;
@@ -2412,12 +2462,20 @@ function pcRenderFailure(reportId, spent){
     rt.disabled = true; rt.textContent = "Starting again";
     try{
       const { data, error } = await sb.functions.invoke("process-report", { body: { report_id: reportId, mode: "retry" } });
-      // The one retry is spent (or the report is no longer retryable). Re-render as FAIL-5, no button.
-      if(error || !(data && data.ok)){ pcRenderFailure(reportId, true); return; }
+      if(error || !(data && data.ok)){
+        // FAILURE_REVISIT_V1 honesty fix. FAIL-5 says "We tried again and it still did not finish",
+        // so it may ONLY render when the server actually refused as already-retried. The first cut of
+        // this handler fell back to FAIL-5 on ANY error, which told her we had tried when a network
+        // blip meant we never did. Only a 409 carrying retried:true is the spent signal; anything
+        // else keeps FAIL-2 with the button live so she can try again for real.
+        if(await pcRetrySpentFromError(error, data)){ pcRenderFailure(reportId, true); return; }
+        rt.disabled = false; rt.textContent = "Try this report again";
+        return;
+      }
       pcRestoreProcessing();
       showView("processing");
       pollForResult(reportId);     // status is back to 'processing'; resume the normal lifecycle
-    }catch(_e){ pcRenderFailure(reportId, true); }
+    }catch(_e){ rt.disabled = false; rt.textContent = "Try this report again"; }
   };
   const dh = $("pc-todash");   if(dh) dh.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
 }
