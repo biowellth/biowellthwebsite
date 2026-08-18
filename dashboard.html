@@ -2362,6 +2362,12 @@ async function handleFile(file){
 const PC_LONG_MS = 6 * 60 * 1000;
 const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
 const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
+// FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed Aditi Pillai 2026-08-19). FAIL-5 is the
+// SECOND-failure state: the one retry is spent, so no control is offered that would be refused.
+const PC_FAIL2 = "Your report is saved and nothing is lost. Something went wrong while we were reading it. You can try again, or tell us and we will look at it with you.";
+const PC_FAIL5 = "We tried again and it still did not finish. Your report is saved and nothing is lost. Tell us and we will look at it with you.";
+// Set once the retry has been used in this session, so a second failure renders FAIL-5 directly.
+let __pcRetrySpent = false;
 let __pcPollStart = 0;
 function pcInterimSub(elapsedMs){
   return (typeof elapsedMs === "number" && elapsedMs >= PC_LONG_MS) ? PC_IN4 : PC_IN3;
@@ -2381,7 +2387,7 @@ function pcRestoreProcessing(){
   const v = $("view-processing");
   if(v && __pcProcMarkup !== null){ v.innerHTML = __pcProcMarkup; __pcProcMarkup = null; }
 }
-function pcRenderFailure(){
+function pcRenderFailure(reportId, spent){
   const v = $("view-processing");
   if(!v) return;
   if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
@@ -2393,13 +2399,26 @@ function pcRenderFailure(){
         '</svg>' +
       '</div>' +
       '<h1>We could not finish this reading</h1>' +
-      '<p>Your report is saved and nothing is lost. Something went wrong while we were reading it. You can upload it again, or tell us and we will look at it with you.</p>' +
+      '<p>' + esc(spent ? PC_FAIL5 : PC_FAIL2) + '</p>' +
       '<div class="pc-fail-actions">' +
-        '<button class="pc-btn" id="pc-reupload" type="button">Upload it again</button>' +
+        (spent ? '' : '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>') +
         '<button class="pc-btn-quiet" id="pc-todash" type="button">Go to my dashboard</button>' +
       '</div>' +
     '</div>';
-  const up = $("pc-reupload"); if(up) up.onclick = ()=>{ pcRestoreProcessing(); resetToPreFile(); showView("upload"); };
+  // FAIL-5 renders NO retry control. Offering a button the backend will refuse is a worse lie than
+  // offering none, so the second-failure state carries the dashboard control only.
+  const rt = $("pc-retry");
+  if(rt) rt.onclick = async ()=>{
+    rt.disabled = true; rt.textContent = "Starting again";
+    try{
+      const { data, error } = await sb.functions.invoke("process-report", { body: { report_id: reportId, mode: "retry" } });
+      // The one retry is spent (or the report is no longer retryable). Re-render as FAIL-5, no button.
+      if(error || !(data && data.ok)){ pcRenderFailure(reportId, true); return; }
+      pcRestoreProcessing();
+      showView("processing");
+      pollForResult(reportId);     // status is back to 'processing'; resume the normal lifecycle
+    }catch(_e){ pcRenderFailure(reportId, true); }
+  };
   const dh = $("pc-todash");   if(dh) dh.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
 }
 
@@ -2438,7 +2457,8 @@ function pollForResult(reportId){
       // told it was working and that it had failed at the same time, with no control to act on.
       clearInterval(pollTimer);
       window.__drawBlockActive = false;
-      pcRenderFailure();
+      pcRenderFailure(reportId, __pcRetrySpent);
+      __pcRetrySpent = true;   // any FURTHER failure this session is the second one
       showView("processing");
       return;
     }
