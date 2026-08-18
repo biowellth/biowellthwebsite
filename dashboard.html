@@ -163,6 +163,16 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 #view-processing h1{font-size:22px;margin-bottom:10px}
 #view-processing p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
 .proc-err{color:var(--coral-dark)}
+/* PROCESSING_COPY_V1 — terminal failure state. ZERO motion, ZERO reading-language: the spinner is
+   removed from the DOM (not hidden) and the headline is REPLACED. The retired render left the
+   spinner turning under a "Reading your report" headline while a coral line said it had failed. */
+.pc-fail{display:flex;flex-direction:column;align-items:center;text-align:center}
+.pc-fail-icon{width:44px;height:44px;border-radius:50%;background:var(--coral-light);border:1px solid #F0DAD2;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.pc-fail-icon svg{width:22px;height:22px;color:var(--coral-dark)}
+.pc-fail-actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:22px}
+.pc-btn{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);border:none;border-radius:12px;padding:12px 22px;cursor:pointer}
+.pc-btn:hover{background:var(--teal-dark)}
+.pc-btn-quiet{font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--brown-mid);background:none;border:none;text-decoration:underline;cursor:pointer}
 #view-interim{max-width:720px;margin:0 auto;padding:32px 24px}
 .interim-status{display:flex;align-items:center;gap:9px;margin-bottom:12px}
 .interim-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);animation:interimPulse 1.6s ease-in-out infinite;flex-shrink:0}
@@ -2337,8 +2347,65 @@ async function handleFile(file){
   }
 }
 
+// ── PROCESSING_COPY_V1 ──────────────────────────────────────────────────────────────────────
+// Honest processing copy. Three states, all byte-matching the re-signed artifact
+// docs/biowellth-between-calls-copy-SIGNED.md (Aditi Pillai, 2026-08-18):
+//   IN-3  normal interim, under the threshold
+//   IN-4  long-running continuation, past it. This ALSO covers a queue retry: a retry is NOT
+//         front-end distinguishable, because failPhase writes reports.status='error' only when
+//         attempts are exhausted, so attempts 2 and 3 look identical to attempt 1. That is correct,
+//         a retry is the queue working, not a fault she needs told.
+//   FAIL  terminal failure, reports.status='error'. Zero motion, zero reading-language.
+// Elapsed is measured from reports.created_at, which is the true time since upload and works
+// identically in-session and on a revisit. __pcPollStart is only a fallback when created_at is
+// missing. The threshold is deliberately generous: the typical full reading lands around 5 minutes.
+const PC_LONG_MS = 6 * 60 * 1000;
+const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
+const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
+let __pcPollStart = 0;
+function pcInterimSub(elapsedMs){
+  return (typeof elapsedMs === "number" && elapsedMs >= PC_LONG_MS) ? PC_IN4 : PC_IN3;
+}
+function pcElapsedMs(rep){
+  const t = rep && rep.created_at ? Date.parse(rep.created_at) : NaN;
+  if(!Number.isNaN(t)) return Date.now() - t;
+  return __pcPollStart ? (Date.now() - __pcPollStart) : 0;
+}
+// Terminal failure. The spinner is REMOVED from the DOM, not hidden, and the "Reading your report"
+// headline is REPLACED. Nothing on this screen may still claim we are reading.
+let __pcProcMarkup = null;
+function pcRestoreProcessing(){
+  // The failure render REPLACES #view-processing wholesale, which destroys #proc-file and #proc-ask.
+  // A later upload needs both, so the pristine markup is captured before the first overwrite and put
+  // back on the way out. Without this, uploading again after a failure lands on an empty screen.
+  const v = $("view-processing");
+  if(v && __pcProcMarkup !== null){ v.innerHTML = __pcProcMarkup; __pcProcMarkup = null; }
+}
+function pcRenderFailure(){
+  const v = $("view-processing");
+  if(!v) return;
+  if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
+  v.innerHTML =
+    '<div class="pc-fail">' +
+      '<div class="pc-fail-icon">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+          '<circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor"/>' +
+        '</svg>' +
+      '</div>' +
+      '<h1>We could not finish this reading</h1>' +
+      '<p>Your report is saved and nothing is lost. Something went wrong while we were reading it. You can upload it again, or tell us and we will look at it with you.</p>' +
+      '<div class="pc-fail-actions">' +
+        '<button class="pc-btn" id="pc-reupload" type="button">Upload it again</button>' +
+        '<button class="pc-btn-quiet" id="pc-todash" type="button">Go to my dashboard</button>' +
+      '</div>' +
+    '</div>';
+  const up = $("pc-reupload"); if(up) up.onclick = ()=>{ pcRestoreProcessing(); resetToPreFile(); showView("upload"); };
+  const dh = $("pc-todash");   if(dh) dh.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
+}
+
 function pollForResult(reportId){
   if(pollTimer) clearInterval(pollTimer);
+  __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
   pollTimer = setInterval(async ()=>{
     // Call B done? results.payload is the authoritative interpretation.
     const { data } = await sb.from("results")
@@ -2364,17 +2431,20 @@ function pollForResult(reportId){
     // their numbers ~3 min in instead of a ~9 min blank wait. Authoritative
     // banding / colour / verdict come ONLY with Call B (above), never here.
     const { data: rep } = await sb.from("reports")
-      .select("status, transcription_json").eq("id", reportId).limit(1).maybeSingle();
+      .select("status, transcription_json, created_at").eq("id", reportId).limit(1).maybeSingle();
     if(rep && rep.status === "error"){
+      // PROCESSING_COPY_V1: terminal. The retired render kept the spinner turning under a
+      // "Reading your report" headline and appended a coral line saying it had failed, so she was
+      // told it was working and that it had failed at the same time, with no control to act on.
       clearInterval(pollTimer);
-      $("proc-file").innerHTML = '<span class="proc-err">Something went wrong reading this report. Please try uploading it again.</span>';
       window.__drawBlockActive = false;
+      pcRenderFailure();
       showView("processing");
       return;
     }
     if(rep && rep.transcription_json){
       // Interim numbers are prepared; while the About block is mounted the reveal is HELD (amendment 1).
-      renderInterim(rep.transcription_json);
+      renderInterim(rep.transcription_json, pcElapsedMs(rep));   // PROCESSING_COPY_V1
       if(window.__drawBlockActive){ drawReadyAck("interim"); return; }
       showView("interim");
     } else {
@@ -2408,7 +2478,7 @@ function interimValHTML(m){
   return esc(String(raw)) + unit;
 }
 
-function renderInterim(tj){
+function renderInterim(tj, elapsedMs){
   const systems = (tj && Array.isArray(tj.systems)) ? tj.systems : [];
   // Merge systems[] entries that share a system_id. The transcription occasionally
   // splits one system across multiple blocks (e.g. iron_status as 7 + 4 markers),
@@ -2435,9 +2505,11 @@ function renderInterim(tj){
   // The interim 193/20 screen is a PURE CONFIDENCE BEAT (the confounder ask moved to the Call A
   // "Reading your report" screen, 2026-07-15). IN-3 (SIGNED docs/biowellth-between-calls-copy-SIGNED.md)
   // is the calm reassurance; no ask here. Top matter -> #interim-list, marker list -> #interim-markers.
+  // PROCESSING_COPY_V1: IN-3 / IN-4 are chosen by ELAPSED, see pcInterimSub. Both byte-match the
+  // re-signed artifact (docs/biowellth-between-calls-copy-SIGNED.md, Aditi Pillai 2026-08-18).
   let topHtml =
     '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
-    '<p class="interim-sub">Your full results are almost ready.</p>' +
+    '<p class="interim-sub">' + esc(pcInterimSub(elapsedMs)) + '</p>' +
     '<div class="interim-tiles">' +
       '<div class="itile"><span class="itile-n">' + totalMarkers + '</span><span class="itile-l">markers read</span></div>' +
       '<div class="itile"><span class="itile-n">' + systemsMapped + '</span><span class="itile-l">systems mapped</span></div>' +
