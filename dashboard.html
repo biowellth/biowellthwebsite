@@ -810,7 +810,12 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
    teal-dark text: an invitation to read on, never a concealment. */
 #view-reveal .prio-rest{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 #view-reveal .prio-rest.prio-hidden{display:none}
-#view-reveal .prio-seeall{width:100%;margin-top:12px;font-family:'Instrument Sans',sans-serif;font-size:13.5px;
+/* The reveal nav is position:absolute at bottom:0 with a to-top gradient that washes out roughly the
+   last 90px of the card. The card reserves 104px of bottom padding, which clears the nav for a
+   centred beat but not for the EXPANDED priorities list, where the see-all control is the final
+   element of a scrolling column and comes to rest inside the gradient. Extra bottom clearance on the
+   control itself lifts it clear. Scoped to this button, so no other beat's layout moves. */
+#view-reveal .prio-seeall{width:100%;margin-top:12px;margin-bottom:34px;font-family:'Instrument Sans',sans-serif;font-size:13.5px;
   font-weight:600;color:var(--teal-dark);background:var(--teal-soft);border:1px solid var(--teal-mid);
   border-radius:12px;padding:12px;cursor:pointer}
 #view-reveal .prio-seeall:hover{background:var(--teal-light)}
