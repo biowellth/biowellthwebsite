@@ -176,6 +176,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .pc-fail-icon{width:44px;height:44px;border-radius:50%;background:var(--coral-light);border:1px solid #F0DAD2;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
 .pc-fail-icon svg{width:22px;height:22px;color:var(--coral-dark)}
 .pc-fail-actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:22px}
+/* QUOTA_429_V1 — the daily-limit state. AMBER, not coral: coral is this product's failure
+   register and this is not a failure. Reuses .pc-fail geometry, its own icon tone only. */
+.pc-quota{display:flex;flex-direction:column;align-items:center;text-align:center}
+.pc-quota-icon{width:44px;height:44px;border-radius:50%;background:var(--amber-light,#FAF4E6);border:1px solid #EFE0BE;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.pc-quota-icon svg{width:22px;height:22px;color:var(--amber,#D4A94A)}
+.pc-quota-actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:22px}
 .pc-btn{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);border:none;border-radius:12px;padding:12px 22px;cursor:pointer}
 .pc-btn:hover{background:var(--teal-dark)}
 .pc-btn-quiet{font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--brown-mid);background:none;border:none;text-decoration:underline;cursor:pointer}
@@ -2491,7 +2497,18 @@ async function handleFile(file){
     setUploadRowState("uploaded");
     setSubmitPending(false);
     const cyc = collectCycle();   // empty at upload now (cycle is carried by submit-mode); harmless
-    try{ await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
+    // QUOTA_429_V1 — READ the result instead of discarding it. supabase-js does NOT throw on a
+    // non-2xx, so the previous `try{ await invoke(...) }catch(_){}` swallowed every server refusal
+    // and fell through to pollForResult, which has no timeout. A 429 therefore used to render as
+    // an endless "we are reading your report" spinner. Every response other than 429 keeps its
+    // existing behaviour exactly, including silence on error.
+    let __prRes = null;
+    try{ __prRes = await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
+    if(__prRes && pcIsQuotaRefusal(__prRes.error)){
+      pcRenderQuota();
+      showView("processing");
+      return;                       // never poll: there is nothing queued to poll for
+    }
     // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
     if(cyc.menstrual_status || ("on_hormonal_contraception" in cyc) || cyc.typical_cycle_length_days || cyc.typical_period_duration_days){ try{ localStorage.setItem("bw_cycle_captured","1"); }catch(_){} }
     pollForResult(reportId);
@@ -2593,6 +2610,55 @@ function pcRestoreProcessing(){
 }
 // FAIL6_V1 — mode is 'retryable' (FAIL-2), 'spent' (FAIL-5) or 'unretryable' (FAIL-6). Booleans are
 // still accepted so no call site can silently mean the wrong thing during the migration.
+// QUOTA_429_V1 — the daily upload limit. A FOURTH processing state, deliberately not a failure
+// state: nothing broke, nothing was attempted, and there is nothing to retry.
+//
+// Why none of the FAIL copy is reused. "We could not finish this reading" is false, because no
+// reading was started. "Your report is saved and nothing is lost" is true but misleading, because
+// it implies the report is queued when it is not. "Try this report again" would offer a control
+// the server refuses.
+//
+// Why "upload it again" and not "we will read it tomorrow". By the time process-report returns
+// 429 the browser has ALREADY put the PDF in storage and inserted the reports row; what the 429
+// stops is the report_queue insert. That row therefore sits at status='uploaded' and nothing will
+// ever claim it. Promising a reading tomorrow would be a promise the system does not keep.
+//
+// pollForResult is NEVER called on this path. It has no timeout and exits only on a results row
+// or status='error', neither of which can happen here, so calling it would spin forever under
+// copy claiming we are reading her report.
+const PC_QUOTA_H = "That is today's limit";
+const PC_QUOTA_BODY = "We have not started reading this one, so nothing is in progress. Come back tomorrow and upload it again.";
+function pcRenderQuota(){
+  const v = $("view-processing");
+  if(!v) return;
+  if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
+  v.innerHTML =
+    '<div class="pc-quota">' +
+      '<div class="pc-quota-icon">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+          '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' +
+        '</svg>' +
+      '</div>' +
+      '<h1>' + esc(PC_QUOTA_H) + '</h1>' +
+      '<p>' + esc(PC_QUOTA_BODY) + '</p>' +
+      '<div class="pc-quota-actions">' +
+        '<button class="pc-btn-quiet" id="pc-quota-todash" type="button">Go to my dashboard</button>' +
+      '</div>' +
+    '</div>';
+  const b = $("pc-quota-todash");
+  if(b) b.onclick = ()=>{ pcRestoreProcessing(); showView("home"); };
+}
+// True ONLY when the server refused with 429. supabase-js does not throw on a non-2xx; it returns
+// a FunctionsHttpError carrying the Response on .context, so the status is read from there. Same
+// shape as pcRetrySpentFromError: a network or CORS failure has no .context and must never be
+// read as a quota refusal.
+function pcIsQuotaRefusal(error){
+  try{
+    const res = error && error.context;
+    return !!(res && res.status === 429);
+  }catch(_){ return false; }
+}
+
 function pcRenderFailure(reportId, mode){
   if(mode === true) mode = "spent";
   if(mode === false || mode == null) mode = "retryable";
