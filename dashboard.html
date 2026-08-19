@@ -138,6 +138,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--teal);cursor:pointer}
 .consent-row a{color:var(--teal);font-weight:600}
 .dropzone.locked{opacity:.45;cursor:not-allowed}
+/* AI_DISCLOSURE_V1 — persistent AI-error line, INSIDE .companion so it travels with the AI
+   output. Not a dismissable toast: screenshots of a reading circulate without the policy
+   attached, so the disclaimer has to be on the content itself. */
+.comp-ai-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--brown-light);font-size:12px;line-height:1.6;color:var(--brown-mid)}
 /* AGE_AFFIRM_V1 — grandfathered-account affirmation. Reuses .onb-modal/.onb-card geometry,
    but this one is BLOCKING: no skip control, no backdrop close, no Escape. A skippable
    affirmation records nothing. .age-under is the quiet under-18 exit. */
@@ -1440,6 +1444,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
       <div class="comp-response" id="comp-answer" aria-live="polite"></div>
+      <!-- AI_DISCLOSURE_V1 -->
+      <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
     </div>
 
     <div id="prios-wrap" class="hidden">
