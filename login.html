@@ -40,6 +40,12 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
 .msg{font-size:14px;line-height:1.55;border-radius:11px;padding:12px 14px;margin-top:18px;display:none}
 .msg.err{display:block;background:var(--coral-light);color:var(--coral-dark);border:1px solid #EAC9BF}
 .msg.ok{display:block;background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal-soft)}
+/* AGE_AFFIRM_V1 — ported verbatim from dashboard.html .consent-row so the affirmation
+   looks like the consent tick she already knows. label:first-of-type resets margin-top
+   on the name field, so .consent-row sets its own. */
+.consent-row{display:flex;align-items:flex-start;gap:10px;text-align:left;font-size:13px;color:var(--brown-mid);line-height:1.6;margin-top:22px;margin-bottom:0;cursor:pointer;font-weight:400}
+.consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--teal);cursor:pointer}
+.consent-row b{display:block;color:var(--brown);font-weight:600}
 .foot{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:22px;line-height:1.6}
 .foot a{color:var(--brown-mid);text-decoration:underline}
 .hidden{display:none}
@@ -67,7 +73,14 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
       <input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
       <label for="su-pass2">Confirm your password</label>
       <input id="su-pass2" type="password" autocomplete="new-password" placeholder="Type it again"/>
-      <button class="btn" id="su-btn">Create account</button>
+      <!-- AGE_AFFIRM_V1 — unticked by default, never pre-checked. The button below is
+           disabled until this is ticked; the handler re-checks it so the gate does not
+           live only in a DOM property. -->
+      <label class="consent-row" id="su-age-row">
+        <input type="checkbox" id="su-age"/>
+        <span><b>I am 18 or older.</b>BioWellth is for adults 18 and older.</span>
+      </label>
+      <button class="btn" id="su-btn" disabled>Create account</button>
       <div class="toggle">Already have an account? <a id="to-login">Sign in</a></div>
     </div>
 
@@ -134,10 +147,17 @@ $("su-btn").onclick = async () => {
   if (!email)           return show("err", "Please enter your email.");
   if (pass.length < 8)  return show("err", "Password needs at least 8 characters.");
   if (pass !== pass2)   return show("err", "Those passwords do not match.");
+  // AGE_AFFIRM_V1 — re-check here, not just on the disabled attribute. A disabled button
+  // is a UI state, not a gate; this is the gate on the client side. The DB-side gate is
+  // migration 0022 (dob CHECK) and the recorded affirmation below.
+  if (!$("su-age").checked) return show("err", "Please confirm you are 18 or older.");
 
   $("su-btn").disabled = true; $("su-btn").textContent = "Creating account…";
+  // age_affirmed rides in user_metadata because it is DURABLE (auth.users.raw_user_meta_data).
+  // affirm-age reads it from the JWT-resolved user, never from a request body, which is what
+  // lets the repair path re-stamp on any later load and on any device.
   const { data, error } = await sb.auth.signUp({
-    email, password: pass, options: { data: { full_name: name } }
+    email, password: pass, options: { data: { full_name: name, age_affirmed: true } }
   });
   $("su-btn").disabled = false; $("su-btn").textContent = "Create account";
 
@@ -150,9 +170,20 @@ $("su-btn").onclick = async () => {
       return show("err", "We could not find an invite for that email. Please use the exact address your invite was sent to. If you need a different address, reply to your invite and we will add it.");
     return show("err", error.message);
   }
-  if (data.session){ location.replace(APP); }
+  // AGE_AFFIRM_V1 — stamp profiles.age_affirmed_at at account creation. The column is locked
+  // against the authenticated client (migration 0023), so this service-role edge path is its
+  // only writer. Fire-and-forget by design: a failed stamp must never block a valid signup,
+  // and the dashboard repair path re-runs it on next load from the same durable metadata.
+  if (data.session){
+    try{ await sb.functions.invoke("affirm-age", { body:{} }); }catch(_){}
+    location.replace(APP);
+  }
   else { show("ok", "Account created. You can now sign in."); swapTo("login"); }
 };
+
+// AGE_AFFIRM_V1 — button follows the tick. Pure UI; the real client-side gate is the
+// re-check inside the handler above.
+$("su-age").onchange = () => { $("su-btn").disabled = !$("su-age").checked; };
 
 // SIGN IN
 $("li-btn").onclick = async () => {

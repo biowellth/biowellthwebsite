@@ -138,6 +138,11 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--teal);cursor:pointer}
 .consent-row a{color:var(--teal);font-weight:600}
 .dropzone.locked{opacity:.45;cursor:not-allowed}
+/* AGE_AFFIRM_V1 — grandfathered-account affirmation. Reuses .onb-modal/.onb-card geometry,
+   but this one is BLOCKING: no skip control, no backdrop close, no Escape. A skippable
+   affirmation records nothing. .age-under is the quiet under-18 exit. */
+.age-under{display:block;width:100%;background:none;border:0;font-family:inherit;font-size:13px;color:var(--brown-mid);text-decoration:underline;text-underline-offset:3px;margin-top:14px;cursor:pointer;padding:4px}
+.age-under.danger{color:var(--coral-dark)}
 .upload-meta{margin-top:22px;display:flex;flex-direction:column;gap:9px}
 .upload-meta-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--brown-mid)}
 .upload-meta-item svg{width:14px;height:14px;color:var(--teal);flex-shrink:0}
@@ -1623,7 +1628,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at").eq("id", USER.id).maybeSingle();
+    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
   applyConsentUI();
@@ -1907,6 +1912,96 @@ function onbWireGroup(id, key, attr){
     };
   });
 }
+// ── AGE_AFFIRM_V1 ────────────────────────────────────────────────────────────────────────
+// Two behaviours off one condition, decided by whether a DURABLE affirmation exists on the
+// user (user_metadata.age_affirmed, written at signUp):
+//
+//   stamped already            -> nothing, the common path
+//   null stamp + metadata true -> REPAIR. Silent re-stamp. Closes the window where signup
+//                                 succeeded but the affirm-age call did not land.
+//   null stamp + no metadata   -> GRANDFATHERED. Blocking modal, because there is nothing to
+//                                 repair from; the affirmation was never given.
+//
+// affirm-age itself is the authority on all of this: it reads the metadata from the JWT-resolved
+// user and refuses (403) when it is absent, so the client cannot talk it into a stamp. What the
+// branch below decides is only which SURFACE she sees, never whether the record is valid.
+async function maybeAffirmAge(){
+  try{
+    if(!USER) return;
+    if(PROFILE && PROFILE.age_affirmed_at) return;                 // already recorded
+    const affirmed = !!(USER.user_metadata && USER.user_metadata.age_affirmed === true);
+    if(affirmed){
+      // REPAIR — silent, no surface. A failure here is not fatal; it retries on the next load.
+      try{
+        const { data } = await sb.functions.invoke("affirm-age", { body:{} });
+        if(data && data.age_affirmed_at) PROFILE.age_affirmed_at = data.age_affirmed_at;
+      }catch(_){}
+      return;
+    }
+    showAgeModal();                                                 // GRANDFATHERED
+  }catch(_){ /* never block the dashboard on this */ }
+}
+
+// Wired ON SHOW, not at parse. The inline script closes before this modal's markup, so a
+// parse-time IIFE would find no elements and silently never bind — the modal would render
+// with dead controls. maybeShowOnboarding uses the same on-demand pattern for the same reason.
+// onclick assignment (not addEventListener) keeps this idempotent across re-shows.
+function showAgeModal(){
+  const m = $("age-modal"); if(!m) return;
+  const chk = $("age-check");
+  chk.checked = false;
+  $("age-confirm").disabled = true;
+  $("age-affirm-state").classList.remove("hidden");
+  $("age-exit-state").classList.add("hidden");
+
+  chk.onchange = ()=>{ $("age-confirm").disabled = !chk.checked; };
+
+  $("age-confirm").onclick = async ()=>{
+    if(!$("age-check").checked) return;
+    const btn = $("age-confirm");
+    btn.disabled = true; btn.textContent = "Saving\u2026";
+    try{
+      // Set the durable flag FIRST, then stamp. affirm-age reads the flag off the JWT-resolved
+      // user, so without this the stamp would be refused 403 exactly as designed.
+      const { error: uErr } = await sb.auth.updateUser({ data: { age_affirmed: true } });
+      if(uErr) throw uErr;
+      const { data, error } = await sb.functions.invoke("affirm-age", { body:{} });
+      if(error) throw error;
+      if(data && data.age_affirmed_at) PROFILE.age_affirmed_at = data.age_affirmed_at;
+      m.classList.remove("show");
+      m.setAttribute("aria-hidden","true");
+    }catch(_){
+      btn.disabled = false; btn.textContent = "Confirm";
+      // Honest failure: the modal stays. It must never close on an unrecorded affirmation.
+    }
+  };
+
+  // Under-18 exit. Swaps the card body; there is no route back, which is deliberate.
+  $("age-under18").onclick = ()=>{
+    $("age-affirm-state").classList.add("hidden");
+    $("age-exit-state").classList.remove("hidden");
+  };
+
+  $("age-signout").onclick = async ()=>{
+    try{ await sb.auth.signOut(); }catch(_){}
+    location.replace("/login");
+  };
+
+  // ORDER IS FIXED AND NON-NEGOTIABLE: delete-account derives its target uid from the caller's
+  // JWT, so it needs a LIVE session. Signing out first would make deletion impossible. This
+  // therefore routes into the EXISTING typed-confirm delete flow and lets its own success path
+  // do the sign-out. It is not a one-tap delete, and there is no second deletion path.
+  $("age-delete").onclick = ()=>{
+    m.classList.remove("show");
+    m.setAttribute("aria-hidden","true");
+    $("account-modal").classList.remove("hidden");
+    $("del-open").click();
+  };
+
+  m.classList.add("show");
+  m.setAttribute("aria-hidden","false");
+}
+
 async function maybeShowOnboarding(){
   try{
     const { data: prof } = await sb.from("profiles").select("dob, cycle_status").eq("id", USER.id).maybeSingle();
@@ -1914,7 +2009,10 @@ async function maybeShowOnboarding(){
     const ysel = $("onb-year");
     if(ysel && ysel.options.length <= 1){
       const now = new Date().getFullYear();
-      for(let y=now-13; y>=now-90; y--){ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); ysel.appendChild(o); }
+      // AGE_AFFIRM_V1 — floor is now-18. UX AFFORDANCE ONLY, not the gate: dob is written by
+      // direct browser PostgREST, so a dropdown floor falls to one curl. The gate is migration
+      // 0022 (dob CHECK, DB-enforced) plus the recorded affirmation.
+      for(let y=now-18; y>=now-90; y--){ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); ysel.appendChild(o); }
     }
     onbWireGroup("onb-periods","period","data-k");
     onbWireGroup("onb-diet","diet","data-v");
@@ -1945,6 +2043,9 @@ async function onbSave(){
   USER = data.session.user;
   document.body.classList.add("ready");
   await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
+  await maybeAffirmAge();  // AGE_AFFIRM_V1 — silent repair, or the blocking grandfathered modal.
+                           // Awaited and placed BEFORE onboarding so the blocking affirmation is
+                           // never stacked underneath the skippable onboarding overlay.
   maybeShowOnboarding();   // non-blocking overlay; dashboard loads behind it
 
   // Load every panel, populate the switcher, and default to the newest one
@@ -7410,6 +7511,34 @@ async function stampSeen(reportId){
   showView('dashboard');
 }
 </script>
+<!-- AGE_AFFIRM_V1 — grandfathered accounts only. Fires when profiles.age_affirmed_at is null
+     AND user_metadata carries no affirmation, i.e. accounts created before this shipped. BLOCKING:
+     no skip, no backdrop close, no Escape. Two states in one card, swapped by JS: the affirm state
+     and the under-18 exit. -->
+<div class="onb-modal" id="age-modal" aria-hidden="true">
+  <div class="onb-card">
+    <!-- state 1: affirm -->
+    <div id="age-affirm-state">
+      <div class="onb-h">One quick confirmation before we continue</div>
+      <p class="onb-sub">We added this after you joined, so we are asking once.</p>
+      <label class="consent-row" id="age-row">
+        <input type="checkbox" id="age-check"/>
+        <span><b style="display:block;color:var(--brown);font-weight:600">I am 18 or older.</b>BioWellth is for adults 18 and older.</span>
+      </label>
+      <button class="onb-save" id="age-confirm" disabled>Confirm</button>
+      <button class="age-under" id="age-under18" type="button">I am under 18</button>
+    </div>
+    <!-- state 2: under-18 exit. Sign out is the neutral default; deletion is offered, never pushed. -->
+    <div id="age-exit-state" class="hidden">
+      <div class="onb-h">Thank you for telling us.</div>
+      <p class="onb-sub">BioWellth is for adults 18 and older, so we are not able to keep going. We will sign you out now.</p>
+      <p class="onb-sub">If you would like, we can delete the data on this account first. You can also ask us to do that later at <a href="mailto:support@mybiowellth.com" style="color:var(--teal);font-weight:600">support@mybiowellth.com</a>.</p>
+      <button class="onb-save" id="age-signout">Sign out</button>
+      <button class="age-under danger" id="age-delete" type="button">Delete my data</button>
+    </div>
+  </div>
+</div>
+
 <div class="onb-modal" id="onb-modal" aria-hidden="true">
   <div class="onb-card">
     <div class="onb-eyebrow">Welcome</div>
