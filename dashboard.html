@@ -2183,7 +2183,7 @@ $("del-confirm").onclick = async ()=>{
     $("del-msg").textContent = "We could not complete deletion. Nothing was changed. Please email support@mybiowellth.com and we will finish it.";
   }
 };
-$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); showView("upload"); };
+$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ showView("upload"); };
 $("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
 // Logo returns the user to their dashboard home. Wired once here, not per render.
 // Mirrors the reveal Skip button (#rd-skip): if the reveal deck is open, stamp it
@@ -2722,10 +2722,18 @@ function pcRenderFailure(reportId, mode){
   const dh = $("pc-todash");   if(dh) dh.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
 }
 
-function pollForResult(reportId){
-  if(pollTimer) clearInterval(pollTimer);
-  __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
-  pollTimer = setInterval(async ()=>{
+// STALE_TAB_POLL_V1 — the report this poll is watching, or null when nothing is in flight.
+// Needed because a backgrounded tab does not lose its interval, it gets THROTTLED (browsers clamp
+// background timers to roughly once a minute). Aditi's 2026-08-19 walk finished at 22:58 and the tab
+// still showed "processing" minutes later: the backend was healthy the whole time and the payload was
+// readable to her, the tab just had not ticked. So the fix is not a faster interval, it is an
+// immediate tick the moment the tab is looked at again.
+let __pcPollReportId = null;
+
+// One iteration of the poll. Returns TRUE when terminal (payload rendered, or failure rendered) and
+// FALSE while still in flight, so both the interval and the focus handler can share it.
+async function pollTick(reportId){
+  try{
     // Call B done? results.payload is the authoritative interpretation.
     const { data } = await sb.from("results")
       .select("payload").eq("report_id", reportId).limit(1).maybeSingle();
@@ -2741,9 +2749,9 @@ function pollForResult(reportId){
       buildDeck(data.payload, reportId);
       // DRAW_CONTEXT_SUBMIT_V1 (amendment 1): reveal is BUILT but HELD while the About block is mounted
       // and unsubmitted — submit is the only door forward. navigateAfterSubmit reads __drawReady.
-      if(window.__drawBlockActive){ drawReadyAck("reveal"); return; }
+      if(window.__drawBlockActive){ drawReadyAck("reveal"); return true; }
       showView("reveal");
-      return;
+      return true;
     }
     // Not done yet — surface the interim value view as soon as Call A's
     // transcription_json lands ('awaiting_interpretation') so the user sees
@@ -2763,20 +2771,58 @@ function pollForResult(reportId){
       pcRenderFailure(reportId, !rep.transcription_json ? "unretryable" : (__pcRetrySpent ? "spent" : "retryable"));
       __pcRetrySpent = true;   // any FURTHER failure this session is the second one
       showView("processing");
-      return;
+      return true;
     }
     if(rep && rep.transcription_json){
       // Interim numbers are prepared; while the About block is mounted the reveal is HELD (amendment 1).
       renderInterim(rep.transcription_json, pcElapsedMs(rep));   // PROCESSING_COPY_V1
-      if(window.__drawBlockActive){ drawReadyAck("interim"); return; }
+      if(window.__drawBlockActive){ drawReadyAck("interim"); return false; }
       showView("interim");
     } else {
       // Call A still running. DRAW_CONTEXT_SUBMIT_V1: the old processing-screen ask is retired; while the
       // About block is mounted we stay on it (degraded/revisit with no block -> the processing screen).
       if(!window.__drawBlockActive) showView("processing");
     }
+    return false;
+  }catch(_e){
+    // STALE_TAB_POLL_V1: a transient fetch failure must not kill the loop. Stay non-terminal so the
+    // interval keeps trying and the focus handler can re-arm.
+    return false;
+  }
+}
+
+function pollForResult(reportId){
+  if(pollTimer) clearInterval(pollTimer);
+  __pcPollReportId = reportId;
+  __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
+  pollTimer = setInterval(async ()=>{
+    if(await pollTick(reportId)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; }
   }, 3000);
 }
+
+// STALE_TAB_POLL_V1 — when the tab is looked at again, tick IMMEDIATELY rather than waiting out a
+// throttled interval, then re-arm a fresh interval if the report is still in flight. Guarded on
+// __pcPollReportId so this is inert whenever nothing is being watched.
+async function pcResumePoll(){
+  if(document.visibilityState !== "visible") return;
+  const rid = __pcPollReportId;
+  if(!rid) return;
+  const terminal = await pollTick(rid);
+  if(terminal){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = null; __pcPollReportId = null;
+    return;
+  }
+  // Still in flight: replace the (possibly throttled) timer with a fresh one.
+  if(__pcPollReportId === rid){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async ()=>{
+      if(await pollTick(rid)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; }
+    }, 3000);
+  }
+}
+document.addEventListener("visibilitychange", pcResumePoll);
+window.addEventListener("focus", pcResumePoll);
 
 // Interim "your values are in" view (v2, structure-only + restyle). Renders Call A
 // output (transcription_json, persisted at 'awaiting_interpretation') as an
