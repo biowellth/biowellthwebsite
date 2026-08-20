@@ -2183,7 +2183,7 @@ $("del-confirm").onclick = async ()=>{
     $("del-msg").textContent = "We could not complete deletion. Nothing was changed. Please email support@mybiowellth.com and we will finish it.";
   }
 };
-$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ showView("upload"); };
+$("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ dcStopLatePoll(); /* DAILY_CARD_LATE_POOL_V1: same discipline for the late-pool watcher */ showView("upload"); };
 $("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
 // Logo returns the user to their dashboard home. Wired once here, not per render.
 // Mirrors the reveal Skip button (#rd-skip): if the reveal deck is open, stamp it
@@ -4645,6 +4645,19 @@ function toneFor(pr){
 const DC_TOTAL = 3;
 let __dcState = null;   // { reportId, todayYMD, three:[{action, phase}], done:Set<action_id> }
 
+// DAILY_CARD_LATE_POOL_V1 — the pool arrives AFTER the dashboard first renders.
+// Call D is a separate queue phase that only runs on the next cron tick, so action_pool lands
+// roughly 80-100s after results.payload (measured: flow11 1m37s, flow10 1m19s). A dashboard that
+// renders inside that window finds an empty pool, hides the card per the documented empty-pool rule,
+// and NOTHING ever re-attempts it — dcRenderDailyCard has exactly one call site. The card then stays
+// missing until a full reload, which is what was reported on 2026-08-20.
+//
+// This is NOT covered by STALE_TAB_POLL_V1: that re-arms the RESULTS poll, and by the time the
+// dashboard renders that poll has already gone terminal and nulled its tracker.
+const DC_LATE_MS = 15000;   // re-query cadence
+const DC_LATE_MAX = 12;     // 12 x 15s = 3 minutes, comfortably past the measured ~100s gap
+let __dcLate = null;        // { reportId, payload, attempts, timer, exhausted } or null
+
 function dcTodayLocalDate(){ const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
 function dcYMD(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function dcParseYMD(s){ if(typeof s!=='string') return null; const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return null; const d = new Date(+m[1], +m[2]-1, +m[3]); return isNaN(d) ? null : d; }
@@ -4799,14 +4812,23 @@ function dcRenderCard(){
 
 // Entry point — called from renderDashboard with the loaded payload + reportId. Fully
 // guarded: any failure just hides the card. Additive surface, never blocks the report.
-async function dcRenderDailyCard(p, reportId){
-  const host = document.getElementById('daily-card'); if(!host) return;
+// DAILY_CARD_LATE_POOL_V1: returns TRUE when the card rendered, FALSE on every hide path, so the
+// late poll and the focus handler can both act on the result. `late` marks a retry attempt: it
+// suppresses re-arming (the interval owns that) and suppresses the error log (12 attempts must not
+// become 12 console lines).
+async function dcRenderDailyCard(p, reportId, late){
+  const host = document.getElementById('daily-card'); if(!host) return false;
   try{
     host.classList.add('hidden'); host.innerHTML = ''; __dcState = null;
-    if(!USER || !USER.id || !reportId) return;
+    if(!USER || !USER.id || !reportId) return false;
     const { data: pool } = await sb.from('action_pool')
       .select('action_id, priority_marker_id, base_text, phase_notes').eq('report_id', reportId);
-    if(!Array.isArray(pool) || pool.length === 0) return;   // empty pool -> no card
+    if(!Array.isArray(pool) || pool.length === 0){
+      // empty pool -> no card (documented). If this is the FIRST render, the pool may simply not
+      // have been written yet, so start the bounded late poll rather than giving up for good.
+      if(!late) dcStartLatePoll(p, reportId);
+      return false;
+    }
     const rankMap = new Map();
     const prios = (p && Array.isArray(p.priorities)) ? p.priorities : [];
     for(const pr of prios){
@@ -4815,7 +4837,7 @@ async function dcRenderDailyCard(p, reportId){
       if(mk && typeof pr.rank === 'number' && !rankMap.has(mk)) rankMap.set(mk, pr.rank);
     }
     const three = dcSchedule(pool, reportId, rankMap);
-    if(three.length === 0) return;
+    if(three.length === 0) return false;
     let profile = null, lmpRaw = null;
     try{
       const { data: prof } = await sb.from('profiles')
@@ -4835,11 +4857,47 @@ async function dcRenderDailyCard(p, reportId){
     done = new Set([...done].filter(id => shown.has(id)));   // only the three shown
     __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done };
     dcRenderCard();
+    return true;
   } catch(e){
-    console.error('[daily_card] render failed (card hidden):', e);
+    if(!late) console.error('[daily_card] render failed (card hidden):', e);
     host.classList.add('hidden'); host.innerHTML = ''; __dcState = null;
+    return false;
   }
 }
+
+// DAILY_CARD_LATE_POOL_V1 — bounded secondary poll. Stops on success, stops on exhaustion, and is
+// never started without a reportId. The __dcLate object is KEPT after exhaustion so the focus
+// handler still knows which report to re-check; only the timer is cleared.
+function dcStopLatePoll(){
+  if(__dcLate && __dcLate.timer) clearInterval(__dcLate.timer);
+  __dcLate = null;
+}
+function dcStartLatePoll(p, reportId){
+  if(!reportId) return;                                        // never poll without a report
+  if(__dcLate && __dcLate.reportId === reportId) return;       // already watching this one
+  dcStopLatePoll();
+  __dcLate = { reportId, payload: p, attempts: 0, timer: null, exhausted: false };
+  __dcLate.timer = setInterval(async () => {
+    if(!__dcLate) return;
+    __dcLate.attempts++;
+    const ok = await dcRenderDailyCard(__dcLate.payload, __dcLate.reportId, true);
+    if(ok){ dcStopLatePoll(); return; }
+    if(__dcLate.attempts >= DC_LATE_MAX){
+      clearInterval(__dcLate.timer); __dcLate.timer = null; __dcLate.exhausted = true;  // silent
+    }
+  }, DC_LATE_MS);
+}
+// Belt and suspenders, same shape as STALE_TAB_POLL_V1: when the tab is looked at again, re-check
+// once immediately. Works whether the poll is still live or already exhausted, because __dcLate
+// survives exhaustion.
+async function dcResumeLate(){
+  if(document.visibilityState !== 'visible') return;
+  if(!__dcLate || !__dcLate.reportId) return;
+  const ok = await dcRenderDailyCard(__dcLate.payload, __dcLate.reportId, true);
+  if(ok) dcStopLatePoll();
+}
+document.addEventListener('visibilitychange', dcResumeLate);
+window.addEventListener('focus', dcResumeLate);
 
 async function renderDashboard(p, reportId){
   // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
