@@ -2534,8 +2534,24 @@ async function handleFile(file){
 //   FAIL  terminal failure, reports.status='error'. Zero motion, zero reading-language.
 // Elapsed is measured from reports.created_at, which is the true time since upload and works
 // identically in-session and on a revisit. __pcPollStart is only a fallback when created_at is
-// missing. The threshold is deliberately generous: the typical full reading lands around 5 minutes.
-const PC_LONG_MS = 6 * 60 * 1000;
+// missing.
+//
+// PROCESSING_COPY_V2 (2026-08-20): threshold raised 6 -> 9 minutes, because at 6 it had started
+// firing on HEALTHY runs. Measured end to end on flow11, post CALL_B_OUTPUT_TRIM_V1, clean single
+// attempt: upload -> transcription enqueued 5.8s, cron claim 26.8s, Call A 97s (numbers visible at
+// 2.2 min), interpretation cron claim 35s, Call B 241s. Total to reveal 6.8 MINUTES — past the old
+// 6 minute threshold, so a normal successful reading spent its last ~48 seconds showing IN-4.
+//
+// IN-4 is the "this is taking a while" state ("sometimes ten minutes or more"). Showing it on a run
+// that is about to succeed is a small dishonesty in the same family as the retired "almost ready"
+// string: it tells her something is unusual when nothing is. 9 minutes puts it clear of the measured
+// typical while still landing well before the retry cases, which is what IN-4 exists for.
+//
+// The superseded comment claimed "the typical full reading lands around 5 minutes". That was true
+// pre-trim-era tuning and is no longer; it is corrected rather than deleted so the change is legible.
+// NOTE: no ceiling number belongs in the copy itself. The retry paths are modelled, not measured end
+// to end (failPhase ~14.5 min, reaper path ~20.5 min), so IN-4's existing hedge is the honest form.
+const PC_LONG_MS = 9 * 60 * 1000;
 const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
 const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
 // FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed Aditi Pillai 2026-08-19). FAIL-5 is the
