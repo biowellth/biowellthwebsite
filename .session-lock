@@ -1,0 +1,13 @@
+# BioWellth session lock — ONE WRITING SESSION PER REPO (rule 18)
+# NOTE: rule 18 specifies docs/.session-lock, but this repo has no docs/ directory.
+# Placed at the repo root instead; same contract.
+session_id:  8602a594-06b9-4992-b8bb-b8cf5cd6a68c
+opened_utc:  2026-08-24T12:00:00Z
+opened_by:   claude-code (BioWellth arc)
+purpose:     P0 SAFETY PASS B — OPTION C, FRONTEND ONLY
+scope:       C1 tumor_markers into SENSITIVE_SYSTEMS; C2 organ branch through cardStatus
+             + false AMH comment; C3 modal pill unconditional cardStatus.
+             OUT: C4 / gap 5 (renderBrowseGrid confirmed unreachable).
+             DO NOT TOUCH: COMPOSITE_EXCLUDED_SYSTEMS, GAP_SUPPRESS_SYSTEMS, THEME_SENSITIVE.
+             NO BACKEND FILES — backend is on release-a-partial, 9 commits unmerged.
+repos:       biowellth-website (FE) ONLY
