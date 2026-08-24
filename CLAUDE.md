@@ -12,7 +12,7 @@ The backend lives in a **separate repo** (see Sibling repos below); it is not ch
 
 ## Sibling repos
 
-**Backend: `/Users/aditipillai/Desktop/biowellth-backend-supa`** — Supabase edge functions, SQL migrations, and the master context doc at `docs/biowellth-MASTER-context-and-handoff-2026-07-19b.md`. Its `CLAUDE.md` carries the standing rules for that repo, including keeper-account handling and the verify-live discipline (a green push is not a shipped change until the live URL is curled). The backend enforces `docs/.session-lock`; check it before any backend write, including writes triggered from website-side work. Read it before any task that touches the `results.payload` contract, an edge function, or biomarker ranges.
+**Backend: `~/Desktop/biowellth-backend-supa`** — Supabase edge functions, SQL migrations, and the master context doc in `docs/`. Its `CLAUDE.md` holds the standing operational rules — read it before any backend write, and before any task here that touches the `results.payload` contract, an edge function, or biomarker ranges.
 
 **The biomarker library's source of truth is in that repo**, at `supabase/functions/process-report-worker/biomarker-library-v2.1.1.json`. Nothing in this repo is an authority on a marker range: `ranges-slim.json` here is a generated projection of it (see Commands below), and the backend's own `process-report/` copy is stale and drifted — never source a range from either. When you need a real range value, to answer a question or to change one, read the worker copy and nothing else.
 
@@ -30,7 +30,7 @@ Regenerating the client-side marker ranges (only when the backend library versio
 
 ```
 python3 scripts/build-ranges-slim.py \
-  /Users/aditipillai/Desktop/biowellth-backend-supa/supabase/functions/process-report-worker/biomarker-library-v2.1.1.json \
+  ~/Desktop/biowellth-backend-supa/supabase/functions/process-report-worker/biomarker-library-v2.1.1.json \
   ranges-slim.json
 ```
 
