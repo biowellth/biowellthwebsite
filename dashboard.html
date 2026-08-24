@@ -1647,7 +1647,9 @@ async function loadProfile(){
   applyConsentUI();
 }
 
-/* CONTRACT: v1.3 payload shape written by process-report:
+/* CONTRACT: v1.3 payload shape written by process-report-worker:
+   (corrected 2026-08-24 — this said "process-report", which is only the thin
+   enqueuer. The row is deleted and re-inserted by process-report-worker.)
    {
      vitality:  { composite, band:{key,label}, confidence, visibility,
                   display:{show_composite, mode} },
