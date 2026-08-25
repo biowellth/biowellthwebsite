@@ -1,9 +1,0 @@
-# BioWellth session lock — ONE WRITING SESSION PER REPO (rule 18)
-# NOTE: rule 18 specifies docs/.session-lock; this repo has no docs/ dir. Root instead, same contract.
-session_id:  8602a594-06b9-4992-b8bb-b8cf5cd6a68c
-opened_utc:  2026-08-25T18:00:00Z
-opened_by:   claude-code (BioWellth arc)
-purpose:     FE CLEANUP — remove the dead Browse-everything block (renderBrowseGrid, #bes-wrap/#bes-grid)
-scope:       FE only. Delete dead fn + markup + orphaned CSS + any helper made caller-less.
-             MUST NOT TOUCH: #view-systems / buildBodyMap (the live systems page).
-repos:       biowellth-website (FE) ONLY
