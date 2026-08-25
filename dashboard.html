@@ -7175,9 +7175,15 @@ function cardStatus(s){
       : { cls: "s-none", word: SAFETY_NEUTRAL_WORD, color: ST_COLOR["s-none"] };
   }
   if(s && s.system_id === "sex_hormones"){
-    // AMH is cycle-INDEPENDENT, so a flagged AMH surfaces on the body map even while the
+    // AMH is cycle-INDEPENDENT, so a flagged AMH SHOULD surface on the body map even while the
     // cycle-gated hormones (progesterone/estradiol/lh/fsh/etc) stay honestly deferred and the
-    // system status is null. Mirrors the heavy_metals marker-band override. AMH-SPECIFIC: only
+    // system status is null.
+    //
+    // CORRECTED 2026-08-25: this comment previously asserted it DID surface. It did not. The body
+    // map's organ branch read sysStatus(s.status) raw and never called cardStatus, so this override
+    // was unreachable from the surface it was written for — a flagged AMH rendered "Not tested yet".
+    // The organ branch now routes through cardStatus, which is what makes the sentence above true.
+    // Mirrors the heavy_metals marker-band override. AMH-SPECIFIC: only
     // AMH's flag bands (amh_high_pcos = >5 PCOS signal, deficient = <0.5 low reserve) flip the
     // chip. No other sex hormone flips it, so the deferred cycle hormones stay honestly unread.
     const amh = Array.isArray(s.markers) ? s.markers.find(m => m && m.marker_id === "amh") : null;
@@ -7207,7 +7213,12 @@ function buildBodyMap(p, sys){
   });
 
   organ.forEach(it=>{
-    const st = sysStatus(it.s.status), col = ST_COLOR[st.cls] || ST_COLOR['s-none'];
+    // P0_SAFETY_ORGAN_V1 (2026-08-25) — was sysStatus(it.s.status) RAW, which bypassed cardStatus
+    // entirely and therefore bypassed BOTH the safety-class never-green rule AND the AMH override
+    // inside it. sex_hormones takes THIS branch (anatomyOf matches "hormone"), so a flagged AMH
+    // rendered "Not tested yet" on the body map while the override sat unreachable in cardStatus.
+    // Now identical to the systemic branch below.
+    const cs = cardStatus(it.s), col = cs.color || ST_COLOR['s-none'];
     const isL = it.a.side==='L', innerX = isL ? 43 : 57;
     // connector line: chip inner edge -> organ point
     if(svg){
@@ -7224,14 +7235,19 @@ function buildBodyMap(p, sys){
     map.appendChild(od);
     // chip
     const chip = document.createElement('button');
-    chip.className = 'sys-chip card ' + st.cls + ' ' + (isL ? 'left' : 'right');
+    chip.className = 'sys-chip card ' + cs.cls + ' ' + (isL ? 'left' : 'right');
     chip.style.top = it.cy + '%';
     const mc = (it.s.markers && it.s.markers.length) || markersForSystem(p, it.s).length;
-    const countTxt = (st.cls === 's-none') ? 'untested' : (mc + ' marker' + (mc === 1 ? '' : 's'));
+    // Mirrors the systemic branch's guard exactly. LATENT divergence, not a behaviour change: no
+    // safety-class system takes the organ path today (anatomyOf matches none of the three), so this
+    // is unreachable now — it exists so the two branches cannot drift apart again.
+    const countTxt = (cs.cls === 's-none' && !SAFETY_CLASS[it.s.system_id])
+      ? 'untested'
+      : (mc + ' marker' + (mc === 1 ? '' : 's'));
     chip.innerHTML =
       '<span class="sc-top"><span class="dot"></span><span class="sc-count">' + esc(countTxt) + '</span></span>' +
       '<span class="nm">' + esc(CANONICAL_TITLE[it.s.system_id] || it.s.display_name || it.s.system_id || '') + '</span>' +
-      '<span class="sc-word">' + esc(BES_WORD[st.cls] || st.label) + '</span>';
+      '<span class="sc-word">' + esc(cs.word) + '</span>';
     chip.addEventListener('click', ()=> openSystem(p, it.s));
     map.appendChild(chip);
   });
