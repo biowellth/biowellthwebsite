@@ -485,28 +485,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .gap-detail{display:none;margin-top:14px}
 .gap-card.open .gap-detail{display:block}
 /* "Browse everything" systems grid */
-.bes-card{background:#fff;border:1px solid var(--cream-mid);border-radius:18px;padding:24px 28px}
-.bes-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
-.bes-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--brown)}
-.bes-pills{display:flex;gap:8px;flex-wrap:wrap}
-.bes-pill{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:transparent;border:1px solid var(--cream-mid);border-radius:100px;padding:7px 16px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
-.bes-pill:hover{border-color:var(--brown-mid)}
-.bes-pill.active{background:var(--brown);color:var(--cream);border-color:var(--brown)}
-.bes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:1100px){.bes-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:620px){.bes-grid{grid-template-columns:1fr}}
-.bes-sys{background:var(--cream);border:1px solid var(--cream-mid);border-radius:14px;padding:18px 20px;cursor:pointer;transition:border-color .15s,transform .12s}
-.bes-sys:hover{border-color:var(--brown-mid);transform:translateY(-1px)}
-.bes-sys-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.bes-dot{width:9px;height:9px;border-radius:100px;flex:none}
-.bes-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);letter-spacing:.02em}
-.bes-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:3px}
-.bes-status{font-size:13px;color:var(--brown-mid)}
-.bes-hidden{display:none}
-/* Marker search in the browse card. Input above the pills; results replace the grid. */
-.bes-search{width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--brown);background:var(--cream);border:1px solid var(--cream-mid);border-radius:100px;padding:11px 18px;margin-bottom:16px;outline:none;transition:border-color .15s}
-.bes-search:focus{border-color:var(--brown-mid)}
-.bes-search::placeholder{color:var(--brown-mid)}
 .bes-results-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);letter-spacing:.02em;margin-bottom:4px}
 .bes-nomatch{padding:12px 2px;color:var(--brown-mid);font-size:14px;line-height:1.6}
 .bes-nomatch p{margin:0 0 6px}
@@ -519,7 +497,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bes-sens .mr{display:flex;align-items:center;gap:10px;flex:none}
 .bes-sens-badge{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:3px 9px}
 .bes-sens .mk-chev{color:var(--brown-mid);opacity:.45;font-size:15px;line-height:1}
-.bes-sens-note{font-size:12px;color:var(--brown-mid);font-style:italic;padding:2px 0 10px}
 /* Stage 5: first-panel trajectory state (no baseline yet). Dot glyph only, never a line. */
 .fp-lead{font-size:14px;color:var(--brown-mid);line-height:1.6;margin-bottom:14px}
 .fp-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
@@ -1512,18 +1489,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       </div>
     </div>
 
-    <div id="bes-wrap" class="hidden">
-      <div class="section-label acc-amber">Browse everything</div>
-      <div class="bes-card">
-        <input id="bes-search" class="bes-search" type="text" autocomplete="off" spellcheck="false" placeholder="Search markers, like ferritin or vitamin D" aria-label="Search markers"/>
-        <div class="bes-head">
-          <div class="bes-title" id="bes-title">All systems</div>
-          <div class="bes-pills" id="bes-pills"></div>
-        </div>
-        <div class="bes-grid" id="bes-grid"></div>
-        <div class="bes-results hidden" id="bes-results"></div>
-      </div>
-    </div>
 
     <div id="theme-wrap">
       <div class="section-label acc-amber">Everything else, by theme</div>
@@ -7014,115 +6979,6 @@ const ST_COLOR = {'s-good':'#0C8E6B','s-watch':'#D4A94A','s-flag':'#D47C65','s-n
 // "Browse everything" grid: every system as a card (status dot + marker count +
 // status word), with filter pills. Reuses sysStatus/ST_COLOR (single source of
 // truth) and openSystem (the existing detail modal) — no new data, no new modal.
-function renderBrowseGrid(p, sys){
-  const wrap = $("bes-wrap");
-  if(!wrap) return;
-  if(!sys || !sys.length){ wrap.classList.add("hidden"); return; }
-  wrap.classList.remove("hidden");
-  $("bes-title").textContent = "All " + sys.length + " systems";
-  // pills: All + only the buckets that actually appear (besides s-none)
-  const PILL = [["all","All"],["s-flag","Worth a closer look"],["s-watch","Worth watching"],["s-good","Looks good"]];
-  const present = new Set(sys.map(s => sysStatus(s.status).cls));
-  const pills = PILL.filter(([cls]) => cls==="all" || present.has(cls));
-  let active = "all";
-  const grid = $("bes-grid");
-  function card(s){
-    const st = sysStatus(s.status);          // {cls,label} — single source of truth
-    const color = ST_COLOR[st.cls];
-    const mc = (s.markers && s.markers.length) ? s.markers.length : (markersForSystem(p,s)||[]).length;
-    const countTxt = st.cls==="s-none" ? "untested" : (mc + " marker" + (mc===1?"":"s"));
-    const div = document.createElement("div");
-    div.className = "bes-sys";
-    div.dataset.cls = st.cls;
-    div.innerHTML =
-      '<div class="bes-sys-top">'+
-        '<span class="bes-dot" style="background:'+color+'"></span>'+
-        '<span class="bes-count">'+esc(countTxt)+'</span>'+
-      '</div>'+
-      '<div class="bes-name">'+esc(s.display_name || s.system_id)+'</div>'+
-      '<div class="bes-status">'+esc(BES_WORD[st.cls] || st.label)+'</div>';
-    div.onclick = () => openSystem(p, s);     // reuse existing modal
-    return div;
-  }
-  function paint(){
-    grid.innerHTML = "";
-    sys.forEach(s => {
-      const c = card(s);
-      if(active!=="all" && c.dataset.cls!==active) c.classList.add("bes-hidden");
-      grid.appendChild(c);
-    });
-  }
-  const pc = $("bes-pills"); pc.innerHTML = "";
-  pills.forEach(([cls,lbl])=>{
-    const b=document.createElement("button");
-    b.className="bes-pill"+(cls==="all"?" active":"");
-    b.textContent=lbl;
-    b.onclick=()=>{ active=cls;
-      pc.querySelectorAll(".bes-pill").forEach(x=>x.classList.remove("active"));
-      b.classList.add("active"); paint(); };
-    pc.appendChild(b);
-  });
-  paint();
-
-  // ── Marker search (dashboard-only). Query >= 2 hides pills + grid and shows #bes-results
-  // with per-marker rows; empty/<2 restores the grid path byte-identical. paint()/active/the
-  // pills are untouched. system_id comes from the ITERATION variable, never the marker object
-  // (Stage 2b): a SENSITIVE system routes to openSystem() instead of rendering a value row.
-  const searchEl = $("bes-search"), results = $("bes-results"), pillsEl = $("bes-pills");
-  if(searchEl && results){
-    function runSearch(){
-      const q = (searchEl.value || "").trim().toLowerCase();
-      if(q.length < 2){                       // empty / under 2 -> exact reverse of the search view
-        results.classList.add("hidden"); results.innerHTML = "";
-        pillsEl.classList.remove("hidden"); grid.classList.remove("hidden");
-        return;
-      }
-      pillsEl.classList.add("hidden"); grid.classList.add("hidden");
-      results.classList.remove("hidden");
-      let rows = "", n = 0;
-      sys.forEach(s => {
-        const sid = s.system_id;              // fence from the iteration, not the marker
-        const sensitive = SENSITIVE_SYSTEMS.has(sid);
-        (markersForSystem(p, s) || []).forEach(mk => {
-          const dn = String(mk.display_name || "").toLowerCase();
-          const id = String(mk.marker_id || "").toLowerCase();
-          if(dn.indexOf(q) === -1 && id.indexOf(q) === -1) return;   // substring, no alias
-          n++;
-          if(sensitive){
-            const st = sysStatus(s.status);
-            const sysName = CANONICAL_TITLE[sid] || s.display_name || sid;
-            rows += '<button class="bes-sens" type="button" data-sysid="'+esc(sid)+'">'+
-                '<span class="mn"><span class="mdot '+st.cls+'"></span>'+esc(markerName(mk))+'</span>'+
-                '<span class="mr"><span class="bes-sens-badge">'+esc(sysName)+'</span>'+
-                  '<span class="mk-chev">›</span></span>'+
-              '</button>'+
-              '<div class="bes-sens-note">Opens in the '+esc(sysName)+' system.</div>';
-          } else {
-            rows += markerRowHTML(mk);         // unchanged
-          }
-        });
-      });
-      results.innerHTML = n
-        ? '<div class="bes-results-count">'+n+' marker'+(n===1?'':'s')+'</div>'+rows
-        : '<div class="bes-nomatch"><p>No marker matching that in this panel.</p>'+
-          '<p>Try part of the full name, like ferritin or vitamin D.</p></div>';
-    }
-    searchEl.oninput = runSearch;
-    // Expand delegation bound to #bes-results (own container, own contains() guard — mirrors
-    // openSystem, never bound to #sm-card). Sensitive rows route to the system modal instead.
-    results.onclick = (e)=>{
-      const sens = e.target.closest('.bes-sens');
-      if(sens && results.contains(sens)){
-        const s = sys.find(x => x.system_id === sens.dataset.sysid);
-        if(s){ searchEl.value = ""; runSearch(); openSystem(p, s); }   // closes the search state
-        return;
-      }
-      const row = e.target.closest('.sm-mk');
-      if(row && results.contains(row)) row.parentElement.classList.toggle('open');
-    };
-    searchEl.value = ""; runSearch();          // reset on (re)render so a panel switch is clean
-  }
-}
 
 // Friendly status word keyed off st.cls, shared by the browse grid and body-map cards.
 const BES_WORD = { "s-good":"Looks good", "s-watch":"Worth watching", "s-flag":"Worth a closer look", "s-none":"Not tested yet" };
