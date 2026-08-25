@@ -7287,8 +7287,23 @@ function openSystem(p, s){
   // Rows: neutral
   // s-none dot + name only (no value/spark/range/expand, and no system badge — redundant in-system).
   const sensitive = SENSITIVE_SYSTEMS.has(s.system_id);
-  const st = sysStatus(s.status);
-  const pill = sensitive ? cardStatus(s) : { cls: st.cls, word: BES_WORD[st.cls] || st.label };
+  // P0_SAFETY_PILL_V1 (2026-08-25) — was:
+  //     const st = sysStatus(s.status);
+  //     const pill = sensitive ? cardStatus(s) : { cls: st.cls, word: BES_WORD[st.cls] || st.label };
+  //
+  // THAT TERNARY WAS NOT REDUNDANT, despite reading like it. Measured, not assumed: cardStatus and
+  // the else-branch agree for every genuine non-safety system (liver, kidney, thyroid, at flag /
+  // watch / optimal / null), so removing it is a no-op for them. They DIVERGE on ONE case —
+  // sex_hormones with a flagged AMH, where cardStatus returns s-flag "Worth discussing" and the
+  // else-branch returned s-none "Not tested yet". The ternary sent sex_hormones down the else
+  // branch, so the modal pill contradicted the body-map chip for exactly the finding that matters.
+  //
+  // Do not "simplify" this back into a ternary on the assumption the branches are equivalent. They
+  // are equivalent only for systems that are neither a safety class nor sex_hormones.
+  //
+  // (The tumor_markers divergences the same test showed are already handled upstream: since C1 that
+  // class is in SENSITIVE_SYSTEMS, so the else branch was already unreachable for it.)
+  const pill = cardStatus(s);
   const markers = markersForSystem(p, s);
   const card = $("sm-card");
   if(!card) return;
