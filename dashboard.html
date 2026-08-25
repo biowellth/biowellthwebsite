@@ -4589,7 +4589,22 @@ function renderFoundations(p){
 // the strengths beat, the reveal deck (both via dropSuppressedQW), and the system-detail
 // modal summary_line. (cardStatus still neutralizes only heavy_metals on the body map —
 // a one-word status label, a separate/lesser concern.)
-const SENSITIVE_SYSTEMS = new Set(["heavy_metals","autoimmune"]);
+// P0_SAFETY_SETS_V1 — render suppression. HAND-MIRRORED from REPORT_SAFETY_CLASSES in the worker's
+// report-synthesis.js (the one authoritative copy-safety set). It is copied, not imported, because
+// dashboard.html is a single self-contained file with no build step and no module graph reaching
+// supabase/functions — there is nothing to import through. If REPORT_SAFETY_CLASSES changes, THIS
+// LINE MUST CHANGE WITH IT; nothing enforces that automatically.
+//
+// tumor_markers was MISSING here until 2026-08-25 and that was the P0: every render-suppression gate
+// keys on this set, so a tumour marker rendered its value, unit, reference range, sparkline, expand
+// control and a status-coloured dot that could read green. Six surfaces, one missing token.
+//
+// RENDER SUPPRESSION ONLY. Deliberately NOT unified with COMPOSITE_EXCLUDED_SYSTEMS (worker
+// vitality-engine.js — excludes from the SCORE, and omits autoimmune on purpose because an
+// autoimmune system should still score) or GAP_SUPPRESS_SYSTEMS (suppresses RECOMMENDATIONS, a
+// different decision from whether to display a result already in hand). Collapsing them would move
+// every vitality score.
+const SENSITIVE_SYSTEMS = new Set(["heavy_metals","autoimmune","tumor_markers"]);
 function dropSuppressedQW(list, payload){
   const QW_SUPPRESS_FALLBACK = new Set([
     "ana","anti_ccp","aso","rheumatoid_factor",
@@ -5691,6 +5706,10 @@ function renderThemePanel(p){
   // the SAME filter renderThemeGrid's tally uses (skip sensitive systems -> themesOf membership ->
   // sysStatus(status).cls), so the tier counts reconcile with the card's count line by construction.
   // The model's severity/flag_status are never read on this surface.
+  // P0_SAFETY_SETS_V1 — DIVERGES DELIBERATELY, reconciliation DEFERRED. This is the only safety set
+  // carrying "genetic". Whether genetic findings belong under the same render-suppression rule is a
+  // clinical question that was NOT settled in the 2026-08-25 pass, so the set is left exactly as it
+  // was rather than quietly widened. Do not "tidy" this into SENSITIVE_SYSTEMS without that ruling.
   const THEME_SENSITIVE = new Set(["heavy_metals","autoimmune","tumor_markers","genetic"]);
   const sysByMarker = {};
   for(const s of (Array.isArray(p && p.systems) ? p.systems : []))
@@ -7122,11 +7141,15 @@ const SAFETY_CLASS = {
   },
   autoimmune: {
     clean: new Set(["negative","optimal"]),
-    flagWord: null            // null -> BES_WORD["s-flag"]
+    // Carried the SAME fall-through tumor_markers did; found and fixed in the same pass. A positive
+    // antibody is a clinician conversation, not a self-investigation prompt.
+    flagWord: "Worth discussing"
   },
   tumor_markers: {
     clean: new Set(["optimal"]),
-    flagWord: null
+    // "Worth a closer look" (the BES_WORD default) points a woman at her own investigation. A
+    // tumour marker above cutoff is a clinician's question, never hers to research alone.
+    flagWord: "Worth discussing"
   }
 };
 const SAFETY_NEUTRAL_WORD = "Tested";
@@ -7243,8 +7266,9 @@ function buildBodyMap(p, sys){
 
 function openSystem(p, s){
   // SENSITIVE_SYSTEMS guard applied HERE (openSystem has s), never inside markerRowHTML/Detail.
-  // Pill: cardStatus(s) so it matches the body map ("Tested"/"Worth discussing" for heavy_metals;
-  // cardStatus default for autoimmune — its override is a separate clinical ruling). Rows: neutral
+  // Pill: cardStatus(s) so it matches the body map. As of 2026-08-25 all three safety classes carry
+  // flagWord "Worth discussing" — the autoimmune fall-through this comment used to describe is gone.
+  // Rows: neutral
   // s-none dot + name only (no value/spark/range/expand, and no system badge — redundant in-system).
   const sensitive = SENSITIVE_SYSTEMS.has(s.system_id);
   const st = sysStatus(s.status);
