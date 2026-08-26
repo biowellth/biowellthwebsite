@@ -59,7 +59,7 @@ One file, one global scope. Structure: `<style>` (lines ~12–1143) → markup f
 
 - Tables read/written directly: `profiles`, `reports`, `results`, `action_pool`, `action_completions`
 - Storage bucket: `reports` (PDF upload, then `createSignedUrl` for read-back)
-- Edge functions invoked from the client: `process-report` (upload / `mode:"retry"` / submit-mode), `enqueue-rescore`, `consent-accept`, `affirm-age`, `delete-account`. The backend has others (`process-report-worker`, `report-worker`, `release-between-calls`) that the client never calls directly.
+- Edge functions invoked from the client: `process-report` (upload / `mode:"retry"` / submit-mode), `enqueue-rescore`, `consent-accept`, `affirm-age`, `delete-account`. The backend has others that the client never calls directly.
 - RPCs: `commit_between_calls`, `set_confounder`, `set_report_confounder`
 
 **The payload contract.** `results.payload` is a v1.3 jsonb blob written by `process-report-worker`; its shape is documented in a `/* CONTRACT: */` comment right below the Supabase client init. Everything the dashboard renders — vitality composite, systems, priorities, quietly_working, foundations — comes from there. Payloads are loaded **one panel at a time**, never bulk-loaded to fill the panel switcher.
@@ -92,6 +92,6 @@ One file, one global scope. Structure: `<style>` (lines ~12–1143) → markup f
 
 **Honesty over polish** is the recurring standard in this codebase, and several commits exist purely to fix a screen that overstated what happened. When a state is uncertain, say so; when a control will not work, do not render it.
 
-**Design tokens** (`--cream`, `--teal`, `--coral`, `--brown` families, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page.
+**Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page.
 
 **`mocks/`** holds standalone single-file mocks named after the change token (`mocks/quota-429.html`, `mocks/processing-copy.html`). Each copies the live classes out of `dashboard.html` and renders every state of a screen side by side for review before the change is wired into the app. The directory is untracked working material — build a mock here first for anything that changes what a user sees in a hard-to-reach state (a failure, a quota block, a long-running job).
