@@ -4631,6 +4631,15 @@ function renderFoundations(p){
 // autoimmune system should still score) or GAP_SUPPRESS_SYSTEMS (suppresses RECOMMENDATIONS, a
 // different decision from whether to display a result already in hand). Collapsing them would move
 // every vitality score.
+//
+// MIRROR_GATE_V1 (2026-08-25). THIS IS NOT THE ONLY COPY OF THESE THREE SYSTEMS IN THIS FILE.
+// SAFETY_CLASS lists them again as its top-level keys, and SENSITIVE_MARKER_IDS lists the 29
+// individual markers that belong to them. Three constants, one file, nothing in the language tying
+// them together, plus the worker's REPORT_SAFETY_CLASSES across a repo boundary.
+// The claim this comment used to make — "nothing enforces the mirror" — is now FALSE:
+// verify-library.py CHECK 8 (backend repo) gates all three against REPORT_SAFETY_CLASSES in
+// process-report-worker/report-synthesis.js, which is the source of truth. Change one and the gate
+// fails naming the drift. Change this set here and you must change SAFETY_CLASS too.
 const SENSITIVE_SYSTEMS = new Set(["heavy_metals","autoimmune","tumor_markers"]);
 function dropSuppressedQW(list, payload){
   const QW_SUPPRESS_FALLBACK = new Set([
@@ -7052,6 +7061,19 @@ const BES_WORD = { "s-good":"Looks good", "s-watch":"Worth watching", "s-flag":"
 // cutoff are all "we looked and found nothing", not "healthy". Defined by
 // the CLEAN bands, not the bad ones, so an unrecognised band flags rather
 // than passing quietly. One table, not three copies.
+//
+// MIRROR_GATE_V1 (2026-08-25). "One table" refers to the CLEAN-BAND logic, not to the system list:
+// these three keys are a second copy of SENSITIVE_SYSTEMS, defined earlier in this same file, and
+// SENSITIVE_MARKER_IDS below is a third listing their 29 markers. verify-library.py CHECK 8
+// (backend repo) now gates these keys against REPORT_SAFETY_CLASSES in the worker's
+// report-synthesis.js. Add a safety class here and you must add it to SENSITIVE_SYSTEMS, to the
+// worker set, and to the library, or the gate fails naming which one drifted.
+//
+// The `clean` sets below are DELIBERATELY NOT GATED, and that is not an oversight. They are keyed
+// on clean bands so an unrecognised band flags rather than passing quietly, which makes a
+// defensive SUPERSET correct — heavy_metals lists bands no library marker carries today. Asserting
+// equality against the library would fail a correct file and pressure someone into deleting real
+// safety headroom to make a gate go green. Do not add that assertion.
 const SAFETY_CLASS = {
   heavy_metals: {
     clean: new Set(["optimal","normal","low","normal_low","within_reference","negative"]),
