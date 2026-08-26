@@ -1,0 +1,6 @@
+session_id: session_01HaFj9rvVuNUF6PMJhxqnAo
+opened_utc: 2026-08-26T02:14:11Z
+scope: P1a commit 4 — drop mk.reference / mk.range / mk.optimal from the trend render's
+       range chain at two sites, keeping lookupRange. No-op today (0 of 4627 stored markers
+       carry those keys); a guarantee going forward.
+repos: biowellth-website (WRITE) ; biowellth-backend-supa (locked separately)
