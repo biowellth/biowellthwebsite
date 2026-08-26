@@ -1,0 +1,8 @@
+session_id: session_01HaFj9rvVuNUF6PMJhxqnAo
+opened_utc: 2026-08-26T01:23:22Z
+scope: HBC_CEASED_V1 commit 2 (FE) — Q2 gains "I stopped" and "No, I have not used it";
+       conditional "When did you stop?" follow-up on "I stopped" only; collectCycle maps
+       to the hormonal_contraception text plus on_hormonal_contraception=false; prefill
+       round-trip fixed for the now-ambiguous boolean.
+repos: biowellth-website (WRITE) ; biowellth-backend-supa (locked separately, commit 1 shipped)
+depends_on: BE a206530, process-report v31 — the enqueuer must accept the key or this write is inert.
