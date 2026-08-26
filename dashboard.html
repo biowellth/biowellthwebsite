@@ -1290,8 +1290,24 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
                 <div class="cyc-q">Are you currently using hormonal contraception (pill, IUD with hormones, implant, injection)?</div>
                 <div class="cyc-opts" id="cyc-hc">
                   <button type="button" class="cyc-opt" data-hc="yes"><span class="cyc-opt-l">Yes</span></button>
-                  <button type="button" class="cyc-opt" data-hc="no"><span class="cyc-opt-l">No</span></button>
+                  <button type="button" class="cyc-opt" data-hc="stopped"><span class="cyc-opt-l">I stopped</span></button>
+                  <button type="button" class="cyc-opt" data-hc="no"><span class="cyc-opt-l">No, I have not used it</span></button>
                   <button type="button" class="cyc-opt" data-hc="decline"><span class="cyc-opt-l">Prefer not to say</span></button>
+                </div>
+                <!-- HBC_CEASED_V1 — revealed by applyHcLens on "I stopped" ONLY. Buckets, not a date:
+                     nothing here writes hormonal_contraception_ceased_at, because a bucket is not a
+                     date and inventing one would be a fabricated precision. The copy asks WHEN and
+                     never says what stopping at any point means for her hormones; that is a clinical
+                     claim no advisor has signed. -->
+                <div id="cyc-hcwhen" class="hidden">
+                  <div class="cyc-q">When did you stop?</div>
+                  <div class="cyc-opts" id="cyc-hcw">
+                    <button type="button" class="cyc-opt" data-hcw="lt3"><span class="cyc-opt-l">Less than 3 months ago</span></button>
+                    <button type="button" class="cyc-opt" data-hcw="3to12"><span class="cyc-opt-l">3 to 12 months ago</span></button>
+                    <button type="button" class="cyc-opt" data-hcw="gt12"><span class="cyc-opt-l">More than a year ago</span></button>
+                    <button type="button" class="cyc-opt" data-hcw="unsure"><span class="cyc-opt-l">I am not sure</span></button>
+                  </div>
+                  <div class="cyc-guidance">A rough answer is fine.</div>
                 </div>
               </div>
               <!-- CYCLE_CAPTURE_V1 (per-upload LMP, relocated) -->
@@ -2184,7 +2200,21 @@ dz.ondrop = e=>{e.preventDefault();dz.classList.remove("drag"); if(!consentReady
 fileInput.onchange = ()=>{ if(!consentReady()) return; if(fileInput.files[0]) handleFile(fileInput.files[0]); };
 // Optional cycle-context capture on the upload card. Answers append to the process-report payload in
 // handleFile (no new network calls, no client-side table writes; the function validates + persists).
-const cycSel = { menstrual:null, hc:null, declined:false };
+const cycSel = { menstrual:null, hc:null, hcWhen:null, declined:false };
+// HBC_CEASED_V1 — bucket -> profiles.hormonal_contraception (migration 0003's enum). No date is
+// derived from a bucket. "unsure" resolves as RECENTLY STOPPED on purpose: if she knows she stopped
+// but not when, the safe assumption is that it still matters. The resolver reads the 12-month window
+// off this text; the backend re-validates against the same three values and drops anything else.
+const HCW_TO_TEXT = { lt3:"ceased_within_12_months", "3to12":"ceased_within_12_months", gt12:"none", unsure:"ceased_within_12_months" };
+// Reveal the "when did you stop" follow-up for "I stopped" ONLY. Mirrors applyCycleLens — the
+// answer above drives the visibility of the question below. Clearing hcWhen on the way out stops a
+// stale bucket riding along after she changes her mind to Yes or No.
+function applyHcLens(hc){
+  const w = document.getElementById("cyc-hcwhen");
+  const show = (hc === "stopped");
+  if(w) w.classList.toggle("hidden", !show);
+  if(!show){ cycSel.hcWhen = null; document.querySelectorAll("#cyc-hcw .cyc-opt").forEach(b=>b.classList.remove("sel")); }
+}
 // DRAW_CONTEXT_SUBMIT_V1 — status-aware cycle lens. regular/irregular/perimenopausal get the full lens;
 // pregnant/postmenopausal get LMP + microcopy + "I don't remember" only (no cycle-day, no typical
 // length/duration); postmenopausal softens the LMP label; decline hides the lens entirely. Submit-mode
@@ -2222,7 +2252,11 @@ function initCycleCapture(){
     };
   });
   document.querySelectorAll("#cyc-hc .cyc-opt").forEach(btn=>{
-    btn.onclick = ()=>{ cycSel.hc = btn.getAttribute("data-hc"); document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn)); };
+    btn.onclick = ()=>{ cycSel.hc = btn.getAttribute("data-hc"); document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+      applyHcLens(cycSel.hc); };   // HBC_CEASED_V1
+  });
+  document.querySelectorAll("#cyc-hcw .cyc-opt").forEach(btn=>{
+    btn.onclick = ()=>{ cycSel.hcWhen = btn.getAttribute("data-hcw"); document.querySelectorAll("#cyc-hcw .cyc-opt").forEach(b=>b.classList.toggle("sel", b===btn)); };
   });
   const alt = document.getElementById("cyc-alt"); if(alt) alt.onclick = ()=>{ const w=document.getElementById("cyc-cd-wrap"); if(w) w.classList.toggle("hidden"); };
   const decl = document.getElementById("cyc-decline");
@@ -2235,7 +2269,24 @@ function collectCycle(){
   const out = {};
   const inRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
   if(cycSel.menstrual && cycSel.menstrual !== "decline") out.menstrual_status = cycSel.menstrual;
-  if(cycSel.hc === "yes") out.on_hormonal_contraception = true; else if(cycSel.hc === "no") out.on_hormonal_contraception = false;
+  // HBC_CEASED_V1 — four options across two columns.
+  //   yes      -> boolean true, no text
+  //   stopped  -> boolean FALSE **and** the bucket's text
+  //   no       -> boolean false, no text  ("No, I have not used it")
+  //   decline  -> neither key, so the resolver keeps returning `unknown`
+  // "I stopped" writes the BOOLEAN TOO, and that is load-bearing rather than tidy. resolveContraception
+  // checks `on_hormonal_contraception === true` BEFORE it reads the text column, so a stale true left
+  // by an earlier upload would beat a fresh "I stopped" on the Update path and resolve her to
+  // `current`, silently discarding the answer. Same failure class as the wrong-column read
+  // HBC_RESOLVE_V1 closed. Measured, not assumed.
+  // The text is sent ONLY when a bucket is selected. The enqueuer coalesces non-null, so omitting it
+  // preserves whatever is stored rather than clobbering it with a guess.
+  if(cycSel.hc === "yes") out.on_hormonal_contraception = true;
+  else if(cycSel.hc === "no") out.on_hormonal_contraception = false;
+  else if(cycSel.hc === "stopped"){
+    out.on_hormonal_contraception = false;
+    if(cycSel.hcWhen && HCW_TO_TEXT[cycSel.hcWhen]) out.hormonal_contraception = HCW_TO_TEXT[cycSel.hcWhen];
+  }
   if(cycSel.menstrual === "regular" || cycSel.menstrual === "irregular" || cycSel.menstrual === "perimenopausal"){
     const cl = inRange((document.getElementById("cyc-len")||{}).value, 15, 90); if(cl!=null) out.typical_cycle_length_days = cl;
     const du = inRange((document.getElementById("cyc-dur")||{}).value, 1, 15); if(du!=null) out.typical_period_duration_days = du;
@@ -2313,7 +2364,7 @@ function initAboutDraw(){
   const upd = document.getElementById("cyc-confirm-update");
   if(upd) upd.onclick = ()=>{ const c=document.getElementById("cyc-confirm"), s=document.getElementById("cyc-selector"); if(c) c.classList.add("hidden"); if(s) s.classList.remove("hidden");
     if(cycSel.menstrual){ document.querySelectorAll("#cyc-menstrual .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-m")===cycSel.menstrual)); applyCycleLens(cycSel.menstrual); }
-    if(cycSel.hc){ document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-hc")===cycSel.hc)); } };
+    if(cycSel.hc){ document.querySelectorAll("#cyc-hc .cyc-opt").forEach(b=>b.classList.toggle("sel", b.getAttribute("data-hc")===cycSel.hc)); applyHcLens(cycSel.hc); } };   // HBC_CEASED_V1
   const yes = document.getElementById("cyc-confirm-yes");
   if(yes) yes.onclick = ()=>{ yes.classList.add("sel"); };
   const start = document.getElementById("ad-start");
@@ -2362,12 +2413,23 @@ async function mountAboutDraw(reportId, fileName){
   const post = document.getElementById("up-postfile"); if(post) post.classList.remove("hidden");
   initAboutDraw();
   try{
-    const { data } = await sb.from("profiles").select("menstrual_status, on_hormonal_contraception").eq("id", USER.id).maybeSingle();
+    const { data } = await sb.from("profiles").select("menstrual_status, on_hormonal_contraception, hormonal_contraception").eq("id", USER.id).maybeSingle();
     const ms = data && data.menstrual_status;
     // Seed cycSel.hc from the stored value so the full-selector (Update) path pre-selects it; on the
     // confirm path the selector is hidden, so a "Yes" confirm never re-asks and the stored value stands.
+    //
+    // HBC_CEASED_V1 — the BOOLEAN ALONE CAN NO LONGER ROUND-TRIP. With four options,
+    // `on_hormonal_contraception === false` is ambiguous: it is written both by "No, I have not used
+    // it" AND by "I stopped". Seeding on the boolean alone pre-selected "No, I have not used it" for
+    // a woman who had said she stopped, which is a wrong answer shown back to her in her own words.
+    // The text column disambiguates, because after this change only "I stopped" ever writes it.
     if(data && data.on_hormonal_contraception === true) cycSel.hc = "yes";
-    else if(data && data.on_hormonal_contraception === false) cycSel.hc = "no";
+    else if(data && data.on_hormonal_contraception === false) cycSel.hc = data.hormonal_contraception ? "stopped" : "no";
+    // The BUCKET is deliberately NOT restored. Three buckets collapse into one text value
+    // (lt3/3to12/unsure all store ceased_within_12_months), so it cannot be reversed and guessing
+    // one would show her an answer she never gave. The group is revealed empty and she may re-answer;
+    // leaving it untouched sends no text, and the enqueuer's non-null coalesce keeps what is stored.
+    if(cycSel.hc === "stopped") applyHcLens("stopped");
     const confirm = document.getElementById("cyc-confirm"), selector = document.getElementById("cyc-selector");
     if(ms && confirm && selector){
       cycSel.menstrual = ms;
