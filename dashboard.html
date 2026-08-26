@@ -6845,7 +6845,15 @@ function miniSparkSVG(hist, color){
     '<circle cx="'+X(n-1)+'" cy="'+Y(vals[n-1])+'" r="2.4" fill="'+color+'"/></svg>';
 }
 function trendSummary(hist, mk){
-  const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
+  // RANGE_PROVENANCE_V1. Was `mk.reference || lookupRange(mk) || mk.range || mk.optimal`, which
+  // consulted THREE potentially model-supplied fields and put one of them AHEAD of the library.
+  // lookupRange is the only library-derived source (ranges-slim, built from the worker's
+  // biomarker library), so it is now the only source. A healthy range is a clinical claim and
+  // must come from the library, never from whatever the model happened to attach to a marker.
+  // Inert today, which is why it is safe to tighten now: 0 of 4627 stored payload markers carry
+  // `reference`, `range` or `optimal` (control: `band` present on 4201). This is a guarantee for
+  // tomorrow, not a fix for a visible bug.
+  const ref = lookupRange(mk) || null;
   const unit = mk.unit ? ' '+mk.unit : '';
   const within = (v)=> ref && (ref.low==null || v>=ref.low) && (ref.high==null || v<=ref.high);
   if(hist.length<2){
@@ -6884,7 +6892,9 @@ function markerDetailHTML(mk, cls){
   // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
   const cur = (mk.value!=null && mk.value!=='') ? mk.value : (info.points.length ? info.points[info.points.length-1].value : '');
-  const ref = mk.reference || lookupRange(mk) || mk.range || mk.optimal || null;
+  // RANGE_PROVENANCE_V1 — the second of the two sites. See trendSummary above for the reasoning;
+  // both had the identical model-first chain and both now read the library only.
+  const ref = lookupRange(mk) || null;
   let rangeTxt = '';
   if(!isQual && !isNotScored){
     // nowHTML prints cur + unit right beside this range (both live in .sm-trend-top). When a value
