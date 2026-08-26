@@ -1,5 +1,0 @@
-session_id: session_01HaFj9rvVuNUF6PMJhxqnAo
-opened_utc: 2026-08-26T01:51:29Z
-scope: MIRROR_GATE_V1 — COMMENTS ONLY at SENSITIVE_SYSTEMS and SAFETY_CLASS, pointing at
-       each other and at CHECK 8. No behaviour change, no rendered-string change.
-repos: biowellth-website (WRITE) ; biowellth-backend-supa (locked separately)
