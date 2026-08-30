@@ -74,7 +74,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 
 <div class="policy-header">
   <h1>Privacy Policy</h1>
-  <p>Last updated July 2026</p>
+  <p>Last updated August 2026</p>
 </div>
 
 <div class="policy-body">
@@ -115,7 +115,12 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 <p><strong>Self-reported data</strong></p>
 <p>Symptoms, energy levels, mood, cycle patterns, and other information you log directly in the app.</p>
 <ul>
-  <li>Purpose: to provide personalised AI companion responses and track patterns over time</li>
+  <!-- PRIVACY_TRUTH_V1: narrowed 2026-08-30. The previous wording claimed this whole
+       category feeds the AI companion. Only cycle data does: health-context.service.js
+       assembles userProfile, cycle, fertility, sleep, activity, scan and biomarker
+       blocks, and the symptom, energy and mood logs (StressLog, DailyWellnessLog) are
+       not among them. Pattern tracking itself is real and stays stated. -->
+  <li>Purpose: to show you how your patterns change over time. Cycle data you log is also used to personalise your AI companion's responses</li>
 </ul>
 
 <p><strong>Usage data</strong></p>
