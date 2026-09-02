@@ -449,6 +449,15 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sana-you{font-weight:600;color:var(--brown-mid);margin-bottom:4px}
 .sana-her p{margin:0 0 8px}
 .sana-note{font-size:13px;color:var(--brown-mid);opacity:.85;margin-top:8px}
+.sana-consent{display:none}
+.sana-consent.show{display:block;margin-top:12px}
+.sana-consent-card{border:1px solid var(--teal-light);border-radius:14px;padding:16px;background:var(--white)}
+.sana-consent-h{font-weight:700;color:var(--brown-mid);margin-bottom:6px}
+.sana-consent-b{margin:0 0 12px;font-size:14px;color:var(--brown-mid);line-height:1.6}
+.sana-consent-actions{display:flex;gap:8px;align-items:center}
+.acct-consent{margin-top:6px}
+.acct-consent-h{font-weight:600;color:var(--brown-mid);margin-bottom:4px}
+.acct-consent-b{margin:0 0 8px;font-size:13px;color:var(--brown-mid);line-height:1.6;opacity:.9}
 /* Clarify chip (Deploy D2): the companion asking about an ambiguous marker. Calm teal-soft
    card, never a form/settings row. Suppressed once the user has answered (profile.supp_*). */
 .clarify-card{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:18px 20px;margin-bottom:10px;animation:escFade .4s ease}
@@ -1228,6 +1237,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <p class="acct-privacy">Your reports and results are yours. We use them only to build your health picture, and we keep them while your account is active.</p>
     </div>
     <div id="report-vault"></div>
+    <!-- CONSENT_WITHDRAWAL_V3. Built dark. renderConsentControls returns without rendering
+         unless SANA_CHAT_ENABLED is on, so with the flag off this stays an empty div and the
+         Account panel looks exactly as it does today. privacy.html's "or through your account
+         settings" clause is removed until this ships un-darked, see PRIVACY_TRUTH_V2 there. -->
+    <div class="acct-row" id="acct-consent"></div>
     <div class="acct-dz">
       <div class="acct-dz-h">Delete account</div>
       <p class="acct-dz-body">This deletes your account, your reports, and your uploaded files right away. It cannot be undone.</p>
@@ -1452,6 +1466,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
            SANA_CHAT_ENABLED is true, so with the flag off they do not exist in
            the DOM at all rather than being hidden. See sanaMountChat. -->
       <div id="sana-mount"></div>
+      <div id="sana-consent" class="sana-consent"></div>
       <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
     </div>
@@ -2150,6 +2165,7 @@ $("btn-account").onclick = ()=>{
   $("del-input").value = ""; $("del-confirm").disabled = true;
   $("del-msg").textContent = ""; $("del-msg").className = "del-msg";
   refreshReportVault();   // re-fetch on open so a just-finished report shows its current status
+  renderConsentControls(); // dark: returns immediately unless SANA_CHAT_ENABLED
   $("account-modal").classList.remove("hidden");
 };
 // Account closes the same way .del-modal did — an explicit close affordance, no backdrop / Escape.
@@ -5394,7 +5410,42 @@ const SANA_COPY = {
   cutOff:      "That reply was cut off. Please try again.",
   runtime:     "Something went wrong answering that. Please try again.",
   offline:     "We could not reach Sana just now. Please check your connection and try again.",
+
+  // SANA_CONSENT_V3 — placeholder copy. PENDING COUNSEL. Never shown while
+  // SANA_CONSENT_TEXT_APPROVED is false, and never stampable while the server's
+  // matching notice carries approved:false.
+  consentTitle:   "Before you chat with Sana",
+  consentBody:    "PENDING COUNSEL. This placeholder text must never be shown to a user. The approved notice replaces it in the same commit that sets SANA_CONSENT_TEXT_APPROVED to true.",
+  consentAgree:   "I agree",
+  consentDecline: "Not now",
+  consentDeclined: "No problem. You can start a chat with Sana whenever you are ready.",
+  consentFailed:  "We could not record that just now. Please try again in a moment.",
+  consentPending: "Sana is not ready yet. We are finishing her privacy notice.",
+
+  // Withdrawal, Account panel.
+  wdSanaTitle:    "Chatting with Sana",
+  wdSanaBody:     "You have agreed to chat with Sana. You can stop that at any time. Your reports and your readings are not affected.",
+  wdSanaBtn:      "Stop chatting with Sana",
+  wdCoreTitle:    "Reading your reports",
+  wdCoreBody:     "You have agreed to BioWellth reading your uploaded reports. If you withdraw this, you will not be able to upload a new report. The readings you already have stay in your account until you delete the account.",
+  wdCoreBtn:      "Withdraw this consent",
+  wdDone:         "Done. That consent has been withdrawn.",
+  wdFailed:       "We could not record that just now. Please try again in a moment.",
 };
+
+// SANA_CONSENT_TEXT_APPROVED — the CLIENT half of a two-layer gate.
+//
+// The server half is `approved: false` on every v3 notice in
+// supabase/functions/process-report-worker/consent-versions.ts, which makes the
+// stamp endpoint refuse a grant outright. This constant makes the client refuse
+// to ASK. Both must flip, in the commit that pastes the counsel-approved text.
+//
+// It is a SEPARATE constant from SANA_CHAT_ENABLED on purpose. That flag guards
+// whether the chat is visible; this one guards whether a legal artifact can be
+// created. One flag guarding two unrelated risks is how the wrong one gets
+// flipped.
+const SANA_CONSENT_TEXT_APPROVED = false;
+const SANA_CONSENT_VERSION = "v3";
 
 // SANA_SSE_PARSER_V1 START
 // Frame parser for the agent SSE stream. Pure apart from its own buffer, and
@@ -5490,6 +5541,148 @@ function sanaCloseChips(){
   if(cs) [...cs.querySelectorAll(".comp-chip")].forEach(c=>{ c.classList.remove("active"); c.setAttribute("aria-expanded","false"); });
 }
 
+// ── SANA_CONSENT_V3 ─────────────────────────────────────────────────────────
+// Just-in-time consent, asked before the FIRST send rather than at registration.
+//
+// THIS CHECK IS UX ONLY. The enforcement is requireSanaConsent in Express, which
+// reads the consent log server side and fails closed. Anything here can be
+// bypassed by a determined client, and that is fine, because bypassing it reaches
+// a 403 rather than a conversation.
+let SANA_CONSENT_STATE = null;   // null unknown, true granted, false not granted
+
+// Reads the caller's OWN consent rows. consent_events carries a read-own RLS
+// policy, so this needs no new endpoint and no service role. A user can only ever
+// see their own rows, and the answer is advisory anyway.
+async function sanaConsentGranted(){
+  if(SANA_CONSENT_STATE !== null) return SANA_CONSENT_STATE;
+  try{
+    const { data, error } = await sb.from("consent_events")
+      .select("action, occurred_at")
+      .eq("consent_type", "sana")
+      .order("occurred_at", { ascending: false })
+      .limit(1);
+    if(error) throw error;
+    SANA_CONSENT_STATE = !!(data && data[0] && data[0].action === "granted");
+  }catch(e){
+    // Unknown, not granted. The screen is shown again rather than skipped.
+    SANA_CONSENT_STATE = false;
+  }
+  return SANA_CONSENT_STATE;
+}
+
+// Renders the notice and resolves true only on an affirmative tap that the server
+// accepted. Declining resolves false and stamps nothing.
+function sanaAskConsent(){
+  return new Promise((resolve)=>{
+    const mount = $("sana-consent");
+    if(!mount) return resolve(false);
+    mount.innerHTML =
+      '<div class="sana-consent-card">' +
+        '<div class="sana-consent-h">' + esc(SANA_COPY.consentTitle) + '</div>' +
+        '<p class="sana-consent-b">' + esc(SANA_COPY.consentBody) + '</p>' +
+        '<div class="sana-consent-actions">' +
+          '<button class="sana-send" id="sana-consent-yes" type="button">' + esc(SANA_COPY.consentAgree) + '</button>' +
+          '<button class="btn-ghost" id="sana-consent-no" type="button">' + esc(SANA_COPY.consentDecline) + '</button>' +
+        '</div>' +
+        '<div class="sana-note" id="sana-consent-msg" aria-live="polite"></div>' +
+      '</div>';
+    mount.classList.add("show");
+    const msg = $("sana-consent-msg");
+    const close = (v)=>{ mount.classList.remove("show"); mount.innerHTML = ""; resolve(v); };
+    $("sana-consent-no").onclick = ()=>{ close(false); };
+    $("sana-consent-yes").onclick = async ()=>{
+      $("sana-consent-yes").disabled = true;
+      const ok = await sanaStampConsent("granted");
+      if(ok){ SANA_CONSENT_STATE = true; close(true); }
+      else { $("sana-consent-yes").disabled = false; if(msg) msg.textContent = SANA_COPY.consentFailed; }
+    };
+  });
+}
+
+// ONE poster for every consent event this page creates, grant and withdrawal
+// alike, so there is a single place the approval gate is applied and a single
+// request shape to keep correct.
+//
+// THE APPROVAL GATE COVERS GRANTS ONLY. Refusing to record a withdrawal because
+// the notice text is still with counsel would trap a user inside a consent she
+// wants out of, which is the opposite of what the gate is for. The server takes
+// the same position in handleV3.
+async function consentPost(type, action){
+  if(action === "granted" && !SANA_CONSENT_TEXT_APPROVED) return false;
+  try{
+    const { data: sess } = await sb.auth.getSession();
+    const token = (sess && sess.session && sess.session.access_token) || "";
+    if(!token) return false;
+    const res = await fetch(SUPABASE_URL + "/functions/v1/consent-accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": SUPABASE_ANON_KEY },
+      body: JSON.stringify({ consent_type: type, consent_version: SANA_CONSENT_VERSION,
+                             action: action, source_surface: "web" }),
+    });
+    return res.ok;
+  }catch(e){ return false; }
+}
+
+// ── CONSENT_WITHDRAWAL_V3 ───────────────────────────────────────────────────
+// Withdrawal controls in the Account panel, rendered ONLY where there is a
+// consent to withdraw, so a user who never agreed to Sana is not offered a
+// control to un-agree.
+//
+// A WITHDRAWAL IS AN EVENT, NEVER A CLIENT-SIDE DELETE. It appends a row through
+// consent-accept. The client cannot write or erase a consent record: the profile
+// columns are locked (migration 0024) and consent_events grants no write to
+// `authenticated` (0028).
+//
+// DARK. Returns immediately unless SANA_CHAT_ENABLED, so the panel is unchanged.
+async function renderConsentControls(){
+  const host = $("acct-consent");
+  if(!host) return;
+  host.innerHTML = "";
+  if(!SANA_CHAT_ENABLED) return;
+
+  let core = false, sana = false;
+  try{
+    const { data } = await sb.from("consent_current").select("consent_type, granted");
+    for(const r of (data || [])){
+      if(r.consent_type === "core" && r.granted) core = true;
+      if(r.consent_type === "sana" && r.granted) sana = true;
+    }
+  }catch(e){ /* nothing visible, render nothing rather than guess */ }
+
+  const block = (id, title, body, btn) =>
+    '<div class="acct-consent">' +
+      '<div class="acct-consent-h">' + esc(title) + '</div>' +
+      '<p class="acct-consent-b">' + esc(body) + '</p>' +
+      '<button class="btn-ghost" id="' + id + '" type="button">' + esc(btn) + '</button>' +
+    '</div>';
+
+  let html = "";
+  if(sana) html += block("wd-sana", SANA_COPY.wdSanaTitle, SANA_COPY.wdSanaBody, SANA_COPY.wdSanaBtn);
+  if(core) html += block("wd-core", SANA_COPY.wdCoreTitle, SANA_COPY.wdCoreBody, SANA_COPY.wdCoreBtn);
+  if(!html) return;
+  host.innerHTML = html + '<div class="sana-note" id="wd-msg" aria-live="polite"></div>';
+
+  const wire = (id, type) => {
+    const b = $(id); if(!b) return;
+    b.onclick = async ()=>{
+      b.disabled = true;
+      const ok = await consentPost(type, "withdrawn");
+      const m = $("wd-msg");
+      if(m) m.textContent = ok ? SANA_COPY.wdDone : SANA_COPY.wdFailed;
+      if(ok){ if(type === "sana") SANA_CONSENT_STATE = false; await renderConsentControls(); }
+      else b.disabled = false;
+    };
+  };
+  wire("wd-sana", "sana");
+  wire("wd-core", "core");
+}
+
+// The grant path. Kept as its own name because the consent screen reads better
+// calling it, but it is the same poster underneath.
+async function sanaStampConsent(action){
+  return await consentPost("sana", action);
+}
+
 async function sanaSend(){
   if(SANA_BUSY) return;
   const input = $("sana-input"), thread = $("sana-thread"), btn = $("sana-send");
@@ -5498,6 +5691,25 @@ async function sanaSend(){
   if(!text) return;
 
   sanaCloseChips();
+
+  // CONSENT BEFORE ANYTHING ELSE, and before sanaEnsureLinked, so no account is
+  // linked and no request is made on behalf of someone who has not agreed.
+  if(!(await sanaConsentGranted())){
+    if(!SANA_CONSENT_TEXT_APPROVED){
+      // The notice is still with counsel. Say so plainly rather than showing a
+      // placeholder or failing silently.
+      const n = document.createElement("div"); n.className = "sana-turn";
+      thread.appendChild(n); sanaNote(n, SANA_COPY.consentPending);
+      return;
+    }
+    const agreed = await sanaAskConsent();
+    if(!agreed){
+      const n = document.createElement("div"); n.className = "sana-turn";
+      thread.appendChild(n); sanaNote(n, SANA_COPY.consentDeclined);
+      return;   // no stamp, chat stays closed, re-offered next time she sends
+    }
+  }
+
   SANA_BUSY = true; input.value = ""; if(btn) btn.disabled = true;
 
   // What we restore to if the turn never actually starts server side.
