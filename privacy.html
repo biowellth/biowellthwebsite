@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Privacy Policy — BioWellth India</title>
+<title>Privacy Policy — BioWellth, Inc.</title>
 <meta name="description" content="How BioWellth collects, uses, protects, and deletes your personal and health data. Written in plain language under India's DPDP Act, 2023."/>
 <meta name="robots" content="noindex"/>
 <link rel="canonical" href="https://biowellth.ai/privacy"/>
@@ -88,7 +88,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 </div>
 
 <h2>Who we are</h2>
-<p>BioWellth India ("BioWellth," "we," "us") is a functional health intelligence platform. We are the Data Fiduciary under India's Digital Personal Data Protection Act, 2023 (the "DPDP Act"). That means we decide what personal data is collected and why, and we are responsible for protecting it.</p>
+<p>BioWellth, Inc. ("BioWellth," "we," "us") is a Delaware corporation operating a functional health intelligence platform. We are the Data Fiduciary under India's Digital Personal Data Protection Act, 2023 (the "DPDP Act") for users in India. That means we decide what personal data is collected and why, and we are responsible for protecting it.</p>
 <p>If you have questions about this policy or want to exercise any of your rights, email us at <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
 
 <h2>What personal data we collect and why</h2>
@@ -115,18 +115,26 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 <p><strong>Self-reported data</strong></p>
 <p>Symptoms, energy levels, mood, cycle patterns, and other information you log directly in the app.</p>
 <ul>
-  <!-- PRIVACY_TRUTH_V1: narrowed 2026-08-30. The previous wording claimed this whole
-       category feeds the AI companion. Only cycle data does: health-context.service.js
-       assembles userProfile, cycle, fertility, sleep, activity, scan and biomarker
-       blocks, and the symptom, energy and mood logs (StressLog, DailyWellnessLog) are
-       not among them. Pattern tracking itself is real and stays stated. -->
-  <li>Purpose: to show you how your patterns change over time. Cycle data you log is also used to personalise your AI companion's responses</li>
+  <!-- PRIVACY_TRUTH_V1: narrowed 2026-08-30, then narrowed again 2026-09-02.
+       2026-08-30 removed a claim that this whole category feeds the AI companion,
+       leaving only cycle data, because health-context.service.js assembles
+       userProfile, cycle, fertility, sleep, activity, scan and biomarker blocks
+       and the symptom, energy and mood logs (StressLog, DailyWellnessLog) are not
+       among them.
+       2026-09-02 removed the surviving cycle sentence too. The capability does not
+       exist for a user today: no shipped client reaches the companion, so no cycle
+       data personalises anything for anyone. A privacy policy states what happens,
+       not what the code could do if it were switched on.
+       THE LINE RETURNS WHEN IT SHIPS. Restore it in the same change that puts the
+       companion in front of users, not before. Pattern tracking itself is real and
+       stays stated. -->
+  <li>Purpose: to show you how your patterns change over time</li>
 </ul>
 
 <p><strong>Usage data</strong></p>
 <p>We do not run analytics and we do not track how you move around the site. We do not use advertising cookies or tracking pixels.</p>
 <ul>
-  <li>Purpose: to understand how people use the site and improve the experience</li>
+  <li>Purpose: we do not collect usage data for analytics or profiling. Essential cookies keep you signed in and keep the site secure</li>
 </ul>
 
 <h2>How we obtain your consent</h2>
@@ -143,7 +151,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
   <li><strong>Supabase</strong> (Mumbai, India) stores your account, your reports, and your results.</li>
   <li><strong>GitHub</strong> serves our website through its content delivery network.</li>
   <li><strong>Typeform</strong> receives the details you enter in the early access form.</li>
-  <li>Each of these is a Data Processor under the DPDP Act. They are contractually bound to DPDP-equivalent protections and cannot use your data for their own purposes.</li>
+  <li>Each of these is a Data Processor under the DPDP Act. Each processes your data only to provide services to BioWellth, under contractual privacy and security obligations. They are not authorised to use your BioWellth data for their own purposes.</li>
   <li><strong>Payment processors</strong> if you make a purchase. We do not store payment card information ourselves.</li>
   <li><strong>Indian law enforcement or regulatory authorities</strong> if we are legally compelled to disclose data under applicable Indian law.</li>
 </ul>
@@ -158,7 +166,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
      zero-data-retention agreement or BAA is confirmed. Until then this sentence must not say or
      imply that your data is not retained by the subprocessor. -->
 
-<p><strong>We do not use your data to train AI models.</strong></p>
+<p><strong>BioWellth does not train AI models on your data.</strong> Our AI providers state in their terms how they handle data sent to them, linked above.</p>
 <!-- GATED, do NOT pre-write: "and our AI provider does not use your data to train their models
      either" may be added ONLY after that is confirmed against the actual Anthropic agreement we
      hold. Do not assert it on the basis of published standard terms. Same discipline as the
@@ -222,7 +230,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 </div>
 
 <div class="policy-footer">
-  <p>© 2026 BioWellth India. All rights reserved.<br/><a href="https://biowellth.ai">biowellth.ai</a></p>
+  <p>© 2026 BioWellth, Inc. All rights reserved.<br/><a href="https://biowellth.ai">biowellth.ai</a></p>
 </div>
 
 </body>
