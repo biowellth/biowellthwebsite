@@ -1948,22 +1948,6 @@ $("report-picker").onchange = async (e)=>{
 // remain null. life_stage written here is a DECLARED HINT only — the engine
 // derives the authoritative per-panel value (Step 3). PCOS / amenorrheic leave
 // life_stage unset (do not infer a stage).
-const ONB_Q2 = {
-  regular:  { cycle_status:"regular",     life_stage:"premenopause" },
-  changing: { cycle_status:"irregular",   life_stage:"perimenopause" },
-  stopped:  { cycle_status:"none",        life_stage:"postmenopause" },
-  pcos:     { cycle_status:"pcos",        life_stage:null },
-  none:     { cycle_status:"amenorrheic", life_stage:null },
-};
-const onbSel = { period:null, diet:null, preg:null };
-function onbWireGroup(id, key, attr){
-  document.querySelectorAll("#"+id+" .onb-opt").forEach(btn=>{
-    btn.onclick = ()=>{
-      onbSel[key] = btn.getAttribute(attr);
-      document.querySelectorAll("#"+id+" .onb-opt").forEach(b=>b.classList.toggle("sel", b===btn));
-    };
-  });
-}
 // ── AGE_AFFIRM_V1 ────────────────────────────────────────────────────────────────────────
 // Two behaviours off one condition, decided by whether a DURABLE affirmation exists on the
 // user (user_metadata.age_affirmed, written at signUp):
@@ -1997,7 +1981,7 @@ async function maybeAffirmAge(){
 
 // Wired ON SHOW, not at parse. The inline script closes before this modal's markup, so a
 // parse-time IIFE would find no elements and silently never bind — the modal would render
-// with dead controls. maybeShowOnboarding uses the same on-demand pattern for the same reason.
+// with dead controls. onb2Open uses the same on-demand pattern for the same reason.
 // onclick assignment (not addEventListener) keeps this idempotent across re-shows.
 function showAgeModal(){
   const m = $("age-modal"); if(!m) return;
@@ -2023,7 +2007,7 @@ function showAgeModal(){
       if(data && data.age_affirmed_at) PROFILE.age_affirmed_at = data.age_affirmed_at;
       m.classList.remove("show");
       m.setAttribute("aria-hidden","true");
-      maybeShowOnboarding();   // suppressed at init while this modal was up; offer it now
+      onb2Open();   // ONBOARDING_V2. Retired 2026-09-02: maybeShowOnboarding
     }catch(_){
       btn.disabled = false; btn.textContent = "Confirm";
       // Honest failure: the modal stays. It must never close on an unrecorded affirmation.
@@ -2056,40 +2040,6 @@ function showAgeModal(){
   m.setAttribute("aria-hidden","false");
 }
 
-async function maybeShowOnboarding(){
-  try{
-    const { data: prof } = await sb.from("profiles").select("dob, cycle_status").eq("id", USER.id).maybeSingle();
-    if(prof && prof.dob != null && prof.cycle_status != null) return;   // already onboarded
-    const ysel = $("onb-year");
-    if(ysel && ysel.options.length <= 1){
-      const now = new Date().getFullYear();
-      // AGE_AFFIRM_V1 — floor is now-18. UX AFFORDANCE ONLY, not the gate: dob is written by
-      // direct browser PostgREST, so a dropdown floor falls to one curl. The gate is migration
-      // 0022 (dob CHECK, DB-enforced) plus the recorded affirmation.
-      for(let y=now-18; y>=now-90; y--){ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); ysel.appendChild(o); }
-    }
-    onbWireGroup("onb-periods","period","data-k");
-    onbWireGroup("onb-diet","diet","data-v");
-    onbWireGroup("onb-preg","preg","data-b");
-    $("onb-skip").onclick = ()=> $("onb-modal").classList.remove("show");
-    $("onb-save").onclick = onbSave;
-    $("onb-modal").classList.add("show");
-  }catch(_e){ /* onboarding must never block the dashboard */ }
-}
-async function onbSave(){
-  const payload = {};
-  const yr = $("onb-year").value;
-  if(yr) payload.dob = yr + "-07-01";                      // year-only -> midyear, bounds age error to ~6mo
-  if(onbSel.period){ const m = ONB_Q2[onbSel.period]; payload.cycle_status = m.cycle_status; if(m.life_stage) payload.life_stage = m.life_stage; }
-  if(onbSel.diet) payload.vegetarian_status = onbSel.diet;
-  if(onbSel.preg) payload.pregnant_or_postpartum_within_6_months = (onbSel.preg === "yes");
-  if(!Object.keys(payload).length){ $("onb-modal").classList.remove("show"); return; }   // nothing answered = skip
-  $("onb-save").disabled = true; $("onb-msg").textContent = "";
-  const { error } = await sb.from("profiles").update(payload).eq("id", USER.id);
-  $("onb-save").disabled = false;
-  if(error){ $("onb-msg").textContent = "Couldn't save just now — you can continue and add this later."; return; }
-  $("onb-modal").classList.remove("show");
-}
 
 (async ()=>{
   const { data } = await sb.auth.getSession();
@@ -2103,7 +2053,7 @@ async function onbSave(){
   // and the skippable onboarding would cover the blocking affirmation. Caught in smoke.
   // Onboarding is re-offered by the affirm handler once the affirmation is recorded.
   const __ageBlocked = await maybeAffirmAge();
-  if(!__ageBlocked) maybeShowOnboarding();   // non-blocking overlay; dashboard loads behind it
+  if(!__ageBlocked) onb2Open();   // ONBOARDING_V2; no-op while dark. Retired: maybeShowOnboarding
   onb2ResumeChip();                         // ONBOARDING_V2 "Finish setting up"; hidden while dark
 
   // Load every panel, populate the switcher, and default to the newest one
@@ -8635,53 +8585,5 @@ async function stampSeen(reportId){
   </div>
 </div>
 
-<div class="onb-modal" id="onb-modal" aria-hidden="true">
-  <div class="onb-card">
-    <div class="onb-eyebrow">Welcome</div>
-    <div class="onb-h">A few things about you</div>
-    <p class="onb-sub">These help us read your results against your body and life stage. Skip anything you'd rather not share.</p>
-
-    <div class="onb-q">
-      <div class="onb-q-label">What year were you born?</div>
-      <select class="onb-year" id="onb-year"><option value="">Select year</option></select>
-    </div>
-
-    <div class="onb-q">
-      <div class="onb-q-label">Which best describes your period these days?</div>
-      <div class="onb-opts" id="onb-periods">
-        <button type="button" class="onb-opt" data-k="regular">My period is regular and predictable</button>
-        <button type="button" class="onb-opt" data-k="changing">It's become irregular or is changing</button>
-        <button type="button" class="onb-opt" data-k="stopped">It's stopped (no period for 12+ months)</button>
-        <button type="button" class="onb-opt" data-k="pcos">I have PCOS, or it's always been irregular</button>
-        <button type="button" class="onb-opt" data-k="none">I don't have a period / not applicable</button>
-      </div>
-    </div>
-
-    <div class="onb-q">
-      <div class="onb-q-label">How would you describe your diet?</div>
-      <div class="onb-opts row" id="onb-diet">
-        <button type="button" class="onb-opt" data-v="Vegetarian">Vegetarian</button>
-        <button type="button" class="onb-opt" data-v="Non-vegetarian">Non-vegetarian</button>
-        <button type="button" class="onb-opt" data-v="Eggetarian">Eggetarian</button>
-        <button type="button" class="onb-opt" data-v="Vegan">Vegan</button>
-        <button type="button" class="onb-opt" data-v="Mostly vegetarian">Mostly vegetarian</button>
-      </div>
-    </div>
-
-    <div class="onb-q">
-      <div class="onb-q-label">Are you currently pregnant, or within 6 months postpartum?</div>
-      <div class="onb-opts row" id="onb-preg">
-        <button type="button" class="onb-opt" data-b="yes">Yes</button>
-        <button type="button" class="onb-opt" data-b="no">No</button>
-      </div>
-    </div>
-
-    <div class="onb-msg" id="onb-msg"></div>
-    <div class="onb-actions">
-      <button type="button" class="onb-skip" id="onb-skip">Skip for now</button>
-      <button type="button" class="onb-save" id="onb-save">Save</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
