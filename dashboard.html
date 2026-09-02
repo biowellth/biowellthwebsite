@@ -3490,6 +3490,16 @@ function renderCoverageLine(p){
 }
 function renderClarify(reportId){
   const wrap = $("clarify-wrap"), host = $("clarify");
+  // ASKER #3, CONDITIONAL 2026-09-02. The onboarding flow's diet screen asks the
+  // same B12 and folate question and writes the same two columns. This chip
+  // survives only for a profile that has neither answer, so a user who answered
+  // in onboarding is never asked twice. Both null is the only state where this
+  // is the single asker; if either is set, onboarding already asked.
+  if(ONBOARDING_ENABLED && wrap
+     && PROFILE && PROFILE.supp_b12 != null && PROFILE.supp_folate != null){
+    wrap.classList.add("hidden");
+    return;
+  }
   // Delegate folate-link taps on the persistent host — survives innerHTML re-renders AND the
   // immediate onClarifyTap outerHTML ack (incl. the "not sure" path, which never re-renders).
   // Bind once. Keyboard (Enter/Space) too, since the span is role=link tabindex=0.
