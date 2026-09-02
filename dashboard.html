@@ -1137,6 +1137,31 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   .report-disc{font-size:17.5px!important}
   @page{margin:14mm}
 }
+
+/* ONBOARDING_V2 */
+.onb2-modal{position:fixed;inset:0;background:rgba(20,18,24,.55);display:none;align-items:center;justify-content:center;z-index:80;padding:18px}
+.onb2-modal.show{display:flex}
+.onb2-card{background:#fff;border-radius:18px;max-width:520px;width:100%;padding:26px 24px 20px;position:relative;max-height:88vh;overflow-y:auto}
+.onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#8a8291}
+.onb2-intro{margin:0 0 14px;color:#6c6472;font-size:14px;line-height:1.5}
+.onb2-step{font-size:12px;color:#9a929f;margin-bottom:10px}
+.onb2-q{font-size:18px;font-weight:600;line-height:1.35;margin-bottom:14px;color:#2a2430}
+.onb2-sub{font-size:14px;font-weight:500;margin:16px 0 8px;color:#4a4350}
+.onb2-note{font-size:13px;color:#8a8291;margin-top:10px;line-height:1.45}
+.onb2-opts{display:flex;flex-direction:column;gap:8px}
+.onb2-opts.row{flex-direction:row;flex-wrap:wrap}
+.onb2-opt{text-align:left;padding:12px 14px;border:1px solid #e3dfe8;border-radius:12px;background:#fff;cursor:pointer;font-size:15px;line-height:1.4;color:#2a2430}
+.onb2-opt.sel{border-color:#6b4ea8;background:#f6f2fd}
+.onb2-chip{padding:9px 14px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px;color:#2a2430}
+.onb2-chip.sel{border-color:#6b4ea8;background:#f6f2fd}
+.onb2-date,.onb2-num,.onb2-ta{width:100%;padding:11px 12px;border:1px solid #e3dfe8;border-radius:10px;font-size:15px;font-family:inherit;color:#2a2430}
+.onb2-num{max-width:140px}
+.onb2-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:12px}
+.onb2-nav.hidden{display:none}
+.onb2-skip{border:0;background:none;color:#8a8291;font-size:14px;cursor:pointer;padding:10px 4px}
+.onb2-next{border:0;background:#6b4ea8;color:#fff;padding:11px 26px;border-radius:999px;font-size:15px;cursor:pointer}
+#onb2-resume{display:inline-block;margin:10px 0;padding:9px 16px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px;color:#2a2430}
+#onb2-resume.hidden{display:none}
 </style>
 </head>
 <body>
@@ -1242,6 +1267,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
          Account panel looks exactly as it does today. privacy.html's "or through your account
          settings" clause is removed until this ships un-darked, see PRIVACY_TRUTH_V2 there. -->
     <div class="acct-row" id="acct-consent"></div>
+    <button type="button" id="onb2-resume" class="hidden"></button>
     <div class="acct-dz">
       <div class="acct-dz-h">Delete account</div>
       <p class="acct-dz-body">This deletes your account, your reports, and your uploaded files right away. It cannot be undone.</p>
@@ -2078,6 +2104,7 @@ async function onbSave(){
   // Onboarding is re-offered by the affirm handler once the affirmation is recorded.
   const __ageBlocked = await maybeAffirmAge();
   if(!__ageBlocked) maybeShowOnboarding();   // non-blocking overlay; dashboard loads behind it
+  onb2ResumeChip();                         // ONBOARDING_V2 "Finish setting up"; hidden while dark
 
   // Load every panel, populate the switcher, and default to the newest one
   // that actually has a finished result. If the most recent upload is still
@@ -2578,6 +2605,10 @@ async function handleFile(file){
     // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
     if(cyc.menstrual_status || ("on_hormonal_contraception" in cyc) || cyc.typical_cycle_length_days || cyc.typical_period_duration_days){ try{ localStorage.setItem("bw_cycle_captured","1"); }catch(_){} }
     pollForResult(reportId);
+    // ONBOARDING_V2 entry point. Upload accepted, the read is running, so the
+    // wait is the one moment these questions cost the user nothing. Dark until
+    // the flag flips, and it returns immediately without consent.
+    onb2Open();
   }catch(err){
     uploadRowFail(isConsentRefusal(err) ? CONSENT_FALLBACK_COPY : ("Upload failed: " + (err.message||"please try again.")));
   }
@@ -5378,6 +5409,381 @@ function renderCompanionChips(p, score){
       pending = setTimeout(()=>{ pending = null; showAnswer(idx); }, 800);
     };
   });
+
+// ── ONBOARDING_V2 ────────────────────────────────────────────────────────────
+// The single asker for profile-level onboarding fields. Dark until the flag
+// flips, same pattern as SANA_CHAT_ENABLED.
+//
+// WHY IT REPLACES THREE THINGS. Before this, three surfaces wrote profiles:
+// the "A few things about you" modal (dob, cycle_status, life_stage,
+// vegetarian_status, pregnancy), the cycle block on the upload card
+// (menstrual_status, both contraception columns, both steppers), and the
+// supplement chip (supp_b12/folate). Two of them asked overlapping questions
+// and one of them INFERRED life_stage from a cycle-regularity answer, which is
+// why 5 of 11 live rows carried a life_stage that disagreed with their
+// menstrual_status. One asker per column, from here.
+//
+// SKIP WRITES NOTHING. Not a default, not an empty string, not a false. A null
+// column means never answered, and the engine's resolvers distinguish "answered
+// no" from "never asked" on exactly that basis (see resolveContraception and
+// resolvePregnancy in the worker). Writing a default here would silently
+// convert unknown into a declaration.
+const ONBOARDING_ENABLED = false;
+
+// All user-visible strings in one place so the copy rules stay checkable at a
+// glance. No em dashes, no colons in body copy, short plain sentences.
+// Conditions and symptoms are STORED DECLARATIONS. Nothing here reflects them
+// back as findings, and no string may start doing so.
+const ONB2_COPY = {
+  intro: "While we read your report, a few quick questions. They help us read it better. You can skip any of them.",
+  skip: "Skip",
+  next: "Next",
+  done: "Done. Your reading is almost ready.",
+  resume: "Finish setting up",
+  s0: "What is your date of birth?",
+  s1: "Are you currently pregnant, or have you been pregnant in the last 6 months?",
+  s2: "Which of these sounds most like where you are right now?",
+  s2note: "If your blood work tells a different story, we go with the blood work.",
+  s3: "How would you describe your cycle?",
+  s3len: "About how long is your usual cycle?",
+  s3dur: "About how many days does your period last?",
+  s4: "Are you using hormonal birth control, like the pill, an IUD with hormones, or an implant?",
+  s4when: "Around when did you stop?",
+  s5: "How would you describe your diet?",
+  s5supp: "Do you take any of these?",
+  s6: "What brings you here?",
+  s7: "Anything we should know?",
+  s7note: "Anything else you want us to keep in mind",
+};
+
+// Enums are the live CHECK constraints, verbatim. Never retyped from a brief.
+//   life_stage             premenopause | perimenopause | postmenopause | pregnant
+//   cycle_status           regular | irregular | pcos | amenorrheic | none
+//   hormonal_contraception none | current | ceased_within_12_months
+//   vegetarian_status      no CHECK; the five values already live in the column
+const ONB2_SCREENS = [
+  { id:"dob",  key:"dob",   q:ONB2_COPY.s0, kind:"date" },
+  { id:"preg", key:"preg",  q:ONB2_COPY.s1, kind:"one",
+    opts:[["Yes",true],["No",false]] },
+  { id:"life", key:"life_stage", q:ONB2_COPY.s2, kind:"one", note:ONB2_COPY.s2note,
+    opts:[["My periods come fairly predictably","premenopause"],
+          ["My periods have become unpredictable, or I notice changes like hot flashes or sleep shifts","perimenopause"],
+          ["My periods stopped over a year ago","postmenopause"],
+          ["Not sure",null]] },
+  { id:"cyc",  key:"cycle_status", q:ONB2_COPY.s3, kind:"one", steppers:true,
+    opts:[["Regular","regular"],["Irregular","irregular"],["I have PCOS","pcos"],
+          ["I don't get periods right now","amenorrheic"],["Doesn't apply to me","none"]] },
+  { id:"hbc",  key:"hormonal_contraception", q:ONB2_COPY.s4, kind:"one", when:true,
+    opts:[["Yes, currently","current"],
+          ["I stopped within the last year","ceased_within_12_months"],
+          ["No","none"]] },
+  { id:"diet", key:"vegetarian_status", q:ONB2_COPY.s5, kind:"one", supps:true,
+    opts:[["Vegetarian","Vegetarian"],["Non-vegetarian","Non-vegetarian"],
+          ["Eggetarian","Eggetarian"],["Vegan","Vegan"],
+          ["Mostly vegetarian","Mostly vegetarian"]] },
+  { id:"goal", key:"health_goals", q:ONB2_COPY.s6, kind:"many",
+    opts:["Energy","Sleep","Cycle health","Fertility","Weight","Stress",
+          "Healthy aging","Just curious about my numbers"] },
+  { id:"cond", key:"known_conditions", q:ONB2_COPY.s7, kind:"many2",
+    opts:["Thyroid condition","PCOS","Anemia or low iron","Diabetes or prediabetes","None of these"],
+    opts2:["Fatigue","Hair loss","Brain fog","Mood changes","Bloating","None"] },
+];
+
+const onb2 = { idx:0, ans:{}, stored:{}, open:false, order:[] };
+
+/**
+ * menstrual_status is DERIVED, never asked. Ruling 2026-09-02.
+ *
+ * The engine reads it and PREFERS it: resolveMenopause switches on it before it
+ * looks at life_stage and deliberately never reads cycle_status, and the Call C
+ * prompt is told to weight menstrual_status over cycle_status when they
+ * disagree. So writing cycle_status alone and leaving a stale menstrual_status
+ * would let the stale value outrank the fresh answer. Lockstep, or not at all.
+ *
+ * Returns undefined when there is no basis to write, which is different from
+ * null (a positive "she has no cycle status").
+ */
+function onb2DeriveMenstrual(){
+  const a = onb2.ans, s = onb2.stored;
+  const preg = ("preg" in a) ? a.preg : s.pregnant_or_postpartum_within_6_months;
+  if(preg === true) return "pregnant";
+  const ls = ("life_stage" in a) ? a.life_stage : s.life_stage;
+  if(ls === "perimenopause") return "perimenopausal";
+  if(ls === "postmenopause") return "postmenopausal";
+  const cs = ("cycle_status" in a) ? a.cycle_status : s.cycle_status;
+  if(cs === "regular") return "regular";
+  if(cs === "irregular" || cs === "pcos") return "irregular";
+  if(cs === "amenorrheic" || cs === "none") return null;
+  return undefined;
+}
+
+/** One upsert per answered screen. Own row. Skip calls this with nothing. */
+async function onb2Write(patch){
+  if(!patch || !Object.keys(patch).length) return true;
+  try{
+    const { error } = await sb.from("profiles").update(patch).eq("id", USER.id);
+    if(error) return false;
+    Object.assign(onb2.stored, patch);
+    return true;
+  }catch(_){ return false; }
+}
+
+/** The per-screen patch. Returns {} when the screen was skipped or unanswered. */
+function onb2Patch(sc){
+  const a = onb2.ans, p = {};
+  if(!(sc.key in a)) return p;                       // skipped -> nothing, ever
+  const v = a[sc.key];
+
+  if(sc.id === "dob"){ if(v) p.dob = v; return p; }
+
+  if(sc.id === "preg"){
+    p.pregnant_or_postpartum_within_6_months = v;
+    const m = onb2DeriveMenstrual(); if(m !== undefined) p.menstrual_status = m;
+    return p;
+  }
+  if(sc.id === "life"){
+    p.life_stage = v;                                 // null is a real answer here ("Not sure")
+    const m = onb2DeriveMenstrual(); if(m !== undefined) p.menstrual_status = m;
+    return p;
+  }
+  if(sc.id === "cyc"){
+    p.cycle_status = v;
+    const m = onb2DeriveMenstrual(); if(m !== undefined) p.menstrual_status = m;
+    // Steppers clamp to the live CHECK ranges. Out of range writes nothing
+    // rather than a clamped guess.
+    const cl = onb2Int(a.cycle_len, 15, 90); if(cl != null) p.typical_cycle_length_days = cl;
+    const du = onb2Int(a.period_dur, 1, 15); if(du != null) p.typical_period_duration_days = du;
+    return p;
+  }
+  if(sc.id === "hbc"){
+    p.hormonal_contraception = v;
+    // Lockstep boolean. resolveContraception checks `on_hormonal_contraception
+    // === true` BEFORE the text column, so a stale true would beat a fresh
+    // "I stopped" and resolve her to current. true ONLY for current.
+    p.on_hormonal_contraception = (v === "current");
+    // Month granularity, day pinned to 1, year >= 1950 per the CHECK.
+    if(v === "ceased_within_12_months" && a.ceased_ym && /^\d{4}-\d{2}$/.test(a.ceased_ym)){
+      const yr = parseInt(a.ceased_ym.slice(0,4), 10);
+      if(yr >= 1950) p.hormonal_contraception_ceased_at = a.ceased_ym + "-01";
+    }
+    return p;
+  }
+  if(sc.id === "diet"){
+    p.vegetarian_status = v;
+    if(a.supps){                                      // Neither is a real answer, both false
+      p.supp_b12 = a.supps.indexOf("Vitamin B12") >= 0;
+      p.supp_folate = a.supps.indexOf("Folate") >= 0;
+      p.supp_status_updated_at = new Date().toISOString();
+    }
+    return p;
+  }
+  if(sc.id === "goal"){ p.health_goals = v; return p; }
+  if(sc.id === "cond"){
+    // Chip strings exactly as shipped. No cross-screen inference: a PCOS chip
+    // here never touches cycle_status, which S3 owns.
+    p.known_conditions = v;
+    if(a.symptoms) p.symptoms = a.symptoms;
+    const note = (a.context_note || "").trim();
+    if(note) p.context_note = note;
+    return p;
+  }
+  return p;
+}
+
+function onb2Int(v, lo, hi){
+  const n = parseInt(((v == null ? "" : v) + "").trim(), 10);
+  return (Number.isInteger(n) && n >= lo && n <= hi) ? n : null;
+}
+
+/** Pregnancy Yes skips the life-stage and cycle screens. */
+function onb2BuildOrder(){
+  const skipDob = onb2.stored.dob != null;
+  onb2.order = ONB2_SCREENS.filter(sc=>{
+    if(sc.id === "dob") return !skipDob;
+    if((sc.id === "life" || sc.id === "cyc") && onb2.ans.preg === true) return false;
+    return true;
+  });
+}
+
+/** esc + em-dash strip, same defence the Sana copy block uses. */
+function onb2Esc(s){
+  return String(s == null ? "" : s).replace(/[—–]/g, " ")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+function onb2Render(){
+  const host = document.getElementById("onb2-body");
+  if(!host) return;
+  const sc = onb2.order[onb2.idx];
+  if(!sc){ onb2Finish(); return; }
+  const a = onb2.ans;
+  let h = '<div class="onb2-q">' + onb2Esc(sc.q) + "</div>";
+
+  if(sc.kind === "date"){
+    h += '<input type="date" id="onb2-dob" class="onb2-date" value="' + onb2Esc(a.dob || "") + '">';
+  } else if(sc.kind === "one"){
+    h += '<div class="onb2-opts">';
+    sc.opts.forEach((o,i)=>{
+      const sel = (sc.key in a) && a[sc.key] === o[1] ? " sel" : "";
+      h += '<button type="button" class="onb2-opt' + sel + '" data-i="' + i + '">' + onb2Esc(o[0]) + "</button>";
+    });
+    h += "</div>";
+    if(sc.note) h += '<div class="onb2-note">' + onb2Esc(sc.note) + "</div>";
+    if(sc.steppers && (a.cycle_status === "regular" || a.cycle_status === "irregular")){
+      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3len) + '</div>' +
+           '<input type="number" id="onb2-len" class="onb2-num" min="15" max="90" value="' + onb2Esc(a.cycle_len || "") + '">' +
+           '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3dur) + '</div>' +
+           '<input type="number" id="onb2-dur" class="onb2-num" min="1" max="15" value="' + onb2Esc(a.period_dur || "") + '">';
+    }
+    if(sc.when && a.hormonal_contraception === "ceased_within_12_months"){
+      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s4when) + '</div>' +
+           '<input type="month" id="onb2-ym" class="onb2-date" min="1950-01" value="' + onb2Esc(a.ceased_ym || "") + '">';
+    }
+    if(sc.supps){
+      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s5supp) + '</div><div class="onb2-opts row">';
+      ["Vitamin B12","Folate","Neither"].forEach(x=>{
+        const on = (a.supps || []).indexOf(x) >= 0 ? " sel" : "";
+        h += '<button type="button" class="onb2-chip' + on + '" data-s="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
+      });
+      h += "</div>";
+    }
+  } else if(sc.kind === "many" || sc.kind === "many2"){
+    h += '<div class="onb2-opts row">';
+    sc.opts.forEach(x=>{
+      const on = (a[sc.key] || []).indexOf(x) >= 0 ? " sel" : "";
+      h += '<button type="button" class="onb2-chip' + on + '" data-c="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
+    });
+    h += "</div>";
+    if(sc.opts2){
+      h += '<div class="onb2-opts row">';
+      sc.opts2.forEach(x=>{
+        const on = (a.symptoms || []).indexOf(x) >= 0 ? " sel" : "";
+        h += '<button type="button" class="onb2-chip' + on + '" data-y="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
+      });
+      h += '</div><div class="onb2-sub">' + onb2Esc(ONB2_COPY.s7note) + '</div>' +
+           '<textarea id="onb2-note" class="onb2-ta" rows="2"></textarea>';
+    }
+  }
+  host.innerHTML = h;
+  onb2Wire(sc);
+  const step = document.getElementById("onb2-step");
+  if(step) step.textContent = (onb2.idx + 1) + " of " + onb2.order.length;
+}
+
+function onb2Wire(sc){
+  const a = onb2.ans;
+  document.querySelectorAll("#onb2-body .onb2-opt").forEach(b=>{
+    b.onclick = ()=>{
+      a[sc.key] = sc.opts[parseInt(b.getAttribute("data-i"),10)][1];
+      if(sc.id === "preg") a.preg = a[sc.key];
+      if(sc.id === "cyc") a.cycle_status = a[sc.key];
+      if(sc.id === "hbc") a.hormonal_contraception = a[sc.key];
+      onb2Render();
+    };
+  });
+  const bind = (id, k)=>{ const el = document.getElementById(id); if(el) el.oninput = ()=>{ a[k] = el.value; }; };
+  bind("onb2-dob","dob"); bind("onb2-len","cycle_len"); bind("onb2-dur","period_dur");
+  bind("onb2-ym","ceased_ym"); bind("onb2-note","context_note");
+  const toggle = (attr, key, exclusive)=>{
+    document.querySelectorAll("#onb2-body .onb2-chip[" + attr + "]").forEach(b=>{
+      b.onclick = ()=>{
+        const v = b.getAttribute(attr.replace(/[\[\]]/g,""));
+        let cur = (a[key] || []).slice();
+        if(exclusive && exclusive.indexOf(v) >= 0){ cur = [v]; }
+        else { cur = cur.filter(x=> !exclusive || exclusive.indexOf(x) < 0);
+               const i = cur.indexOf(v); if(i >= 0) cur.splice(i,1); else cur.push(v); }
+        a[key] = cur; onb2Render();
+      };
+    });
+  };
+  if(sc.kind === "many" || sc.kind === "many2") toggle("[data-c]", sc.key, null);
+  if(sc.opts2) toggle("[data-y]", "symptoms", ["None"]);
+  if(sc.supps) toggle("[data-s]", "supps", ["Neither"]);
+}
+
+/** Advance. `skipped` writes NOTHING for this screen and moves on. */
+async function onb2Advance(skipped){
+  const sc = onb2.order[onb2.idx];
+  if(sc && !skipped) await onb2Write(onb2Patch(sc));
+  if(sc && skipped) delete onb2.ans[sc.key];        // a skip must not leak into a later derive
+  // Pregnancy answered Yes removes two later screens; rebuild before stepping.
+  const cur = onb2.order[onb2.idx];
+  onb2BuildOrder();
+  const at = onb2.order.indexOf(cur);
+  onb2.idx = (at >= 0 ? at : onb2.idx) + 1;
+  if(onb2.idx >= onb2.order.length) onb2Finish(); else onb2Render();
+}
+
+function onb2Finish(){
+  const host = document.getElementById("onb2-body");
+  if(host) host.innerHTML = '<div class="onb2-q">' + onb2Esc(ONB2_COPY.done) + "</div>";
+  const nav = document.getElementById("onb2-nav"); if(nav) nav.classList.add("hidden");
+  setTimeout(onb2Close, 1400);
+}
+
+function onb2Close(){
+  const m = document.getElementById("onb2-modal");
+  if(m){ m.classList.remove("show"); m.setAttribute("aria-hidden","true"); }
+  onb2.open = false;
+  onb2ResumeChip();
+}
+
+/**
+ * Entry point. Renders only when the flag is on AND core consent exists.
+ * Consent absent means the flow does not render at all, rather than rendering
+ * and failing to save.
+ */
+async function onb2Open(){
+  if(!ONBOARDING_ENABLED) return;
+  if(onb2.open) return;
+  if(!CONSENTED) return;
+  try{
+    const { data } = await sb.from("profiles")
+      .select("dob, life_stage, cycle_status, menstrual_status, vegetarian_status, hormonal_contraception, pregnant_or_postpartum_within_6_months, health_goals, known_conditions, symptoms, supp_b12, supp_folate")
+      .eq("id", USER.id).maybeSingle();
+    onb2.stored = data || {};
+  }catch(_){ onb2.stored = {}; }
+  onb2.ans = {}; onb2.idx = 0;
+  onb2BuildOrder();
+  if(!onb2.order.length) return;
+  const m = document.getElementById("onb2-modal");
+  if(!m) return;
+  const intro = document.getElementById("onb2-intro");
+  if(intro) intro.textContent = ONB2_COPY.intro;
+  const nav = document.getElementById("onb2-nav"); if(nav) nav.classList.remove("hidden");
+  const sk = document.getElementById("onb2-skip"); if(sk) sk.onclick = ()=> onb2Advance(true);
+  const nx = document.getElementById("onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
+  const cl = document.getElementById("onb2-close"); if(cl) cl.onclick = onb2Close;
+  onb2.open = true;
+  m.classList.add("show"); m.setAttribute("aria-hidden","false");
+  onb2Render();
+}
+
+/**
+ * "Finish setting up" on the dashboard, for anyone who skipped. Same component,
+ * same single writer, so there is never a second asker.
+ */
+async function onb2ResumeChip(){
+  const el = document.getElementById("onb2-resume");
+  if(!el) return;
+  if(!ONBOARDING_ENABLED || !CONSENTED){ el.classList.add("hidden"); return; }
+  let s = onb2.stored;
+  if(!s || !Object.keys(s).length){
+    try{
+      const { data } = await sb.from("profiles")
+        .select("dob, life_stage, cycle_status, vegetarian_status, hormonal_contraception, health_goals")
+        .eq("id", USER.id).maybeSingle();
+      s = data || {};
+    }catch(_){ s = {}; }
+  }
+  const missing = (s.dob == null) || (s.cycle_status == null) || (s.vegetarian_status == null) ||
+                  (s.hormonal_contraception == null) || (s.health_goals == null);
+  el.textContent = ONB2_COPY.resume;
+  el.onclick = onb2Open;
+  el.classList.toggle("hidden", !missing);
+}
+
 
   // One answer at a time, across BOTH surfaces: opening a chip closes any chat
   // reply, and sanaSend closes any open chip answer.
@@ -8210,6 +8616,21 @@ async function stampSeen(reportId){
       <p class="onb-sub">If you would like, we can delete the data on this account first. You can also ask us to do that later at <a href="mailto:support@mybiowellth.com" style="color:var(--teal);font-weight:600">support@mybiowellth.com</a>.</p>
       <button class="onb-save" id="age-signout">Sign out</button>
       <button class="age-under danger" id="age-delete" type="button">Delete my data</button>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING_V2 — dark behind ONBOARDING_ENABLED. One question at a time,
+     Skip on every screen. Skip writes nothing at all. -->
+<div class="onb2-modal" id="onb2-modal" aria-hidden="true">
+  <div class="onb2-card">
+    <button type="button" class="onb2-x" id="onb2-close" aria-label="Close">&#215;</button>
+    <p class="onb2-intro" id="onb2-intro"></p>
+    <div class="onb2-step" id="onb2-step"></div>
+    <div id="onb2-body"></div>
+    <div class="onb2-nav" id="onb2-nav">
+      <button type="button" class="onb2-skip" id="onb2-skip">Skip</button>
+      <button type="button" class="onb2-next" id="onb2-next">Next</button>
     </div>
   </div>
 </div>
