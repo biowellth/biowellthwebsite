@@ -438,6 +438,17 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
 .prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
+/* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
+.sana-row{display:flex;gap:8px;margin-top:14px}
+.sana-input{flex:1;min-width:0;border:1px solid var(--teal-light);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;color:var(--brown-mid);background:var(--white)}
+.sana-input:focus{outline:2px solid var(--teal);outline-offset:1px}
+.sana-send{flex:0 0 auto;border:0;border-radius:12px;padding:10px 16px;font:inherit;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);cursor:pointer}
+.sana-send[disabled]{opacity:.55;cursor:default}
+.sana-thread{margin-top:12px}
+.sana-turn{margin-bottom:12px}
+.sana-you{font-weight:600;color:var(--brown-mid);margin-bottom:4px}
+.sana-her p{margin:0 0 8px}
+.sana-note{font-size:13px;color:var(--brown-mid);opacity:.85;margin-top:8px}
 /* Clarify chip (Deploy D2): the companion asking about an ambiguous marker. Calm teal-soft
    card, never a form/settings row. Suppressed once the user has answered (profile.supp_*). */
 .clarify-card{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:18px 20px;margin-bottom:10px;animation:escFade .4s ease}
@@ -1437,6 +1448,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
       <div class="comp-response" id="comp-answer" aria-live="polite"></div>
+      <!-- SANA_CHAT_V1 — built dark. Both nodes are created by JS only when
+           SANA_CHAT_ENABLED is true, so with the flag off they do not exist in
+           the DOM at all rather than being hidden. See sanaMountChat. -->
+      <div id="sana-mount"></div>
       <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
     </div>
@@ -5347,6 +5362,249 @@ function renderCompanionChips(p, score){
       pending = setTimeout(()=>{ pending = null; showAnswer(idx); }, 800);
     };
   });
+
+  // One answer at a time, across BOTH surfaces: opening a chip closes any chat
+  // reply, and sanaSend closes any open chip answer.
+  chips.forEach((btn)=>{ const prev = btn.onclick; btn.onclick = ()=>{ const t = $("sana-thread"); if(t) t.innerHTML = ""; prev(); }; });
+
+  sanaMountChat();
+}
+
+// ── SANA_CHAT_V1 ────────────────────────────────────────────────────────────
+// The live companion, built DARK. SANA_CHAT_ENABLED is false in every committed
+// state of this file and the pre-push gate greps for it. With it false,
+// sanaMountChat returns before creating anything, so there is no input node, no
+// listener, and nothing that can reach the backend. Gating construction rather
+// than visibility is deliberate; a hidden input is still a wired input.
+//
+// Live turns are NOT verifiable yet. SUPABASE_AUTH_ENABLED is false server side,
+// so /auth/link-supabase-account 404s by design. That 404 is a first-class state
+// here, not an error to paper over, and it is what a dark verification proves.
+const SANA_CHAT_ENABLED = false;
+const SANA_API_BASE = "https://biowealth-backend-prod-3.azurewebsites.net/api";
+
+// Copy lives in one place so the no-colon, no-em-dash rule is checkable at a
+// glance. esc() strips em dashes on the way out as a second line of defence.
+const SANA_COPY = {
+  placeholder: "Ask Sana about your panel",
+  send:        "Ask",
+  notOn:       "Sana is not switched on yet. She will be available here soon.",
+  collision:   "We could not connect this account. Please email support@mybiowellth.com and we will sort it out.",
+  expired:     "Your session has expired. Please sign in again.",
+  cutOff:      "That reply was cut off. Please try again.",
+  runtime:     "Something went wrong answering that. Please try again.",
+  offline:     "We could not reach Sana just now. Please check your connection and try again.",
+};
+
+// SANA_SSE_PARSER_V1 START
+// Frame parser for the agent SSE stream. Pure apart from its own buffer, and
+// extracted by scripts/test-sse-parser.mjs from THIS file so the test exercises
+// shipped source rather than a copy that can drift.
+//
+// Two things it must get right, both learned from the Dart reference client:
+//   - a frame can be split across chunks, so the trailing partial is held back
+//     and never parsed until its terminator arrives;
+//   - an unparseable frame is SKIPPED, not thrown, because one malformed frame
+//     must not kill a stream that is otherwise fine.
+function sanaMakeParser(){
+  let buf = "";
+  return {
+    push: function(text){
+      buf += text;
+      const parts = buf.split("\n\n");
+      buf = parts.pop();                       // trailing partial frame stays buffered
+      const out = [];
+      for(let i=0;i<parts.length;i++){
+        const raw = parts[i].trim();
+        if(!raw) continue;
+        // A frame is one or more lines. Per SSE, the payload is the `data:`
+        // lines joined by newlines, and any other field line (event:, id:,
+        // retry:, a `:` comment heartbeat) is not payload. Our server writes
+        // single-line frames today, but the framing contract is SSE's rather
+        // than ours, and reading only the first line would silently drop the
+        // payload of any frame that ever gains an event: line.
+        const lines = raw.split("\n");
+        const data = [];
+        for(let j=0;j<lines.length;j++){
+          const ln = lines[j];
+          if(ln.indexOf("data:") === 0) data.push(ln.slice(5).replace(/^ /, ""));
+        }
+        // No data: line at all means a bare JSON frame, which the Dart
+        // reference client also tolerates. Keep that tolerance.
+        const json = data.length ? data.join("\n") : raw;
+        let obj = null;
+        try { obj = JSON.parse(json); } catch(e) { continue; }
+        if(obj && typeof obj.type === "string") out.push(obj);
+      }
+      return out;
+    },
+    pending: function(){ return buf; }
+  };
+}
+// SANA_SSE_PARSER_V1 END
+
+let SANA_LINKED = false;      // link-once per page session
+let SANA_BUSY = false;
+
+async function sanaAccessToken(){
+  // Re-read every send. Access tokens last an hour and a dashboard tab is often
+  // left open far longer, so a cached token is a guaranteed 401 later on.
+  const { data } = await sb.auth.getSession();
+  return (data && data.session && data.session.access_token) || "";
+}
+
+// POST /api/auth/link-supabase-account. Creates the local users row for this
+// Supabase identity, or returns the existing one. 200 and 201 both mean linked.
+// Returns null on success, or a copy string to show.
+async function sanaEnsureLinked(token){
+  if(SANA_LINKED) return null;
+  let res;
+  try{
+    res = await fetch(SANA_API_BASE + "/auth/link-supabase-account", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: "{}",
+    });
+  }catch(e){ return SANA_COPY.offline; }
+
+  if(res.status === 200 || res.status === 201){ SANA_LINKED = true; return null; }
+  if(res.status === 404) return SANA_COPY.notOn;      // server flag off, the expected dark state
+  if(res.status === 409) return SANA_COPY.collision;
+  if(res.status === 401) return SANA_COPY.expired;
+  return SANA_COPY.offline;
+}
+
+function sanaDots(){
+  return '<div class="comp-dots" aria-hidden="true"><span class="comp-dot"></span><span class="comp-dot"></span><span class="comp-dot"></span></div>';
+}
+function sanaNote(el, text){
+  el.innerHTML = '<p class="sana-note">' + esc(text) + '</p>';
+}
+
+// One answer at a time, extended ACROSS chips and chat. The chips own
+// #comp-answer; chat owns #sana-thread. Two owners of one node is how a fixed
+// bug comes back, so they stay separate and close each other instead.
+function sanaCloseChips(){
+  const a = $("comp-answer"); const cs = $("comp-chips");
+  if(a){ a.classList.remove("show"); a.innerHTML = ""; }
+  if(cs) [...cs.querySelectorAll(".comp-chip")].forEach(c=>{ c.classList.remove("active"); c.setAttribute("aria-expanded","false"); });
+}
+
+async function sanaSend(){
+  if(SANA_BUSY) return;
+  const input = $("sana-input"), thread = $("sana-thread"), btn = $("sana-send");
+  if(!input || !thread) return;
+  const text = input.value.trim();
+  if(!text) return;
+
+  sanaCloseChips();
+  SANA_BUSY = true; input.value = ""; if(btn) btn.disabled = true;
+
+  // What we restore to if the turn never actually starts server side.
+  const previousHTML = thread.innerHTML;
+
+  thread.innerHTML = previousHTML +
+    '<div class="sana-turn"><div class="sana-you">' + esc(text) + '</div>' +
+    '<div class="sana-her" id="sana-live">' + sanaDots() + '</div></div>';
+  const live = $("sana-live");
+
+  const token = await sanaAccessToken();
+  if(!token){ thread.innerHTML = previousHTML; sanaNote(live || thread, SANA_COPY.expired); SANA_BUSY = false; if(btn) btn.disabled = false; return; }
+
+  const linkErr = await sanaEnsureLinked(token);
+  if(linkErr){ thread.innerHTML = previousHTML; const n = document.createElement("div"); n.className = "sana-turn"; thread.appendChild(n); sanaNote(n, linkErr); SANA_BUSY = false; if(btn) btn.disabled = false; return; }
+
+  // receivedThreadMeta is the COMMIT POINT, exactly as in the Dart client. Before
+  // it, no thread exists server side and a failure rolls the view back whole.
+  // After it, the thread and the user message are persisted, so rolling back
+  // would desync the page from a real thread; we keep whatever text arrived.
+  let receivedThreadMeta = false, receivedDone = false, answer = "", firstDelta = false;
+  const finish = (note) => {
+    if(!firstDelta && !answer && note){ sanaNote(live, note); }
+    else if(note){ live.innerHTML = live.innerHTML + '<p class="sana-note">' + esc(note) + '</p>'; }
+    SANA_BUSY = false; if(btn) btn.disabled = false;
+  };
+  const rollback = (note) => {
+    thread.innerHTML = previousHTML;
+    const n = document.createElement("div"); n.className = "sana-turn"; thread.appendChild(n);
+    sanaNote(n, note); SANA_BUSY = false; if(btn) btn.disabled = false;
+  };
+
+  let res;
+  try{
+    res = await fetch(SANA_API_BASE + "/agent/chat", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", "Accept": "text/event-stream" },
+      body: JSON.stringify({ message: text }),
+    });
+  }catch(e){ rollback(SANA_COPY.offline); return; }
+
+  if(res.status === 401){ rollback(SANA_COPY.expired); return; }
+  if(res.status === 404){ rollback(SANA_COPY.notOn); return; }
+  if(!res.ok || !res.body){ rollback(SANA_COPY.offline); return; }
+
+  // TextDecoder with stream:true is REQUIRED. A multi-byte character split
+  // across two chunks decodes to replacement characters without it, and the
+  // Dart client got this for free from its utf8.decoder transform.
+  const reader = res.body.getReader();
+  const dec = new TextDecoder("utf-8");
+  const parser = sanaMakeParser();
+
+  try{
+    for(;;){
+      const step = await reader.read();
+      if(step.done) break;
+      const events = parser.push(dec.decode(step.value, { stream: true }));
+      for(let i=0;i<events.length;i++){
+        const ev = events[i];
+        if(ev.type === "thread_meta"){ receivedThreadMeta = true; }
+        else if(ev.type === "tool_call"){ if(!firstDelta) live.innerHTML = sanaDots(); }
+        else if(ev.type === "tool_result"){ /* dots stay until the first delta */ }
+        else if(ev.type === "delta"){
+          if(!firstDelta){ firstDelta = true; live.innerHTML = ""; }
+          answer += (ev.text || "");
+          live.innerHTML = '<p>' + esc(answer) + '</p>';
+        }
+        else if(ev.type === "error"){
+          if(!receivedThreadMeta){ rollback(SANA_COPY.runtime); return; }
+          finish(SANA_COPY.runtime); return;
+        }
+        else if(ev.type === "done"){ receivedDone = true; }
+      }
+      if(receivedDone) break;
+    }
+  }catch(e){
+    if(!receivedThreadMeta){ rollback(SANA_COPY.offline); return; }
+    finish(SANA_COPY.cutOff); return;
+  }
+
+  // Socket closed without a done frame. Same split as the Dart client.
+  if(!receivedDone){
+    if(!receivedThreadMeta){ rollback(SANA_COPY.cutOff); return; }
+    finish(SANA_COPY.cutOff); return;
+  }
+  finish(null);
+}
+
+// Builds the input and thread. Called from renderCompanionChips so chat appears
+// exactly where the companion block already appears, gated on the same
+// condition. No panel, no companion block, no chat.
+function sanaMountChat(){
+  if(!SANA_CHAT_ENABLED) return;
+  const mount = $("sana-mount");
+  if(!mount || mount.dataset.mounted === "1") return;
+  mount.dataset.mounted = "1";
+  mount.innerHTML =
+    '<div class="sana-row">' +
+      '<input class="sana-input" id="sana-input" type="text" autocomplete="off" ' +
+        'placeholder="' + esc(SANA_COPY.placeholder) + '" aria-label="' + esc(SANA_COPY.placeholder) + '"/>' +
+      '<button class="sana-send" id="sana-send" type="button">' + esc(SANA_COPY.send) + '</button>' +
+    '</div>' +
+    '<div class="sana-thread" id="sana-thread" aria-live="polite"></div>';
+  const badge = document.querySelector("#companion .comp-badge");
+  if(badge) badge.remove();
+  $("sana-send").onclick = sanaSend;
+  $("sana-input").onkeydown = (e)=>{ if(e.key === "Enter") sanaSend(); };
 }
 
 // Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: systems (body
