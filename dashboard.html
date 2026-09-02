@@ -5547,10 +5547,14 @@ function onb2Wire(sc){
   const bind = (id, k)=>{ const el = document.getElementById(id); if(el) el.oninput = ()=>{ a[k] = el.value; }; };
   bind("onb2-dob","dob"); bind("onb2-len","cycle_len"); bind("onb2-dur","period_dur");
   bind("onb2-ym","ceased_ym"); bind("onb2-note","context_note");
+  // attr is the BARE attribute name. It was previously passed pre-bracketed and
+  // then bracketed again here, producing `.onb2-chip[[data-s]]`, which throws
+  // SyntaxError and killed screens 5, 6 and 7 outright. Caught in the browser,
+  // not by the logic tests, because it lives in rendering rather than state.
   const toggle = (attr, key, exclusive)=>{
     document.querySelectorAll("#onb2-body .onb2-chip[" + attr + "]").forEach(b=>{
       b.onclick = ()=>{
-        const v = b.getAttribute(attr.replace(/[\[\]]/g,""));
+        const v = b.getAttribute(attr);
         let cur = (a[key] || []).slice();
         if(exclusive && exclusive.indexOf(v) >= 0){ cur = [v]; }
         else { cur = cur.filter(x=> !exclusive || exclusive.indexOf(x) < 0);
@@ -5559,9 +5563,9 @@ function onb2Wire(sc){
       };
     });
   };
-  if(sc.kind === "many" || sc.kind === "many2") toggle("[data-c]", sc.key, null);
-  if(sc.opts2) toggle("[data-y]", "symptoms", ["None"]);
-  if(sc.supps) toggle("[data-s]", "supps", ["Neither"]);
+  if(sc.kind === "many" || sc.kind === "many2") toggle("data-c", sc.key, null);
+  if(sc.opts2) toggle("data-y", "symptoms", ["None"]);
+  if(sc.supps) toggle("data-s", "supps", ["Neither"]);
 }
 
 /** Advance. `skipped` writes NOTHING for this screen and moves on. */
