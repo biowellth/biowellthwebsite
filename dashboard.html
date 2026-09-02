@@ -1162,6 +1162,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .onb2-next{border:0;background:#6b4ea8;color:#fff;padding:11px 26px;border-radius:999px;font-size:15px;cursor:pointer}
 #onb2-resume{display:inline-block;margin:10px 0;padding:9px 16px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px;color:#2a2430}
 #onb2-resume.hidden{display:none}
+
+.acct-onb-h{font-weight:600;margin:16px 0 8px}
+.acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #f0edf3;font-size:14px}
+.acct-onb-k{color:#6c6472}
+.acct-onb-v{color:#2a2430;text-align:right}
+.acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px}
+#acct-onb.hidden{display:none}
 </style>
 </head>
 <body>
@@ -1268,6 +1275,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
          settings" clause is removed until this ships un-darked, see PRIVACY_TRUTH_V2 there. -->
     <div class="acct-row" id="acct-consent"></div>
     <button type="button" id="onb2-resume" class="hidden"></button>
+    <div class="acct-row" id="acct-onb"></div>
     <div class="acct-dz">
       <div class="acct-dz-h">Delete account</div>
       <p class="acct-dz-body">This deletes your account, your reports, and your uploaded files right away. It cannot be undone.</p>
@@ -2009,6 +2017,7 @@ function showAgeModal(){
   const __ageBlocked = await maybeAffirmAge();
   if(!__ageBlocked) onb2Open();   // ONBOARDING_V2; no-op while dark. Retired: maybeShowOnboarding
   onb2ResumeChip();                         // ONBOARDING_V2 "Finish setting up"; hidden while dark
+  onb2RenderAccount();                      // ONBOARDING_V2 account settings; hidden while dark
 
   // Load every panel, populate the switcher, and default to the newest one
   // that actually has a finished result. If the most recent upload is still
@@ -5617,6 +5626,56 @@ async function onb2Open(){
  * "Finish setting up" on the dashboard, for anyone who skipped. Same component,
  * same single writer, so there is never a second asker.
  */
+/**
+ * ONBOARDING_V2 — account settings shows the current answers, editable per
+ * field. Reads the same columns the flow writes and nothing else, so settings
+ * never becomes a second asker with its own vocabulary; "Edit" reopens the one
+ * flow. Renders nothing while dark.
+ */
+async function onb2RenderAccount(){
+  const host = document.getElementById("acct-onb");
+  if(!host) return;
+  if(!ONBOARDING_ENABLED || !CONSENTED){ host.classList.add("hidden"); return; }
+  let d = {};
+  try{
+    const { data } = await sb.from("profiles")
+      .select("dob, life_stage, cycle_status, vegetarian_status, hormonal_contraception, typical_cycle_length_days, typical_period_duration_days, health_goals, known_conditions, symptoms, context_note, pregnant_or_postpartum_within_6_months")
+      .eq("id", USER.id).maybeSingle();
+    d = data || {};
+  }catch(_){ d = {}; }
+  const LS = { premenopause:"Periods come fairly predictably", perimenopause:"Periods have become unpredictable",
+               postmenopause:"Periods stopped over a year ago", pregnant:"Pregnant" };
+  const CS = { regular:"Regular", irregular:"Irregular", pcos:"I have PCOS",
+               amenorrheic:"I don't get periods right now", none:"Doesn't apply to me" };
+  const HC = { current:"Yes, currently", ceased_within_12_months:"Stopped within the last year", none:"No" };
+  const list = v => Array.isArray(v) && v.length ? v.join(", ") : null;
+  const rows = [
+    ["Date of birth", d.dob || null],
+    ["Pregnant or recently pregnant", d.pregnant_or_postpartum_within_6_months == null ? null : (d.pregnant_or_postpartum_within_6_months ? "Yes" : "No")],
+    ["Where you are right now", LS[d.life_stage] || null],
+    ["Your cycle", CS[d.cycle_status] || null],
+    ["Usual cycle length", d.typical_cycle_length_days ? d.typical_cycle_length_days + " days" : null],
+    ["Period length", d.typical_period_duration_days ? d.typical_period_duration_days + " days" : null],
+    ["Hormonal birth control", HC[d.hormonal_contraception] || null],
+    ["Diet", d.vegetarian_status || null],
+    ["What brings you here", list(d.health_goals)],
+    ["Things to keep in mind", list(d.known_conditions)],
+    ["Symptoms you mentioned", list(d.symptoms)],
+    ["Your note", d.context_note || null],
+  ];
+  let h = '<div class="acct-onb-h">Your answers</div>';
+  rows.forEach(r=>{
+    // Unanswered reads as "Not answered", never as a value we invented.
+    h += '<div class="acct-onb-row"><span class="acct-onb-k">' + onb2Esc(r[0]) + "</span>" +
+         '<span class="acct-onb-v">' + onb2Esc(r[1] == null ? "Not answered" : r[1]) + "</span></div>";
+  });
+  h += '<button type="button" class="acct-onb-edit" id="acct-onb-edit">Edit your answers</button>';
+  host.innerHTML = h;
+  host.classList.remove("hidden");
+  const b = document.getElementById("acct-onb-edit");
+  if(b) b.onclick = onb2Open;
+}
+
 async function onb2ResumeChip(){
   const el = document.getElementById("onb2-resume");
   if(!el) return;
