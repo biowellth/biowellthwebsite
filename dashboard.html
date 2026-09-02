@@ -1138,36 +1138,46 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   @page{margin:14mm}
 }
 
-/* ONBOARDING_V2 */
-.onb2-modal{position:fixed;inset:0;background:rgba(20,18,24,.55);display:none;align-items:center;justify-content:center;z-index:80;padding:18px}
-.onb2-modal.show{display:flex}
-.onb2-card{background:#fff;border-radius:18px;max-width:520px;width:100%;padding:26px 24px 20px;position:relative;max-height:88vh;overflow-y:auto}
-.onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#8a8291}
-.onb2-intro{margin:0 0 14px;color:#6c6472;font-size:14px;line-height:1.5}
-.onb2-step{font-size:12px;color:#9a929f;margin-bottom:10px}
-.onb2-q{font-size:18px;font-weight:600;line-height:1.35;margin-bottom:14px;color:#2a2430}
-.onb2-sub{font-size:14px;font-weight:500;margin:16px 0 8px;color:#4a4350}
-.onb2-note{font-size:13px;color:#8a8291;margin-top:10px;line-height:1.45}
+/* ONBOARDING_V2 — site tokens only. Mirrors .onb-card geometry and the teal
+   primary so the flow reads as the same product as the upload card and the age
+   modal. No new palette: an earlier draft invented a purple and it would have
+   shipped looking like a different app. */
+.onb2-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(71,55,43,.42);opacity:0;visibility:hidden}
+.onb2-modal.show{opacity:1;visibility:visible;transition:opacity .25s ease}
+.onb2-card{position:relative;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--off-white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow)}
+.onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--brown-mid);opacity:.7}
+.onb2-intro.hidden{display:none}
+.onb2-intro{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-bottom:14px}
+.onb2-step{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;margin-bottom:10px}
+.onb2-q{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:var(--brown);letter-spacing:-.02em;line-height:1.3;margin-bottom:14px}
+.onb2-sub{font-size:13.5px;font-weight:600;color:var(--brown);margin:16px 0 8px}
+.onb2-note{font-size:13px;color:var(--brown-mid);margin-top:10px;line-height:1.55}
 .onb2-opts{display:flex;flex-direction:column;gap:8px}
 .onb2-opts.row{flex-direction:row;flex-wrap:wrap}
-.onb2-opt{text-align:left;padding:12px 14px;border:1px solid #e3dfe8;border-radius:12px;background:#fff;cursor:pointer;font-size:15px;line-height:1.4;color:#2a2430}
-.onb2-opt.sel{border-color:#6b4ea8;background:#f6f2fd}
-.onb2-chip{padding:9px 14px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px;color:#2a2430}
-.onb2-chip.sel{border-color:#6b4ea8;background:#f6f2fd}
-.onb2-date,.onb2-num,.onb2-ta{width:100%;padding:11px 12px;border:1px solid #e3dfe8;border-radius:10px;font-size:15px;font-family:inherit;color:#2a2430}
-.onb2-num{max-width:140px}
+.onb2-opt{display:flex;align-items:center;width:100%;text-align:left;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;line-height:1.45}
+.onb2-opt:hover{border-color:var(--teal-mid)}
+.onb2-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
+.onb2-chip{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 15px}
+.onb2-chip:hover{border-color:var(--teal-mid)}
+.onb2-chip.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
+.onb2-date,.onb2-num,.onb2-ta,.onb2-sel{width:100%;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:10px;padding:11px 12px}
+.onb2-num{max-width:150px}
+.onb2-when{display:flex;gap:10px}
+.onb2-when .onb2-sel{flex:1 1 auto}
 .onb2-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:12px}
 .onb2-nav.hidden{display:none}
-.onb2-skip{border:0;background:none;color:#8a8291;font-size:14px;cursor:pointer;padding:10px 4px}
-.onb2-next{border:0;background:#6b4ea8;color:#fff;padding:11px 26px;border-radius:999px;font-size:15px;cursor:pointer}
-#onb2-resume{display:inline-block;margin:10px 0;padding:9px 16px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px;color:#2a2430}
+.onb2-skip{font-size:13px;color:var(--brown-mid);background:none;text-decoration:underline;text-underline-offset:3px}
+.onb2-next{background:var(--teal);color:var(--white);font-weight:700;font-size:14px;border-radius:100px;padding:12px 26px}
+.onb2-next:hover{background:var(--teal-dark)}
+.onb2-group{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);font-weight:700;margin:14px 0 8px}
+#onb2-resume{font-size:13px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 16px;margin:10px 0}
 #onb2-resume.hidden{display:none}
 
-.acct-onb-h{font-weight:600;margin:16px 0 8px}
-.acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #f0edf3;font-size:14px}
-.acct-onb-k{color:#6c6472}
-.acct-onb-v{color:#2a2430;text-align:right}
-.acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid #e3dfe8;border-radius:999px;background:#fff;cursor:pointer;font-size:14px}
+.acct-onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown);margin:16px 0 8px}
+.acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--brown-light);font-size:13.5px}
+.acct-onb-k{color:var(--brown-mid)}
+.acct-onb-v{color:var(--brown);text-align:right}
+.acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid var(--brown-light);border-radius:100px;background:var(--white);font-size:13.5px;color:var(--brown)}
 #acct-onb.hidden{display:none}
 </style>
 </head>
@@ -5302,7 +5312,7 @@ const ONB2_COPY = {
   next: "Next",
   done: "Done. Your reading is almost ready.",
   resume: "Finish setting up",
-  s0: "What is your date of birth?",
+  s0: "When were you born?",
   s1: "Are you currently pregnant, or have you been pregnant in the last 6 months?",
   s2: "Which of these sounds most like where you are right now?",
   s2note: "If your blood work tells a different story, we go with the blood work.",
@@ -5315,6 +5325,8 @@ const ONB2_COPY = {
   s5supp: "Do you take any of these?",
   s6: "What brings you here?",
   s7: "Anything we should know?",
+  s7cond: "Conditions",
+  s7symp: "Symptoms",
   s7note: "Anything else you want us to keep in mind",
 };
 
@@ -5348,7 +5360,9 @@ const ONB2_SCREENS = [
           "Healthy aging","Just curious about my numbers"] },
   { id:"cond", key:"known_conditions", q:ONB2_COPY.s7, kind:"many2",
     opts:["Thyroid condition","PCOS","Anemia or low iron","Diabetes or prediabetes","None of these"],
-    opts2:["Fatigue","Hair loss","Brain fog","Mood changes","Bloating","None"] },
+    // "None of these" in BOTH groups. The symptom list said "None", which reads
+    // as a different kind of answer beside an identical chip one row above.
+    opts2:["Fatigue","Hair loss","Brain fog","Mood changes","Bloating","None of these"] },
 ];
 
 const onb2 = { idx:0, ans:{}, stored:{}, open:false, order:[] };
@@ -5499,8 +5513,23 @@ function onb2Render(){
            '<input type="number" id="onb2-dur" class="onb2-num" min="1" max="15" value="' + onb2Esc(a.period_dur || "") + '">';
     }
     if(sc.when && a.hormonal_contraception === "ceased_within_12_months"){
+      // Two selects rather than <input type="month">, whose empty state renders
+      // as "--------- ----" in Chrome and reads as broken rather than optional.
+      // Day is pinned to 1 on write; the 1950 floor matches the CHECK.
+      const MO = ["January","February","March","April","May","June","July",
+                  "August","September","October","November","December"];
+      const cur = (a.ceased_ym || "").split("-");
+      const yNow = new Date().getFullYear();
+      let mo = '<select class="onb2-sel" id="onb2-mo"><option value="">Month</option>';
+      MO.forEach((n,k)=>{ const v = String(k+1).padStart(2,"0");
+        mo += '<option value="' + v + '"' + (cur[1] === v ? " selected" : "") + ">" + n + "</option>"; });
+      mo += "</select>";
+      let yr = '<select class="onb2-sel" id="onb2-yr"><option value="">Year</option>';
+      for(let y = yNow; y >= 1950; y--){
+        yr += '<option value="' + y + '"' + (cur[0] === String(y) ? " selected" : "") + ">" + y + "</option>"; }
+      yr += "</select>";
       h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s4when) + '</div>' +
-           '<input type="month" id="onb2-ym" class="onb2-date" min="1950-01" value="' + onb2Esc(a.ceased_ym || "") + '">';
+           '<div class="onb2-when">' + mo + yr + "</div>";
     }
     if(sc.supps){
       h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s5supp) + '</div><div class="onb2-opts row">';
@@ -5511,6 +5540,7 @@ function onb2Render(){
       h += "</div>";
     }
   } else if(sc.kind === "many" || sc.kind === "many2"){
+    if(sc.opts2) h += '<div class="onb2-group">' + onb2Esc(ONB2_COPY.s7cond) + "</div>";
     h += '<div class="onb2-opts row">';
     sc.opts.forEach(x=>{
       const on = (a[sc.key] || []).indexOf(x) >= 0 ? " sel" : "";
@@ -5518,6 +5548,7 @@ function onb2Render(){
     });
     h += "</div>";
     if(sc.opts2){
+      h += '<div class="onb2-group">' + onb2Esc(ONB2_COPY.s7symp) + "</div>";
       h += '<div class="onb2-opts row">';
       sc.opts2.forEach(x=>{
         const on = (a.symptoms || []).indexOf(x) >= 0 ? " sel" : "";
@@ -5531,6 +5562,10 @@ function onb2Render(){
   onb2Wire(sc);
   const step = document.getElementById("onb2-step");
   if(step) step.textContent = (onb2.idx + 1) + " of " + onb2.order.length;
+  // The intro is a greeting, not a header. It belongs on the first screen a user
+  // sees and nowhere else; repeating it on all eight reads as a stutter.
+  const intro = document.getElementById("onb2-intro");
+  if(intro) intro.classList.toggle("hidden", onb2.idx !== 0);
 }
 
 function onb2Wire(sc){
@@ -5546,7 +5581,14 @@ function onb2Wire(sc){
   });
   const bind = (id, k)=>{ const el = document.getElementById(id); if(el) el.oninput = ()=>{ a[k] = el.value; }; };
   bind("onb2-dob","dob"); bind("onb2-len","cycle_len"); bind("onb2-dur","period_dur");
-  bind("onb2-ym","ceased_ym"); bind("onb2-note","context_note");
+  bind("onb2-note","context_note");
+  // Both selects write the one YYYY-MM the patch builder expects; a half answer
+  // writes nothing, so a stray month with no year cannot become a date.
+  const mo = document.getElementById("onb2-mo"), yr = document.getElementById("onb2-yr");
+  const setYm = ()=>{ const m = mo && mo.value, y = yr && yr.value;
+    a.ceased_ym = (m && y) ? (y + "-" + m) : null; };
+  if(mo) mo.onchange = setYm;
+  if(yr) yr.onchange = setYm;
   // attr is the BARE attribute name. It was previously passed pre-bracketed and
   // then bracketed again here, producing `.onb2-chip[[data-s]]`, which throws
   // SyntaxError and killed screens 5, 6 and 7 outright. Caught in the browser,
@@ -5564,7 +5606,7 @@ function onb2Wire(sc){
     });
   };
   if(sc.kind === "many" || sc.kind === "many2") toggle("data-c", sc.key, null);
-  if(sc.opts2) toggle("data-y", "symptoms", ["None"]);
+  if(sc.opts2) toggle("data-y", "symptoms", ["None of these"]);
   if(sc.supps) toggle("data-s", "supps", ["Neither"]);
 }
 
