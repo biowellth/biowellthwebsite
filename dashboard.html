@@ -5568,7 +5568,10 @@ function onb2CardHtml(sc, idx){
   const c = onb2Count(idx);
   let h = '<div class="onb2-card">';
   h += '<p class="onb2-intro' + (idx === onb2.firstIdx ? '' : ' hidden') + '">' + onb2Esc(ONB2_COPY.intro) + '</p>';
-  h += '<div class="onb2-step">' + c.n + " of " + c.total + '</div>';
+  // A card the leap flies OVER has no position on the visible path, so it has no
+  // honest count. Rendering one gave "0 OF 6", which is visible mid-flight. Off
+  // the path, the counter is omitted rather than made up.
+  if(c.n > 0) h += '<div class="onb2-step">' + c.n + " of " + c.total + '</div>';
   h += '<div class="onb2-q-h">' + onb2Esc(sc.q) + "</div>";
 
   if(sc.kind === "date"){
@@ -5656,7 +5659,19 @@ function onb2Half(){
 }
 function onb2PlaceOrb(){
   const orb = document.getElementById("onb2-orb");
-  if(orb) orb.style.left = (onb2.idx * onb2Step() + onb2Half()) + "px";
+  if(!orb) return;
+  // A FINISHED fill:forwards animation outranks inline style, so without this the
+  // orb cannot be repositioned at all and the resize handler is inert -- measured,
+  // not assumed: setting style.left left the computed value unchanged until the
+  // animations were cancelled. The spec has the same latent issue; it only
+  // surfaces once the orb has to survive a viewport change. Cancelling finished
+  // leaps here changes no motion parameter, it just lets a placement land.
+  // Cancel unconditionally, not just finished ones. A leap interrupted by a fast
+  // second advance leaves a RUNNING animation, and that outranks inline style
+  // exactly the same way -- guarding on "finished" would leave the orb stranded
+  // in the case most likely to happen under real tapping.
+  orb.getAnimations().forEach(a=>a.cancel());
+  orb.style.left = (onb2.idx * onb2Step() + onb2Half()) + "px";
 }
 function onb2Pan(){
   const tr = document.getElementById("onb2-track");
@@ -5687,6 +5702,10 @@ function onb2Leap(from, to){
     { duration:820, easing:"linear" });
   setTimeout(()=>{
     orb.classList.remove("flying");
+    // Same reason as onb2PlaceOrb: land by cancelling the filled animation and
+    // writing the final position, so one leap does not leave a filled animation
+    // that the next placement cannot override. Leaps also stop accumulating.
+    orb.getAnimations().forEach(a=>a.cancel());
     orb.style.left = (to * S + half) + "px";
     onb2Ack();
   }, 830);
