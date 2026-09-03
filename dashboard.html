@@ -1140,38 +1140,87 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 
 /* ONBOARDING_V2 — site tokens only. Mirrors .onb-card geometry and the teal
    primary so the flow reads as the same product as the upload card and the age
-   modal. No new palette: an earlier draft invented a purple and it would have
-   shipped looking like a different app. */
+   modal. No new palette.
+
+   MOTION ported verbatim from docs/onboarding-motion-approved-v6.html
+   (founder-approved 2026-09-03, md5 efa88aed...). Durations, easings, offsets
+   and the 56px gap are the spec's numbers, not retuned. The one sanctioned
+   deviation is the orb mark, which uses the site's #bw-mark symbol. */
 .onb2-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(71,55,43,.42);opacity:0;visibility:hidden}
 .onb2-modal.show{opacity:1;visibility:visible;transition:opacity .25s ease}
-.onb2-card{position:relative;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;background:var(--off-white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow)}
-.onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--brown-mid);opacity:.7}
-.onb2-intro.hidden{display:none}
+.onb2-stage{width:min(560px,100%);position:relative}
+.onb2-card{position:relative;width:100%;background:var(--off-white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow)}
+.onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--brown-mid);opacity:.7;z-index:3}
+
+/* orb: world-space, child of the track, seated above the cards */
+.onb2-orb{position:absolute;top:-84px;width:56px;height:56px;transform:translate(-50%,-50%);left:50%;z-index:2;color:var(--teal);pointer-events:none}
+.onb2-orb .arcY{display:block;width:100%;height:100%}
+.onb2-orb svg{width:100%;height:100%;display:block}
+.onb2-orb .arcY{animation:onb2breathe 5.2s ease-in-out infinite}
+.onb2-orb.flying .arcY{animation:none}
+.onb2-orb::after{content:"";position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,rgba(12,142,107,.22),transparent 70%);animation:onb2aura 5.2s ease-in-out infinite}
+@keyframes onb2breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.015)}}
+@keyframes onb2aura{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+.onb2-orb.ack::before{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--teal);animation:onb2bloom 1s cubic-bezier(.25,.6,.3,1) forwards}
+@keyframes onb2bloom{from{transform:scale(.95);opacity:.55}to{transform:scale(1.7);opacity:0}}
+
+/* seeds */
+.onb2-seeds{display:flex;gap:10px;justify-content:center;margin-bottom:18px}
+.onb2-seed{width:7px;height:7px;border-radius:50%;background:var(--brown-light);transition:all .7s cubic-bezier(.22,1,.36,1)}
+.onb2-seed.done{background:var(--teal);transform:scale(1.15)}
+.onb2-seed.now{background:var(--teal);box-shadow:0 0 0 5px var(--teal-soft);transform:scale(1.3)}
+
+/* track */
+.onb2-viewport{overflow:visible;perspective:1200px;position:relative}
+.onb2-track{display:flex;gap:56px;align-items:flex-start;position:relative;transition:transform 1.45s cubic-bezier(.55,.05,.18,1)}
+.onb2-q{flex:0 0 100%;transform:scale(.9);opacity:.45;filter:saturate(.85);transition:transform 1.45s cubic-bezier(.55,.05,.18,1),opacity 1.1s ease,filter 1.1s ease}
+.onb2-q.in{transform:scale(1);opacity:1;filter:none}
+.onb2-stage.transit{animation:onb2camerabreath 1.45s cubic-bezier(.55,.05,.18,1)}
+@keyframes onb2camerabreath{0%{transform:scale(1)}45%{transform:scale(.965)}100%{transform:scale(1)}}
+
 .onb2-intro{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-bottom:14px}
+.onb2-intro.hidden{display:none}
 .onb2-step{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;margin-bottom:10px}
-.onb2-q{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:var(--brown);letter-spacing:-.02em;line-height:1.3;margin-bottom:14px}
+.onb2-q-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:20px;color:var(--brown);letter-spacing:-.02em;line-height:1.3;margin-bottom:14px}
 .onb2-sub{font-size:13.5px;font-weight:600;color:var(--brown);margin:16px 0 8px}
 .onb2-note{font-size:13px;color:var(--brown-mid);margin-top:10px;line-height:1.55}
 .onb2-opts{display:flex;flex-direction:column;gap:8px}
 .onb2-opts.row{flex-direction:row;flex-wrap:wrap}
-.onb2-opt{display:flex;align-items:center;width:100%;text-align:left;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;line-height:1.45}
-.onb2-opt:hover{border-color:var(--teal-mid)}
+.onb2-opt{display:flex;align-items:center;width:100%;text-align:left;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;line-height:1.45;transition:border-color .35s ease,background .35s ease,transform .35s cubic-bezier(.22,1,.36,1)}
+.onb2-opt:hover{border-color:var(--teal);transform:translateX(2px)}
 .onb2-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
-.onb2-chip{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 15px}
-.onb2-chip:hover{border-color:var(--teal-mid)}
+.onb2-chip{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 15px;transition:all .3s ease}
+.onb2-chip:hover{border-color:var(--teal)}
 .onb2-chip.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
 .onb2-date,.onb2-num,.onb2-ta,.onb2-sel{width:100%;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:10px;padding:11px 12px}
 .onb2-num{max-width:150px}
 .onb2-when{display:flex;gap:10px}
 .onb2-when .onb2-sel{flex:1 1 auto}
-.onb2-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:12px}
+.onb2-nav{display:flex;justify-content:space-between;align-items:center;margin-top:26px;gap:12px}
 .onb2-nav.hidden{display:none}
+.onb2-left{display:flex;align-items:center}
+.onb2-back{font-family:inherit;font-size:14px;color:var(--brown-mid);background:none;border:none;cursor:pointer;margin-right:16px}
+.onb2-back:hover{color:var(--teal)}
 .onb2-skip{font-size:13px;color:var(--brown-mid);background:none;text-decoration:underline;text-underline-offset:3px}
-.onb2-next{background:var(--teal);color:var(--white);font-weight:700;font-size:14px;border-radius:100px;padding:12px 26px}
-.onb2-next:hover{background:var(--teal-dark)}
+.onb2-next{background:var(--teal);color:var(--white);font-weight:700;font-size:14px;border-radius:100px;padding:12px 26px;transition:background .3s ease,transform .3s ease}
+.onb2-next:hover{background:var(--teal-dark);transform:translateY(-1px)}
 .onb2-group{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);font-weight:700;margin:14px 0 8px}
+.onb2-done{text-align:center;padding-top:26px}
 #onb2-resume{font-size:13px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 16px;margin:10px 0}
 #onb2-resume.hidden{display:none}
+
+/* Spec's reduced-motion clause: all of it off, instant swap fallback. */
+@media (prefers-reduced-motion:reduce){
+  .onb2-orb svg,.onb2-orb::after,.onb2-orb .arcY{animation:none}
+  .onb2-orb,.onb2-q,.onb2-seed,.onb2-opt,.onb2-chip,.onb2-next,.onb2-track{transition:none}
+  .onb2-stage.transit{animation:none}
+  .onb2-q{transform:none;opacity:1;filter:none}
+}
+.acct-onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown);margin:16px 0 8px}
+.acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--brown-light);font-size:13.5px}
+.acct-onb-k{color:var(--brown-mid)}
+.acct-onb-v{color:var(--brown);text-align:right}
+.acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid var(--brown-light);border-radius:100px;background:var(--white);font-size:13.5px;color:var(--brown)}
 
 .acct-onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown);margin:16px 0 8px}
 .acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--brown-light);font-size:13.5px}
@@ -5365,7 +5414,7 @@ const ONB2_SCREENS = [
     opts2:["Fatigue","Hair loss","Brain fog","Mood changes","Bloating","None of these"] },
 ];
 
-const onb2 = { idx:0, ans:{}, stored:{}, open:false, order:[] };
+const onb2 = { idx:0, ans:{}, stored:{}, open:false, cards:[], hist:[], firstIdx:0 };
 
 /**
  * menstrual_status is DERIVED, never asked. Ruling 2026-09-02.
@@ -5472,12 +5521,17 @@ function onb2Int(v, lo, hi){
 }
 
 /** Pregnancy Yes skips the life-stage and cycle screens. */
+/**
+ * The VISIBLE path. One expression of the rule, used by the counter, the seeds
+ * and the leap target, so those cannot drift apart. Screen 0 is conditional on
+ * stored dob; the pregnancy branch takes the life-stage and cycle screens off
+ * the path without removing them from the track.
+ */
 function onb2BuildOrder(){
   const skipDob = onb2.stored.dob != null;
   onb2.order = ONB2_SCREENS.filter(sc=>{
     if(sc.id === "dob") return !skipDob;
-    if((sc.id === "life" || sc.id === "cyc") && onb2.ans.preg === true) return false;
-    return true;
+    return onb2InPath(sc);
   });
 }
 
@@ -5488,43 +5542,61 @@ function onb2Esc(s){
     .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 
-function onb2Render(){
-  const host = document.getElementById("onb2-body");
-  if(!host) return;
-  const sc = onb2.order[onb2.idx];
-  if(!sc){ onb2Finish(); return; }
+/**
+ * Is this screen on the visible path right now?
+ *
+ * The BRANCH lives here and nowhere else. Pregnancy Yes takes the life-stage and
+ * cycle screens off the path, but they STAY IN THE TRACK -- the leap flies over
+ * them rather than the DOM losing them, which is what makes the long flight
+ * legible as "she carried me past those". Skipped cards get no done seed.
+ */
+function onb2InPath(sc){
+  if((sc.id === "life" || sc.id === "cyc") && onb2.ans.preg === true) return false;
+  return true;
+}
+/** Position of a track index among on-path cards, and the on-path total. */
+function onb2Count(idx){
+  onb2BuildOrder();
+  let at = 0, seen = 0;
+  onb2.cards.forEach((sc,k)=>{ if(onb2InPath(sc)){ seen++; if(k === idx) at = seen; } });
+  return { n: at, total: onb2.order.length };
+}
+
+/** The card body for ONE screen. Same copy, same controls, same order as before. */
+function onb2CardHtml(sc, idx){
   const a = onb2.ans;
-  let h = '<div class="onb2-q">' + onb2Esc(sc.q) + "</div>";
+  const c = onb2Count(idx);
+  let h = '<div class="onb2-card">';
+  h += '<p class="onb2-intro' + (idx === onb2.firstIdx ? '' : ' hidden') + '">' + onb2Esc(ONB2_COPY.intro) + '</p>';
+  h += '<div class="onb2-step">' + c.n + " of " + c.total + '</div>';
+  h += '<div class="onb2-q-h">' + onb2Esc(sc.q) + "</div>";
 
   if(sc.kind === "date"){
-    h += '<input type="date" id="onb2-dob" class="onb2-date" value="' + onb2Esc(a.dob || "") + '">';
+    h += '<input type="date" class="onb2-date" data-f="dob" value="' + onb2Esc(a.dob || "") + '">';
   } else if(sc.kind === "one"){
     h += '<div class="onb2-opts">';
-    sc.opts.forEach((o,i)=>{
+    sc.opts.forEach((o,k)=>{
       const sel = (sc.key in a) && a[sc.key] === o[1] ? " sel" : "";
-      h += '<button type="button" class="onb2-opt' + sel + '" data-i="' + i + '">' + onb2Esc(o[0]) + "</button>";
+      h += '<button type="button" class="onb2-opt' + sel + '" data-i="' + k + '">' + onb2Esc(o[0]) + "</button>";
     });
     h += "</div>";
     if(sc.note) h += '<div class="onb2-note">' + onb2Esc(sc.note) + "</div>";
     if(sc.steppers && (a.cycle_status === "regular" || a.cycle_status === "irregular")){
       h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3len) + '</div>' +
-           '<input type="number" id="onb2-len" class="onb2-num" min="15" max="90" value="' + onb2Esc(a.cycle_len || "") + '">' +
+           '<input type="number" class="onb2-num" data-f="cycle_len" min="15" max="90" value="' + onb2Esc(a.cycle_len || "") + '">' +
            '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3dur) + '</div>' +
-           '<input type="number" id="onb2-dur" class="onb2-num" min="1" max="15" value="' + onb2Esc(a.period_dur || "") + '">';
+           '<input type="number" class="onb2-num" data-f="period_dur" min="1" max="15" value="' + onb2Esc(a.period_dur || "") + '">';
     }
     if(sc.when && a.hormonal_contraception === "ceased_within_12_months"){
-      // Two selects rather than <input type="month">, whose empty state renders
-      // as "--------- ----" in Chrome and reads as broken rather than optional.
-      // Day is pinned to 1 on write; the 1950 floor matches the CHECK.
       const MO = ["January","February","March","April","May","June","July",
                   "August","September","October","November","December"];
       const cur = (a.ceased_ym || "").split("-");
       const yNow = new Date().getFullYear();
-      let mo = '<select class="onb2-sel" id="onb2-mo"><option value="">Month</option>';
+      let mo = '<select class="onb2-sel" data-f="mo"><option value="">Month</option>';
       MO.forEach((n,k)=>{ const v = String(k+1).padStart(2,"0");
         mo += '<option value="' + v + '"' + (cur[1] === v ? " selected" : "") + ">" + n + "</option>"; });
       mo += "</select>";
-      let yr = '<select class="onb2-sel" id="onb2-yr"><option value="">Year</option>';
+      let yr = '<select class="onb2-sel" data-f="yr"><option value="">Year</option>';
       for(let y = yNow; y >= 1950; y--){
         yr += '<option value="' + y + '"' + (cur[0] === String(y) ? " selected" : "") + ">" + y + "</option>"; }
       yr += "</select>";
@@ -5555,79 +5627,156 @@ function onb2Render(){
         h += '<button type="button" class="onb2-chip' + on + '" data-y="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
       });
       h += '</div><div class="onb2-sub">' + onb2Esc(ONB2_COPY.s7note) + '</div>' +
-           '<textarea id="onb2-note" class="onb2-ta" rows="2"></textarea>';
+           '<textarea class="onb2-ta" data-f="note" rows="2"></textarea>';
     }
   }
-  host.innerHTML = h;
-  onb2Wire(sc);
-  const step = document.getElementById("onb2-step");
-  if(step) step.textContent = (onb2.idx + 1) + " of " + onb2.order.length;
-  // The intro is a greeting, not a header. It belongs on the first screen a user
-  // sees and nowhere else; repeating it on all eight reads as a stutter.
-  const intro = document.getElementById("onb2-intro");
-  if(intro) intro.classList.toggle("hidden", onb2.idx !== 0);
+  // BACK is new and ratified. Visible from the second VISIBLE screen on, left of
+  // Skip. Its visibility is synced on both advance and goBack, which is the
+  // recorded bug class: syncing one direction only leaves it stranded.
+  h += '<div class="onb2-nav"><div class="onb2-left">' +
+       '<button type="button" class="onb2-back">Back</button>' +
+       '<button type="button" class="onb2-skip">' + onb2Esc(ONB2_COPY.skip) + '</button></div>' +
+       '<button type="button" class="onb2-next">' + onb2Esc(ONB2_COPY.next) + '</button></div>';
+  h += "</div>";
+  return h;
 }
 
-function onb2Wire(sc){
-  const a = onb2.ans;
-  document.querySelectorAll("#onb2-body .onb2-opt").forEach(b=>{
-    b.onclick = ()=>{
-      a[sc.key] = sc.opts[parseInt(b.getAttribute("data-i"),10)][1];
-      if(sc.id === "preg") a.preg = a[sc.key];
-      if(sc.id === "cyc") a.cycle_status = a[sc.key];
-      if(sc.id === "hbc") a.hormonal_contraception = a[sc.key];
-      onb2Render();
-    };
+/* ── motion, ported verbatim from the approved spec ───────────────────────────
+   step / placeOrb / pan / leap are the spec's functions with its numbers intact:
+   gap 56, leap 820ms cubic-bezier(.45,.05,.55,.95) on `left` with fill forwards,
+   arcY translateY 0 -> -64px @ .5 -> 0 at 820ms linear, land + ack at 830ms, and
+   the 1.45s cubic-bezier(.55,.05,.18,1) pan. Not retuned. */
+function onb2Step(){
+  const vp = document.getElementById("onb2-viewport");
+  return (vp ? vp.getBoundingClientRect().width : 0) + 56;
+}
+function onb2Half(){
+  const vp = document.getElementById("onb2-viewport");
+  return (vp ? vp.getBoundingClientRect().width : 0) / 2;
+}
+function onb2PlaceOrb(){
+  const orb = document.getElementById("onb2-orb");
+  if(orb) orb.style.left = (onb2.idx * onb2Step() + onb2Half()) + "px";
+}
+function onb2Pan(){
+  const tr = document.getElementById("onb2-track");
+  if(tr) tr.style.transform = "translateX(" + (-onb2.idx * onb2Step()) + "px)";
+}
+function onb2Ack(){
+  const orb = document.getElementById("onb2-orb");
+  if(!orb) return;
+  orb.classList.remove("ack"); void orb.offsetWidth; orb.classList.add("ack");
+}
+/** Reduced motion: no flight, no arc, no bloom. The spec's instant-swap fallback. */
+function onb2Reduced(){
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function onb2Leap(from, to){
+  const orb = document.getElementById("onb2-orb");
+  if(!orb) return;
+  const S = onb2Step(), half = onb2Half();
+  if(onb2Reduced()){ orb.style.left = (to * S + half) + "px"; return; }
+  orb.classList.add("flying");
+  orb.animate([{ left:(from * S + half) + "px" }, { left:(to * S + half) + "px" }],
+    { duration:820, easing:"cubic-bezier(.45,.05,.55,.95)", fill:"forwards" });
+  const arc = orb.querySelector(".arcY");
+  if(arc) arc.animate(
+    [{ transform:"translateY(0)" },
+     { transform:"translateY(-64px)", offset:.5 },
+     { transform:"translateY(0)" }],
+    { duration:820, easing:"linear" });
+  setTimeout(()=>{
+    orb.classList.remove("flying");
+    orb.style.left = (to * S + half) + "px";
+    onb2Ack();
+  }, 830);
+}
+function onb2Transit(){
+  if(onb2Reduced()) return;
+  const st = document.getElementById("onb2-stage");
+  if(!st) return;
+  st.classList.remove("transit"); void st.offsetWidth; st.classList.add("transit");
+}
+/** Seeds reflect the VISIBLE path: a card the leap flew over never goes done. */
+function onb2Seeds(){
+  const host = document.getElementById("onb2-seeds");
+  if(!host) return;
+  host.innerHTML = "";
+  onb2.cards.forEach((sc,k)=>{
+    if(!onb2InPath(sc)) return;
+    const d = document.createElement("div");
+    d.className = "onb2-seed" + (k === onb2.idx ? " now" : (onb2.hist.indexOf(k) >= 0 ? " done" : ""));
+    host.appendChild(d);
   });
-  const bind = (id, k)=>{ const el = document.getElementById(id); if(el) el.oninput = ()=>{ a[k] = el.value; }; };
-  bind("onb2-dob","dob"); bind("onb2-len","cycle_len"); bind("onb2-dur","period_dur");
-  bind("onb2-note","context_note");
-  // Both selects write the one YYYY-MM the patch builder expects; a half answer
-  // writes nothing, so a stray month with no year cannot become a date.
-  const mo = document.getElementById("onb2-mo"), yr = document.getElementById("onb2-yr");
-  const setYm = ()=>{ const m = mo && mo.value, y = yr && yr.value;
-    a.ceased_ym = (m && y) ? (y + "-" + m) : null; };
-  if(mo) mo.onchange = setYm;
-  if(yr) yr.onchange = setYm;
-  // attr is the BARE attribute name. It was previously passed pre-bracketed and
-  // then bracketed again here, producing `.onb2-chip[[data-s]]`, which throws
-  // SyntaxError and killed screens 5, 6 and 7 outright. Caught in the browser,
-  // not by the logic tests, because it lives in rendering rather than state.
-  const toggle = (attr, key, exclusive)=>{
-    document.querySelectorAll("#onb2-body .onb2-chip[" + attr + "]").forEach(b=>{
-      b.onclick = ()=>{
-        const v = b.getAttribute(attr);
-        let cur = (a[key] || []).slice();
-        if(exclusive && exclusive.indexOf(v) >= 0){ cur = [v]; }
-        else { cur = cur.filter(x=> !exclusive || exclusive.indexOf(x) < 0);
-               const i = cur.indexOf(v); if(i >= 0) cur.splice(i,1); else cur.push(v); }
-        a[key] = cur; onb2Render();
-      };
-    });
-  };
-  if(sc.kind === "many" || sc.kind === "many2") toggle("data-c", sc.key, null);
-  if(sc.opts2) toggle("data-y", "symptoms", ["None of these"]);
-  if(sc.supps) toggle("data-s", "supps", ["Neither"]);
+}
+/** Back is hidden at the first VISIBLE card. Called on BOTH directions. */
+function onb2SyncBack(){
+  const first = onb2.hist.length === 0;
+  document.querySelectorAll("#onb2-track .onb2-back").forEach(b=>{
+    b.style.visibility = first ? "hidden" : "visible";
+  });
+}
+function onb2Present(){
+  document.querySelectorAll("#onb2-track .onb2-q").forEach((el,k)=>{
+    el.classList.toggle("in", k === onb2.idx);
+  });
+}
+/** Next on-path card after idx, or -1 when there is none. */
+function onb2NextIdx(idx){
+  for(let k = idx + 1; k < onb2.cards.length; k++) if(onb2InPath(onb2.cards[k])) return k;
+  return -1;
 }
 
-/** Advance. `skipped` writes NOTHING for this screen and moves on. */
+/**
+ * Advance. `skipped` writes NOTHING for this screen, unchanged from before.
+ *
+ * The BRANCH LEAP is here: when pregnancy is answered Yes, the next on-path card
+ * is the contraception screen, so this is ONE leap spanning the two skipped
+ * cards rather than three hops. Same 820ms flight; the pan covers the whole
+ * distance because it is driven by the destination index.
+ */
 async function onb2Advance(skipped){
-  const sc = onb2.order[onb2.idx];
+  const sc = onb2.cards[onb2.idx];
   if(sc && !skipped) await onb2Write(onb2Patch(sc));
-  if(sc && skipped) delete onb2.ans[sc.key];        // a skip must not leak into a later derive
-  // Pregnancy answered Yes removes two later screens; rebuild before stepping.
-  const cur = onb2.order[onb2.idx];
-  onb2BuildOrder();
-  const at = onb2.order.indexOf(cur);
-  onb2.idx = (at >= 0 ? at : onb2.idx) + 1;
-  if(onb2.idx >= onb2.order.length) onb2Finish(); else onb2Render();
+  if(sc && skipped) delete onb2.ans[sc.key];   // a skip must not leak into a later derive
+  const to = onb2NextIdx(onb2.idx);
+  if(to < 0){ onb2Finish(); return; }
+  const from = onb2.idx;
+  onb2.hist.push(from);
+  onb2.idx = to;
+  onb2Leap(from, to);
+  onb2Transit();
+  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack();
 }
 
+/**
+ * Back. Pops the history stack, so it reverses the EXACT leap that was taken --
+ * after the pregnancy branch that means card 4 back to card 1 in one flight, not
+ * a walk through the cards she never saw.
+ *
+ * Back NAVIGATES ONLY. It writes nothing. Re-answering a screen re-upserts that
+ * screen's own column, which keeps one writer per column.
+ */
+function onb2GoBack(){
+  if(!onb2.hist.length) return;
+  const from = onb2.idx;
+  const to = onb2.hist.pop();
+  onb2.idx = to;
+  onb2Leap(from, to);
+  onb2Transit();
+  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack();
+}
+
+/** The done card is the last card in the track, so finishing is one more leap. */
 function onb2Finish(){
-  const host = document.getElementById("onb2-body");
-  if(host) host.innerHTML = '<div class="onb2-q">' + onb2Esc(ONB2_COPY.done) + "</div>";
-  const nav = document.getElementById("onb2-nav"); if(nav) nav.classList.add("hidden");
-  setTimeout(onb2Close, 1400);
+  const from = onb2.idx;
+  const to = onb2.cards.length;            // the done card sits after the screens
+  onb2.idx = to;
+  onb2Leap(from, to);
+  onb2Transit();
+  onb2Present(); onb2Pan(); onb2Seeds();
+  document.querySelectorAll("#onb2-track .onb2-nav").forEach(n=>n.classList.add("hidden"));
+  setTimeout(onb2Close, 2600);
 }
 
 function onb2Close(){
@@ -5652,21 +5801,99 @@ async function onb2Open(){
       .eq("id", USER.id).maybeSingle();
     onb2.stored = data || {};
   }catch(_){ onb2.stored = {}; }
-  onb2.ans = {}; onb2.idx = 0;
-  onb2BuildOrder();
-  if(!onb2.order.length) return;
+  onb2.ans = {}; onb2.hist = [];
+  // The TRACK holds every applicable card. Only screen 0 is conditional, and only
+  // on stored dob -- the pregnancy branch is navigation, not rendering, so those
+  // cards stay in the track for the leap to fly over.
+  onb2.cards = ONB2_SCREENS.filter(sc=> sc.id !== "dob" || onb2.stored.dob == null);
+  if(!onb2.cards.length) return;
+  onb2.idx = 0; onb2.firstIdx = 0;
   const m = document.getElementById("onb2-modal");
-  if(!m) return;
-  const intro = document.getElementById("onb2-intro");
-  if(intro) intro.textContent = ONB2_COPY.intro;
-  const nav = document.getElementById("onb2-nav"); if(nav) nav.classList.remove("hidden");
-  const sk = document.getElementById("onb2-skip"); if(sk) sk.onclick = ()=> onb2Advance(true);
-  const nx = document.getElementById("onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
+  const tr = document.getElementById("onb2-track");
+  if(!m || !tr) return;
+  onb2BuildTrack();
   const cl = document.getElementById("onb2-close"); if(cl) cl.onclick = onb2Close;
   onb2.open = true;
   m.classList.add("show"); m.setAttribute("aria-hidden","false");
-  onb2Render();
+  // Layout must exist before the orb can be placed in track coordinates.
+  requestAnimationFrame(()=>{ onb2PlaceOrb(); onb2Pan(); onb2Present(); onb2Seeds(); onb2SyncBack(); });
 }
+
+/** Render every card once, then wire each. Re-rendered per card on interaction. */
+function onb2BuildTrack(){
+  const tr = document.getElementById("onb2-track");
+  const orb = document.getElementById("onb2-orb");
+  tr.innerHTML = "";
+  if(orb) tr.appendChild(orb);
+  onb2.cards.forEach((sc,k)=>{
+    const el = document.createElement("div");
+    el.className = "onb2-q";
+    el.setAttribute("data-k", String(k));
+    el.innerHTML = onb2CardHtml(sc, k);
+    tr.appendChild(el);
+    onb2WireCard(el, sc, k);
+  });
+  const done = document.createElement("div");
+  done.className = "onb2-q";
+  done.innerHTML = '<div class="onb2-card onb2-done"><div class="onb2-q-h">' +
+                   onb2Esc(ONB2_COPY.done) + "</div></div>";
+  tr.appendChild(done);
+}
+
+/** Re-render ONE card in place, preserving the track and the orb. */
+function onb2Recard(k){
+  const el = document.querySelector('#onb2-track .onb2-q[data-k="' + k + '"]');
+  if(!el) return;
+  el.innerHTML = onb2CardHtml(onb2.cards[k], k);
+  onb2WireCard(el, onb2.cards[k], k);
+  onb2Present(); onb2SyncBack();
+}
+
+function onb2WireCard(el, sc, k){
+  const a = onb2.ans;
+  el.querySelectorAll(".onb2-opt").forEach(b=>{
+    b.onclick = ()=>{
+      a[sc.key] = sc.opts[parseInt(b.getAttribute("data-i"),10)][1];
+      if(sc.id === "preg") a.preg = a[sc.key];
+      if(sc.id === "cyc") a.cycle_status = a[sc.key];
+      if(sc.id === "hbc") a.hormonal_contraception = a[sc.key];
+      onb2Ack();
+      // A pregnancy answer changes the visible path, so every card's "N of M"
+      // and the seed row move with it.
+      if(sc.id === "preg"){ onb2.cards.forEach((_,j)=> onb2Recard(j)); onb2Seeds(); }
+      else onb2Recard(k);
+    };
+  });
+  const bindF = (f, key)=>{ const e = el.querySelector('[data-f="' + f + '"]'); if(e) e.oninput = ()=>{ a[key] = e.value; }; };
+  bindF("dob","dob"); bindF("cycle_len","cycle_len"); bindF("period_dur","period_dur"); bindF("note","context_note");
+  const mo = el.querySelector('[data-f="mo"]'), yr = el.querySelector('[data-f="yr"]');
+  const setYm = ()=>{ const mv = mo && mo.value, yv = yr && yr.value;
+    a.ceased_ym = (mv && yv) ? (yv + "-" + mv) : null; };
+  if(mo) mo.onchange = setYm;
+  if(yr) yr.onchange = setYm;
+  const toggle = (attr, key, exclusive)=>{
+    el.querySelectorAll(".onb2-chip[" + attr + "]").forEach(b=>{
+      b.onclick = ()=>{
+        const v = b.getAttribute(attr);
+        let cur = (a[key] || []).slice();
+        if(exclusive && exclusive.indexOf(v) >= 0){ cur = [v]; }
+        else { cur = cur.filter(x=> !exclusive || exclusive.indexOf(x) < 0);
+               const idx = cur.indexOf(v); if(idx >= 0) cur.splice(idx,1); else cur.push(v); }
+        a[key] = cur; onb2Ack(); onb2Recard(k);
+      };
+    });
+  };
+  if(sc.kind === "many" || sc.kind === "many2") toggle("data-c", sc.key, null);
+  if(sc.opts2) toggle("data-y", "symptoms", ["None of these"]);
+  if(sc.supps) toggle("data-s", "supps", ["Neither"]);
+  const nx = el.querySelector(".onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
+  const sk = el.querySelector(".onb2-skip"); if(sk) sk.onclick = ()=> onb2Advance(true);
+  const bk = el.querySelector(".onb2-back"); if(bk) bk.onclick = onb2GoBack;
+}
+
+// Spec: the track maths is read from live container width, so a resize re-derives
+// both the pan and the orb's world position rather than keeping stale pixels.
+window.addEventListener("resize", ()=>{ if(onb2.open){ onb2Pan(); onb2PlaceOrb(); } });
 
 /**
  * "Finish setting up" on the dashboard, for anyone who skipped. Same component,
@@ -8581,14 +8808,22 @@ async function stampSeen(reportId){
 <!-- ONBOARDING_V2 — dark behind ONBOARDING_ENABLED. One question at a time,
      Skip on every screen. Skip writes nothing at all. -->
 <div class="onb2-modal" id="onb2-modal" aria-hidden="true">
-  <div class="onb2-card">
+  <div class="onb2-stage" id="onb2-stage">
     <button type="button" class="onb2-x" id="onb2-close" aria-label="Close">&#215;</button>
-    <p class="onb2-intro" id="onb2-intro"></p>
-    <div class="onb2-step" id="onb2-step"></div>
-    <div id="onb2-body"></div>
-    <div class="onb2-nav" id="onb2-nav">
-      <button type="button" class="onb2-skip" id="onb2-skip">Skip</button>
-      <button type="button" class="onb2-next" id="onb2-next">Next</button>
+    <div class="onb2-seeds" id="onb2-seeds"></div>
+    <div class="onb2-viewport" id="onb2-viewport">
+      <div class="onb2-track" id="onb2-track">
+        <!-- ORB. World-space: a child of the track, absolutely positioned, so the
+             pan carries it. Its `left` is a track coordinate (i*step + half), which
+             is what makes the spec's leap() maths work. Seated at top:-84px above
+             the cards. The mark is the site's own #bw-mark symbol at 56px, teal via
+             currentColor -- the one sanctioned deviation from the spec file, whose
+             own mark is a placeholder. -->
+        <div class="onb2-orb" id="onb2-orb" aria-hidden="true">
+          <span class="arcY"><svg aria-hidden="true"><use href="#bw-mark"/></svg></span>
+        </div>
+        <!-- cards are appended here, one per applicable screen, plus a done card -->
+      </div>
     </div>
   </div>
 </div>
