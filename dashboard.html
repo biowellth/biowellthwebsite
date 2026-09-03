@@ -1146,10 +1146,14 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    (founder-approved 2026-09-03, md5 efa88aed...). Durations, easings, offsets
    and the 56px gap are the spec's numbers, not retuned. The one sanctioned
    deviation is the orb mark, which uses the site's #bw-mark symbol. */
-.onb2-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(71,55,43,.42);opacity:0;visibility:hidden}
+/* Scrim is DEEPENED CREAM, not a grey wash. rgba(71,55,43,.42) was brown at low
+   alpha, which over a light page reads as flat grey and fought the warm field the
+   mock is set in. This is --cream-mid at high alpha plus a light blur, so the
+   backdrop stays cream and the off-white cards still lift off it. */
+.onb2-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(242,237,227,.93);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;visibility:hidden}
 .onb2-modal.show{opacity:1;visibility:visible;transition:opacity .25s ease}
 .onb2-stage{width:min(560px,100%);position:relative}
-.onb2-card{position:relative;width:100%;background:var(--off-white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow)}
+.onb2-card{position:relative;width:100%;min-height:330px;background:var(--off-white);border:1px solid var(--brown-light);border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow)}
 .onb2-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--brown-mid);opacity:.7;z-index:3}
 
 /* orb: world-space, child of the track, seated above the cards */
@@ -1165,14 +1169,21 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 @keyframes onb2bloom{from{transform:scale(.95);opacity:.55}to{transform:scale(1.7);opacity:0}}
 
 /* seeds */
-.onb2-seeds{display:flex;gap:10px;justify-content:center;margin-bottom:18px}
+/* Seeds are seated to the ACTIVE CARD, in track coordinates, for the same reason
+   as the orb: left in the stage they stranded above it once the row was centred.
+   Orb, seeds and card now travel as one group. */
+.onb2-seeds{display:flex;gap:10px;justify-content:center;position:absolute;transform:translateX(-50%);z-index:2;pointer-events:none}
 .onb2-seed{width:7px;height:7px;border-radius:50%;background:var(--brown-light);transition:all .7s cubic-bezier(.22,1,.36,1)}
 .onb2-seed.done{background:var(--teal);transform:scale(1.15)}
 .onb2-seed.now{background:var(--teal);box-shadow:0 0 0 5px var(--teal-soft);transform:scale(1.3)}
 
 /* track */
 .onb2-viewport{overflow:visible;perspective:1200px;position:relative}
-.onb2-track{display:flex;gap:56px;align-items:flex-start;position:relative;transition:transform 1.45s cubic-bezier(.55,.05,.18,1)}
+/* align-items:center, not flex-start. The spec demo showed one card at a time so
+   flex-start never mattered there; in the track a tall neighbour stretches the row
+   and top-anchors a short active card. Centring keeps orb, seeds and the active
+   card on one axis in the viewport. Layout only, no motion parameter. */
+.onb2-track{display:flex;gap:56px;align-items:center;position:relative;transition:transform 1.45s cubic-bezier(.55,.05,.18,1)}
 .onb2-q{flex:0 0 100%;transform:scale(.9);opacity:.45;filter:saturate(.85);transition:transform 1.45s cubic-bezier(.55,.05,.18,1),opacity 1.1s ease,filter 1.1s ease}
 .onb2-q.in{transform:scale(1);opacity:1;filter:none}
 .onb2-stage.transit{animation:onb2camerabreath 1.45s cubic-bezier(.55,.05,.18,1)}
@@ -5566,7 +5577,10 @@ function onb2Count(idx){
 function onb2CardHtml(sc, idx){
   const a = onb2.ans;
   const c = onb2Count(idx);
-  let h = '<div class="onb2-card">';
+  // The close control lives ON THE CARD. Pinned to the stage or the viewport it
+  // floated above the next card at wide widths and above the card's top edge once
+  // the row was centre-aligned, because both boxes are taller than a short card.
+  let h = '<div class="onb2-card"><button type="button" class="onb2-x" aria-label="Close">&#215;</button>';
   h += '<p class="onb2-intro' + (idx === onb2.firstIdx ? '' : ' hidden') + '">' + onb2Esc(ONB2_COPY.intro) + '</p>';
   // A card the leap flies OVER has no position on the visible path, so it has no
   // honest count. Rendering one gave "0 OF 6", which is visible mid-flight. Off
@@ -5672,6 +5686,30 @@ function onb2PlaceOrb(){
   // in the case most likely to happen under real tapping.
   orb.getAnimations().forEach(a=>a.cancel());
   orb.style.left = (onb2.idx * onb2Step() + onb2Half()) + "px";
+  onb2SeatOrb();
+}
+
+/**
+ * Vertical seat. The spec's top:-84px is relative to the TRACK, which was fine
+ * for a demo showing one card. In a centre-aligned row the track is as tall as
+ * its tallest card, so a short active card sits well below the track's top and
+ * the orb floated away from it. This re-seats the orb 84px above the ACTIVE
+ * CARD's top edge, which is what the spec's offset actually means. Vertical
+ * only; the leap's horizontal maths is untouched.
+ */
+function onb2SeatOrb(){
+  const orb = document.getElementById("onb2-orb");
+  const tr = document.getElementById("onb2-track");
+  const card = document.querySelector('#onb2-track .onb2-q[data-k="' + onb2.idx + '"] .onb2-card')
+            || document.querySelector("#onb2-track .onb2-q.in .onb2-card");
+  if(!orb || !tr || !card) return;
+  const top = card.getBoundingClientRect().top - tr.getBoundingClientRect().top;
+  orb.style.top = (top - 84) + "px";
+  const seeds = document.getElementById("onb2-seeds");
+  if(seeds){
+    seeds.style.top = (top - 34) + "px";
+    seeds.style.left = (onb2.idx * onb2Step() + onb2Half()) + "px";
+  }
 }
 function onb2Pan(){
   const tr = document.getElementById("onb2-track");
@@ -5765,7 +5803,7 @@ async function onb2Advance(skipped){
   onb2.idx = to;
   onb2Leap(from, to);
   onb2Transit();
-  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack();
+  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack(); onb2SeatOrb();
 }
 
 /**
@@ -5783,7 +5821,7 @@ function onb2GoBack(){
   onb2.idx = to;
   onb2Leap(from, to);
   onb2Transit();
-  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack();
+  onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack(); onb2SeatOrb();
 }
 
 /** The done card is the last card in the track, so finishing is one more leap. */
@@ -5831,7 +5869,6 @@ async function onb2Open(){
   const tr = document.getElementById("onb2-track");
   if(!m || !tr) return;
   onb2BuildTrack();
-  const cl = document.getElementById("onb2-close"); if(cl) cl.onclick = onb2Close;
   onb2.open = true;
   m.classList.add("show"); m.setAttribute("aria-hidden","false");
   // Layout must exist before the orb can be placed in track coordinates.
@@ -5842,8 +5879,12 @@ async function onb2Open(){
 function onb2BuildTrack(){
   const tr = document.getElementById("onb2-track");
   const orb = document.getElementById("onb2-orb");
+  const seeds = document.getElementById("onb2-seeds");
+  // Both the orb and the seed row live INSIDE the track so they travel with the
+  // pan, which means clearing the track destroys them. Detach, clear, re-attach.
   tr.innerHTML = "";
   if(orb) tr.appendChild(orb);
+  if(seeds) tr.appendChild(seeds);
   onb2.cards.forEach((sc,k)=>{
     const el = document.createElement("div");
     el.className = "onb2-q";
@@ -5908,6 +5949,7 @@ function onb2WireCard(el, sc, k){
   const nx = el.querySelector(".onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
   const sk = el.querySelector(".onb2-skip"); if(sk) sk.onclick = ()=> onb2Advance(true);
   const bk = el.querySelector(".onb2-back"); if(bk) bk.onclick = onb2GoBack;
+  const cx = el.querySelector(".onb2-x"); if(cx) cx.onclick = onb2Close;
 }
 
 // Spec: the track maths is read from live container width, so a resize re-derives
@@ -8828,10 +8870,9 @@ async function stampSeen(reportId){
      Skip on every screen. Skip writes nothing at all. -->
 <div class="onb2-modal" id="onb2-modal" aria-hidden="true">
   <div class="onb2-stage" id="onb2-stage">
-    <button type="button" class="onb2-x" id="onb2-close" aria-label="Close">&#215;</button>
-    <div class="onb2-seeds" id="onb2-seeds"></div>
     <div class="onb2-viewport" id="onb2-viewport">
       <div class="onb2-track" id="onb2-track">
+        <div class="onb2-seeds" id="onb2-seeds"></div>
         <!-- ORB. World-space: a child of the track, absolutely positioned, so the
              pan carries it. Its `left` is a track coordinate (i*step + half), which
              is what makes the spec's leap() maths work. Seated at top:-84px above
