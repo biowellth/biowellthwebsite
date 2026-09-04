@@ -6063,11 +6063,22 @@ const SANA_COPY = {
   runtime:     "Something went wrong answering that. Please try again.",
   offline:     "We could not reach Sana just now. Please check your connection and try again.",
 
-  // SANA_CONSENT_V3 — placeholder copy. PENDING COUNSEL. Never shown while
-  // SANA_CONSENT_TEXT_APPROVED is false, and never stampable while the server's
-  // matching notice carries approved:false.
+  // SANA_CONSENT_V3 — counsel's data-flow language, adapted to the copy rules
+  // (no em dashes, no colons in body copy, short plain sentences).
+  //
+  // BOTH GATES STAY FALSE. Pasting the text is not approving it:
+  // SANA_CONSENT_TEXT_APPROVED is still false here, and every v3 notice in the
+  // server's consent-versions.ts still carries approved:false, so the stamp
+  // endpoint refuses a grant. The text is in place so the switch-on review reads
+  // the real notice instead of a placeholder.
+  //
+  // The second sentence describes retention that is TRUE ONLY ONCE the erase
+  // adapter and the thread reaper are armed. Both are listed as pre-
+  // SANA_CHAT_ENABLED gates in backend-branches docs/switch-on-agenda-2026-09-01.md.
+  // Flipping SANA_CHAT_ENABLED before they arm would make this sentence a false
+  // promise, which is worse than no sentence at all.
   consentTitle:   "Before you chat with Sana",
-  consentBody:    "PENDING COUNSEL. This placeholder text must never be shown to a user. The approved notice replaces it in the same commit that sets SANA_CONSENT_TEXT_APPROVED to true.",
+  consentBody:    "When you use Sana, your questions and BioWellth information relevant to your question may be processed by Microsoft through Azure AI Foundry to generate a response. Sana conversations are stored by Microsoft until you delete them or delete your account.",
   consentAgree:   "I agree",
   consentDecline: "Not now",
   consentDeclined: "No problem. You can start a chat with Sana whenever you are ready.",
