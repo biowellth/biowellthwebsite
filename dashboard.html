@@ -5372,6 +5372,7 @@ const ONB2_COPY = {
   next: "Next",
   done: "Done. Your reading is almost ready.",
   resume: "Finish setting up",
+  writeFail: "We could not save that. Please try again.",
   s0: "When were you born?",
   s1: "Are you currently pregnant, or have you been pregnant in the last 6 months?",
   s2: "Which of these sounds most like where you are right now?",
@@ -5650,6 +5651,7 @@ function onb2CardHtml(sc, idx){
   // BACK is new and ratified. Visible from the second VISIBLE screen on, left of
   // Skip. Its visibility is synced on both advance and goBack, which is the
   // recorded bug class: syncing one direction only leaves it stranded.
+  h += '<div class="onb-msg" data-onb2-msg aria-live="polite"></div>';
   h += '<div class="onb2-nav"><div class="onb2-left">' +
        '<button type="button" class="onb2-back">Back</button>' +
        '<button type="button" class="onb2-skip">' + onb2Esc(ONB2_COPY.skip) + '</button></div>' +
@@ -5785,7 +5787,32 @@ function onb2NextIdx(idx){
 }
 
 /**
+ * ONB2_WRITEFAIL_V1 — the message line on the CURRENT card.
+ *
+ * Reuses `.onb-msg`, which already existed at the top of this file with no users.
+ * No new class, no new layout, no motion. Same element on every card, empty until
+ * something goes wrong.
+ */
+function onb2Msg(text){
+  const card = document.querySelector('#onb2-track .onb2-q[data-k="' + onb2.idx + '"] .onb2-card')
+            || document.querySelector("#onb2-track .onb2-q.in .onb2-card");
+  const el = card && card.querySelector("[data-onb2-msg]");
+  if(el) el.textContent = text || "";
+}
+
+/**
  * Advance. `skipped` writes NOTHING for this screen, unchanged from before.
+ *
+ * WRITE FAILURE NO LONGER ADVANCES. Until 2026-09-04 this line read
+ * `await onb2Write(onb2Patch(sc));` and threw the result away, so a refused write
+ * looked exactly like a successful one. The case that made it matter: a minor
+ * entering a real date of birth is refused by the `profiles_dob_adult` CHECK, saw
+ * onboarding complete normally, and ended with `dob` NULL -- which is the state
+ * the upload policies permit, because they gate on consent and never on age.
+ *
+ * On failure the screen STAYS. The nav is left alone, so the same Next button
+ * re-attempts the same patch: `onb2.ans` is untouched, so `onb2Patch(sc)` rebuilds
+ * an identical patch on the retry.
  *
  * The BRANCH LEAP is here: when pregnancy is answered Yes, the next on-path card
  * is the contraception screen, so this is ONE leap spanning the two skipped
@@ -5794,10 +5821,14 @@ function onb2NextIdx(idx){
  */
 async function onb2Advance(skipped){
   const sc = onb2.cards[onb2.idx];
-  if(sc && !skipped) await onb2Write(onb2Patch(sc));
+  if(sc && !skipped){
+    onb2Msg("");
+    const ok = await onb2Write(onb2Patch(sc));
+    if(!ok){ onb2Msg(ONB2_COPY.writeFail); return; }
+  }
   if(sc && skipped) delete onb2.ans[sc.key];   // a skip must not leak into a later derive
   const to = onb2NextIdx(onb2.idx);
-  if(to < 0){ onb2Finish(); return; }
+  if(to < 0){ await onb2Finish(); return; }
   const from = onb2.idx;
   onb2.hist.push(from);
   onb2.idx = to;
@@ -5824,8 +5855,29 @@ function onb2GoBack(){
   onb2Present(); onb2Pan(); onb2Seeds(); onb2SyncBack(); onb2SeatOrb();
 }
 
-/** The done card is the last card in the track, so finishing is one more leap. */
-function onb2Finish(){
+/**
+ * The done card is the last card in the track, so finishing is one more leap.
+ *
+ * GATED ON A READ-BACK. "Done" is a claim that the answers were saved, so it is
+ * not shown until the profile has been re-read and agrees. Two ways to fail:
+ * the read itself errors, or the dob screen was answered THIS RUN and the
+ * read-back still shows `dob` null, which is what a CHECK refusal looks like from
+ * the client side.
+ *
+ * Only `dob` is asserted, not every field. It is the one whose refusal is
+ * silent and load-bearing; the others have no value constraint that can reject
+ * them, so a null there means skipped rather than refused.
+ */
+async function onb2Finish(){
+  let back = null;
+  try{
+    const { data, error } = await sb.from("profiles").select("dob").eq("id", USER.id).maybeSingle();
+    if(error) { onb2Msg(ONB2_COPY.writeFail); return; }
+    back = data || {};
+  }catch(_){ onb2Msg(ONB2_COPY.writeFail); return; }
+
+  if(("dob" in onb2.ans) && back.dob == null){ onb2Msg(ONB2_COPY.writeFail); return; }
+
   const from = onb2.idx;
   const to = onb2.cards.length;            // the done card sits after the screens
   onb2.idx = to;
