@@ -56,8 +56,23 @@ check("exactly one assignment of each flag",
   check("STAMP-2: a WITHDRAWAL is not blocked by the approval gate", { withdrawn, fetched }, { withdrawn: true, fetched: 1 });
 }
 
-// The placeholder must be recognisable and never a real notice.
-check("placeholder copy is marked PENDING COUNSEL", /consentBody:\s*"PENDING COUNSEL/.test(src), true);
+// REPOINTED 2026-09-04. This asserted `consentBody` still began "PENDING COUNSEL".
+// That was a proxy for "not yet approved", and it went red when counsel's real
+// data-flow language was pasted in (daa35cb) with BOTH gates deliberately left
+// false, so that the switch-on review reads the real notice instead of a stub.
+//
+// The proxy is obsolete; the property it stood for is not, and it is already
+// asserted twice above and independently -- SANA_CONSENT_TEXT_APPROVED is false
+// (line 33) and STAMP-1 proves a grant cannot fire while it is (line 52). Those
+// are the load-bearing checks and neither was touched.
+//
+// What replaces it is a POSITIVE assertion on required content, so the notice
+// cannot silently regress to a placeholder, be emptied, or lose the disclosure
+// that is the whole point of it.
+check("the notice carries counsel's data-flow disclosure",
+      /consentBody:\s*"[^"]*Azure AI Foundry[^"]*"/.test(src), true);
+check("the notice carries the retention sentence",
+      /consentBody:\s*"[^"]*stored by Microsoft[^"]*"/.test(src), true);
 check("the withdrawal control is dark-guarded", /async function renderConsentControls\(\)[\s\S]{0,200}if\(!SANA_CHAT_ENABLED\) return;/.test(src), true);
 check("consent is checked BEFORE sanaEnsureLinked in sanaSend", (() => {
   const send = src.slice(src.indexOf("async function sanaSend(){"));
