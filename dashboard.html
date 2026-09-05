@@ -137,6 +137,18 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .consent-row{display:flex;align-items:flex-start;gap:10px;text-align:left;font-size:13px;color:var(--brown-mid);line-height:1.6;margin-bottom:18px;cursor:pointer}
 .consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--teal);cursor:pointer}
 .consent-row a{color:var(--teal);font-weight:600}
+/* DOB_GATE_V1 -- pre-upload date of birth prompt. Renders ONLY when the loaded profile has a
+   null dob, and is INDEPENDENT of ONBOARDING_ENABLED: the under-18 condition is a launch
+   condition, not an onboarding feature, so it must not ride on a flag that is off. Geometry and
+   colours are the shipped .onb-card / .sana-send / .consent-row values, unchanged. */
+.dobg{width:100%;background:var(--off-white);border:1px solid var(--brown-light);border-radius:22px;padding:26px 24px 22px;box-shadow:var(--shadow);margin-bottom:18px;text-align:left}
+.dobg-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25}
+.dobg-body{font-size:14px;color:var(--brown-mid);line-height:1.7;margin:12px 0 20px}
+.dobg-label{display:block;font-size:13px;font-weight:600;color:var(--brown);margin-bottom:7px}
+.dobg-field{display:block;width:100%;border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;color:var(--brown);background:var(--white);margin-bottom:20px}
+.dobg-field:focus{outline:none;border-color:var(--teal)}
+.dobg-refuse{background:var(--coral-soft);border:1px solid var(--coral-light);border-radius:14px;padding:18px 20px;font-size:14px;line-height:1.7;color:var(--coral-dark);margin-bottom:20px}
+.dobg-msg{font-size:13px;line-height:1.6;color:var(--coral-dark);margin-bottom:14px;min-height:1px}
 .dropzone.locked{opacity:.45;cursor:not-allowed}
 /* AI_DISCLOSURE_V1 — persistent AI-error line, INSIDE .companion so it travels with the AI
    output. Not a dismissable toast: screenshots of a reading circulate without the policy
@@ -1372,6 +1384,15 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="eyebrow">Functional health intelligence for South Asian women</div>
         <h1>Upload your blood work. <em>See what your report didn't say.</em></h1>
         <p>Drop in any blood test PDF. Old, recent, or incomplete, we'll work with what you have.</p>
+        <div class="dobg" id="dob-gate" style="display:none">
+          <div class="dobg-h">One quick check.</div>
+          <p class="dobg-body">BioWellth is for adults. Please enter your date of birth to continue. We use it only to confirm you are 18 or older and to read your results in the context of your age.</p>
+          <div class="dobg-refuse" id="dob-gate-refuse" style="display:none">BioWellth is available to people 18 and older. Your account will not be able to upload reports.</div>
+          <label class="dobg-label" for="dob-gate-input">Date of birth</label>
+          <input class="dobg-field" id="dob-gate-input" type="date"/>
+          <div class="dobg-msg" id="dob-gate-msg"></div>
+          <button class="sana-send" type="button" id="dob-gate-go">Continue</button>
+        </div>
         <label class="consent-row" id="consent-row">
           <input type="checkbox" id="consent-check"/>
           <span>I agree to BioWellth reading my report to prepare my wellness interpretation. I have read the <a href="/privacy" target="_blank" rel="noopener">privacy page</a>.</span>
@@ -1710,9 +1731,10 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at").eq("id", USER.id).maybeSingle();
+    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
+  applyDobGate();   // DOB_GATE_V1 -- before applyConsentUI, which reads DOB_GATE_OPEN
   applyConsentUI();
 }
 
@@ -2224,9 +2246,105 @@ const dz = $("dropzone"), fileInput = $("file");
 // Consent gate (Stage 3): the dropzone stays locked until the box is checked, or the profile
 // is already consented. handleFile also records consent as its first step, so this is the UX
 // half of a server-enforced gate, not the gate itself.
-function consentReady(){ const c = $("consent-check"); return !!(CONSENTED || (c && c.checked)); }
+// ── DOB_GATE_V1 ────────────────────────────────────────────────────────────────────────────
+// The pre-upload date of birth prompt. Counsel's launch condition 5 is that the under-18
+// upload refusal stays enabled as designed; this is the CLIENT half of it. The server half is
+// migration 0044's two RESTRICTIVE policies, which refuse the insert outright. Neither is
+// sufficient alone: this one is a courtesy that explains the refusal, that one is the control.
+//
+// INDEPENDENT OF ONBOARDING_ENABLED, deliberately. Onboarding is a product flow behind a flag
+// that is off; the age condition is a launch condition. Until this shipped, the single writer of
+// profiles.dob sat inside onb2, so a new account was never asked and dob stayed null forever.
+//
+// dob PRESENT means this never renders. Not "renders and skips" -- returns before touching the
+// DOM, so a user who already answered cannot be asked twice.
+let DOB_GATE_OPEN = false;
+
+/** Whole years from an ISO yyyy-mm-dd to `on`. Calendar arithmetic, never 365.25 days. */
+function dobAgeYears(iso, on){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if(!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  // Round-trip through Date to reject a calendar-invalid day such as 2011-02-29.
+  const probe = new Date(Date.UTC(y, mo - 1, d));
+  if(probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1 || probe.getUTCDate() !== d) return null;
+  const ref = on ? new Date(on) : new Date();
+  const ry = ref.getUTCFullYear(), rm = ref.getUTCMonth() + 1, rd = ref.getUTCDate();
+  let age = ry - y;
+  // Not yet had this year's birthday -> one year younger. A 29 Feb birth reaches its
+  // birthday on 1 March in a common year, which is what this comparison already gives.
+  if(rm < mo || (rm === mo && rd < d)) age -= 1;
+  return age;
+}
+
+/** True only for a date that is a real calendar date AND 18 or more years ago. */
+function dobIsAdult(iso, on){
+  const a = dobAgeYears(iso, on);
+  return a !== null && a >= 18;
+}
+
+function dobGateMsg(text){ const el = $("dob-gate-msg"); if(el) el.textContent = text || ""; }
+
+/** Show the gate iff the loaded profile has no dob. Called from loadProfile. */
+function applyDobGate(){
+  const card = $("dob-gate"), row = $("consent-row");
+  if(!card) return;
+  const needs = (PROFILE && PROFILE.dob == null);
+  DOB_GATE_OPEN = !!needs;
+  card.style.display = needs ? "" : "none";
+  // The consent row is the next step, so it stays out of the way until the age is settled.
+  if(row) row.style.display = needs ? "none" : "";
+  if(needs) dz.classList.add("locked");
+}
+
+async function dobGateContinue(){
+  const input = $("dob-gate-input"), refuse = $("dob-gate-refuse"), btn = $("dob-gate-go");
+  if(!input) return;
+  dobGateMsg("");
+  const v = String(input.value || "").trim();
+  if(!v){ dobGateMsg("Please enter your date of birth."); return; }
+  if(dobAgeYears(v) === null){ dobGateMsg("Please enter a valid date."); return; }
+
+  if(!dobIsAdult(v)){
+    // UNDER 18: show the refusal, lock the dropzone, WRITE NOTHING. Recording the date would
+    // create a health-adjacent record for a minor, which is the outcome the gate exists to avoid.
+    if(refuse) refuse.style.display = "";
+    dz.classList.add("locked");
+    if(btn) btn.disabled = true;
+    return;
+  }
+
+  if(btn) btn.disabled = true;
+  let ok = false;
+  try{
+    // Same PostgREST own-row update as onb2Write, without importing any onboarding code.
+    const { error } = await sb.from("profiles").update({ dob: v }).eq("id", USER.id);
+    ok = !error;
+  }catch(_){ ok = false; }
+
+  if(!ok){
+    // NEVER proceed on a failed write. A refused write with the card dismissed is exactly the
+    // ONB2_WRITEFAIL defect: it looks saved and dob is still null.
+    if(btn) btn.disabled = false;
+    dobGateMsg(ONB2_COPY.writeFail);
+    return;
+  }
+
+  PROFILE.dob = v;
+  DOB_GATE_OPEN = false;
+  const card = $("dob-gate"), row = $("consent-row");
+  if(card) card.style.display = "none";
+  if(row) row.style.display = "";
+  applyConsentUI();
+}
+
+{ const b = $("dob-gate-go"); if(b) b.onclick = dobGateContinue; }
+
+function consentReady(){ if(DOB_GATE_OPEN) return false; const c = $("consent-check"); return !!(CONSENTED || (c && c.checked)); }
 function applyConsentUI(){
   const row = $("consent-row"), c = $("consent-check");
+  if(DOB_GATE_OPEN){ if(row) row.style.display = "none"; dz.classList.add("locked"); return; }
   if(CONSENTED){ if(row) row.style.display = "none"; dz.classList.remove("locked"); return; }
   if(row) row.style.display = "";
   dz.classList.toggle("locked", !(c && c.checked));
