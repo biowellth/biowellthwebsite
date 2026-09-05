@@ -95,3 +95,37 @@ One file, one global scope. Structure: `<style>` (lines ~12–1143) → markup f
 **Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page.
 
 **`mocks/`** holds standalone single-file mocks named after the change token (`mocks/quota-429.html`, `mocks/processing-copy.html`). Each copies the live classes out of `dashboard.html` and renders every state of a screen side by side for review before the change is wired into the app. The directory is untracked working material — build a mock here first for anything that changes what a user sees in a hard-to-reach state (a failure, a quota block, a long-running job).
+## Deferred: FIX NOW
+
+Found live 2026-09-05 while provisioning the under-18 battery fixture
+(`515bd491`). All three are in `login.html` and all three were hit in a single
+signup, which is why they are the fix-now tier rather than the backlog: they
+compound. A first real tester meets every one of them in the first sixty
+seconds.
+
+1. **Post-signup returns to the login form with no mention of email.**
+   `login.html:181` shows "Account created. You can now sign in." and calls
+   `swapTo("login")`. **That instruction is false while `mailer_autoconfirm` is
+   off** — signing in is exactly what will not work until the address is
+   confirmed. It should say **"Check your email to confirm your account"** and
+   stay put. The copy is a leftover from when autoconfirm was ON and a session
+   was returned immediately; the `data.session` branch above it (`:177`) is that
+   path, and it no longer fires for a new signup.
+
+2. **Sign-in with an unconfirmed email reports the wrong cause.**
+   `login.html:199` collapses every error to "Email or password is incorrect."
+   A correct password on an unconfirmed account lands there, sending the user to
+   reset a password that was never wrong. Branch on the GoTrue error and say
+   **"Please confirm your email first"**. Pairs with item 1: together they tell a
+   new user their password is broken when their account is simply unconfirmed.
+
+3. **Sign in and Create account share one URL with no indicator.**
+   `login.html:65`/`:88` render both panes; signup is the default and
+   `login-view` carries `hidden`. Only `?mode=login` is honoured (`:130`), and
+   `swapTo()` (`:133`) never touches the URL, so the address bar is wrong the
+   moment anyone toggles and a shared or reloaded link reopens the wrong pane.
+   **Default to Sign in, honour `?mode=signup` for Create account, update the URL
+   on pane switch, and point invite links at `?mode=signup`.**
+
+None of these is a data-safety defect and none blocks the under-18 battery. They
+block a tester, which is the next thing that happens.
