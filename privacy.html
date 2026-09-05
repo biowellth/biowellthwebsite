@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Privacy Policy — BioWellth, Inc.</title>
+<title>Privacy Policy, BioWellth, Inc.</title>
 <meta name="description" content="How BioWellth collects, uses, protects, and deletes your personal and health data. Written in plain language under India's DPDP Act, 2023."/>
 <meta name="robots" content="noindex"/>
 <link rel="canonical" href="https://biowellth.ai/privacy"/>
@@ -74,164 +74,40 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 
 <div class="policy-header">
   <h1>Privacy Policy</h1>
-  <p>Last updated August 2026</p>
+  <p>Effective date September 5, 2026</p>
 </div>
 
 <div class="policy-body">
 
-<div class="policy-callout">
-  <p style="margin:0 0 12px">BioWellth helps you understand your blood test results through a wellness lens. To do that we collect a few things. Your name and email when you sign up. The blood test reports you choose to upload. Any health context you share with us, like your cycle stage or life stage.</p>
-  <p style="margin:0 0 12px">Here is what we do with it. We read your reports using AI to prepare your wellness interpretation. Anthropic provides the AI model we use. They process your report content under an agreement that limits how they can use it. Your data is stored with Supabase in Mumbai, India.</p>
-  <p style="margin:0 0 12px">Your reports and results stay yours. We never sell your data. We never share it with advertisers. We keep your data so your trends can build over time, because seeing change across tests is the heart of what we do.</p>
-  <p style="margin:0 0 12px">You can ask us to delete your account and all your data at any time. Write to us at <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a> and we will confirm when it is done.</p>
-  <p style="margin:0">BioWellth is a wellness companion. It does not provide medical advice and it is not a substitute for a licensed practitioner. Please talk to your doctor about anything in your results that concerns you.</p>
-</div>
-
-<h2>Who we are</h2>
-<p>BioWellth, Inc. ("BioWellth," "we," "us") is a Delaware corporation operating a functional health intelligence platform. We are the Data Fiduciary under India's Digital Personal Data Protection Act, 2023 (the "DPDP Act") for users in India. That means we decide what personal data is collected and why, and we are responsible for protecting it.</p>
-<p>If you have questions about this policy or want to exercise any of your rights, email us at <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
-
-<h2>What personal data we collect and why</h2>
-<p>We collect different types of data for specific purposes. We only collect what is necessary for each purpose.</p>
-
-<p><strong>Account and contact information</strong></p>
-<p>Your name, email address, phone number, city, and age range. We collect this when you sign up for early access or create an account.</p>
-<ul>
-  <li>Purpose: to create your account, communicate with you about the service, and send updates you've opted into</li>
-</ul>
-
-<p><strong>Blood test reports</strong></p>
-<p>PDF or image files of your existing blood work that you upload to the platform.</p>
-<ul>
-  <li>Purpose: to provide functional interpretation of your results, generate gap analysis, and create test request lists</li>
-</ul>
-
-<p><strong>Wearable and health device data</strong></p>
-<p>If you choose to connect Apple Health or Android Health Connect, we receive the data categories you select. This may include sleep stages, heart rate variability (HRV), skin temperature, activity, and cycle tracking data.</p>
-<ul>
-  <li>Purpose: to read your blood work alongside lifestyle and cycle signals for a more complete picture</li>
-</ul>
-
-<p><strong>Self-reported data</strong></p>
-<p>Symptoms, energy levels, mood, cycle patterns, and other information you log directly in the app.</p>
-<ul>
-  <!-- PRIVACY_TRUTH_V1: narrowed 2026-08-30, then narrowed again 2026-09-02.
-       2026-08-30 removed a claim that this whole category feeds the AI companion,
-       leaving only cycle data, because health-context.service.js assembles
-       userProfile, cycle, fertility, sleep, activity, scan and biomarker blocks
-       and the symptom, energy and mood logs (StressLog, DailyWellnessLog) are not
-       among them.
-       2026-09-02 removed the surviving cycle sentence too. The capability does not
-       exist for a user today: no shipped client reaches the companion, so no cycle
-       data personalises anything for anyone. A privacy policy states what happens,
-       not what the code could do if it were switched on.
-       THE LINE RETURNS WHEN IT SHIPS. Restore it in the same change that puts the
-       companion in front of users, not before. Pattern tracking itself is real and
-       stays stated. -->
-  <li>Purpose: to show you how your patterns change over time</li>
-</ul>
-
-<p><strong>Usage data</strong></p>
-<p>We do not run analytics and we do not track how you move around the site. We do not use advertising cookies or tracking pixels.</p>
-<ul>
-  <li>Purpose: we do not collect usage data for analytics or profiling. Essential cookies keep you signed in and keep the site secure</li>
-</ul>
-
-<h2>How we obtain your consent</h2>
-<p>Under the DPDP Act, we process your personal data based on your consent. When you sign up, we ask for your consent clearly and separately for each type of processing. You will see exactly what you are agreeing to before you agree to it.</p>
-<p>Consent is voluntary. You can use parts of the service without consenting to everything. For example, you can upload blood work without connecting a wearable.</p>
-<!-- PRIVACY_TRUTH_V2, 2026-09-02. The clause "or through your account settings" was removed
-     because no such control exists. The Account panel carries sign out, the report vault and
-     delete account, and nothing else. Email is the only working withdrawal path today, so the
-     page now says only that.
-     THE CLAUSE RETURNS IN THE SAME COMMIT THAT SHIPS THE WITHDRAWAL CONTROL, not before, and not
-     in a later tidy-up that never comes. Consent v3 phase 4 is where that control lands. -->
-<p>You can withdraw consent at any time by emailing <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>. When you withdraw consent, we will stop processing that data and direct any processors we work with to do the same. Withdrawal does not affect any processing that happened before you withdrew.</p>
-
-<h2>Who has access to your data</h2>
-<p>We do not sell your data or share it for advertising. We do not share it with advertisers or data brokers. We use service providers who process it on our behalf, under contract, only to run the service. They are named below.</p>
-<p>The only parties who may access your data are listed here.</p>
-<ul>
-  <li><strong>Anthropic</strong> (United States) reads your uploaded report to prepare your interpretation.</li>
-  <li><strong>Microsoft</strong> (United States) runs the AI model behind Sana, your companion. When you talk to her, your questions and the health data she reads to answer them are processed there.</li>
-  <li><strong>Supabase</strong> (Mumbai, India) stores your account, your reports, and your results.</li>
-  <li><strong>GitHub</strong> serves our website through its content delivery network.</li>
-  <li><strong>Typeform</strong> receives the details you enter in the early access form.</li>
-  <li>Each of these is a Data Processor under the DPDP Act. Each processes your data only to provide services to BioWellth, under contractual privacy and security obligations. They are not authorised to use your BioWellth data for their own purposes.</li>
-  <li><strong>Payment processors</strong> if you make a purchase. We do not store payment card information ourselves.</li>
-  <li><strong>Indian law enforcement or regulatory authorities</strong> if we are legally compelled to disclose data under applicable Indian law.</li>
-</ul>
-<p>We do not transfer personal data to any country that is on the Central Government's restricted list under the DPDP Act. Your reports are processed by Anthropic in the United States to prepare your interpretation. Your conversations with Sana are processed by Microsoft in the United States. Both operate under their standard data processing terms. Everything else is stored with Supabase in Mumbai, India.</p>
-
-<h2>How we use AI</h2>
-<!-- AI_DISCLOSURE_V1 -->
-<p>BioWellth uses AI models from more than one provider. Anthropic's Claude reads your uploaded lab results and produces your readings. Sana, your companion, runs on a different model, an OpenAI model that Microsoft hosts and operates on Azure AI Foundry. Microsoft is the party that processes your data when you talk to her, not OpenAI. AI is what produces your interpretation.</p>
-
-<p>When you upload a report, your data is processed by Anthropic through their API. When you talk to Sana, your questions and the health data she reads are processed by Microsoft through Azure AI Foundry. See <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's privacy policy</a> and <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Microsoft's privacy statement</a> for how each of them handles data.</p>
-<!-- GATED, do NOT pre-write: a stronger non-retention claim goes here ONLY once the Anthropic
-     zero-data-retention agreement or BAA is confirmed. Until then this sentence must not say or
-     imply that your data is not retained by the subprocessor. -->
-
-<p><strong>BioWellth does not train AI models on your data.</strong> Our AI providers state in their terms how they handle data sent to them, linked above.</p>
-<!-- GATED, do NOT pre-write: "and our AI provider does not use your data to train their models
-     either" may be added ONLY after that is confirmed against the actual Anthropic agreement we
-     hold. Do not assert it on the basis of published standard terms. Same discipline as the
-     Anthropic sentence higher up this page. -->
-
-<p>AI-generated interpretations may contain errors or inaccuracies. BioWellth is educational and is not a substitute for professional medical advice. Talk to a qualified clinician before making health decisions based on your readings.</p>
-
-<h2>How we protect your data</h2>
-<p>We implement reasonable security safeguards as required under Section 8(5) of the DPDP Act.</p>
-<ul>
-  <li>All data is encrypted in transit (TLS) and at rest</li>
-  <li>Access to personal data is restricted to systems and personnel that need it to provide the service</li>
-  <li>We conduct periodic reviews of our security practices</li>
-  <li>Blood test reports and health data are stored separately from account information</li>
-</ul>
-
-<h2>Data breach notification</h2>
-<p>If we become aware of a personal data breach that is likely to cause you harm, we will notify the Data Protection Board of India within 72 hours as required under the DPDP Act. We will also inform you as soon as reasonably possible, explaining what happened, what data was affected, and what steps we are taking.</p>
-
-<h2>How long we keep your data</h2>
-<p>We keep your personal data only as long as it is needed for the purpose it was collected.</p>
-<ul>
-  <li><strong>Account data</strong> is retained while your account is active. If you delete your account, we erase it within 30 days.</li>
-  <li><strong>Blood test reports and health data</strong> are retained while your account is active, so you can track trends over time. Deleted within 30 days of account deletion or upon your request.</li>
-  <li><strong>Usage data</strong> is aggregated and anonymised within 12 months. Once anonymised, it is no longer personal data.</li>
-  <li><strong>Legal and regulatory records</strong> may be retained longer where Indian law requires it (for example, financial transaction records under the Income Tax Act).</li>
-</ul>
-<p>When data is no longer needed and no legal retention requirement applies, we delete it.</p>
-
-<h2>Your rights under the DPDP Act</h2>
-<p>As a Data Principal, you have the following rights.</p>
-<ul>
-  <li><strong>Right to access.</strong> You can request a summary of the personal data we hold about you and how we are processing it.</li>
-  <li><strong>Right to correction.</strong> You can ask us to correct any personal data that is inaccurate or incomplete.</li>
-  <li><strong>Right to erasure.</strong> You can ask us to delete all personal data we hold about you. We will do so within 30 days, unless a legal obligation requires us to retain it.</li>
-  <li><strong>Right to withdraw consent.</strong> You can withdraw consent for any or all processing at any time.</li>
-  <li><strong>Right to grievance redressal.</strong> If you believe we have not handled your data properly, you can raise a complaint with us. If you are not satisfied with our response, you have the right to file a complaint with the Data Protection Board of India.</li>
-  <li><strong>Right to nominate.</strong> You may nominate another individual to exercise your data rights on your behalf in the event of your death or incapacity.</li>
-</ul>
-<p>To exercise any of these rights, email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>. We will respond within 30 days.</p>
-
-<h2>Children's data</h2>
-<p>BioWellth is designed for adults. We do not knowingly collect personal data from anyone under the age of 18. If we learn that we have collected data from a minor without verifiable parental consent, we will delete it promptly. If you believe a minor has provided us with personal data, please email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
-
-<h2>Aggregated and anonymised data</h2>
-<p>We use aggregated, anonymised data to improve our algorithms and understand health patterns at a population level. This data cannot be traced back to any individual. It is not personal data under the DPDP Act and is not subject to the rights described above.</p>
-
-<h2>Cookies</h2>
-<p>We use essential cookies to keep the site working (session management, security). We do not use analytics, advertising cookies, tracking pixels, or third-party marketing trackers.</p>
-
-<h2>Changes to this policy</h2>
-<p>If we make significant changes to this policy, we will update this page and notify you by email before the changes take effect. Minor clarifications or formatting changes may be made without notice. The "last updated" date at the top of this page always reflects the most recent version.</p>
-
-<h2>Contact</h2>
-<p>Questions about your data or want to exercise any of your rights? Email <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
-
-<p>If you are not satisfied with our response, you may file a complaint with the Data Protection Board of India once it is operational under the DPDP Act, 2023.</p>
-
-<p style="margin-top:40px;font-size:13px;color:var(--brown-mid);font-style:italic">This privacy policy has been written to reflect the requirements of India's Digital Personal Data Protection Act, 2023 and the Draft DPDP Rules, 2025. It has not yet been reviewed by a qualified legal professional. We recommend completing a formal legal review before processing personal health data from users.</p>
+<p>Effective date September 5, 2026. BioWellth, Inc. ("BioWellth", "we") operates biowellth.ai, a wellness platform that helps you understand your blood test results and related wellness information. This policy describes what we collect, why, where it goes, and the choices you have. BioWellth is a wellness and educational service. It does not diagnose, treat, cure, or prevent any disease.</p>
+<h2>1. What we collect</h2>
+<p>Account information such as your name, email address, and date of birth. Wellness information you choose to provide, including uploaded blood test reports, cycle and life stage information, dietary preferences, supplements, wellness goals, and notes you add for context. Information generated for you, including transcribed results, wellness interpretations, scores, and trends. Sana conversations, meaning your questions to our AI companion and its responses. Basic technical information needed to run the service, such as login and security records.</p>
+<h2>2. Why we collect it</h2>
+<p>To transcribe and interpret your reports against functional wellness ranges. To show your results, trends, and wellness plans over time. To answer your questions through Sana when you choose to use it. To keep your account secure and the service working. To meet our legal obligations. We do not use your health information for advertising. We do not sell your health information.</p>
+<h2>3. The AI services we use, named</h2>
+<p>Report interpretation is performed with Anthropic, whose Claude API processes your uploaded report together with the profile context needed to read it accurately for you. That context is limited to these categories. Your age, cycle and life stage information, dietary pattern, supplements, wellness goals, and any conditions or context notes you have added. Anthropic processes this primarily on infrastructure in the United States.</p>
+<p>Sana runs on Microsoft Azure AI Foundry. When you use Sana, your questions and BioWellth information relevant to your question may be processed by Microsoft through Azure AI Foundry to generate a response. Sana conversations are stored by Microsoft until you delete your Sana history or delete your account. Sana processing may occur in Microsoft data center regions globally.</p>
+<p>Sana remembers between conversations. After a conversation ends, an automated process reads it and updates a short health profile for you, covering things like the concerns, conditions, allergies, medications, goals, and recurring symptoms you have mentioned, along with how you prefer Sana to talk with you. This profile is generated by an AI model on Microsoft Azure, stored with your account, and read by Sana at the start of each new conversation so she does not ask you the same things twice, and kept while your account is active. It is not shared with anyone else. Deleting your Sana history deletes this profile. Deleting your account deletes it too.</p>
+<p>Our AI service providers do not use your information to train their general purpose AI models or for their own independent commercial purposes. They may process information as necessary to provide the services, maintain security, prevent abuse, enforce their usage policies, and comply with law.</p>
+<p>Microsoft operates automated abuse monitoring systems for Azure AI services. In limited circumstances, prompts or responses may be retained for abuse detection and may be reviewed by authorized personnel. This processing is separate from model training and is used for security and abuse prevention.</p>
+<h2>4. Where your information lives</h2>
+<p>Your account and wellness information is stored with Supabase in Mumbai, India. AI processing occurs with the providers and in the locations described in section 3. This means some of your information is processed outside India and outside the United States, as described above.</p>
+<h2>5. Your choices and controls</h2>
+<p>You can use BioWellth without Sana. Sana asks for your separate consent the first time you use it, and you can withdraw that consent at any time in your settings. Withdrawing Sana consent stops Sana and stops further processing of your Sana history. You can separately delete your Sana conversation history, which deletes the stored conversations at Microsoft and our copies. You can delete individual reports. You can delete your entire account. You can also reach us at <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a> for any of these requests.</p>
+<h2>6. How deletion works</h2>
+<p>When you delete your account, we delete your information from our active systems promptly. Our AI providers then delete their copies on their own schedules. Anthropic deletes report processing inputs and outputs up to 30 days after processing. Microsoft retains Sana related content for up to 30 days for abuse monitoring. Content flagged by a provider's safety systems may be retained longer under that provider's policy, for security, abuse prevention, or legal compliance. Residual copies may persist briefly in secure, access restricted backups until they are overwritten in the normal cycle, and our database backups are overwritten on a rolling basis of about seven days. Backups do not include your uploaded report files, which are deleted immediately and are not recoverable from backup.</p>
+<h2>7. Age requirement</h2>
+<p>BioWellth is available to adults 18 and over. We ask for your date of birth to confirm you are 18 or older and to read your results accurately for your age. Accounts identified as under 18 are refused and their signup records are deleted promptly.</p>
+<h2>8. Product improvement</h2>
+<p>We do not use your identifiable health information to improve our products. Any analysis we perform for improvement uses aggregated or de identified information under our internal de identification standard, which prohibits re identification.</p>
+<h2>9. Legal disclosures</h2>
+<p>We and our service providers may disclose information when required by law, legal process, or a lawful governmental request.</p>
+<h2>10. Business transfers</h2>
+<p>If BioWellth is involved in a merger, acquisition, financing, reorganization, or sale of assets, personal information may be transferred as part of that transaction, subject to this policy's protections and applicable law. Any successor will be required to honor materially equivalent protections for your information. Nothing in this section permits the sale of your health information.</p>
+<h2>11. India</h2>
+<p>For users in India, we process personal data consistent with the Digital Personal Data Protection Act, 2023 and the Digital Personal Data Protection Rules, 2025. You have the rights described in that law, including notice, consent, withdrawal, and erasure, exercised through the controls in section 5 or by contacting us.</p>
+<h2>12. Changes and contact</h2>
+<p>We will update this policy when our practices change, and the current version will always be available on our site. Questions and requests go to <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>.</p>
 
 </div>
 
