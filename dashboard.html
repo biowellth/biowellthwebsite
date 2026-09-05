@@ -6097,9 +6097,9 @@ async function onb2ResumeChip(){
 // listener, and nothing that can reach the backend. Gating construction rather
 // than visibility is deliberate; a hidden input is still a wired input.
 //
-// Live turns are NOT verifiable yet. SUPABASE_AUTH_ENABLED is false server side,
-// so /auth/link-supabase-account 404s by design. That 404 is a first-class state
-// here, not an error to paper over, and it is what a dark verification proves.
+// SUPABASE_AUTH_ENABLED is true server side since 2026-09-04 (Phase 1), so
+// /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
+// at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
 const SANA_CHAT_ENABLED = false;
 const SANA_API_BASE = "https://biowealth-backend-prod-3.azurewebsites.net/api";
 
