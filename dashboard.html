@@ -5460,6 +5460,20 @@ function renderCompanionChips(p, score){
     };
   });
 
+
+  // One answer at a time, across BOTH surfaces: opening a chip closes any chat
+  // reply, and sanaSend closes any open chip answer.
+  chips.forEach((btn)=>{ const prev = btn.onclick; btn.onclick = ()=>{ const t = $("sana-thread"); if(t) t.innerHTML = ""; prev(); }; });
+
+  sanaMountChat();
+}
+
+// ── ONBOARDING_V2 was declared INSIDE renderCompanionChips until 2026-09-05.
+// Every onb2* function was therefore scoped to that function body, and the boot
+// IIFE's onb2Open() call threw ReferenceError for any account that reached it.
+// Moved out verbatim; nothing in it referenced a renderCompanionChips local.
+// scripts/test-boot-fresh-profile.mjs fails if it is ever nested again.
+
 // ── ONBOARDING_V2 ────────────────────────────────────────────────────────────
 // The single asker for profile-level onboarding fields. Dark until the flag
 // flips, same pattern as SANA_CHAT_ENABLED.
@@ -6200,13 +6214,6 @@ async function onb2ResumeChip(){
   el.classList.toggle("hidden", !missing);
 }
 
-
-  // One answer at a time, across BOTH surfaces: opening a chip closes any chat
-  // reply, and sanaSend closes any open chip answer.
-  chips.forEach((btn)=>{ const prev = btn.onclick; btn.onclick = ()=>{ const t = $("sana-thread"); if(t) t.innerHTML = ""; prev(); }; });
-
-  sanaMountChat();
-}
 
 // ── SANA_CHAT_V1 ────────────────────────────────────────────────────────────
 // The live companion, built DARK. SANA_CHAT_ENABLED is false in every committed
