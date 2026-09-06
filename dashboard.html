@@ -6374,6 +6374,50 @@ async function sanaEnsureLinked(token){
   return SANA_COPY.offline;
 }
 
+// SANA_RENDER_V1 — lifted verbatim from mocks/sana-thread.html, which is the
+// approved spec. The live render was '<p>' + esc(answer) + '</p>', a single
+// escaped paragraph, so every asterisk and hyphen the model emitted appeared
+// literally on screen.
+//
+// ESCAPE FIRST, then apply a CLOSED SET of marks. No headings, no links, no raw
+// HTML: everything the model emits is text until this function decides
+// otherwise, which is why the escape runs before anything else and never after.
+function sanaRender(text){
+  var esc = String(text == null ? "" : text)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  var blocks = esc.split(/\n\s*\n/);
+  var out = "";
+
+  for (var b = 0; b < blocks.length; b++){
+    var block = blocks[b].replace(/^\n+|\n+$/g, "");
+    if (!block) continue;
+    var lines = block.split("\n");
+
+    var allNum = lines.length > 0 && lines.every(function(l){ return /^\s*\d+[.)]\s+/.test(l); });
+    var allBul = lines.length > 0 && lines.every(function(l){ return /^\s*[-*]\s+/.test(l); });
+
+    if (allNum){
+      out += "<ol>";
+      for (var i = 0; i < lines.length; i++)
+        out += "<li>" + bold(lines[i].replace(/^\s*\d+[.)]\s+/, "")) + "</li>";
+      out += "</ol>";
+    } else if (allBul){
+      out += "<ul>";
+      for (var j = 0; j < lines.length; j++)
+        out += "<li>" + bold(lines[j].replace(/^\s*[-*]\s+/, "")) + "</li>";
+      out += "</ul>";
+    } else {
+      out += "<p>" + bold(lines.join(" ")) + "</p>";
+    }
+  }
+  return out;
+
+  // Bold only. Applied AFTER escaping, so a literal asterisk in the source can
+  // never introduce markup that was not already escaped.
+  function bold(s){ return s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); }
+}
+
 function sanaDots(){
   return '<div class="comp-dots" aria-hidden="true"><span class="comp-dot"></span><span class="comp-dot"></span><span class="comp-dot"></span></div>';
 }
@@ -6624,7 +6668,7 @@ async function sanaSend(){
         else if(ev.type === "delta"){
           if(!firstDelta){ firstDelta = true; live.innerHTML = ""; }
           answer += (ev.text || "");
-          live.innerHTML = '<p>' + esc(answer) + '</p>';
+          live.innerHTML = sanaRender(answer);
         }
         else if(ev.type === "error"){
           if(!receivedThreadMeta){ rollback(SANA_COPY.runtime); return; }
