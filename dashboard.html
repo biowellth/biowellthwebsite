@@ -1760,7 +1760,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at").eq("id", USER.id).maybeSingle();
+    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at, menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, amenorrhea_reason, hormone_therapy_status").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
   applyDobGate();   // DOB_GATE_V1 -- before applyConsentUI, which reads DOB_GATE_OPEN
@@ -2408,7 +2408,11 @@ function applyCycleLens(status){
   const showHc = (status === "regular" || status === "irregular" || status === "perimenopausal" || status === "postmenopausal");
   if(hc) hc.classList.toggle("hidden", !showHc);
   const lens = document.getElementById("cyc-lens"); if(!lens) return;
-  const withLens = !!(status && status !== "decline");
+  // LENS_FROM_PROFILE_V2 — `null` is the no-periods answer and it earns an LMP-only
+  // lens. It is NOT the same as `undefined`, which means unanswered and stays hidden.
+  // Nothing else moves: `cycling` below is already false for null, so the cycle-day
+  // and length groups stay hidden and the label keeps its default wording.
+  const withLens = !!(status && status !== "decline") || status === null;
   lens.classList.toggle("hidden", !withLens);
   if(!withLens) return;
   const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
@@ -2556,12 +2560,18 @@ async function mountAboutDraw(reportId, fileName){
   const pre = document.getElementById("up-prefile"); if(pre) pre.classList.add("hidden");
   const post = document.getElementById("up-postfile"); if(post) post.classList.remove("hidden");
   initAboutDraw();
-  // PREFILL RETIRED 2026-09-02. This read seeded cycSel.hc and cycSel.menstrual
-  // for controls that have moved to the onboarding flow, and it called
-  // applyHcLens, which no longer exists. The lens is now driven from the stored
-  // profile by LENS_FROM_PROFILE_V1 in initCycleCapture, which does its own
-  // read. Removing the read entirely rather than leaving it unused keeps one
-  // reader of these columns, not two.
+  // LENS_FROM_PROFILE_V2 — drive the lens from the profile we already loaded.
+  //
+  // CORRECTING THE NOTE THAT WAS HERE. It said the lens is driven "by
+  // LENS_FROM_PROFILE_V1 in initCycleCapture, which does its own read". There is
+  // no such thing. `applyCycleLens` had ZERO callers, so the lens was permanently
+  // hidden for every user since the prefill was retired on 2026-09-02. A comment
+  // naming a mechanism that does not exist is worse than no comment, because it
+  // stops the next person looking.
+  //
+  // No extra read: loadProfile already selects menstrual_status. A null status
+  // means we have never asked, and the questions handle that case.
+  if(PROFILE && PROFILE.menstrual_status != null) applyCycleLens(PROFILE.menstrual_status);
 }
 function drawReadyAck(kind){
   window.__drawReady = { kind };
