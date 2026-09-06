@@ -175,6 +175,7 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .cyc-opt.sel{border-color:var(--teal);background:var(--teal-soft);font-weight:600}
 .cyc-num,.cyc-date{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 12px;margin-bottom:4px}
 .cyc-num::placeholder{color:var(--brown-mid)}
+.lmp-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .cyc-alt,.cyc-decline{display:block;margin-top:10px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--teal-dark);background:none;border:none;padding:2px 0;cursor:pointer;text-align:left}
 .cyc-decline{color:var(--brown-mid)}
 .cyc-decline.sel{color:var(--teal-dark);font-weight:700}
@@ -1442,12 +1443,12 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="bc-card">
           <!-- CYCLE_CAPTURE_V1 (relocated into the DRAW_CONTEXT_SUBMIT_V1 consolidated block) -->
           <div class="cyc-block" style="border-top:none;padding-top:0;margin-top:0">
-            <div class="cyc-h">Your cycle</div>
+            <div class="cyc-h" id="cyc-heading">Your cycle</div>
             
             <div id="cyc-selector">
               <div id="cyc-lens" class="hidden">
                 <label class="cyc-l" for="cyc-lmp" id="cyc-lmp-label">When did your last period start?</label>
-                <input class="cyc-date" id="cyc-lmp" type="date"/>
+                <div class="lmp-row"><input class="cyc-date" id="cyc-lmp" type="date"/><button type="button" class="bc-opt" id="cyc-forget">Don't remember</button></div>
                 <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
                 <div id="cyc-cdgroup">
                   <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
@@ -1456,7 +1457,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
                     <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
                   </div>
                 </div>
-                <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
               </div>
             </div>
           </div>
@@ -2419,12 +2419,10 @@ const cycSel = { menstrual:null, hc:null, hcWhen:null, declined:false };
 // accepts these fields for any status (Brief A validators are status-agnostic); phase-flavor eligibility
 // stays regular-only, untouched.
 function applyCycleLens(status){
-  // Hormonal-contraception question: shown for regular/irregular/perimenopausal AND postmenopausal
-  // (HRT-adjacent relevance); hidden for pregnant and decline. Own visibility, independent of the lens
-  // (which shows LMP for pregnant too), so toggle it before the decline early-return below.
-  const hc = document.getElementById("cyc-hcgroup");
-  const showHc = (status === "regular" || status === "irregular" || status === "perimenopausal" || status === "postmenopausal");
-  if(hc) hc.classList.toggle("hidden", !showHc);
+  // CYCLE_DEDUPE_V1 — the hormonal-contraception toggle that stood here is GONE.
+  // It targeted `cyc-hcgroup`, an element that exists in no markup, so it toggled
+  // nothing for every user. The question is now asked once, by Q4 of the cycle
+  // questions, which writes hormone_therapy_status. One asker per column.
   const lens = document.getElementById("cyc-lens"); if(!lens) return;
   // LENS_FROM_PROFILE_V2 — `null` is the no-periods answer and it earns an LMP-only
   // lens. It is NOT the same as `undefined`, which means unanswered and stays hidden.
@@ -2432,6 +2430,8 @@ function applyCycleLens(status){
   // and length groups stay hidden and the label keeps its default wording.
   const withLens = !!(status && status !== "decline") || status === null;
   lens.classList.toggle("hidden", !withLens);
+  // The heading names a section that has nothing in it when the lens is hidden.
+  const hd = document.getElementById("cyc-heading"); if(hd) hd.classList.toggle("hidden", !withLens);
   if(!withLens) return;
   const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
   const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
@@ -2444,9 +2444,17 @@ function initCycleCapture(){
   if(lmp) lmp.max = new Date().toISOString().slice(0,10);   // date input rejects future dates
   // The cycle, contraception and stepper controls moved to the onboarding flow.
   const alt = document.getElementById("cyc-alt"); if(alt) alt.onclick = ()=>{ const w=document.getElementById("cyc-cd-wrap"); if(w) w.classList.toggle("hidden"); };
-  const decl = document.getElementById("cyc-decline");
-  if(decl) decl.onclick = ()=>{ cycSel.declined = !cycSel.declined; decl.classList.toggle("sel", cycSel.declined);
+  // CYCLE_DEDUPE_V1 — one control, not two. The "I don't remember" LINK below the
+  // cycle-day group and this chip beside the date field asked the same thing in the
+  // same block. The chip stays because it sits where the answer is given. It sets
+  // the SAME cycSel.declined flag, so collectCycle still emits
+  // cycle_context_declined exactly as before.
+  const forget = document.getElementById("cyc-forget");
+  if(forget) forget.onclick = ()=>{ cycSel.declined = !cycSel.declined; forget.classList.toggle("sel", cycSel.declined);
     if(cycSel.declined){ const l=document.getElementById("cyc-lmp"); const c=document.getElementById("cyc-cd"); if(l) l.value=""; if(c) c.value=""; } };
+  const lmpIn = document.getElementById("cyc-lmp");
+  if(lmpIn) lmpIn.addEventListener("input", ()=>{ if(cycSel.declined){ cycSel.declined = false;
+    const f=document.getElementById("cyc-forget"); if(f) f.classList.remove("sel"); } });
 }
 // Read the optional cycle blocks into a partial payload (only fields with a value; the upload function
 // re-validates server-side). Full skip -> {} (no cycle keys in the payload).

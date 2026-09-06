@@ -367,5 +367,48 @@ cqSet("no", "regular", null, null); sandbox.__T.cqRender();
 ok(/hormonal contraception or hormone therapy/.test(qEls["cq-ht-t"].textContent),
    "V-10: every other answer keeps the full wording");
 
+
+// ── CYCLE_DEDUPE_V1 ──────────────────────────────────────────────────────────
+console.log("\nEXACTLY ONE CONTRACEPTION QUESTION EXISTS");
+// Counted in the shipped MARKUP, not in the stubbed DOM. The risk this guards is
+// two questions existing, which no runtime visibility check can see if one of
+// them is hidden in the state you happened to test.
+const questionText = [...HTML.matchAll(/<div class="bc-q-t"[^>]*>([\s\S]*?)<\/div>/g)]
+  .map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+const labelText = [...HTML.matchAll(/<label class="cyc-l"[^>]*>([\s\S]*?)<\/label>/g)]
+  .map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+const allAsks = questionText.concat(labelText);
+const contraceptionAsks = allAsks.filter((t) => /contracept/i.test(t));
+ok(allAsks.length > 0, "X-0: CONTROL — questions were found to count (" + allAsks.length + ")");
+ok(contraceptionAsks.length === 1,
+   "X-1: exactly ONE contraception question in the markup (got " + contraceptionAsks.length +
+   ": " + JSON.stringify(contraceptionAsks) + ")");
+ok(/hormone therapy/i.test(contraceptionAsks[0] || ""), "X-2: and it is Q4, the one that writes a column");
+
+console.log("\nTHE LEGACY CONTROLS ARE GONE");
+ok(!/id="cyc-hcgroup"/.test(HTML), "X-3: no cyc-hcgroup element in the markup");
+ok(!/getElementById\("cyc-hcgroup"\)/.test(HTML), "X-4: and no code reads it any more");
+ok(!/id="cyc-decline"/.test(HTML), "X-5: the duplicate 'I don't remember' link is gone");
+ok(/id="cyc-forget"/.test(HTML), "X-6: the 'Don't remember' chip is present instead");
+ok(/cycSel\.declined = !cycSel\.declined/.test(HTML),
+   "X-7: the chip still sets cycSel.declined, so collectCycle keeps emitting cycle_context_declined");
+ok(/out\.cycle_context_declined = true/.test(HTML), "X-8: and that payload branch still exists");
+
+console.log("\nTHE HEADING FOLLOWS THE LENS");
+for (const [status, wantHidden] of [
+  ["regular", false], ["irregular", false], ["perimenopausal", false],
+  ["postmenopausal", false], ["pregnant", false], [null, false],
+  [undefined, true], ["decline", true],
+]) {
+  reset(); lensEls["cyc-heading"]._hidden = true;
+  sandbox.__T.lens(status);
+  const headingHidden = lensEls["cyc-heading"]._hidden;
+  const lensHidden = !shown("cyc-lens");
+  ok(headingHidden === wantHidden,
+     "H-" + String(status) + ": heading " + (wantHidden ? "hidden" : "shown") + " (got " + (headingHidden ? "hidden" : "shown") + ")");
+  ok(headingHidden === lensHidden,
+     "H-" + String(status) + ": heading tracks the lens exactly");
+}
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
