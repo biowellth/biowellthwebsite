@@ -1509,7 +1509,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   <div id="view-dashboard" class="hidden">
     <div class="dash-grid">
       <div class="dash-main">
-    <div class="daily-card hidden" id="daily-card"></div>
     <div class="reveal-head">
       <div class="reveal-head-left">
         <div class="score-ring" id="score-ring">
@@ -1549,6 +1548,12 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
     </div>
+
+    <!-- CARD_ORDER_V1 2026-09-06: score card first, Sana second, invitations third.
+         Order here is the ONLY thing that sets it -- no JS moves these three nodes
+         (zero insertBefore/appendChild/prepend on any of them) and no CSS order/flex
+         trick is involved. Move the markup, not a style. -->
+    <div class="daily-card hidden" id="daily-card"></div>
 
     <div id="prios-wrap" class="hidden">
       <div class="section-label acc-coral">What needs a closer look</div>
