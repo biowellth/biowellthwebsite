@@ -6225,7 +6225,7 @@ async function onb2ResumeChip(){
 // SUPABASE_AUTH_ENABLED is true server side since 2026-09-04 (Phase 1), so
 // /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
 // at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
-const SANA_CHAT_ENABLED = false;
+const SANA_CHAT_ENABLED = true;
 const SANA_API_BASE = "https://biowealth-backend-prod-3.azurewebsites.net/api";
 
 // Copy lives in one place so the no-colon, no-em-dash rule is checkable at a
@@ -6255,7 +6255,11 @@ const SANA_COPY = {
   // Flipping SANA_CHAT_ENABLED before they arm would make this sentence a false
   // promise, which is worse than no sentence at all.
   consentTitle:   "Before you chat with Sana",
-  consentBody:    "When you use Sana, your questions and BioWellth information relevant to your question may be processed by Microsoft through Azure AI Foundry to generate a response. Sana conversations are stored by Microsoft until you delete them or delete your account.",
+  // COUNSEL-APPROVED v3.1, verbatim. sha256 9a01eab1091ff0b1add8c5b625f1a73d3d9dfe81b60358bfa9e7c1f0376aec0d.
+  // THIS STRING IS THE CONSENT RECORD. consent-accept derives notice_sha256 from ITS OWN copy of
+  // this text, so any drift here means consent_events certifies wording the user never read.
+  // scripts/test-consent-gate.mjs hashes the rendered card and fails on a single character.
+  consentBody:    "I understand and agree that when I use Sana, my questions and relevant BioWellth information are processed by Microsoft Azure AI Foundry to generate her responses. Sana keeps a short AI-generated profile of what you have told her so she can remember between conversations. Deleting your Sana history removes it.",
   consentAgree:   "I agree",
   consentDecline: "Not now",
   consentDeclined: "No problem. You can start a chat with Sana whenever you are ready.",
@@ -6284,8 +6288,8 @@ const SANA_COPY = {
 // whether the chat is visible; this one guards whether a legal artifact can be
 // created. One flag guarding two unrelated risks is how the wrong one gets
 // flipped.
-const SANA_CONSENT_TEXT_APPROVED = false;
-const SANA_CONSENT_VERSION = "v3";
+const SANA_CONSENT_TEXT_APPROVED = true;
+const SANA_CONSENT_VERSION = "v3.1";
 
 // SANA_SSE_PARSER_V1 START
 // Frame parser for the agent SSE stream. Pure apart from its own buffer, and
