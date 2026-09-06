@@ -6418,8 +6418,29 @@ function sanaRender(text){
   function bold(s){ return s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); }
 }
 
+let SANA_TURN_SEQ = 0;
+
+/** The body node of a Sana turn, created on demand so the label survives. */
+function sanaBody(el){
+  let b = el.querySelector("[data-sana-body]");
+  if(!b){ b = document.createElement("div"); b.setAttribute("data-sana-body",""); el.appendChild(b); }
+  return b;
+}
+function sanaClearDots(el){
+  const d = el.querySelector(".sana-dots"); if(d) d.remove();
+}
+function sanaShowDots(el){
+  if(!el.querySelector(".sana-dots")) el.insertAdjacentHTML("beforeend", sanaDots());
+}
+function sanaScrollToBottom(){
+  const t = $("sana-thread"); if(t) t.scrollTop = t.scrollHeight;
+}
+
 function sanaDots(){
-  return '<div class="comp-dots" aria-hidden="true"><span class="comp-dot"></span><span class="comp-dot"></span><span class="comp-dot"></span></div>';
+  // .sana-dots, not .comp-dots. The chips block owns .comp-dots; the thread needs
+  // its own class because sanaClearDots/sanaShowDots query for it, and a helper
+  // that queries a class the markup does not carry silently never fires.
+  return '<div class="sana-dots" aria-hidden="true"><span></span><span></span><span></span></div>';
 }
 function sanaNote(el, text){
   el.innerHTML = '<p class="sana-note">' + esc(text) + '</p>';
@@ -6608,10 +6629,30 @@ async function sanaSend(){
   // What we restore to if the turn never actually starts server side.
   const previousHTML = thread.innerHTML;
 
-  thread.innerHTML = previousHTML +
-    '<div class="sana-turn"><div class="sana-you">' + esc(text) + '</div>' +
-    '<div class="sana-her" id="sana-live">' + sanaDots() + '</div></div>';
-  const live = $("sana-live");
+  // SANA_TURN_IDENTITY_V1 — a LOCAL REFERENCE, never a shared element id.
+  //
+  // This block used to write a SHARED ELEMENT ID into every new turn and read it
+  // back with getElementById, which returns the FIRST match. On turn 2 that
+  // resolved to TURN 1's reply element, so turn 2's answer overwrote turn 1's
+  // reply while turn 2's own bubble kept its dots forever. One duplicated id,
+  // two visible defects. Nothing ever cleared the id.
+  //
+  // Appending nodes instead of concatenating innerHTML also means the reference
+  // survives: rebuilding thread.innerHTML would detach any element held here.
+  SANA_TURN_SEQ += 1;
+  const turnEl = document.createElement("div");
+  turnEl.className = "sana-turn sana-you";
+  turnEl.setAttribute("data-turn", String(SANA_TURN_SEQ));
+  turnEl.textContent = text;
+
+  const live = document.createElement("div");
+  live.className = "sana-turn sana-her";
+  live.setAttribute("data-turn", String(SANA_TURN_SEQ));
+  live.innerHTML = '<div class="sana-label">Sana</div>' + sanaDots();
+
+  thread.appendChild(turnEl);
+  thread.appendChild(live);
+  sanaScrollToBottom();
 
   const token = await sanaAccessToken();
   if(!token){ thread.innerHTML = previousHTML; sanaNote(live || thread, SANA_COPY.expired); SANA_BUSY = false; if(btn) btn.disabled = false; return; }
@@ -6663,12 +6704,16 @@ async function sanaSend(){
       for(let i=0;i<events.length;i++){
         const ev = events[i];
         if(ev.type === "thread_meta"){ receivedThreadMeta = true; }
-        else if(ev.type === "tool_call"){ if(!firstDelta) live.innerHTML = sanaDots(); }
+        else if(ev.type === "tool_call"){ if(!firstDelta) sanaShowDots(live); }
         else if(ev.type === "tool_result"){ /* dots stay until the first delta */ }
         else if(ev.type === "delta"){
-          if(!firstDelta){ firstDelta = true; live.innerHTML = ""; }
+          // First delta removes the dots and leaves the label. Everything after
+          // this writes into sanaBody(live), never into live itself, so the
+          // label is not re-rendered on every token.
+          if(!firstDelta){ firstDelta = true; sanaClearDots(live); }
           answer += (ev.text || "");
-          live.innerHTML = sanaRender(answer);
+          sanaBody(live).innerHTML = sanaRender(answer);
+          sanaScrollToBottom();
         }
         else if(ev.type === "error"){
           if(!receivedThreadMeta){ rollback(SANA_COPY.runtime); return; }
