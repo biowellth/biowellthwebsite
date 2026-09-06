@@ -2653,6 +2653,18 @@ async function handleFile(file){
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
     window.__drawReportId = reportId;   // reportId is durable — per-tap RPCs go live, submit unlocks
+    // B12_DEFERRED_FLUSH_V1 — the buffered taps, sent once the id exists.
+    //
+    // The block mounts on file-pick, BEFORE the reports insert, so a supplement tap
+    // made in that window hit __adCommit's `if(!window.__drawReportId) return;` and
+    // was dropped. It sat in __ad until submit, and an abandoner never submitted, so
+    // the tap was lost. The window is seconds but it is the FIRST thing a user
+    // touches on that screen.
+    //
+    // The guard in __adCommit is UNCHANGED and is still the only thing deciding
+    // whether the RPC is safe to make. This just calls it once at the moment the
+    // condition it guards on becomes true.
+    if(__ad.supp.size || (((document.getElementById("ad-note")||{}).value)||"").trim()){ __adCommit(); }
     setUploadRowState("uploaded");
     setSubmitPending(false);
     const cyc = collectCycle();   // empty at upload now (cycle is carried by submit-mode); harmless
