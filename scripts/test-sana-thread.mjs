@@ -199,6 +199,8 @@ try {
              + document.getElementById("sana-thread").querySelectorAll(".comp-dots").length,
    labels: () => document.getElementById("sana-thread").querySelectorAll(".sana-label").length,
    tagged: () => document.getElementById("sana-thread").querySelectorAll("[data-turn]").length,
+   chip: (q, a) => sanaAppendChipTurn(q, a),
+   hasChipFn: typeof sanaAppendChipTurn,
    turns: () => document.getElementById("sana-thread").querySelectorAll(".sana-turn"),
    thread: () => document.getElementById("sana-thread"),
 };`, { filename: "dashboard-inline.js" }).runInContext(sandbox, { timeout: 20000 });
@@ -256,6 +258,39 @@ else {
   // Static regex on the source cannot tell which of the two setAttribute calls
   // survived, so assert every turn node carries the attribute at runtime.
   eq(P.tagged(), 4, "TID-12: every turn node carries data-turn");
+}
+
+console.log("COPY");
+ok(HTML.includes("Your AI companion, reading from your panel"),
+   "COPY-1: sub-header reads 'Your AI companion, reading from your panel'");
+ok(!HTML.includes("Your AI companion \u00b7 reading from your panel"),
+   "COPY-2: the middot form is gone");
+
+console.log("CHIPS — into the thread, no network");
+ok(/function sanaAppendChipTurn/.test(HTML), "CHIP-1: the chip appender exists");
+{
+  const h = HTML.slice(HTML.indexOf("chips.forEach((btn,idx)=>{"));
+  const body = h.slice(0, h.indexOf("\n  });"));
+  ok(/sanaAppendChipTurn\(/.test(body), "CHIP-2: the chip handler calls it");
+  ok(/btn\.remove\(\)/.test(body), "CHIP-3: the tapped chip is removed");
+  // Assert the CONDITION, not just the call. Matching classList.add("hidden")
+  // alone passed a mutation that changed the guard to if(false) and left the
+  // call sitting there unreachable.
+  ok(/if\(left === 0\)\s*chipsEl\.classList\.add\("hidden"\)/.test(body),
+     "CHIP-4: the row hides when the last chip goes");
+  ok(!/fetch\(/.test(body), "CHIP-5: the chip handler makes no fetch call");
+}
+if (P) {
+  const before = P.turns().length;
+  const fetchBefore = fetchCalls;
+  P.chip("What does my ferritin mean?", "Your ferritin is **in range**.");
+  eq(P.turns().length - before, 2, "CHIP-6: a chip tap appends exactly one you turn and one her turn");
+  eq(fetchCalls, fetchBefore, "CHIP-7: no fetch was made for the chip answer");
+  const last = P.turns()[P.turns().length - 1];
+  ok(/<strong>in range<\/strong>/.test(last.innerHTML),
+     "CHIP-8: the chip answer went through sanaRender, so its marks render");
+  ok(/sana-label/.test(last.innerHTML), "CHIP-9: the chip answer carries the Sana label");
+  eq(P.dots(), 0, "CHIP-10: a chip turn leaves no dots");
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");

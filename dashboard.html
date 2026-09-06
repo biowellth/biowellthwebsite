@@ -1557,7 +1557,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="comp-titlewrap">
           <span class="comp-title">Sana</span>
           <!-- SANA_DESCRIPTOR_V1 -->
-          <span class="comp-status">Your AI companion · reading from your panel</span>
+          <span class="comp-status">Your AI companion, reading from your panel</span>
         </div>
         <span class="comp-badge">Arriving soon</span>
       </div>
@@ -5478,21 +5478,23 @@ function renderCompanionChips(p, score){
   const showAnswer = (idx)=>{ ansEl.innerHTML = '<p>'+esc(items[idx].a)+'</p>'; };
   const closeArea = ()=>{ if(pending){ clearTimeout(pending); pending=null; } ansEl.classList.remove("show"); ansEl.innerHTML = ""; activeIdx = -1; setActive(-1); };
 
+  // CHIPS INTO THE THREAD. A tapped chip now appends its question and its
+  // pre-generated answer as a normal pair of turns, so the conversation reads as
+  // one thing instead of a separate answer panel above a separate chat. The
+  // answer is the same string the chip already carried; NO API CALL is made, and
+  // the test asserts fetch is never touched.
+  //
+  // The chip is removed once used, and the row hides when the last one goes,
+  // rather than leaving spent chips that reopen an answer already in the thread.
   chips.forEach((btn,idx)=>{
     btn.onclick = ()=>{
-      if(idx === activeIdx){ closeArea(); return; }         // tap the active chip -> close
-      if(pending){ clearTimeout(pending); pending = null; }  // retarget mid-dots -> no double timers
-      activeIdx = idx; setActive(idx); ansEl.classList.add("show");
-      if(reduce()){ showAnswer(idx); return; }              // reduced motion -> answer immediately
-      ansEl.innerHTML = '<div class="comp-dots" aria-hidden="true"><span class="comp-dot"></span><span class="comp-dot"></span><span class="comp-dot"></span></div>';
-      pending = setTimeout(()=>{ pending = null; showAnswer(idx); }, 800);
+      sanaAppendChipTurn(items[idx].q, items[idx].a);
+      btn.remove();
+      const left = chipsEl.querySelectorAll(".comp-chip").length;
+      if(left === 0) chipsEl.classList.add("hidden");
+      if(ansEl){ ansEl.innerHTML = ""; ansEl.classList.remove("show"); }
     };
   });
-
-
-  // One answer at a time, across BOTH surfaces: opening a chip closes any chat
-  // reply, and sanaSend closes any open chip answer.
-  chips.forEach((btn)=>{ const prev = btn.onclick; btn.onclick = ()=>{ const t = $("sana-thread"); if(t) t.innerHTML = ""; prev(); }; });
 
   sanaMountChat();
 }
@@ -6456,6 +6458,25 @@ function sanaClearDots(el){
 function sanaShowDots(el){
   if(!el.querySelector(".sana-dots")) el.insertAdjacentHTML("beforeend", sanaDots());
 }
+/** A chip pair, rendered through the same path as a live turn. No network. */
+function sanaAppendChipTurn(question, answer){
+  const thread = $("sana-thread");
+  if(!thread) return;
+  SANA_TURN_SEQ += 1;
+  const q = document.createElement("div");
+  q.className = "sana-turn sana-you";
+  q.setAttribute("data-turn", String(SANA_TURN_SEQ));
+  q.textContent = question;
+  const a = document.createElement("div");
+  a.className = "sana-turn sana-her";
+  a.setAttribute("data-turn", String(SANA_TURN_SEQ));
+  a.innerHTML = '<div class="sana-label">Sana</div>';
+  sanaBody(a).innerHTML = sanaRender(answer);
+  thread.appendChild(q);
+  thread.appendChild(a);
+  sanaScrollToBottom();
+}
+
 function sanaScrollToBottom(){
   const t = $("sana-thread"); if(t) t.scrollTop = t.scrollHeight;
 }
