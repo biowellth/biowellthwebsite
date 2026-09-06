@@ -1460,6 +1460,24 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
               </div>
             </div>
           </div>
+          <div class="cyc-block hidden" id="cyc-questions">
+            <div class="bc-q" id="cq-preg">
+              <div class="bc-q-t">Are you currently pregnant, or have you been pregnant in the last 6 months?</div>
+              <div class="bc-opts" data-cq="preg"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button></div>
+            </div>
+            <div class="bc-q" id="cq-cycle">
+              <div class="bc-q-t">Where are you with your cycle right now?</div>
+              <div class="bc-opts" data-cq="cycle"><button class="bc-opt" type="button" data-val="regular">Regular cycles</button><button class="bc-opt" type="button" data-val="irregular_pcos">Irregular cycles or PCOS</button><button class="bc-opt" type="button" data-val="none">No periods at the moment</button><button class="bc-opt" type="button" data-val="perimenopause">Perimenopause</button><button class="bc-opt" type="button" data-val="postmenopause">Postmenopause</button><button class="bc-opt" type="button" data-val="decline">Prefer not to say</button></div>
+            </div>
+            <div class="bc-q hidden" id="cq-reason">
+              <div class="bc-q-t">Is there a reason you know of?</div>
+              <div class="bc-opts" data-cq="reason"><button class="bc-opt" type="button" data-val="hormonal_contraception">Hormonal contraception</button><button class="bc-opt" type="button" data-val="breastfeeding">Breastfeeding</button><button class="bc-opt" type="button" data-val="medical">A medical reason or treatment</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
+            </div>
+            <div class="bc-q hidden" id="cq-ht" style="margin-bottom:2px">
+              <div class="bc-q-t" id="cq-ht-t">Are you using hormonal contraception or hormone therapy right now?</div>
+              <div class="bc-opts" data-cq="ht"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
+            </div>
+          </div>
           <div class="cyc-block" id="ad-confounders">
             <div class="bc-q"><div class="bc-q-t">Was this blood test done fasting?</div><div class="bc-opts" data-key="true_fasting_at_draw"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
             <div class="bc-q"><div class="bc-q-t">Were you unwell in the four weeks before this test?</div><div class="bc-opts" data-key="recent_illness_within_4_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
@@ -2553,6 +2571,136 @@ function resetToPreFile(){
   window.__drawBlockActive = false; window.__drawReportId = null;
   const fi = document.getElementById("file"); if(fi) fi.value = "";
 }
+
+// ── CYCLE_QUESTIONS_V1 ───────────────────────────────────────────────────────
+// Four questions, asked once, only when the profile has no menstrual_status.
+//
+// They live on the upload card because that is where she already is and the
+// answers change how THIS panel reads. Each answer writes immediately rather
+// than at submit, because an abandoner's answer is still true.
+//
+// All six columns move together on every write. `menstrual_status` is DERIVED
+// and the engine PREFERS it over cycle_status, so writing one without the other
+// would let a stale value outrank the fresh answer. Lockstep, or not at all.
+const cq = { preg:null, cycle:null, reason:null, ht:null };
+// The profile AS IT WAS when the questions mounted. Deriving against the live
+// PROFILE is wrong: cqCommit writes into it, so answering Regular and then
+// changing to "Prefer not to say" would still derive "regular" from the value we
+// had just stored, and the lens would stay open on an answer she withdrew. The
+// snapshot makes the session's answers the only moving part.
+let cqStored = {};
+
+const CQ_WRITES = {
+  regular:        { life_stage: "premenopause", cycle_status: "regular" },
+  irregular_pcos: { cycle_status: "pcos" },
+  none:           { cycle_status: "none" },
+  perimenopause:  { life_stage: "perimenopause" },
+  postmenopause:  { life_stage: "postmenopause" },
+  decline:        {},
+};
+
+// Q4 is asked for every cycle answer except "Prefer not to say", and never when
+// Q1 is Yes. Pregnancy is its own hormonal state.
+function cqShowHormone(){
+  if(cq.preg === "yes") return false;
+  return !!cq.cycle && cq.cycle !== "decline";
+}
+
+function cqAns(){
+  const a = {};
+  if(cq.preg === "yes") a.preg = true;
+  else if(cq.preg === "no") a.preg = false;
+  if(cq.preg !== "yes") Object.assign(a, CQ_WRITES[cq.cycle] || {});
+  return a;
+}
+
+function cqPayload(derived){
+  const p = {
+    pregnant_or_postpartum_within_6_months: null,
+    life_stage: null,
+    cycle_status: null,
+    menstrual_status: (derived === undefined) ? null : derived,
+    amenorrhea_reason: null,
+    hormone_therapy_status: null,
+  };
+  if(cq.preg === "yes") p.pregnant_or_postpartum_within_6_months = true;
+  else {
+    if(cq.preg === "no") p.pregnant_or_postpartum_within_6_months = false;
+    Object.assign(p, CQ_WRITES[cq.cycle] || {});
+  }
+  if(cq.cycle === "none" && cq.reason) p.amenorrhea_reason = cq.reason;
+  if(cqShowHormone() && cq.ht) p.hormone_therapy_status = cq.ht;
+  return p;
+}
+
+// "Prefer not to say" writes nothing. Nothing answered writes nothing either.
+function cqShouldWrite(){
+  return cq.preg === "yes" || (!!cq.cycle && cq.cycle !== "decline");
+}
+
+function cqRender(){
+  const pregYes = cq.preg === "yes";
+  const el = (id)=>document.getElementById(id);
+  const t = (id, hide)=>{ const e = el(id); if(e) e.classList.toggle("hidden", hide); };
+  t("cq-cycle", pregYes);
+  t("cq-reason", pregYes || cq.cycle !== "none");
+  t("cq-ht", !cqShowHormone());
+  const ht = el("cq-ht-t");
+  if(ht) ht.textContent = (cq.cycle === "postmenopause" && !pregYes)
+    ? "Are you using hormone therapy right now?"
+    : "Are you using hormonal contraception or hormone therapy right now?";
+  return deriveMenstrualFrom(cqAns(), cqStored);
+}
+
+async function cqCommit(){
+  const derived = cqRender();
+  applyCycleLens(derived);
+  if(!cqShouldWrite()) return null;
+  const payload = cqPayload(derived);
+  try{
+    await sb.from("profiles").update(payload).eq("id", USER.id);
+    PROFILE = Object.assign(PROFILE || {}, payload);
+  }catch(e){ console.error("[cycle] profile update (non-fatal):", e); }
+  return payload;
+}
+
+function cqClear(group){
+  document.querySelectorAll('.bc-opts[data-cq="' + group + '"] .bc-opt').forEach(b=>b.classList.remove("sel"));
+}
+
+function initCycleQuestions(){
+  const block = document.getElementById("cyc-questions");
+  if(!block) return;
+  // Asked once. A profile that already carries a status never sees these.
+  const unknown = !PROFILE || PROFILE.menstrual_status == null;
+  block.classList.toggle("hidden", !unknown);
+  if(!unknown) return;
+  cqStored = Object.assign({}, PROFILE || {});
+  if(block.getAttribute("data-wired")) return;
+  block.setAttribute("data-wired", "1");
+  document.querySelectorAll('#cyc-questions .bc-opts[data-cq]').forEach(grp=>{
+    const g = grp.getAttribute("data-cq");
+    grp.querySelectorAll(".bc-opt").forEach(btn=>{
+      btn.onclick = ()=>{
+        const val = btn.getAttribute("data-val");
+        grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+        if(g === "preg"){
+          cq.preg = val;
+          if(val === "yes"){ cq.cycle = null; cq.reason = null; cq.ht = null;
+            cqClear("cycle"); cqClear("reason"); cqClear("ht"); }
+        } else if(g === "cycle"){
+          cq.cycle = val;
+          if(val !== "none"){ cq.reason = null; cqClear("reason"); }
+          if(val === "decline"){ cq.ht = null; cqClear("ht"); }
+        } else if(g === "reason"){ cq.reason = val; }
+        else if(g === "ht"){ cq.ht = val; }
+        cqCommit();
+      };
+    });
+  });
+  cqRender();
+}
+
 async function mountAboutDraw(reportId, fileName){
   window.__drawReportId = reportId; window.__drawBlockActive = true; window.__drawReady = null;
   __ad.conf = {}; __ad.supp = new Set(); __ad.biotin = false;
@@ -2572,6 +2720,7 @@ async function mountAboutDraw(reportId, fileName){
   // No extra read: loadProfile already selects menstrual_status. A null status
   // means we have never asked, and the questions handle that case.
   if(PROFILE && PROFILE.menstrual_status != null) applyCycleLens(PROFILE.menstrual_status);
+  initCycleQuestions();
 }
 function drawReadyAck(kind){
   window.__drawReady = { kind };
@@ -5641,8 +5790,18 @@ const onb2 = { idx:0, ans:{}, stored:{}, open:false, cards:[], hist:[], firstIdx
  * Returns undefined when there is no basis to write, which is different from
  * null (a positive "she has no cycle status").
  */
-function onb2DeriveMenstrual(){
-  const a = onb2.ans, s = onb2.stored;
+// CYCLE_QUESTIONS_V1 — the body of onb2DeriveMenstrual, lifted into a pure
+// function so the About-this-draw questions can derive without touching `onb2`.
+//
+// A shim was the other option and it is the wrong one: this function read the
+// module-level `onb2.ans` and `onb2.stored`, so calling it from the upload card
+// would mean writing into the ONBOARDING flow's state to ask a question that has
+// nothing to do with it. Two callers, one implementation, no shared mutation.
+//
+// The logic is unchanged, character for character. onb2DeriveMenstrual is now a
+// single line and keeps its name, so every existing caller is untouched.
+function deriveMenstrualFrom(a, s){
+  a = a || {}; s = s || {};
   const preg = ("preg" in a) ? a.preg : s.pregnant_or_postpartum_within_6_months;
   if(preg === true) return "pregnant";
   const ls = ("life_stage" in a) ? a.life_stage : s.life_stage;
@@ -5653,6 +5812,9 @@ function onb2DeriveMenstrual(){
   if(cs === "irregular" || cs === "pcos") return "irregular";
   if(cs === "amenorrheic" || cs === "none") return null;
   return undefined;
+}
+function onb2DeriveMenstrual(){
+  return deriveMenstrualFrom(onb2.ans, onb2.stored);
 }
 
 /** One upsert per answered screen. Own row. Skip calls this with nothing. */
