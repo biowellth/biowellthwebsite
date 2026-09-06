@@ -451,12 +451,36 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
 .prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
 /* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
-.sana-row{display:flex;gap:8px;margin-top:14px}
+/* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the approved spec.
+   The thread scrolls inside the card so a long conversation cannot push the
+   input off screen; the row sits below it and stays put. */
+.sana-row{display:flex;gap:8px;margin-top:14px;align-items:flex-end}
 .sana-input{flex:1;min-width:0;border:1px solid var(--teal-light);border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;color:var(--brown-mid);background:var(--white)}
 .sana-input:focus{outline:2px solid var(--teal);outline-offset:1px}
 .sana-send{flex:0 0 auto;border:0;border-radius:12px;padding:10px 16px;font:inherit;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);cursor:pointer}
 .sana-send[disabled]{opacity:.55;cursor:default}
-.sana-thread{margin-top:12px}
+.sana-thread{margin-top:12px;max-height:60vh;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}
+.sana-thread::-webkit-scrollbar{width:8px}
+.sana-thread::-webkit-scrollbar-thumb{background:var(--brown-light);border-radius:8px}
+.sana-turn.sana-you{margin-left:auto;max-width:86%;background:rgba(71,55,43,.08);border-radius:14px;padding:10px 14px;color:var(--brown);font-size:15px}
+.sana-turn.sana-her{margin-right:auto;max-width:86%;border-left:2px solid var(--teal);padding:2px 0 2px 14px;font-size:15px;color:var(--brown)}
+.sana-her .sana-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:5px}
+.sana-her p{margin-bottom:10px}
+.sana-her p:last-child{margin-bottom:0}
+.sana-her strong{font-weight:600;color:var(--brown)}
+.sana-her ul,.sana-her ol{margin:0 0 10px 20px}
+.sana-her li{margin-bottom:5px}
+.sana-dots{display:flex;gap:5px;align-items:center;padding:5px 0}
+.sana-dots span{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:sanaPulse 1s ease-in-out infinite}
+.sana-dots span:nth-child(2){animation-delay:.15s}
+.sana-dots span:nth-child(3){animation-delay:.3s}
+@keyframes sanaPulse{0%,100%{opacity:.3}50%{opacity:1}}
+@media(max-width:420px){
+  .sana-thread{max-height:60vh}
+  .sana-turn.sana-you,.sana-turn.sana-her{max-width:100%}
+  .sana-row{flex-direction:column;align-items:stretch}
+  .sana-send{width:100%}
+}
 .sana-turn{margin-bottom:12px}
 .sana-you{font-weight:600;color:var(--brown-mid);margin-bottom:4px}
 .sana-her p{margin:0 0 8px}
@@ -6744,13 +6768,16 @@ function sanaMountChat(){
   const mount = $("sana-mount");
   if(!mount || mount.dataset.mounted === "1") return;
   mount.dataset.mounted = "1";
+  // THREAD ABOVE ROW. It used to emit the row first, so the conversation grew
+  // away from the box you type in and every new turn pushed the input further
+  // down the page. Markup order is the only thing that sets this.
   mount.innerHTML =
+    '<div class="sana-thread" id="sana-thread" aria-live="polite"></div>' +
     '<div class="sana-row">' +
       '<input class="sana-input" id="sana-input" type="text" autocomplete="off" ' +
         'placeholder="' + esc(SANA_COPY.placeholder) + '" aria-label="' + esc(SANA_COPY.placeholder) + '"/>' +
       '<button class="sana-send" id="sana-send" type="button">' + esc(SANA_COPY.send) + '</button>' +
-    '</div>' +
-    '<div class="sana-thread" id="sana-thread" aria-live="polite"></div>';
+    '</div>';
   const badge = document.querySelector("#companion .comp-badge");
   if(badge) badge.remove();
   $("sana-send").onclick = sanaSend;

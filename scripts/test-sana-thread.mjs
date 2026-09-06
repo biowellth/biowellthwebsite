@@ -207,6 +207,29 @@ try {
   fail++;
 }
 
+console.log("LAYOUT — thread before row, and the mock's geometry");
+{
+  const mount = HTML.slice(HTML.indexOf("function sanaMountChat(){"));
+  const body = mount.slice(0, mount.indexOf("\n}"));
+  const iThread = body.indexOf('class="sana-thread"');
+  const iRow = body.indexOf('class="sana-row"');
+  ok(iThread > -1 && iRow > -1, "LAY-1: sanaMountChat emits both nodes");
+  ok(iThread < iRow, "LAY-2: .sana-thread precedes .sana-row in the emitted markup");
+}
+// BASE RULES ONLY. The 420px block repeats .sana-thread and both turn selectors,
+// so a regex over the whole file matches the media-query copy and a mutation that
+// deletes the BASE rule still reads as present. Slice the base stylesheet first.
+const BASE = HTML.slice(0, HTML.indexOf("@media(max-width:420px)"));
+ok(/\.sana-thread\{[^}]*overflow-y:auto/.test(BASE), "LAY-3: the thread scrolls (base rule)");
+ok(/\.sana-thread\{[^}]*max-height:60vh/.test(BASE), "LAY-4: max-height 60vh (base rule)");
+ok(/@media\(max-width:420px\)/.test(HTML), "LAY-5: a 420px rule exists");
+ok(/\.sana-turn\.sana-her\{[^}]*border-left:2px solid var\(--teal\)/.test(BASE),
+   "LAY-6: .sana-her has a real rule with the teal left rule");
+ok(/\.sana-turn\.sana-you\{[^}]*border-radius:14px/.test(BASE),
+   "LAY-7: .sana-you has a real rule with radius 14");
+ok(/\.sana-dots\{[^}]*display:flex/.test(BASE), "LAY-8: .sana-dots has a real rule");
+ok(/function sanaScrollToBottom/.test(HTML), "LAY-9: append scrolls to bottom");
+
 console.log("SEQUENTIAL TURNS — the regression, driven through the real sanaSend");
 const P = sandbox.__probe;
 if (!P) { ok(false, "TID-4..8: probe unavailable, boot failed"); }
