@@ -157,8 +157,12 @@ vm.createContext(sandbox);
 const WRAPPED = SRC + "\n;globalThis.__T = { ad: () => __ad, commit: () => __adCommit(), handleFile: (f) => handleFile(f) };";
 
 let pass = 0, fail = 0;
-const ok = (c, m) => (c ? (pass++, console.log("  ok   " + m)) : (fail++, console.log("  FAIL " + m)));
+// An assertion must never THROW. A crash skips the summary line, and a ledger row
+// that reads blank is indistinguishable from a row that was never run.
+const ok = (c, m) => { let v; try { v = !!c; } catch (e) { v = false; m += " [threw: " + e.message + "]"; }
+  return v ? (pass++, console.log("  ok   " + m)) : (fail++, console.log("  FAIL " + m)); };
 const commits = () => rpcCalls.filter((c) => c.name === "commit_between_calls");
+const confs   = () => rpcCalls.filter((c) => c.name === "set_report_confounder");
 const tick = (n) => new Promise((r) => setTimeout(r, n || 60));
 
 process.on("unhandledRejection", (err) => { if (!bootError) bootError = err; });
@@ -199,7 +203,7 @@ ok(sandbox.window.__drawReportId === REPORT_ID,
    "F-5: handleFile assigned __drawReportId from the reports insert");
 ok(commits().length === 1, "F-6: EXACTLY ONE commit_between_calls fired on the flush (got " + commits().length + ")");
 const first = commits()[0];
-ok(!!first && first.args.p_report_id === REPORT_ID, "F-7: the flush carried the real report id");
+ok(!!first && !!first.args && first.args.p_report_id === REPORT_ID, "F-7: the flush carried the real report id");
 ok(!!first && Array.isArray(first.args.p_supplements) && first.args.p_supplements.includes("b12"),
    "F-8: the flush carried the buffered supplement (" + JSON.stringify(first && first.args.p_supplements) + ")");
 
@@ -224,5 +228,76 @@ ok(commits().length === 0,
    "F-13: with nothing buffered, the upload sends NO commit_between_calls (got " + commits().length + ")");
 
 await inflight.catch(() => {});
+
+// ── CONFOUNDER_DEFERRED_FLUSH_V1 ───────────────────────────────────────────────
+// Same hole, the other field. Confounders go through set_report_confounder, a
+// separate per-tap path with its own guard in the click handler.
+console.log("\nSTEP 5 — a CONFOUNDER tapped in the pre-id window");
+rpcCalls.length = 0;
+sandbox.window.__drawReportId = null;
+sandbox.__T.ad().supp.clear();
+sandbox.__T.ad().conf = {};
+uploadGate = new Promise((r) => { releaseUpload = r; });
+
+const inflight2 = sandbox.__T.handleFile({ name: "panel3.pdf", size: 1024, type: "application/pdf" });
+await tick(80);
+ok(sandbox.window.__drawReportId == null, "C-1: precondition — no report id yet");
+ok(sandbox.__T.ad().conf && Object.keys(sandbox.__T.ad().conf).length === 0,
+   "C-2: mountAboutDraw cleared __ad.conf, so the tap below is the only entry");
+
+sandbox.__T.ad().conf["fasting"] = true;          // the tap, buffered
+ok(confs().length === 0, "C-3: NO set_report_confounder while the id is null (got " + confs().length + ")");
+
+releaseUpload();
+await tick(200);
+ok(sandbox.window.__drawReportId === REPORT_ID, "C-4: the id landed through the real path");
+ok(confs().length === 1, "C-5: EXACTLY ONE set_report_confounder after the flush (got " + confs().length + ")");
+const c1 = confs()[0];
+ok(!!c1 && c1.args.p_report_id === REPORT_ID, "C-6: the flush carried the real report id");
+ok(!!c1 && c1.args.p_key === "fasting" && c1.args.p_value === true,
+   "C-7: the flush carried the buffered key and value (" + JSON.stringify(c1 && c1.args) + ")");
+
+console.log("\nSTEP 6 — a supplement AND a confounder together");
+rpcCalls.length = 0;
+sandbox.window.__drawReportId = null;
+uploadGate = new Promise((r) => { releaseUpload = r; });
+const inflight3 = sandbox.__T.handleFile({ name: "panel4.pdf", size: 1024, type: "application/pdf" });
+await tick(80);
+sandbox.__T.ad().supp.add("b12");
+sandbox.__T.ad().conf["recent_illness"] = false;
+releaseUpload();
+await tick(220);
+ok(commits().length === 1, "C-8: exactly ONE commit_between_calls (got " + commits().length + ")");
+ok(confs().length === 1, "C-9: exactly ONE set_report_confounder (got " + confs().length + ")");
+ok(!!confs()[0] && confs()[0].args.p_key === "recent_illness" && confs()[0].args.p_value === false,
+   "C-10: the confounder call carries the key and its false value, not a truthiness collapse");
+
+console.log("\nSTEP 7 — multiple confounder keys, one call each");
+rpcCalls.length = 0;
+sandbox.window.__drawReportId = null;
+uploadGate = new Promise((r) => { releaseUpload = r; });
+const inflight4 = sandbox.__T.handleFile({ name: "panel5.pdf", size: 1024, type: "application/pdf" });
+await tick(80);
+sandbox.__T.ad().conf["fasting"] = true;
+sandbox.__T.ad().conf["recent_illness"] = null;   // the "not sure" answer, a real value
+releaseUpload();
+await tick(240);
+ok(confs().length === 2, "C-11: two keys produce two calls (got " + confs().length + ")");
+ok(confs().some((c) => c.args && c.args.p_key === "fasting" && c.args.p_value === true) &&
+   confs().some((c) => c.args && c.args.p_key === "recent_illness" && c.args.p_value === null),
+   "C-12: a null value is SENT, not skipped — it is the 'not sure' answer");
+
+console.log("\nSTEP 8 — nothing buffered sends nothing");
+rpcCalls.length = 0;
+sandbox.window.__drawReportId = null;
+uploadGate = Promise.resolve();
+await sandbox.__T.handleFile({ name: "panel6.pdf", size: 1024, type: "application/pdf" });
+await tick(220);
+ok(sandbox.window.__drawReportId === REPORT_ID, "C-13: the upload still assigned the id");
+ok(confs().length === 0, "C-14: no confounders buffered, no set_report_confounder sent (got " + confs().length + ")");
+ok(commits().length === 0, "C-15: and no commit_between_calls either (got " + commits().length + ")");
+
+await Promise.all([inflight2, inflight3, inflight4].map((p) => p.catch(() => {})));
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
