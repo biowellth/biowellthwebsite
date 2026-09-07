@@ -104,6 +104,17 @@ form{margin:0}
       <div class="toggle">First time here? <a id="to-signup">Create your account</a></div>
     </div>
 
+    <!-- CHECK YOUR EMAIL. LOGIN_FLOW_V2. Confirmations are on, so a successful signUp
+         returns NO session and the account is inert until the link is opened. Swapping
+         straight to the sign in form told the user to do the one thing that cannot work
+         yet. The address is written with textContent, never innerHTML, because it is
+         attacker-supplied text arriving from a form field. -->
+    <div id="check-email-view" class="hidden">
+      <h1>Check your email</h1>
+      <p class="sub">We sent a confirmation link to <b id="ce-address"></b>. Open it to activate your account, then come back here to sign in.</p>
+      <button class="btn" id="ce-back" type="button">Back to sign in</button>
+    </div>
+
     <div class="msg" id="msg"></div>
   </div>
 
@@ -146,8 +157,15 @@ $("to-signup").onclick = () => swapTo("signup");
 function swapTo(view){
   clearMsg();
   $("signup-view").classList.toggle("hidden", view !== "signup");
-  $("login-view").classList.toggle("hidden", view === "signup");
+  $("login-view").classList.toggle("hidden", view !== "login");
+  $("check-email-view").classList.toggle("hidden", view !== "checkemail");
 }
+// LOGIN_FLOW_V2. textContent, never innerHTML. The address came out of a form field.
+function showCheckEmail(address){
+  $("ce-address").textContent = address;
+  swapTo("checkemail");
+}
+$("ce-back").onclick = () => swapTo("login");
 
 // CREATE ACCOUNT
 $("signup-form").onsubmit = async (e) => {
@@ -188,11 +206,19 @@ $("signup-form").onsubmit = async (e) => {
   // against the authenticated client (migration 0023), so this service-role edge path is its
   // only writer. Fire-and-forget by design: a failed stamp must never block a valid signup,
   // and the dashboard repair path re-runs it on next load from the same durable metadata.
+  // LOGIN_FLOW_V2. AN ALREADY REGISTERED ADDRESS LOOKS LIKE A SUCCESS, DELIBERATELY.
+  // With confirmations on, Supabase answers a repeat signup with no error and a user whose
+  // identities array is EMPTY, so that the response cannot be used to enumerate accounts.
+  // It gets the SAME interstitial as a genuine new signup. Distinguishing the two in the
+  // UI would hand back exactly the leak the empty array exists to close.
+  const identities = data && data.user ? data.user.identities : null;
+  if (Array.isArray(identities) && identities.length === 0) return showCheckEmail(email);
+
   if (data.session){
     try{ await sb.functions.invoke("affirm-age", { body:{} }); }catch(_){}
     location.replace(APP);
   }
-  else { show("ok", "Account created. You can now sign in."); swapTo("login"); }
+  else { showCheckEmail(email); }
 };
 
 // AGE_AFFIRM_V1 — button follows the tick. Pure UI; the real client-side gate is the
