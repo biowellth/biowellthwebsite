@@ -1276,6 +1276,35 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .acct-onb-v{color:var(--brown);text-align:right}
 .acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid var(--brown-light);border-radius:100px;background:var(--white);font-size:13.5px;color:var(--brown)}
 #acct-onb.hidden{display:none}
+/* TESTER_GATE_V1 — the external tester agreement gate. Ported from mocks/tester-gate.html.
+   Backdrop is the .onb2-modal idiom, cream at high alpha plus a light blur, so the
+   off-white card still lifts off it. BLOCKING like .dobg: no skip control on the backdrop,
+   no backdrop close, no Escape. The only ways out are the two buttons. */
+.tg-modal{position:fixed;inset:0;z-index:320;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(242,237,227,.93);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow:auto}
+.tg-card{width:min(560px,100%);min-width:0;max-width:100%;background:var(--off-white);border:1px solid var(--brown-light);
+  border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow);margin:auto}
+.tg-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25;margin:0 0 8px}
+.tg-sub{font-size:14px;color:var(--brown-mid);line-height:1.7;margin:0 0 18px}
+.tg-doc{max-height:280px;overflow-y:auto;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:18px 18px 14px;margin-bottom:20px}
+.tg-doc-h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown);margin:0 0 6px;line-height:1.35}
+.tg-doc-h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);margin:18px 0 6px}
+.tg-doc-ver{font-size:12px;color:var(--brown-mid);line-height:1.65;margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--brown-light)}
+.tg-doc-p{font-size:12.5px;color:var(--brown-mid);line-height:1.75;margin:0 0 10px}
+.tg-doc-li{font-size:12.5px;color:var(--brown-mid);line-height:1.75;margin:0 0 8px;padding-left:14px;position:relative}
+.tg-doc-li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--teal-mid)}
+.tg-num{font-weight:700;color:var(--brown)}
+.tg-actions{margin-top:20px}
+.tg-go{display:block;width:100%;font-family:inherit;font-size:14px;font-weight:700;color:var(--white);background:var(--teal);
+  border:none;border-radius:100px;padding:13px 20px;cursor:pointer}
+.tg-go:disabled{opacity:.45;cursor:not-allowed}
+.tg-later{display:block;width:100%;text-align:center;background:none;border:0;font:inherit;font-size:13.5px;font-weight:600;
+  color:var(--brown-mid);padding:12px 0 2px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.tg-later-help{font-size:12.5px;color:var(--brown-mid);line-height:1.6;text-align:center;margin:0}
+.tg-msg{font-size:13px;line-height:1.5;color:var(--coral-dark);text-align:center;margin:12px 0 0;min-height:1px}
+.tg-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--brown-light);display:flex;flex-wrap:wrap;gap:8px;
+  align-items:center;justify-content:center;font-size:11.5px;color:var(--brown-mid)}
+.tg-sha{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);opacity:.75;letter-spacing:.02em}
 </style>
 </head>
 <body>
@@ -2142,12 +2171,96 @@ function showAgeModal(){
 }
 
 
+
+// ── TESTER_GATE_V1 ─────────────────────────────────────────────────────────────────────
+// The external tester agreement gate. Counsel's condition is that no external tester
+// receives access until they have agreed to the approved text and the acceptance is
+// recorded, so this is a LAUNCH CONDITION and not a product flow.
+//
+// INDEPENDENT OF ONBOARDING_ENABLED, deliberately, exactly like DOB_GATE_V1. Onboarding
+// is a feature behind a flag that happens to be off; this is a gate that must hold
+// whatever else is switched on. Flipping ONBOARDING_ENABLED must never move it.
+//
+// The agreement version and hash below MUST match the server registry in
+// supabase/functions/process-report-worker/tester-agreements.ts. tester-accept refuses a
+// mismatch with 409 rather than recording something the tester was not shown, so a drift
+// here fails loudly at the point of acceptance instead of silently storing the wrong sha.
+const TESTER_GATE_ENABLED = false;
+const TESTER_AGREEMENT_VERSION = "v1.1";
+const TESTER_AGREEMENT_SHA256 = "d18836409611daf7dfd05db52d951f537670866a0c520a9f32d466248e93599e";
+const TESTER_ACK_KEYS = ["confidentiality","no_sharing","own_data_only","wellness_not_medical","report_problems","access_can_end"];
+const TESTER_GATE_FAIL_COPY = "We could not record your acceptance. Please try again.";
+
+// Resolves when the caller may continue booting. On decline it never resolves, because
+// the page is navigating away, which is the point.
+async function testerGate(){
+  if(!TESTER_GATE_ENABLED) return;
+  if(!USER) return;
+
+  // RLS scopes this to the caller, so no user_id filter is load-bearing here. It is
+  // written anyway: the policy is the control and the WHERE is the first layer, the same
+  // discipline invariant 5 states for the Express read path.
+  try{
+    const { data } = await sb.from("tester_acceptances")
+      .select("id")
+      .eq("user_id", USER.id)
+      .eq("agreement_version", TESTER_AGREEMENT_VERSION)
+      .limit(1);
+    if(data && data.length) return;
+  }catch(_){
+    // A failed read must NOT silently admit an unaccepted tester. Fall through and show
+    // the gate; a second acceptance of the same version is idempotent server side.
+  }
+
+  return await new Promise(function(resolve){
+    const modal = $("tester-gate"); if(!modal) return resolve();
+    const acks = Array.prototype.slice.call(modal.querySelectorAll(".tg-ack"));
+    const go = $("tg-go"), later = $("tg-later"), msg = $("tg-msg");
+    function sync(){ go.disabled = !acks.every(function(a){ return a.checked; }); }
+    acks.forEach(function(a){ a.onchange = sync; });
+    sync();
+
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden","false");
+
+    go.onclick = async function(){
+      msg.textContent = "";
+      go.disabled = true; go.textContent = "Recording…";
+      const accepted = {};
+      TESTER_ACK_KEYS.forEach(function(k){ accepted[k] = true; });
+      try{
+        const res = await sb.functions.invoke("tester-accept", { body:{
+          agreement_version: TESTER_AGREEMENT_VERSION,
+          agreement_sha256: TESTER_AGREEMENT_SHA256,
+          accepted: accepted,
+        }});
+        if(res.error || !res.data || res.data.ok === false) throw new Error("tester-accept refused");
+        modal.classList.add("hidden");
+        modal.setAttribute("aria-hidden","true");
+        resolve();
+      }catch(_){
+        go.disabled = false; go.textContent = "I agree and continue";
+        msg.textContent = TESTER_GATE_FAIL_COPY;
+      }
+    };
+
+    later.onclick = async function(){
+      try{ await sb.auth.signOut(); }catch(_){ }
+      location.replace("/login?declined=tester");
+      // deliberately never resolves; the page is leaving
+    };
+  });
+}
+
 (async ()=>{
   const { data } = await sb.auth.getSession();
   if(!data.session){ location.replace("/login?mode=login"); return; }
   USER = data.session.user;
   document.body.classList.add("ready");
   await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
+  // TESTER_GATE_V1 — before the age gate and before any render. A tester who has not
+  // accepted must not see the product, and loadProfile has already run so USER is set.
+  await testerGate();
   // AGE_AFFIRM_V1 — silent repair, or the blocking grandfathered modal. Returns true when the
   // blocking modal opened, and onboarding is then SUPPRESSED. Ordering the calls is not enough:
   // both overlays are .onb-modal at the same z-index, so the one later in the DOM paints on top
@@ -9430,6 +9543,63 @@ async function stampSeen(reportId){
       <p class="onb-sub">If you would like, we can delete the data on this account first. You can also ask us to do that later at <a href="mailto:support@mybiowellth.com" style="color:var(--teal);font-weight:600">support@mybiowellth.com</a>.</p>
       <button class="onb-save" id="age-signout">Sign out</button>
       <button class="age-under danger" id="age-delete" type="button">Delete my data</button>
+    </div>
+  </div>
+</div>
+
+<!-- TESTER_GATE_V1 — dark behind TESTER_GATE_ENABLED. Blocking: no backdrop close,
+     no Escape, no skip. Hidden until testerGate() decides it is needed. -->
+<div class="tg-modal hidden" id="tester-gate" aria-hidden="true">
+  <div class="tg-card">
+    <h1 class="tg-h">Before you start</h1>
+    <p class="tg-sub">You are one of a small group testing BioWellth privately. Please read and confirm each line.</p>
+    <div class="tg-doc" id="tg-doc">
+      <h3 class="tg-doc-h1">BioWellth External Tester Agreement and Health Data Acknowledgment, v1.1</h3>
+      <p class="tg-doc-ver">Version 1.1, 2026-09-05. Approved by counsel on 2026-09-05 subject to three drafting refinements, all applied in this version. No external tester receives access until they have agreed to this text and the acceptance is recorded.</p>
+      <h4 class="tg-doc-h2">Part 1. The agreement</h4>
+      <p class="tg-doc-p">BioWellth, Inc. (&quot;BioWellth&quot;) is inviting you to try a version of our service before it is released to the public. This agreement explains what we ask of you and what you can expect from us. Please read it before you use the test version.</p>
+      <p class="tg-doc-p"><span class="tg-num">1.</span> This is a private test. The version you are testing is not public. Its features, screens, wording, results, and any problems you notice are confidential. Please do not describe them to anyone outside BioWellth, and please do not post about them publicly. This stays in place after the service launches, until BioWellth tells you in writing that a particular thing is no longer confidential.</p>
+      <p class="tg-doc-p"><span class="tg-num">2.</span> How you may use it. Use the test version only to try it as a user would. Do not use it to build a competing product, resell access, or test it for anyone other than yourself and BioWellth.</p>
+      <p class="tg-doc-p"><span class="tg-num">3.</span> No screenshots, recordings, or credentials shared. Do not share screenshots, screen recordings, exported files, login details, invitation links, or any other product information with anyone outside BioWellth. If you want to show us something, send it to us directly.</p>
+      <p class="tg-doc-p"><span class="tg-num">4.</span> Use only your own information. Upload only your own blood test reports and enter only your own health information, unless BioWellth gives you test data in writing and asks you to use it. Do not upload reports or details belonging to anyone else, including family members.</p>
+      <p class="tg-doc-p"><span class="tg-num">5.</span> This is a wellness product, not medical advice. BioWellth helps you understand blood test results and related wellness information. It does not diagnose, treat, cure, or prevent any disease, and it is not a substitute for a doctor, nurse, or other licensed health professional. The test version is not a substitute for professional medical advice or care. If something in your results concerns you, talk to your doctor.</p>
+      <p class="tg-doc-p"><span class="tg-num">6.</span> The AI can be wrong. Parts of the service, including Sana, our AI companion, and the written interpretation of your results, are generated by artificial intelligence. AI output can be inaccurate, incomplete, or out of date. Treat it as one input among many, not as a conclusion.</p>
+      <p class="tg-doc-p"><span class="tg-num">7.</span> Please tell us about problems. If you find a security weakness, see information that is not yours, notice a privacy problem, or see output that could be unsafe or misleading, tell us as soon as you can at support@mybiowellth.com. Please do not try to explore or exploit the problem further.</p>
+      <p class="tg-doc-p"><span class="tg-num">8.</span> Do not bypass controls. Do not attempt to get around age checks, access limits, rate limits, or any other security or safety control, and do not try to access accounts, data, or systems that are not yours.</p>
+      <p class="tg-doc-p"><span class="tg-num">9.</span> Access can end at any time. BioWellth may pause or end your access to the test version at any time, for any reason, and you may stop testing at any time. When the test ends, you can keep your account or ask us to delete it. Deleting your account removes your data as described in the Privacy Policy.</p>
+      <p class="tg-doc-p">Your health information. Being a tester does not change how BioWellth may use your health information. The Privacy Policy governs, and BioWellth will not use your health information for any purpose beyond what that policy describes. If you would like your data deleted at any point, you can delete your account in the service or contact us at support@mybiowellth.com.</p>
+      <p class="tg-doc-p">Feedback. If you give us feedback, we may use it to improve the service. We will not attribute it to you publicly without asking you first.</p>
+      <p class="tg-doc-p">Agreement. By checking the box or signing below, you confirm that you are 18 or older, that you have read this agreement, and that you agree to it.</p>
+      <p class="tg-doc-p">Name. Email. Date.</p>
+      <h4 class="tg-doc-h2">Part 2. In-product acknowledgment flow</h4>
+      <p class="tg-doc-p">Six checkboxes, each required, shown once before the first test session. The full agreement is linked from the screen. The agreement text and version hash are stored with the acceptance timestamp, the same pattern as consent stamping.</p>
+      <p class="tg-doc-li">I understand this is a private test and I will keep what I see confidential.</p>
+      <p class="tg-doc-li">I will not share screenshots, recordings, login details, or invitation links.</p>
+      <p class="tg-doc-li">I will upload only my own reports and enter only my own health information.</p>
+      <p class="tg-doc-li">I understand BioWellth is a wellness product, not medical advice, and that AI-generated information can be inaccurate or incomplete.</p>
+      <p class="tg-doc-li">I will report security, privacy, or safety problems to BioWellth and will not try to bypass any controls.</p>
+      <p class="tg-doc-li">I understand my access can end at any time and that being a tester does not change how my health information is used.</p>
+      <p class="tg-doc-p">Button copy. Continue. Disabled until all six are checked.</p>
+      <h4 class="tg-doc-h2">Acceptance record</h4>
+      <p class="tg-doc-p">Each acceptance is stored as tester identifier, agreement version hash, timestamp, and the six acknowledgments. Retained with the launch record. The agreement is separate from health-data consent; tester status does not expand BioWellth&#x27;s permitted processing under the Privacy Policy and applicable consent.</p>
+    </div>
+    <div id="tg-acks">
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="confidentiality"/><span>I understand this is a private test and I will keep what I see confidential.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="no_sharing"/><span>I will not share screenshots, recordings, login details, or invitation links.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="own_data_only"/><span>I will upload only my own reports and enter only my own health information.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="wellness_not_medical"/><span>I understand BioWellth is a wellness product, not medical advice, and that AI-generated information can be inaccurate or incomplete.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="report_problems"/><span>I will report security, privacy, or safety problems to BioWellth and will not try to bypass any controls.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="access_can_end"/><span>I understand my access can end at any time and that being a tester does not change how my health information is used.</span></label>
+    </div>
+    <div class="tg-actions">
+      <button class="tg-go" id="tg-go" type="button" disabled>I agree and continue</button>
+      <button class="tg-later" id="tg-later" type="button">Not now</button>
+      <p class="tg-later-help">You can come back any time. Without this, the test cannot continue.</p>
+      <p class="tg-msg" id="tg-msg"></p>
+    </div>
+    <div class="tg-foot">
+      <span>Agreement version 1.1</span>
+      <span class="tg-sha">d18836409611</span>
     </div>
   </div>
 </div>
