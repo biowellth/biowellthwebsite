@@ -152,6 +152,15 @@ sb.auth.getSession().then(({ data }) => { if (data.session) location.replace(APP
 // param at all, shows sign in.
 const params = new URLSearchParams(location.search);
 swapTo(params.get("mode") === "signup" ? "signup" : "login");
+
+// TESTER_GATE_V1. Someone who chose Not now on the tester agreement is sent here with
+// ?declined=tester. Say something rather than dropping them on a bare sign in form, and
+// say it without implying they did anything wrong. swapTo already rewrites the URL from
+// location.search on every pane change, so reading the param and calling swapTo is what
+// drops it; there is no second history write.
+if (params.get("declined") === "tester") {
+  show("ok", "Thanks for considering it. Sign back in whenever you are ready to accept the tester agreement.");
+}
 $("to-login").onclick  = () => swapTo("login");
 $("to-signup").onclick = () => swapTo("signup");
 function swapTo(view){
@@ -174,6 +183,11 @@ function swapTo(view){
   try{
     const q = new URLSearchParams(location.search);
     if (view === "signup") q.set("mode", "signup"); else q.delete("mode");
+    // TESTER_GATE_V1. `declined` is ours too, and it is a one-shot. Dropping it here
+    // means the message shows once and a reload does not repeat it back at someone who
+    // has already read it. Everything else on the URL still belongs to whoever put it
+    // there, including an auth callback's own params.
+    q.delete("declined");
     const qs = q.toString();
     history.replaceState(null, "", "/login" + (qs ? "?" + qs : "") + location.hash);
   }catch(_){}

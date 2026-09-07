@@ -165,6 +165,37 @@ console.log("SIGNUP REDIRECT TARGET");
      "RT-2: control, the age_affirmed metadata is still sent alongside it");
 }
 
+console.log("TESTER DECLINE");
+{
+  // TESTER_GATE_V1. Not now on the tester gate lands here with ?declined=tester.
+  const b = boot({ search: "?declined=tester" });
+  ok(b.get("msg").textContent === "Thanks for considering it. Sign back in whenever you are ready to accept the tester agreement.",
+     "DECL-1: ?declined=tester shows the message (got " + JSON.stringify(b.get("msg").textContent) + ")");
+  ok(!hidden(b, "login-view"), "DECL-2: on the sign in pane");
+  const last = b.replaced[b.replaced.length - 1];
+  ok(!String(last).includes("declined"), "DECL-3: and swapTo drops the param from the URL (got " + last + ")");
+}
+{
+  // KNOWN-NEGATIVE CONTROL. A plain load must NOT carry that message, or DECL-1 could be
+  // passing on a page that shows it unconditionally.
+  const b = boot({ search: "" });
+  ok(b.get("msg").textContent === "", "DECL-4: control, a plain load shows no message");
+}
+{
+  // Another value for the same param is not the tester decline.
+  const b = boot({ search: "?declined=something-else" });
+  ok(b.get("msg").textContent === "", "DECL-5: only declined=tester triggers it");
+  ok(!String(b.replaced[b.replaced.length - 1]).includes("declined"), "DECL-6: the param is dropped either way");
+}
+{
+  // It must not eat an auth callback riding on the same URL.
+  const b = boot({ search: "?declined=tester&code=abc", hash: "#access_token=z" });
+  const last = b.replaced[b.replaced.length - 1];
+  ok(String(last).includes("code=abc"), "DECL-7: a PKCE code on the same URL survives");
+  ok(String(last).endsWith("#access_token=z"), "DECL-8: so does the fragment");
+  ok(!String(last).includes("declined"), "DECL-9: while declined is still dropped");
+}
+
 console.log("CHECK YOUR EMAIL INTERSTITIAL");
 {
   const ADDRESS = "p26+<img src=x>@example.test";
