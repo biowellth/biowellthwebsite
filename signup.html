@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>BioWellth · Create your account</title>
+<!-- LOGIN_DEFAULT_V1. GitHub Pages has no rewrite layer, so /signup needs a real file.
+     This is a stub rather than a second copy of the auth page, because two copies of a
+     sign-up form drift and only one of them gets the next fix. The meta refresh covers
+     the no-script case; the script below runs first and preserves any query string an
+     invite link carries, with mode forced to signup. -->
+<meta http-equiv="refresh" content="0; url=/login?mode=signup"/>
+<script>
+(function(){
+  try{
+    var q = new URLSearchParams(location.search);
+    q.set("mode", "signup");
+    location.replace("/login?" + q.toString());
+  }catch(_){
+    location.replace("/login?mode=signup");
+  }
+})();
+</script>
+</head>
+<body>
+<p><a href="/login?mode=signup">Continue to create your account</a></p>
+</body>
+</html>
