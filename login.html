@@ -49,6 +49,7 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
 .foot{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:22px;line-height:1.6}
 .foot a{color:var(--brown-mid);text-decoration:underline}
 .hidden{display:none}
+form{margin:0}
 </style>
 </head>
 <body>
@@ -65,22 +66,27 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
     <div id="signup-view" class="hidden">
       <h1>Create your account</h1>
       <p class="sub">Use the email address you were invited with. Founding member access only.</p>
+      <!-- LOGIN_DEFAULT_V1. A real form, with a name on every control. Without one the
+           browser has no field grouping to reason about and falls back to position, which
+           is how a saved email ended up in Your name. -->
+      <form id="signup-form">
       <label for="su-name">Your name</label>
-      <input id="su-name" type="text" autocomplete="name" placeholder="Priya Sharma"/>
+      <input id="su-name" name="name" type="text" autocomplete="name" placeholder="Priya Sharma"/>
       <label for="su-email">Email</label>
-      <input id="su-email" type="email" autocomplete="email" placeholder="you@email.com"/>
+      <input id="su-email" name="email" type="email" autocomplete="email" placeholder="you@email.com"/>
       <label for="su-pass">Choose a password</label>
-      <input id="su-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
+      <input id="su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
       <label for="su-pass2">Confirm your password</label>
-      <input id="su-pass2" type="password" autocomplete="new-password" placeholder="Type it again"/>
+      <input id="su-pass2" name="password_confirm" type="password" autocomplete="new-password" placeholder="Type it again"/>
       <!-- AGE_AFFIRM_V1 — unticked by default, never pre-checked. The button below is
            disabled until this is ticked; the handler re-checks it so the gate does not
            live only in a DOM property. -->
       <label class="consent-row" id="su-age-row">
-        <input type="checkbox" id="su-age"/>
+        <input type="checkbox" id="su-age" name="agree18"/>
         <span><b>I am 18 or older.</b>BioWellth is for adults 18 and older.</span>
       </label>
-      <button class="btn" id="su-btn" disabled>Create account</button>
+      <button class="btn" id="su-btn" type="submit" disabled>Create account</button>
+      </form>
       <div class="toggle">Already have an account? <a id="to-login">Sign in</a></div>
     </div>
 
@@ -88,11 +94,13 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
     <div id="login-view">
       <h1>Welcome back</h1>
       <p class="sub">Sign in to see your results.</p>
+      <form id="login-form">
       <label for="li-email">Email</label>
-      <input id="li-email" type="email" autocomplete="email" placeholder="you@email.com"/>
+      <input id="li-email" name="email" type="email" autocomplete="email" placeholder="you@email.com"/>
       <label for="li-pass">Password</label>
-      <input id="li-pass" type="password" autocomplete="current-password" placeholder="Your password"/>
-      <button class="btn" id="li-btn">Sign in</button>
+      <input id="li-pass" name="password" type="password" autocomplete="current-password" placeholder="Your password"/>
+      <button class="btn" id="li-btn" type="submit">Sign in</button>
+      </form>
       <div class="toggle">First time here? <a id="to-signup">Create your account</a></div>
     </div>
 
@@ -142,7 +150,8 @@ function swapTo(view){
 }
 
 // CREATE ACCOUNT
-$("su-btn").onclick = async () => {
+$("signup-form").onsubmit = async (e) => {
+  e.preventDefault();
   clearMsg();
   const name  = $("su-name").value.trim();
   const email = $("su-email").value.trim();
@@ -191,7 +200,8 @@ $("su-btn").onclick = async () => {
 $("su-age").onchange = () => { $("su-btn").disabled = !$("su-age").checked; };
 
 // SIGN IN
-$("li-btn").onclick = async () => {
+$("login-form").onsubmit = async (e) => {
+  e.preventDefault();
   clearMsg();
   const email = $("li-email").value.trim();
   const pass  = $("li-pass").value;
@@ -205,12 +215,9 @@ $("li-btn").onclick = async () => {
   location.replace(APP);
 };
 
-// Enter key submits the visible form
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  if (!$("signup-view").classList.contains("hidden")) $("su-btn").click();
-  else $("li-btn").click();
-});
+// LOGIN_DEFAULT_V1. The hand-rolled Enter listener is gone, because a real form already
+// submits on Enter and the two together fired twice. The path is not lost, it moved from
+// a keydown that called .click() to the browser's own implicit submission.
 </script>
 </body>
 </html>
