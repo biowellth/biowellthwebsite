@@ -159,6 +159,12 @@ function swapTo(view){
   $("signup-view").classList.toggle("hidden", view !== "signup");
   $("login-view").classList.toggle("hidden", view !== "login");
   $("check-email-view").classList.toggle("hidden", view !== "checkemail");
+  // LOGIN_FLOW_V2. The URL follows the pane, so a reload or a pasted link lands on the
+  // same thing the person was looking at. replaceState and not pushState, because a pane
+  // is not a navigation and Back should leave the page rather than walk the toggle. The
+  // check your email pane keeps the bare /login, so a reload lands on sign in, which is
+  // where that pane is telling them to go anyway.
+  try{ history.replaceState(null, "", view === "signup" ? "/login?mode=signup" : "/login"); }catch(_){}
 }
 // LOGIN_FLOW_V2. textContent, never innerHTML. The address came out of a form field.
 function showCheckEmail(address){
