@@ -2259,21 +2259,47 @@ $("del-open").onclick = ()=>{
 };
 $("del-cancel").onclick = ()=> $("del-confirm-wrap").classList.add("hidden");
 $("del-input").oninput = ()=>{ $("del-confirm").disabled = ($("del-input").value.trim() !== "DELETE"); };
+// DELETE_ERASE_V2. supabase-js does NOT surface a non-2xx JSON body on `data`. It returns a
+// FunctionsHttpError carrying the raw Response on .context, so the stage code is read from
+// there, the same way pcIsQuotaRefusal reads the 429 status. A network or CORS failure has no
+// .context and yields null, which falls through to the safe sentence.
+async function delStageFrom(error, data){
+  if(data && typeof data.stage === "string") return data.stage;
+  try{
+    const res = error && error.context;
+    if(!res || typeof res.json !== "function") return null;
+    const body = await res.json();
+    return (body && typeof body.stage === "string") ? body.stage : null;
+  }catch(_){ return null; }
+}
+// storage_purge and auth_delete both mean the files are already gone, so "nothing was changed"
+// would be a false statement to a user who has just lost their panels. Those two get the by-hand
+// sentence. azure, storage_list and an unknown stage all changed nothing, and keep the safe one.
+function delFailureCopy(stage){
+  if(stage === "storage_purge" || stage === "auth_delete"){
+    return "Your files were removed but the account could not be closed. Contact support and we will finish this by hand.";
+  }
+  return "We could not complete deletion. Nothing was changed. Try again, or contact support.";
+}
 $("del-confirm").onclick = async ()=>{
   if($("del-input").value.trim() !== "DELETE") return;
   const btn = $("del-confirm");
   btn.disabled = true; btn.textContent = "Deleting…";
   $("del-msg").textContent = ""; $("del-msg").className = "del-msg";
+  let stage = null;
   try{
     // JWT auto-attached by the client; the function reads the caller from it, no body param.
     const { data, error } = await sb.functions.invoke("delete-account");
-    if(error || !data || data.ok === false) throw new Error("delete failed");
+    if(error || !data || data.ok === false){
+      stage = await delStageFrom(error, data);
+      throw new Error("delete failed");
+    }
     await sb.auth.signOut();
     location.replace("/login");
   }catch(_){
     btn.disabled = false; btn.textContent = "Delete everything";
     $("del-msg").className = "del-msg err";
-    $("del-msg").textContent = "We could not complete deletion. Nothing was changed. Please email support@mybiowellth.com and we will finish it.";
+    $("del-msg").textContent = delFailureCopy(stage);
   }
 };
 $("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ dcStopLatePoll(); /* DAILY_CARD_LATE_POOL_V1: same discipline for the late-pool watcher */ showView("upload"); };
