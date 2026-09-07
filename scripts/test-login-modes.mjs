@@ -48,7 +48,7 @@ function mkEl(id){
   return el;
 }
 
-function boot({ search = "", signUp, signIn } = {}) {
+function boot({ search = "", hash = "", signUp, signIn } = {}) {
   const els = new Map();
   const get = (id) => { if (!els.has(id)) els.set(id, mkEl(id)); return els.get(id); };
   // Panes start exactly as the markup declares them.
@@ -70,7 +70,8 @@ function boot({ search = "", signUp, signIn } = {}) {
       },
       functions: { invoke: async () => ({ data: {}, error: null }) },
     }) },
-    location: { href: "https://biowellth.ai/login" + search, search, pathname: "/login", replace(){}, assign(){} },
+    location: { href: "https://biowellth.ai/login" + search + hash, search, hash, pathname: "/login",
+                origin: "https://biowellth.ai", replace(){}, assign(){} },
     history: { replaceState: (a, b, url) => replaced.push(url), pushState: () => { throw new Error("pushState must not be used"); } },
     localStorage: { getItem: () => null, setItem(){}, removeItem(){} },
     URLSearchParams, URL, Date, Math, JSON, Promise, Object, Array, String, Number, Boolean,
@@ -114,6 +115,54 @@ console.log("URL SYNC");
   b.get("to-login").onclick();
   ok(b.replaced[b.replaced.length - 1] === "/login", "URL-2: swapping to sign in writes bare /login");
   ok(!hidden(b, "login-view"), "URL-3: and the sign in pane is the visible one");
+}
+
+console.log("AUTH CALLBACK SURVIVAL");
+{
+  // LOGIN_CALLBACK_V1. swapTo runs synchronously at load and rewrites the URL. Before the
+  // fix it wrote a bare "/login", which deleted an implicit callback fragment out of the
+  // address bar before supabase-js could read it. getSession then found nothing and the
+  // confirmed user sat on the sign in form.
+  const HASH = "#access_token=x&refresh_token=y&type=signup";
+  const b = boot({ hash: HASH });
+  const last = b.replaced[b.replaced.length - 1];
+  ok(String(last).endsWith(HASH), "CB-1: an implicit callback fragment SURVIVES swapTo (got " + last + ")");
+  ok(String(last).startsWith("/login"), "CB-2: and the path is still /login");
+}
+{
+  // The PKCE shape. Same failure, different half of the URL.
+  const b = boot({ search: "?code=abc" });
+  const last = b.replaced[b.replaced.length - 1];
+  ok(String(last).includes("code=abc"), "CB-3: a PKCE ?code= SURVIVES swapTo (got " + last + ")");
+}
+{
+  // Both halves at once, and the mode param still gets cleared off the sign in pane.
+  const b = boot({ search: "?code=abc&mode=signup", hash: "#access_token=z" });
+  b.get("to-login").onclick();
+  const last = b.replaced[b.replaced.length - 1];
+  ok(String(last).includes("code=abc"), "CB-4: swapping panes keeps the query");
+  ok(String(last).endsWith("#access_token=z"), "CB-5: swapping panes keeps the fragment");
+  ok(!String(last).includes("mode=signup"), "CB-6: and mode is still cleared, which is the one param that is ours");
+}
+{
+  // KNOWN-NEGATIVE CONTROL. With no callback on the URL the result must be a bare /login,
+  // or CB-1 to CB-5 could be passing on a function that never writes anything at all.
+  const b = boot({});
+  ok(b.replaced[b.replaced.length - 1] === "/login", "CB-7: control, a plain load still writes a bare /login");
+}
+
+console.log("SIGNUP REDIRECT TARGET");
+{
+  let seen = null;
+  const b = boot({ signUp: async (args) => { seen = args; return { data: { user: { identities: [{}] }, session: null }, error: null }; } });
+  b.get("su-name").value = "P Twentyseven"; b.get("su-email").value = "p27@example.test";
+  b.get("su-pass").value = "correct horse"; b.get("su-pass2").value = "correct horse";
+  b.get("su-age").checked = true;
+  await b.get("signup-form").onsubmit({ preventDefault(){} });
+  ok(seen && seen.options && seen.options.emailRedirectTo === "https://biowellth.ai/login",
+     "RT-1: signUp passes emailRedirectTo of origin + /login (got " + (seen && seen.options && seen.options.emailRedirectTo) + ")");
+  ok(seen && seen.options && seen.options.data && seen.options.data.age_affirmed === true,
+     "RT-2: control, the age_affirmed metadata is still sent alongside it");
 }
 
 console.log("CHECK YOUR EMAIL INTERSTITIAL");

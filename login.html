@@ -164,7 +164,19 @@ function swapTo(view){
   // is not a navigation and Back should leave the page rather than walk the toggle. The
   // check your email pane keeps the bare /login, so a reload lands on sign in, which is
   // where that pane is telling them to go anyway.
-  try{ history.replaceState(null, "", view === "signup" ? "/login?mode=signup" : "/login"); }catch(_){}
+  //
+  // LOGIN_CALLBACK_V1. IT KEEPS THE QUERY STRING AND THE FRAGMENT. This line used to write
+  // a bare path, which ran synchronously at load and deleted an auth callback out of the
+  // URL before supabase-js had read it. An implicit callback arrives as
+  // #access_token=..., a PKCE one as ?code=..., and the old form destroyed both. Only the
+  // mode param is ours to set or clear; everything else on the URL belongs to whoever put
+  // it there.
+  try{
+    const q = new URLSearchParams(location.search);
+    if (view === "signup") q.set("mode", "signup"); else q.delete("mode");
+    const qs = q.toString();
+    history.replaceState(null, "", "/login" + (qs ? "?" + qs : "") + location.hash);
+  }catch(_){}
 }
 // LOGIN_FLOW_V2. textContent, never innerHTML. The address came out of a form field.
 function showCheckEmail(address){
@@ -195,7 +207,15 @@ $("signup-form").onsubmit = async (e) => {
   // affirm-age reads it from the JWT-resolved user, never from a request body, which is what
   // lets the repair path re-stamp on any later load and on any device.
   const { data, error } = await sb.auth.signUp({
-    email, password: pass, options: { data: { full_name: name, age_affirmed: true } }
+    email, password: pass, options: {
+      data: { full_name: name, age_affirmed: true },
+      // LOGIN_CALLBACK_V1. Say where the confirmation link comes back to, rather than
+      // inheriting whatever Site URL happens to be that day. p26's link carried
+      // redirect_to=https://biowellth.ai/ and landed on the marketing page, which has no
+      // Supabase client and cannot consume a token. The allow list is
+      // https://biowellth.ai/** so this is already permitted.
+      emailRedirectTo: location.origin + "/login",
+    },
   });
   $("su-btn").disabled = false; $("su-btn").textContent = "Create account";
 
