@@ -237,7 +237,15 @@ $("login-form").onsubmit = async (e) => {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   $("li-btn").disabled = false; $("li-btn").textContent = "Sign in";
 
-  if (error) return show("err", "Email or password is incorrect.");
+  // LOGIN_FLOW_V2. An unconfirmed address is not a wrong password, and saying so sends the
+  // user to reset a password that is already correct. GoTrue answers this one case with
+  // "Email not confirmed", so it is the only message we read; everything else stays generic
+  // on purpose, because a specific sign in failure is an account enumeration oracle.
+  if (error){
+    if (/email not confirmed/i.test(error.message || ""))
+      return show("err", "Please confirm your email first. Check your inbox for the link we sent.");
+    return show("err", "Email or password is incorrect.");
+  }
   location.replace(APP);
 };
 
