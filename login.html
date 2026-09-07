@@ -62,7 +62,7 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
     <div class="eyebrow">Founding members</div>
 
     <!-- CREATE ACCOUNT -->
-    <div id="signup-view">
+    <div id="signup-view" class="hidden">
       <h1>Create your account</h1>
       <p class="sub">Use the email address you were invited with. Founding member access only.</p>
       <label for="su-name">Your name</label>
@@ -85,7 +85,7 @@ input:focus{outline:none;border-color:var(--teal);background:var(--white)}
     </div>
 
     <!-- SIGN IN -->
-    <div id="login-view" class="hidden">
+    <div id="login-view">
       <h1>Welcome back</h1>
       <p class="sub">Sign in to see your results.</p>
       <label for="li-email">Email</label>
@@ -125,9 +125,14 @@ function clearMsg(){ msg.className = "msg"; msg.textContent = ""; }
 // If they're already signed in, skip straight to the app.
 sb.auth.getSession().then(({ data }) => { if (data.session) location.replace(APP); });
 
-// View toggling (invite link can use ?mode=login to open sign-in)
+// View toggling. LOGIN_DEFAULT_V1. Sign in is the default view. Every redirect the app
+// makes lands here (sign out, account deletion, an expired session) and those people all
+// already have an account, so the create form was the wrong thing to put in front of them.
+// ?mode=signup opens the create view. ?mode=login is still accepted, so dashboard.html:2147
+// and any invite link already in someone's inbox keep working. Any other value, or no
+// param at all, shows sign in.
 const params = new URLSearchParams(location.search);
-if (params.get("mode") === "login") swapTo("login");
+swapTo(params.get("mode") === "signup" ? "signup" : "login");
 $("to-login").onclick  = () => swapTo("login");
 $("to-signup").onclick = () => swapTo("signup");
 function swapTo(view){
