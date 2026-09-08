@@ -141,6 +141,23 @@ const hidden = (b) => b.gate.classList.contains("hidden");
 const settle = (p, ms = 40) =>
   Promise.race([Promise.resolve(p).then(() => "resolved"), new Promise((r) => setTimeout(() => r("pending"), ms))]);
 
+console.log("EARLY ACCESS COPY");
+{
+  // The two lines around the agreement are ours; the agreement text inside the scroll box
+  // is counsel's and is NOT touched here. v1.2 in early access wording is a counsel item.
+  ok(HTML.includes("You are among the first to use BioWellth. Please read and confirm each line, then you are in."),
+     "COPY-1: the modal sub line is the early access one");
+  ok(HTML.includes("You can come back any time. Without this, early access cannot continue."),
+     "COPY-2: the decline helper is the early access one");
+  ok(!HTML.includes("You are one of a small group testing BioWellth privately."), "COPY-3: the old sub line is gone");
+  ok(!HTML.includes("Without this, the test cannot continue."), "COPY-4: the old helper is gone");
+  // CONTROL. The agreement text still says tester, deliberately, because it is counsel's
+  // approved v1.1 and changing a word of it would change its sha and invalidate the
+  // registry. If this ever goes false, someone edited the agreement in place.
+  ok(HTML.includes("I understand this is a private test and I will keep what I see confidential."),
+     "COPY-5: control, the counsel-approved agreement text is untouched");
+}
+
 console.log("FLAG");
 {
   const b = boot();

@@ -169,7 +169,7 @@ console.log("TESTER DECLINE");
 {
   // TESTER_GATE_V1. Not now on the tester gate lands here with ?declined=tester.
   const b = boot({ search: "?declined=tester" });
-  ok(b.get("msg").textContent === "Thanks for considering it. Sign back in whenever you are ready to accept the tester agreement.",
+  ok(b.get("msg").textContent === "Thanks for considering it. Sign back in whenever you are ready to accept the early access agreement.",
      "DECL-1: ?declined=tester shows the message (got " + JSON.stringify(b.get("msg").textContent) + ")");
   ok(!hidden(b, "login-view"), "DECL-2: on the sign in pane");
   const last = b.replaced[b.replaced.length - 1];
@@ -194,6 +194,20 @@ console.log("TESTER DECLINE");
   ok(String(last).includes("code=abc"), "DECL-7: a PKCE code on the same URL survives");
   ok(String(last).endsWith("#access_token=z"), "DECL-8: so does the fragment");
   ok(!String(last).includes("declined"), "DECL-9: while declined is still dropped");
+}
+
+console.log("EARLY ACCESS COPY");
+{
+  // The badge, the invite line and the title are the three places the old
+  // founding-member wording lived. Pin them, so a revert is a red test rather than a
+  // thing someone notices in a screenshot later.
+  ok(HTML.includes('<div class="eyebrow">Early access</div>'), "COPY-1: the badge reads Early access");
+  ok(HTML.includes("Use the email address you were invited with. Early access is by invitation."), "COPY-2: the invite line is the early access one");
+  ok(HTML.includes("<title>BioWellth \u00b7 Early access</title>"), "COPY-3: the page title too");
+  ok(!/founding member/i.test(HTML), "COPY-4: no founding member wording survives anywhere in the file");
+  // CONTROL. A phrase that is definitely present, so COPY-4 cannot be passing because the
+  // file failed to load.
+  ok(/Welcome back/.test(HTML), "COPY-5: control, the file really was read");
 }
 
 console.log("CHECK YOUR EMAIL INTERSTITIAL");
