@@ -218,6 +218,18 @@ console.log("\nTHE null / undefined DISTINCTION");
 reset(); sandbox.__T.lens(null);
 ok(shown("cyc-lens"), "N-1: null SHOWS the lens (the no-periods answer)");
 ok(!shown("cyc-cdgroup"), "N-2: null hides the cycle-day group, so it is LMP only");
+
+// CYCLE_DAY_ORDER_V1. DOM ORDER, checked against the RAW MARKUP and not the stub.
+// The element stubs above are flat objects keyed by id with no parent and no
+// children, so every ordering and containment question is invisible to them: the
+// cycle day control could move anywhere, or inside a permanently hidden parent,
+// and all 110 assertions would stay green. This one reads the file.
+{
+  const iCd = HTML.indexOf('id="cyc-cdgroup"');
+  const iQs = HTML.indexOf('id="cyc-questions"');
+  ok(iCd > -1 && iQs > -1 && iCd > iQs,
+     "ORDER-1: #cyc-cdgroup renders AFTER #cyc-questions (cdgroup at " + iCd + ", questions at " + iQs + ")");
+}
 reset(); sandbox.__T.lens(undefined);
 ok(!shown("cyc-lens"), "N-3: undefined HIDES the lens (unanswered is not an answer)");
 

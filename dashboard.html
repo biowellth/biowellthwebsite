@@ -1479,13 +1479,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
                 <label class="cyc-l" for="cyc-lmp" id="cyc-lmp-label">When did your last period start?</label>
                 <div class="lmp-row"><input class="cyc-date" id="cyc-lmp" type="date"/><button type="button" class="bc-opt" id="cyc-forget">Don't remember</button></div>
                 <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
-                <div id="cyc-cdgroup">
-                  <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
-                  <div class="cyc-cd hidden" id="cyc-cd-wrap">
-                    <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
-                    <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1505,6 +1498,18 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
             <div class="bc-q hidden" id="cq-ht" style="margin-bottom:2px">
               <div class="bc-q-t" id="cq-ht-t">Are you using hormonal contraception or hormone therapy right now?</div>
               <div class="bc-opts" data-cq="ht"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
+            </div>
+          </div>
+          <!-- CYCLE_DAY_ORDER_V1. Lifted out of #cyc-lens and placed AFTER #cyc-questions,
+               because in the first-time state both are on screen at once and the cycle day
+               control used to render ABOVE the question that reveals it. It carries `hidden`
+               in the markup now: as a child of the lens it inherited the lens's hidden state,
+               and outside it that no longer happens, so the initial state has to be explicit. -->
+          <div id="cyc-cdgroup" class="hidden">
+            <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
+            <div class="cyc-cd hidden" id="cyc-cd-wrap">
+              <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
+              <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
             </div>
           </div>
           <div class="cyc-block" id="ad-confounders">
@@ -2583,7 +2588,14 @@ function applyCycleLens(status){
   lens.classList.toggle("hidden", !withLens);
   // The heading names a section that has nothing in it when the lens is hidden.
   const hd = document.getElementById("cyc-heading"); if(hd) hd.classList.toggle("hidden", !withLens);
-  if(!withLens) return;
+  if(!withLens){
+    // CYCLE_DAY_ORDER_V1. #cyc-cdgroup is no longer a child of #cyc-lens, so hiding
+    // the lens no longer hides it by inheritance. Hide it explicitly before the early
+    // return, or a declined status would leave the cycle day control on screen.
+    const cdOut = document.getElementById("cyc-cdgroup");
+    if(cdOut) cdOut.classList.add("hidden");
+    return;
+  }
   const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
   const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
   const len = document.getElementById("cyc-lengroup"); if(len) len.classList.toggle("hidden", !cycling);
