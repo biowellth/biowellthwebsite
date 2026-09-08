@@ -2192,8 +2192,14 @@ function showAgeModal(){
 // Flipping this before the table existed would have put every sign in behind a gate that
 // could not be passed, which is why it shipped false and waited.
 const TESTER_GATE_ENABLED = true;
-const TESTER_AGREEMENT_VERSION = "v1.1";
-const TESTER_AGREEMENT_SHA256 = "d18836409611daf7dfd05db52d951f537670866a0c520a9f32d466248e93599e";
+// AGREEMENT_V12. The version a NEW participant is shown, and the versions an EXISTING
+// acceptance may stand against. Counsel ruled 2026-09-07 that v1.2 does not replace v1.1
+// for anyone who already accepted it, so a v1.1 row passes this gate and its holder is
+// never asked again. Both lists must match the server registry in
+// supabase/functions/process-report-worker/tester-agreements.ts.
+const TESTER_AGREEMENT_VERSION = "v1.2";
+const TESTER_AGREEMENT_SHA256 = "62c60a83d63932d866a7e1933383f30f127260276b4b29aab7181f71e2e5dd37";
+const TESTER_AGREEMENT_APPROVED = ["v1.1", "v1.2"];
 const TESTER_ACK_KEYS = ["confidentiality","no_sharing","own_data_only","wellness_not_medical","report_problems","access_can_end"];
 const TESTER_GATE_FAIL_COPY = "We could not record your acceptance. Please try again.";
 
@@ -2210,7 +2216,7 @@ async function testerGate(){
     const { data } = await sb.from("tester_acceptances")
       .select("id")
       .eq("user_id", USER.id)
-      .eq("agreement_version", TESTER_AGREEMENT_VERSION)
+      .in("agreement_version", TESTER_AGREEMENT_APPROVED)
       .limit(1);
     if(data && data.length) return;
   }catch(_){
@@ -9560,43 +9566,43 @@ async function stampSeen(reportId){
     <h1 class="tg-h">Before you start</h1>
     <p class="tg-sub">You are among the first to use BioWellth. Please read and confirm each line, then you are in.</p>
     <div class="tg-doc" id="tg-doc">
-      <h3 class="tg-doc-h1">BioWellth External Tester Agreement and Health Data Acknowledgment, v1.1</h3>
-      <p class="tg-doc-ver">Version 1.1, 2026-09-05. Approved by counsel on 2026-09-05 subject to three drafting refinements, all applied in this version. No external tester receives access until they have agreed to this text and the acceptance is recorded.</p>
+      <h3 class="tg-doc-h1">BioWellth Early Access Agreement and Health Data Acknowledgment, v1.2</h3>
+      <p class="tg-doc-ver">Version 1.2, 2026-09-08. Wording-only revision of v1.1 approved by counsel on 2026-09-07; obligations unchanged.</p>
       <h4 class="tg-doc-h2">Part 1. The agreement</h4>
-      <p class="tg-doc-p">BioWellth, Inc. (&quot;BioWellth&quot;) is inviting you to try a version of our service before it is released to the public. This agreement explains what we ask of you and what you can expect from us. Please read it before you use the test version.</p>
-      <p class="tg-doc-p"><span class="tg-num">1.</span> This is a private test. The version you are testing is not public. Its features, screens, wording, results, and any problems you notice are confidential. Please do not describe them to anyone outside BioWellth, and please do not post about them publicly. This stays in place after the service launches, until BioWellth tells you in writing that a particular thing is no longer confidential.</p>
-      <p class="tg-doc-p"><span class="tg-num">2.</span> How you may use it. Use the test version only to try it as a user would. Do not use it to build a competing product, resell access, or test it for anyone other than yourself and BioWellth.</p>
+      <p class="tg-doc-p">BioWellth, Inc. (&quot;BioWellth&quot;) is inviting you to try a version of our service before it is released to the public. This agreement explains what we ask of you and what you can expect from us. Please read it before you use the early access version.</p>
+      <p class="tg-doc-p"><span class="tg-num">1.</span> This is early access. The version you are using is not public. Its features, screens, wording, results, and any problems you notice are confidential. Please do not describe them to anyone outside BioWellth, and please do not post about them publicly. This stays in place after the service launches, until BioWellth tells you in writing that a particular thing is no longer confidential.</p>
+      <p class="tg-doc-p"><span class="tg-num">2.</span> How you may use it. Use the early access version only to try it as a user would. Do not use it to build a competing product, resell access, or test it for anyone other than yourself and BioWellth.</p>
       <p class="tg-doc-p"><span class="tg-num">3.</span> No screenshots, recordings, or credentials shared. Do not share screenshots, screen recordings, exported files, login details, invitation links, or any other product information with anyone outside BioWellth. If you want to show us something, send it to us directly.</p>
       <p class="tg-doc-p"><span class="tg-num">4.</span> Use only your own information. Upload only your own blood test reports and enter only your own health information, unless BioWellth gives you test data in writing and asks you to use it. Do not upload reports or details belonging to anyone else, including family members.</p>
-      <p class="tg-doc-p"><span class="tg-num">5.</span> This is a wellness product, not medical advice. BioWellth helps you understand blood test results and related wellness information. It does not diagnose, treat, cure, or prevent any disease, and it is not a substitute for a doctor, nurse, or other licensed health professional. The test version is not a substitute for professional medical advice or care. If something in your results concerns you, talk to your doctor.</p>
+      <p class="tg-doc-p"><span class="tg-num">5.</span> This is a wellness product, not medical advice. BioWellth helps you understand blood test results and related wellness information. It does not diagnose, treat, cure, or prevent any disease, and it is not a substitute for a doctor, nurse, or other licensed health professional. The early access version is not a substitute for professional medical advice or care. If something in your results concerns you, talk to your doctor.</p>
       <p class="tg-doc-p"><span class="tg-num">6.</span> The AI can be wrong. Parts of the service, including Sana, our AI companion, and the written interpretation of your results, are generated by artificial intelligence. AI output can be inaccurate, incomplete, or out of date. Treat it as one input among many, not as a conclusion.</p>
       <p class="tg-doc-p"><span class="tg-num">7.</span> Please tell us about problems. If you find a security weakness, see information that is not yours, notice a privacy problem, or see output that could be unsafe or misleading, tell us as soon as you can at support@mybiowellth.com. Please do not try to explore or exploit the problem further.</p>
       <p class="tg-doc-p"><span class="tg-num">8.</span> Do not bypass controls. Do not attempt to get around age checks, access limits, rate limits, or any other security or safety control, and do not try to access accounts, data, or systems that are not yours.</p>
-      <p class="tg-doc-p"><span class="tg-num">9.</span> Access can end at any time. BioWellth may pause or end your access to the test version at any time, for any reason, and you may stop testing at any time. When the test ends, you can keep your account or ask us to delete it. Deleting your account removes your data as described in the Privacy Policy.</p>
-      <p class="tg-doc-p">Your health information. Being a tester does not change how BioWellth may use your health information. The Privacy Policy governs, and BioWellth will not use your health information for any purpose beyond what that policy describes. If you would like your data deleted at any point, you can delete your account in the service or contact us at support@mybiowellth.com.</p>
+      <p class="tg-doc-p"><span class="tg-num">9.</span> Access can end at any time. BioWellth may pause or end your access to the early access version at any time, for any reason, and you may stop using early access at any time. When early access ends, you can keep your account or ask us to delete it. Deleting your account removes your data as described in the Privacy Policy.</p>
+      <p class="tg-doc-p">Your health information. Being an early access participant does not change how BioWellth may use your health information. The Privacy Policy governs, and BioWellth will not use your health information for any purpose beyond what that policy describes. If you would like your data deleted at any point, you can delete your account in the service or contact us at support@mybiowellth.com.</p>
       <p class="tg-doc-p">Feedback. If you give us feedback, we may use it to improve the service. We will not attribute it to you publicly without asking you first.</p>
       <p class="tg-doc-p">Agreement. By checking the box or signing below, you confirm that you are 18 or older, that you have read this agreement, and that you agree to it.</p>
       <p class="tg-doc-p">Name. Email. Date.</p>
       <h4 class="tg-doc-h2">Part 2. In-product acknowledgment flow</h4>
-      <p class="tg-doc-p">Six checkboxes, each required, shown once before the first test session. The full agreement is linked from the screen. The agreement text and version hash are stored with the acceptance timestamp, the same pattern as consent stamping.</p>
-      <p class="tg-doc-li">I understand this is a private test and I will keep what I see confidential.</p>
+      <p class="tg-doc-p">Six checkboxes, each required, shown once before the first early access session. The full agreement is linked from the screen. The agreement text and version hash are stored with the acceptance timestamp, the same pattern as consent stamping.</p>
+      <p class="tg-doc-li">I understand this is early access and I will keep what I see confidential.</p>
       <p class="tg-doc-li">I will not share screenshots, recordings, login details, or invitation links.</p>
       <p class="tg-doc-li">I will upload only my own reports and enter only my own health information.</p>
       <p class="tg-doc-li">I understand BioWellth is a wellness product, not medical advice, and that AI-generated information can be inaccurate or incomplete.</p>
       <p class="tg-doc-li">I will report security, privacy, or safety problems to BioWellth and will not try to bypass any controls.</p>
-      <p class="tg-doc-li">I understand my access can end at any time and that being a tester does not change how my health information is used.</p>
+      <p class="tg-doc-li">I understand my access can end at any time and that being an early access participant does not change how my health information is used.</p>
       <p class="tg-doc-p">Button copy. Continue. Disabled until all six are checked.</p>
       <h4 class="tg-doc-h2">Acceptance record</h4>
-      <p class="tg-doc-p">Each acceptance is stored as tester identifier, agreement version hash, timestamp, and the six acknowledgments. Retained with the launch record. The agreement is separate from health-data consent; tester status does not expand BioWellth&#x27;s permitted processing under the Privacy Policy and applicable consent.</p>
+      <p class="tg-doc-p">Each acceptance is stored as early access participant identifier, agreement version hash, timestamp, and the six acknowledgments. Retained with the launch record. The agreement is separate from health-data consent; early access participant status does not expand BioWellth&#x27;s permitted processing under the Privacy Policy and applicable consent.</p>
     </div>
     <div id="tg-acks">
-        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="confidentiality"/><span>I understand this is a private test and I will keep what I see confidential.</span></label>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="confidentiality"/><span>I understand this is early access and I will keep what I see confidential.</span></label>
         <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="no_sharing"/><span>I will not share screenshots, recordings, login details, or invitation links.</span></label>
         <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="own_data_only"/><span>I will upload only my own reports and enter only my own health information.</span></label>
         <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="wellness_not_medical"/><span>I understand BioWellth is a wellness product, not medical advice, and that AI-generated information can be inaccurate or incomplete.</span></label>
         <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="report_problems"/><span>I will report security, privacy, or safety problems to BioWellth and will not try to bypass any controls.</span></label>
-        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="access_can_end"/><span>I understand my access can end at any time and that being a tester does not change how my health information is used.</span></label>
-    </div>
+        <label class="consent-row"><input type="checkbox" class="tg-ack" data-key="access_can_end"/><span>I understand my access can end at any time and that being an early access participant does not change how my health information is used.</span></label>
+      </div>
     <div class="tg-actions">
       <button class="tg-go" id="tg-go" type="button" disabled>I agree and continue</button>
       <button class="tg-later" id="tg-later" type="button">Not now</button>
@@ -9604,8 +9610,8 @@ async function stampSeen(reportId){
       <p class="tg-msg" id="tg-msg"></p>
     </div>
     <div class="tg-foot">
-      <span>Agreement version 1.1</span>
-      <span class="tg-sha">d18836409611</span>
+      <span>Agreement version 1.2</span>
+      <span class="tg-sha">62c60a83d639</span>
     </div>
   </div>
 </div>

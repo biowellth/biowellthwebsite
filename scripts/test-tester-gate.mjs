@@ -73,7 +73,7 @@ function boot({ src = SRC, acceptanceRows = [], invokeResult, signOut } = {}) {
       signOut: signOut || (async () => { calls.signedOut++; return { error: null }; }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
     },
-    from: (t) => { calls.selects.push(t); return thenable(t === "tester_acceptances" ? acceptanceRows : []); },
+    from: (t) => { calls.selects.push(t); return thenable(t === "tester_acceptances" ? acceptanceRows : []); },  // .eq/.in/.limit all chain through the proxy
     rpc: () => thenable(null),
     storage: { from: () => ({ upload: async()=>({error:null}), remove: async()=>({error:null}) }) },
     functions: { invoke: async (name, opts) => { calls.invoked.push({ name, opts });
@@ -122,7 +122,8 @@ function boot({ src = SRC, acceptanceRows = [], invokeResult, signOut } = {}) {
            + "\n;globalThis.__VERSION = TESTER_AGREEMENT_VERSION;"
            + "\n;globalThis.__SHA = TESTER_AGREEMENT_SHA256;"
            + "\n;globalThis.__FAILCOPY = TESTER_GATE_FAIL_COPY;"
-           + "\n;globalThis.__ACKS = TESTER_ACK_KEYS;";
+           + "\n;globalThis.__ACKS = TESTER_ACK_KEYS;"
+           + "\n;globalThis.__APPROVED = TESTER_AGREEMENT_APPROVED;";
   let bootError = null;
   try { new vm.Script(src + tail, { filename: "dashboard-inline.js" }).runInContext(sandbox, { timeout: 20000 }); }
   catch (err) { bootError = err; }
@@ -141,21 +142,31 @@ const hidden = (b) => b.gate.classList.contains("hidden");
 const settle = (p, ms = 40) =>
   Promise.race([Promise.resolve(p).then(() => "resolved"), new Promise((r) => setTimeout(() => r("pending"), ms))]);
 
-console.log("EARLY ACCESS COPY");
+console.log("EARLY ACCESS COPY AND AGREEMENT v1.2");
 {
-  // The two lines around the agreement are ours; the agreement text inside the scroll box
-  // is counsel's and is NOT touched here. v1.2 in early access wording is a counsel item.
   ok(HTML.includes("You are among the first to use BioWellth. Please read and confirm each line, then you are in."),
      "COPY-1: the modal sub line is the early access one");
   ok(HTML.includes("You can come back any time. Without this, early access cannot continue."),
      "COPY-2: the decline helper is the early access one");
   ok(!HTML.includes("You are one of a small group testing BioWellth privately."), "COPY-3: the old sub line is gone");
   ok(!HTML.includes("Without this, the test cannot continue."), "COPY-4: the old helper is gone");
-  // CONTROL. The agreement text still says tester, deliberately, because it is counsel's
-  // approved v1.1 and changing a word of it would change its sha and invalidate the
-  // registry. If this ever goes false, someone edited the agreement in place.
-  ok(HTML.includes("I understand this is a private test and I will keep what I see confidential."),
-     "COPY-5: control, the counsel-approved agreement text is untouched");
+  // AGREEMENT_V12. The rendered agreement is now counsel-approved v1.2. Its wording is
+  // theirs, so these pin the text rather than judge it.
+  ok(HTML.includes("BioWellth Early Access Agreement and Health Data Acknowledgment, v1.2"),
+     "V12-1: the rendered agreement is v1.2");
+  ok(HTML.includes("I understand this is early access and I will keep what I see confidential."),
+     "V12-2: checkbox line 1 is the v1.2 wording");
+  ok(HTML.includes("being an early access participant does not change how my health information is used."),
+     "V12-3: checkbox line 6 is the v1.2 wording, with the article corrected");
+  ok(!HTML.includes("I understand this is a private test and I will keep what I see confidential."),
+     "V12-4: the v1.1 checkbox line is gone from the page");
+  ok(!/a early access/.test(HTML), "V12-5: no uncorrected article survives");
+  ok(HTML.includes("<span>Agreement version 1.2</span>"), "V12-6: the footer says version 1.2");
+  ok(HTML.includes('<span class="tg-sha">62c60a83d639</span>'), "V12-7: the footer sha is v1.2's");
+  // CONTROLS. The three deliberate uses of `test` must survive in the rendered agreement,
+  // or a broader sweep damaged counsel's text.
+  ok(HTML.includes("blood test reports"), "V12-8: control, blood test reports survives");
+  ok(HTML.includes("or test it for anyone other than yourself"), "V12-9: control, the verb use survives");
 }
 
 console.log("FLAG");
@@ -163,7 +174,9 @@ console.log("FLAG");
   const b = boot();
   ok(!b.bootError, "GATE-0: the page still boots with the gate in it" + (b.bootError ? " -> " + b.bootError.message : ""));
   ok(b.sandbox.__FLAG === true, "GATE-1: TESTER_GATE_ENABLED ships TRUE (got " + b.sandbox.__FLAG + ")");
-  ok(b.sandbox.__VERSION === "v1.1", "GATE-2: the client names agreement v1.1");
+  ok(b.sandbox.__VERSION === "v1.2", "GATE-2: the client names agreement v1.2 for a new participant");
+  ok(JSON.stringify(b.sandbox.__APPROVED) === JSON.stringify(["v1.1", "v1.2"]),
+     "GATE-2b: and accepts either approved version on an existing row");
   ok(/^[0-9a-f]{64}$/.test(String(b.sandbox.__SHA)), "GATE-3: the client carries a 64 hex sha");
   ok(Array.isArray(b.sandbox.__ACKS) && b.sandbox.__ACKS.length === 6, "GATE-4: six acknowledgment keys");
 }
@@ -196,6 +209,19 @@ const SRC_ON = SRC;
   ok(await settle(b.sandbox.__testerGate()) === "resolved", "ON-5a: an EXISTING row lets the boot through");
   ok(hidden(b), "ON-5b: and the modal stays hidden");
 }
+{
+  // AGREEMENT_V12. The row that passes may be a v1.1 acceptance. Counsel ruled that v1.2
+  // does not replace v1.1 for someone who already accepted it, so a v1.1 holder must NOT
+  // be asked again. The lookup uses .in() over the approved list rather than .eq() on the
+  // current version, and this is the assertion that would go red if it went back to .eq().
+  const b = boot({ src: SRC_ON, acceptanceRows: [{ id: "row-v11", agreement_version: "v1.1" }] });
+  ok(await settle(b.sandbox.__testerGate()) === "resolved", "V11ROW-1: a v1.1 acceptance still passes the gate");
+  ok(hidden(b), "V11ROW-2: and its holder is never shown v1.2");
+  ok(!/\.eq\(\s*"agreement_version"/.test(HTML),
+     "V11ROW-3: the lookup does NOT filter on a single version");
+  ok(/\.in\(\s*"agreement_version",\s*TESTER_AGREEMENT_APPROVED\s*\)/.test(HTML),
+     "V11ROW-4: it filters on the approved list");
+}
 
 console.log("\nBUTTON ENABLE LOGIC");
 {
@@ -220,7 +246,7 @@ console.log("\nACCEPT");
   await b.get("tg-go").onclick();
   const call = b.calls.invoked[0];
   ok(call && call.name === "tester-accept", "ACC-1: agreeing invokes tester-accept");
-  ok(call && call.opts.body.agreement_version === "v1.1", "ACC-2: it sends the registry version");
+  ok(call && call.opts.body.agreement_version === "v1.2", "ACC-2: it sends the current registry version");
   ok(call && /^[0-9a-f]{64}$/.test(call.opts.body.agreement_sha256), "ACC-3: it sends a 64 hex sha");
   ok(call && ACK_KEYS.every((k) => call.opts.body.accepted[k] === true), "ACC-4: all six keys go up as true");
   ok(hidden(b), "ACC-5: the modal closes on success");
