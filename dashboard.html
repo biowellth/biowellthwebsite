@@ -2185,7 +2185,13 @@ function showAgeModal(){
 // supabase/functions/process-report-worker/tester-agreements.ts. tester-accept refuses a
 // mismatch with 409 rather than recording something the tester was not shown, so a drift
 // here fails loudly at the point of acceptance instead of silently storing the wrong sha.
-const TESTER_GATE_ENABLED = false;
+// ON as of 2026-09-07. Safe to flip now, and the reason is that there is nobody to
+// surprise: there are NO external users. Every account on the project is a founder test
+// account, `p27` (`1e6eb2cc`) is the proof fixture, and migrations 0048 and 0049 are
+// applied and read back, so the acceptance table exists with exactly one grant on it.
+// Flipping this before the table existed would have put every sign in behind a gate that
+// could not be passed, which is why it shipped false and waited.
+const TESTER_GATE_ENABLED = true;
 const TESTER_AGREEMENT_VERSION = "v1.1";
 const TESTER_AGREEMENT_SHA256 = "d18836409611daf7dfd05db52d951f537670866a0c520a9f32d466248e93599e";
 const TESTER_ACK_KEYS = ["confidentiality","no_sharing","own_data_only","wellness_not_medical","report_problems","access_can_end"];

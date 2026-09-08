@@ -145,24 +145,26 @@ console.log("FLAG");
 {
   const b = boot();
   ok(!b.bootError, "GATE-0: the page still boots with the gate in it" + (b.bootError ? " -> " + b.bootError.message : ""));
-  ok(b.sandbox.__FLAG === false, "GATE-1: TESTER_GATE_ENABLED ships FALSE (got " + b.sandbox.__FLAG + ")");
+  ok(b.sandbox.__FLAG === true, "GATE-1: TESTER_GATE_ENABLED ships TRUE (got " + b.sandbox.__FLAG + ")");
   ok(b.sandbox.__VERSION === "v1.1", "GATE-2: the client names agreement v1.1");
   ok(/^[0-9a-f]{64}$/.test(String(b.sandbox.__SHA)), "GATE-3: the client carries a 64 hex sha");
   ok(Array.isArray(b.sandbox.__ACKS) && b.sandbox.__ACKS.length === 6, "GATE-4: six acknowledgment keys");
 }
+// The flag ships TRUE, so the OFF path is now the one reached by patching the source.
+// The vacuity guard flips with it: if the replacement stops matching, every assertion
+// about the off path would pass on a source that never turned the flag off.
+const SRC_OFF = SRC.replace("const TESTER_GATE_ENABLED = true;", "const TESTER_GATE_ENABLED = false;");
+if (SRC_OFF === SRC) { console.log("  FAIL could not turn the flag OFF in the source, the off-path assertions would be vacuous"); process.exit(1); }
 {
-  const b = boot();
+  const b = boot({ src: SRC_OFF });
   ok(await settle(b.sandbox.__testerGate()) === "resolved", "GATE-5a: with the flag FALSE the gate resolves at once");
   ok(hidden(b), "GATE-5b: and the modal stays hidden");
   ok(!b.calls.selects.includes("tester_acceptances"), "GATE-6: and no acceptance lookup is even attempted");
 }
 
 console.log("\nWITH THE FLAG ON");
-// TESTER_GATE_ENABLED is a const, so the enabled path is reached by flipping it in the
-// SOURCE, the same way a mutation control does. Patching the constant from outside would
-// be testing a different program from the one that ships.
-const SRC_ON = SRC.replace("const TESTER_GATE_ENABLED = false;", "const TESTER_GATE_ENABLED = true;");
-if (SRC_ON === SRC) { console.log("  FAIL could not flip the flag in the source, every assertion below would be vacuous"); process.exit(1); }
+// The shipped source IS the on path now, so these run against the real file unmodified.
+const SRC_ON = SRC;
 
 {
   const b = boot({ src: SRC_ON, acceptanceRows: [] });
