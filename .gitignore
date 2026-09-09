@@ -1,2 +1,10 @@
 .DS_Store
 **/.DS_Store
+
+# Env files: ignore every variant, including dotted, per-environment and
+# backup forms. This repo had no env rule at all, so `.env` and every
+# dotted variant were unignored and committable.
+*.env
+.env
+.env.*
+!.env.example
