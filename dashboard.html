@@ -1550,6 +1550,36 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     </div>
   </div>
 
+  <!-- SANA_NO_PANEL_V1. A third view beside upload and dashboard, so a signed in
+       user with zero completed panels can reach Sana. It is deliberately NOT inside
+       view-upload, because that view sits behind the consent and date of birth gates
+       and Sana must not become entangled with them. It carries its own upload
+       affordance, so reaching Sana never removes the path to uploading a panel.
+       Mounted through sanaMountChat with its own container ids. The single global
+       SANA_MOUNTED flag keeps this and the dashboard mount mutually exclusive,
+       because sanaSend resolves sana-input, sana-thread and sana-send by id and a
+       second live mount is the duplicate-id defect recorded at SANA_TURN_IDENTITY_V1. -->
+  <div id="view-companion" class="hidden">
+    <div class="companion" id="companion-nopanel">
+      <div class="comp-head">
+        <span class="comp-avatar">S</span>
+        <div class="comp-titlewrap">
+          <span class="comp-title">Sana</span>
+          <span class="comp-status">Your AI companion</span>
+        </div>
+      </div>
+      <div class="comp-read">You can talk to Sana now. Sana does not have a panel from you yet, so it cannot read your markers. Sana can still answer questions about how testing works, what a marker means and what to ask for.</div>
+      <div id="sana-mount-nopanel"></div>
+      <div id="sana-consent-nopanel" class="sana-consent"></div>
+      <!-- AI_DISCLOSURE_V1 -->
+      <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
+    </div>
+    <div class="upload-card">
+      <div class="comp-read">When you are ready you can upload a blood panel and Sana will read it with you.</div>
+      <button class="sana-send" id="btn-nopanel-upload" type="button">Upload a panel</button>
+    </div>
+  </div>
+
   <div id="view-processing" class="hidden">
     <div class="spinner"></div>
     <h1>Reading your report</h1>
@@ -1848,7 +1878,13 @@ async function loadProfile(){
 */
 
 function showView(name){
-  ["upload","processing","reveal","dashboard","interim"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  // SANA_SINGLE_MOUNT_V1. The dashboard owns the default containers. The reset lives
+  // here because renderCompanionChips must not change, and it calls sanaMountChat with
+  // whatever the module ids happen to hold. Without this a user who met Sana on the
+  // companion view would leave the chat behind in a hidden view, and the consent card
+  // would render into that hidden view too.
+  if(name === "dashboard"){ SANA_MOUNT_ID = "sana-mount"; SANA_CONSENT_MOUNT_ID = "sana-consent"; }
+  ["upload","processing","reveal","dashboard","interim","companion"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
   // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
   $("btn-new").classList.toggle("hidden", name!=="dashboard");
   // The panel switcher only earns its place once there is more than one panel to switch between.
@@ -2313,7 +2349,28 @@ async function testerGate(){
     showView("processing");
     return;
   }
-  if(!completed.length){ showView("upload"); return; }
+  // SANA_NO_PANEL_V1. Zero completed panels is the ordinary state of a new
+  // account, not an error, so it can route to the companion rather than the upload
+  // card. TWO conditions have to hold first, and either one false takes the old
+  // upload path unchanged.
+  //
+  // DOB ON FILE. The age gate is #dob-gate and it lives INSIDE the upload view, so a
+  // route straight to the companion would let an account with no recorded date of
+  // birth reach Sana and never be asked. Sending those users to upload keeps today's
+  // behaviour exactly and lets the existing gate fire where it already lives.
+  //
+  // CHAT SWITCHED ON. Without this the companion view would render with no chat in
+  // it, which is worse than the upload card it replaced.
+  //
+  // The payload-failed case below is a DIFFERENT case and still goes to upload.
+  if(!completed.length){
+    const dobOnFile = !!(PROFILE && PROFILE.dob);
+    if(SANA_CHAT_ENABLED && dobOnFile){
+      SANA_MOUNT_ID = "sana-mount-nopanel"; SANA_CONSENT_MOUNT_ID = "sana-consent-nopanel";
+      showView("companion"); sanaMountChat(); return;
+    }
+    showView("upload"); return;
+  }
 
   const current = completed[0];
   const payload = await loadPayload(current.id);
@@ -2433,6 +2490,7 @@ $("del-confirm").onclick = async ()=>{
   }
 };
 $("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ dcStopLatePoll(); /* DAILY_CARD_LATE_POOL_V1: same discipline for the late-pool watcher */ showView("upload"); };
+$("btn-nopanel-upload").onclick = ()=>{ showView("upload"); };
 $("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
 // Logo returns the user to their dashboard home. Wired once here, not per render.
 // Mirrors the reveal Skip button (#rd-skip): if the reveal deck is open, stamp it
@@ -6618,8 +6676,9 @@ async function onb2ResumeChip(){
 
 
 // ── SANA_CHAT_V1 ────────────────────────────────────────────────────────────
-// The live companion, built DARK. SANA_CHAT_ENABLED is false in every committed
-// state of this file and the pre-push gate greps for it. With it false,
+// The live companion. SANA_CHAT_ENABLED is TRUE in this committed state, set at the
+// declaration below; it was false while the surface was dark and this comment said so
+// long after the value changed. With it false,
 // sanaMountChat returns before creating anything, so there is no input node, no
 // listener, and nothing that can reach the backend. Gating construction rather
 // than visibility is deliberate; a hidden input is still a wired input.
@@ -6628,6 +6687,23 @@ async function onb2ResumeChip(){
 // /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
 // at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
 const SANA_CHAT_ENABLED = true;
+// SANA_SINGLE_MOUNT_V1. sanaSend resolves sana-input, sana-thread and sana-send
+// with getElementById, which returns the FIRST match, so two live mounts would
+// reproduce the defect recorded at SANA_TURN_IDENTITY_V1. The per node
+// dataset.mounted check cannot see a mount in a different container, and the
+// New upload action makes that reachable, so the guard is global.
+let SANA_MOUNTED = false;
+// The containers the next mount will use. Carried in module state rather than as
+// parameters, because test-sana-thread.mjs locates the mount function by an exact
+// text match on its signature and then slices the body from there. A parameter list
+// breaks that assertion with no runtime change at all. Do not restate that signature
+// in any comment either, since the same search would find the comment first.
+// Defaults are the dashboard ids, so the dashboard path is untouched.
+let SANA_MOUNT_ID = "sana-mount";
+let SANA_CONSENT_MOUNT_ID = "sana-consent";
+// The container the live chat is ACTUALLY in, as opposed to the one the next call
+// wants. When they differ the nodes are moved, never rebuilt.
+let SANA_MOUNTED_ID = null;
 const SANA_API_BASE = "https://biowealth-backend-prod-3.azurewebsites.net/api";
 
 // Copy lives in one place so the no-colon, no-em-dash rule is checkable at a
@@ -6904,7 +6980,7 @@ async function sanaConsentGranted(){
 // accepted. Declining resolves false and stamps nothing.
 function sanaAskConsent(){
   return new Promise((resolve)=>{
-    const mount = $("sana-consent");
+    const mount = $(SANA_CONSENT_MOUNT_ID);
     if(!mount) return resolve(false);
     mount.innerHTML =
       '<div class="sana-consent-card">' +
@@ -7157,8 +7233,31 @@ async function sanaSend(){
 // condition. No panel, no companion block, no chat.
 function sanaMountChat(){
   if(!SANA_CHAT_ENABLED) return;
-  const mount = $("sana-mount");
-  if(!mount || mount.dataset.mounted === "1") return;
+  const mount = $(SANA_MOUNT_ID);
+  // A node with no dataset is not a real element to mount into. Checking it here
+  // means an absent container returns BEFORE the global flag is taken, so a view
+  // that is not present in this document cannot starve the one that is.
+  if(!mount || !mount.dataset) return;
+  if(SANA_MOUNTED){
+    // Already built once. If the live chat is sitting in a different container, MOVE
+    // the nodes rather than building a second set. sanaSend resolves sana-input,
+    // sana-thread and sana-send with getElementById, which returns the FIRST match, so
+    // a second set would reproduce SANA_TURN_IDENTITY_V1. Moving also preserves the
+    // conversation already in the thread, which rebuilding would discard.
+    if(SANA_MOUNTED_ID && SANA_MOUNTED_ID !== SANA_MOUNT_ID){
+      const from = $(SANA_MOUNTED_ID);
+      if(from && from !== mount && from.dataset){
+        while(from.firstChild) mount.appendChild(from.firstChild);
+        from.dataset.mounted = "";
+        mount.dataset.mounted = "1";
+        SANA_MOUNTED_ID = SANA_MOUNT_ID;
+      }
+    }
+    return;
+  }
+  if(mount.dataset.mounted === "1") return;
+  SANA_MOUNTED = true;
+  SANA_MOUNTED_ID = SANA_MOUNT_ID;
   mount.dataset.mounted = "1";
   // THREAD ABOVE ROW. It used to emit the row first, so the conversation grew
   // away from the box you type in and every new turn pushed the input further
