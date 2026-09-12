@@ -57,6 +57,7 @@ ok(upStart > 0 && upEnd > upStart, "SETUP: the upload failure block was located"
 const UP = HTML.slice(upStart, upEnd);
 
 const POLL = extract("pollForResult");
+const POLL_TICK = extract("pollTick");
 const RENDER = extract("pcRenderFailure");
 
 console.log("PATH 1 — a refusal is read on ANY status, not only 429");
@@ -96,21 +97,28 @@ console.log("PATH 2 — the overdue bail, and the number");
 const mConst = HTML.match(/const PC_OVERDUE_MS = (\d+) \* 60 \* 1000;/);
 ok(!!mConst, "d: PC_OVERDUE_MS is declared in minutes-times-60-times-1000 form");
 eq(mConst && Number(mConst[1]), 25, "d: the bail is 25 minutes");
-ok(/__pcPollStart/.test(POLL) && /PC_OVERDUE_MS/.test(POLL),
-   "d: the poll bails on elapsed time using the existing __pcPollStart clock");
+ok(/PC_OVERDUE_MS/.test(POLL_TICK),
+   "d: the bail lives in pollTick, where the reports row is in scope");
 // Asserted as three separate facts plus their ORDER, rather than one regex with a
 // character window. The window version failed on a console.error sitting between
 // the two calls, which is a true statement about spacing and says nothing about
 // behaviour. Order is what matters: the interval must be cleared BEFORE the
 // render, or a slow render leaves one more tick armed.
-const bailIdx = POLL.indexOf("PC_OVERDUE_MS");
-const clearIdx = POLL.indexOf("clearInterval(pollTimer)", bailIdx);
-const renderIdx = POLL.indexOf('pcRenderFailure(reportId, "overdue")', bailIdx);
+const bailIdx = POLL_TICK.indexOf("PC_OVERDUE_MS");
+const clearIdx = POLL_TICK.indexOf("clearInterval(pollTimer)", bailIdx);
+const renderIdx = POLL_TICK.indexOf('pcRenderFailure(reportId, "overdue")', bailIdx);
 ok(clearIdx > bailIdx, "d: the bail clears the interval");
 ok(renderIdx > bailIdx, "d: the bail renders the overdue state");
 ok(clearIdx < renderIdx, "d: the interval is cleared BEFORE the render, so no tick survives it");
-ok(/__pcPollReportId = null;/.test(POLL.slice(bailIdx, renderIdx)),
-   "d: the bail also clears the watched report id, matching the normal terminal path");
+// Asserted by INDEX, not by a character window. The window version failed on the
+// three comment lines between the render and the return, which is the second time
+// a spacing-shaped assertion has produced a false red in this file. What matters
+// is that the return comes after the render and before the next branch.
+const bailReturnIdx = POLL_TICK.indexOf("return true;", renderIdx);
+const nextBranchIdx = POLL_TICK.indexOf("if(rep && rep.transcription_json)", renderIdx);
+ok(bailReturnIdx > renderIdx, "d: the bail returns after rendering");
+ok(nextBranchIdx > bailReturnIdx,
+   "d: it returns true BEFORE the next branch, so the ONE terminal path in pollForResult clears the poll");
 
 // e. The three thresholds, asserted as VALUES so nobody tightens the bail to the
 // copy threshold without reading the derivation. 9 is PC_LONG_MS, the IN-3 to
@@ -125,6 +133,46 @@ eq(bails(26), true, "e: a run past 25 minutes bails");
 const mLong = HTML.match(/const PC_LONG_MS = (\d+) \* 60 \* 1000;/);
 ok(mLong && Number(mLong[1]) < Number(mConst[1]),
    "e: PC_LONG_MS is strictly less than PC_OVERDUE_MS, they are not the same number");
+
+// UPLOAD_FAILURE_V1f. The bail must use pcElapsedMs, which resolves created_at
+// first and __pcPollStart second. The first cut read __pcPollStart directly and
+// was the only elapsed-time consumer in the file on the weaker clock, which also
+// meant a woman returning to a long-dead job got a fresh timer instead of the
+// truth. pcElapsedMs is extracted from shipped source and exercised for real
+// here, rather than the precedence being asserted as a string match.
+console.log("PATH 2 — the clock, created_at first and poll-start second");
+const ELAPSED_SRC = extract("pcElapsedMs");
+ok(/rep && rep\.created_at \? Date\.parse\(rep\.created_at\)/.test(ELAPSED_SRC),
+   "f: pcElapsedMs reads created_at first");
+ok(/__pcPollStart \? \(Date\.now\(\) - __pcPollStart\)/.test(ELAPSED_SRC),
+   "f: pcElapsedMs falls back to __pcPollStart");
+ok(/pcElapsedMs\(rep\) >= PC_OVERDUE_MS/.test(POLL_TICK),
+   "f: the bail compares pcElapsedMs against PC_OVERDUE_MS");
+ok(!/__pcPollStart\s*&&\s*\(Date\.now\(\)/.test(POLL_TICK + POLL),
+   "f: no direct __pcPollStart arithmetic remains on the bail path");
+
+// Run the REAL helper against synthetic rows, so the precedence is exercised and
+// not merely matched.
+const fn = new Function("__pcPollStart", ELAPSED_SRC + "; return pcElapsedMs;");
+const minsAgo = (m) => new Date(Date.now() - m * 60 * 1000).toISOString();
+const bailsWith = (rep, pollStartMinsAgo) => {
+  const ps = pollStartMinsAgo == null ? 0 : Date.now() - pollStartMinsAgo * 60 * 1000;
+  return fn(ps)(rep) >= overdueMs;
+};
+eq(bailsWith({ created_at: minsAgo(30) }, 0), true,
+   "d: a report created 30 minutes ago bails on the FIRST tick, poll just armed");
+eq(bailsWith({ created_at: minsAgo(5) }, null), false,
+   "d: a report created 5 minutes ago does not bail even with no poll-start");
+eq(bailsWith(null, 30), true,
+   "d: with created_at missing the __pcPollStart fallback still bails past 25");
+eq(bailsWith(null, 5), false,
+   "d: with created_at missing a 5 minute poll does not bail");
+eq(bailsWith({ created_at: minsAgo(9) }, 9), false,
+   "e: 9 minutes does not bail under EITHER clock, that is the copy threshold");
+eq(bailsWith({ created_at: minsAgo(20) }, 20), false,
+   "e: 20 minutes does not bail under either clock, still inside the reaper path");
+eq(bailsWith({ created_at: minsAgo(26) }, 1), true,
+   "f: created_at WINS over a fresh poll-start, which is the reload case");
 
 console.log("PATH 2 — no retry is offered, because there is nothing to retry");
 ok(/overdue \? '' :/.test(RENDER),

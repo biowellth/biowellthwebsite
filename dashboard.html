@@ -3170,6 +3170,26 @@ async function handleFile(file){
 // NOTE: no ceiling number belongs in the copy itself. The retry paths are modelled, not measured end
 // to end (failPhase ~14.5 min, reaper path ~20.5 min), so IN-4's existing hedge is the honest form.
 const PC_LONG_MS = 9 * 60 * 1000;
+
+// UPLOAD_FAILURE_V1, PATH 2. The overdue bail, and the derivation, because the
+// number is the whole decision and a later reader will want to tighten it.
+//
+// The measured happy path is 6.8 MINUTES end to end (see the PROCESSING_COPY_V2
+// note above: transcription enqueued 5.8s, cron claim 26.8s, Call A 97s,
+// interpretation claim 35s, Call B 241s).
+//
+// PC_LONG_MS at 9 minutes is NOT the ceiling and must not be reused here. It is a
+// COPY threshold, the point where IN-3 becomes IN-4, and a healthy run
+// legitimately passes it. Bailing there would tell a woman a working report had
+// stalled.
+//
+// The longest a report can still legitimately resolve is the reaper path at
+// ~20.5 minutes, recorded at line 3150 as MODELLED and explicitly not measured
+// end to end. Rounding a modelled figure to 21 would treat it as more precise
+// than it is, so this takes 25. Erring long costs her about four extra minutes
+// of waiting. Erring short tells her a working report failed, which is the
+// defect this whole change exists to remove.
+const PC_OVERDUE_MS = 25 * 60 * 1000;
 const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
 const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
 // FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed Aditi Pillai 2026-08-19). FAIL-5 is the
@@ -3455,6 +3475,36 @@ async function pollTick(reportId){
       showView("processing");
       return true;
     }
+    // UPLOAD_FAILURE_V1, PATH 2. The overdue bail lives HERE, after the terminal
+    // checks above, because this is where `rep` is in scope and pcElapsedMs can be
+    // reused. The payload and error branches run first deliberately: a report that
+    // has actually landed or actually failed is never overdue, however long it took.
+    //
+    // THE CLOCK IS pcElapsedMs, NOT __pcPollStart. That helper already resolves
+    // created_at first and falls back to __pcPollStart, which is the precedence the
+    // copy threshold uses at :3460 and which :3410 records as preferred. The first
+    // cut of this bail read __pcPollStart directly and was the only elapsed-time
+    // consumer in the file on the weaker clock.
+    //
+    // IT ALSO FIXES A CASE __pcPollStart CANNOT SEE. That clock is set when the poll
+    // ARMS, so a woman who uploads, closes the tab, and comes back twenty minutes
+    // later got a fresh 25 minute timer on a job that had already been dead for
+    // twenty, and would have waited forty five. Reading created_at she reaches the
+    // overdue state on the first tick, which is the truth. No state is persisted and
+    // no new clock is introduced; the row already carries created_at and this select
+    // already fetches it.
+    if(pcElapsedMs(rep) >= PC_OVERDUE_MS){
+      clearInterval(pollTimer);
+      console.error("[upload] UPLOAD_OVERDUE report_id=" + reportId +
+        " elapsed_ms=" + pcElapsedMs(rep) +
+        " clock=" + (rep && rep.created_at ? "created_at" : "poll_start"));
+      pcRenderFailure(reportId, "overdue");
+      showView("processing");
+      // __drawBlockActive is deliberately NOT released here, unlike the error branch
+      // above. That branch releases it because the report is dead. This one may still
+      // land, and if it does the draw-context gate should still apply to it.
+      return true;
+    }
     if(rep && rep.transcription_json){
       // Interim numbers are prepared; while the About block is mounted the reveal is HELD (amendment 1).
       renderInterim(rep.transcription_json, pcElapsedMs(rep));   // PROCESSING_COPY_V1
@@ -3473,42 +3523,15 @@ async function pollTick(reportId){
   }
 }
 
-// UPLOAD_FAILURE_V1, PATH 2. The overdue bail, and the derivation, because the
-// number is the whole decision and a later reader will want to tighten it.
-//
-// The measured happy path is 6.8 MINUTES end to end (see the PROCESSING_COPY_V2
-// note above: transcription enqueued 5.8s, cron claim 26.8s, Call A 97s,
-// interpretation claim 35s, Call B 241s).
-//
-// PC_LONG_MS at 9 minutes is NOT the ceiling and must not be reused here. It is a
-// COPY threshold, the point where IN-3 becomes IN-4, and a healthy run
-// legitimately passes it. Bailing there would tell a woman a working report had
-// stalled.
-//
-// The longest a report can still legitimately resolve is the reaper path at
-// ~20.5 minutes, recorded at line 3150 as MODELLED and explicitly not measured
-// end to end. Rounding a modelled figure to 21 would treat it as more precise
-// than it is, so this takes 25. Erring long costs her about four extra minutes
-// of waiting. Erring short tells her a working report failed, which is the
-// defect this whole change exists to remove.
-const PC_OVERDUE_MS = 25 * 60 * 1000;
-
 function pollForResult(reportId){
   if(pollTimer) clearInterval(pollTimer);
   __pcPollReportId = reportId;
   __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
   pollTimer = setInterval(async ()=>{
-    // The bail runs BEFORE the tick, so an overdue poll stops rather than issuing
-    // one more pair of queries it is about to ignore. __pcPollStart already exists
-    // and is set on the line above; no new clock is introduced.
-    if(__pcPollStart && (Date.now() - __pcPollStart) >= PC_OVERDUE_MS){
-      clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null;
-      console.error("[upload] UPLOAD_OVERDUE report_id=" + reportId +
-        " elapsed_ms=" + (Date.now() - __pcPollStart));
-      pcRenderFailure(reportId, "overdue");
-      showView("processing");
-      return;
-    }
+    // The overdue bail is inside pollTick, where the reports row is in scope and
+    // created_at can be read. It returns true like any other terminal outcome, so
+    // this line clears the interval for it exactly as it does for a landed payload
+    // or a failed report, and there is one place that ends a poll rather than two.
     if(await pollTick(reportId)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; }
   }, 3000);
 }
