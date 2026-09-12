@@ -3301,6 +3301,21 @@ function pcRenderFailure(reportId, mode){
         (unretryable ? '<button class="pc-btn" id="pc-reupload" type="button">' + esc(PC_FAIL6_CTA) + '</button>'
                      : (spent ? '' : '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>')) +
         '<button class="pc-btn-quiet" id="pc-todash" type="button">Go to my dashboard</button>' +
+        // FAIL_CONTACT_V1. Every failure string on this screen ends "tell us and we will look
+        // at it with you", and until now the screen offered no way to do that: its only
+        // controls were a retry and a link to the dashboard. The address appears five times
+        // elsewhere in this file and zero times here, so the copy has been inviting a reply
+        // through a channel that was not on the page.
+        //
+        // A MISSING CONTROL, NOT A COPY EDIT. PC_FAIL2, PC_FAIL5 and PC_FAIL6 are byte-exact
+        // from the signed artifact and are untouched; this makes their existing sentence
+        // actionable rather than restating it. So it needs no re-signing.
+        //
+        // Rendered for EVERY mode, including the two new states, because all five strings
+        // carry that same invitation. An anchor rather than a button since there is no
+        // handler to attach, styled as pc-btn-quiet to match the dashboard control beside it
+        // and to stay visually secondary to the retry.
+        '<a class="pc-btn-quiet" id="pc-contact" href="mailto:support@mybiowellth.com">Email us about this</a>' +
       '</div>' +
     '</div>';
   // FAIL-5 renders NO retry control. Offering a button the backend will refuse is a worse lie than
