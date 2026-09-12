@@ -3098,12 +3098,33 @@ async function handleFile(file){
     // and fell through to pollForResult, which has no timeout. A 429 therefore used to render as
     // an endless "we are reading your report" spinner. Every response other than 429 keeps its
     // existing behaviour exactly, including silence on error.
-    let __prRes = null;
-    try{ __prRes = await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }catch(_){}
+    // UPLOAD_FAILURE_V1, PATH 1. The bare catch here discarded the thrown case and
+    // the only response inspected was 429, so EVERY other refusal fell through to
+    // pollForResult and presented as an endless spinner. The correct pattern already
+    // existed twice in this file, written the same day: the submit-mode invoke does
+    // `if(r && r.error) throw r.error`, and the retry invoke does
+    // `if(error || !(data && data.ok))`. This matches them.
+    //
+    // Knowable IMMEDIATELY and with no timer: if process-report refused or never
+    // answered, nothing was enqueued, so there is nothing to poll for and the poll
+    // must not start. That is the whole difference from PATH 2 below.
+    let __prRes = null, __prThrew = null;
+    try{ __prRes = await sb.functions.invoke("process-report", { body:{ report_id: reportId, ...cyc } }); }
+    catch(e){ __prThrew = e; }
     if(__prRes && pcIsQuotaRefusal(__prRes.error)){
       pcRenderQuota();
       showView("processing");
       return;                       // never poll: there is nothing queued to poll for
+    }
+    // Any other refusal, thrown or returned. supabase-js does NOT throw on a non-2xx,
+    // so both shapes have to be read: the thrown case is captured above rather than
+    // discarded, and the returned case is inspected on ANY status rather than 429 only.
+    if(__prThrew || !__prRes || __prRes.error){
+      console.error("[upload] UPLOAD_NOT_ENQUEUED report_id=" + reportId +
+        " shape=" + (__prThrew ? "threw" : (!__prRes ? "no-response" : "error")));
+      pcRenderFailure(reportId, "nostart");
+      showView("processing");
+      return;                       // never poll: nothing was enqueued
     }
     // once durable cycle context is submitted, hide Block 1 on future uploads (per-device flag)
     // The durable-capture flag is retired with the fields it tracked. Block 1 on
@@ -3162,6 +3183,26 @@ const PC_FAIL5 = "We tried again and it still did not finish. Your report is sav
 // when we never did. The body states WHY there is no retry control, so its absence reads as honesty.
 const PC_FAIL6 = "Your report is saved and nothing is lost. We could not read this file, so trying again will not help. Upload it again, or tell us and we will look at it with you.";
 const PC_FAIL6_CTA = "Upload it again";
+// UPLOAD_FAILURE_V1. Two states for two DIFFERENT failures, deliberately not one.
+//
+// PC_NOSTART is the KNOWABLE one. process-report refused or never answered, so
+// nothing was enqueued and we know it immediately, without a timer. It may say
+// so plainly, and it may offer a retry, because a retry is exactly what helps.
+// PC_FAIL2 cannot be reused here: "something went wrong while we were reading
+// it" is false when the reading never began, which is the dishonesty this fixes.
+//
+// PC_OVERDUE is the UNKNOWABLE one. The job was accepted and has not landed in
+// the window below. It may still finish, so this must not claim failure, must
+// not promise a time, and must not ask her to upload again, which under the same
+// draw date would hit the archive-prior path. PC_IN4 cannot be reused either:
+// "your reading will be here when you come back" is a guarantee we do not have.
+//
+// Both open and close with phrases lifted verbatim from the signed PC_FAIL2, so
+// these read in the same voice as the strings they sit beside.
+const PC_NOSTART_H = "We did not manage to start this reading";
+const PC_NOSTART = "Your report is saved and nothing is lost. We did not manage to start reading it, so nothing is in progress. You can try again now, or tell us and we will look at it with you.";
+const PC_OVERDUE_H = "This is still working";
+const PC_OVERDUE = "Your report is saved and nothing is lost. It may still finish on its own, so there is no need to upload it again. You can close this page and check back later, or tell us and we will look at it with you.";
 // Set once the retry has been used in this session, so a second failure renders FAIL-5 directly.
 let __pcRetrySpent = false;
 // True ONLY when the server refused because the single retry is already spent. supabase-js surfaces a
@@ -3283,6 +3324,10 @@ function pcRenderFailure(reportId, mode){
   if(mode === false || mode == null) mode = "retryable";
   const unretryable = (mode === "unretryable");
   const spent = (mode === "spent");
+  // UPLOAD_FAILURE_V1 modes. nostart offers a retry because one helps; overdue
+  // offers none, because there is nothing to retry and the job may still land.
+  const nostart = (mode === "nostart");
+  const overdue = (mode === "overdue");
   const v = $("view-processing");
   if(!v) return;
   if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
@@ -3293,12 +3338,21 @@ function pcRenderFailure(reportId, mode){
           '<circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor"/>' +
         '</svg>' +
       '</div>' +
-      '<h1>We could not finish this reading</h1>' +
-      '<p>' + esc(unretryable ? PC_FAIL6 : (spent ? PC_FAIL5 : PC_FAIL2)) + '</p>' +
+      // UPLOAD_FAILURE_V1: the heading is per-mode now. "We could not finish this
+      // reading" is FALSE for both new states. nostart never began one, and
+      // overdue may still finish, so a failure heading over an in-flight job is
+      // the same over-claim as the body copy it sits above.
+      '<h1>' + esc(nostart ? PC_NOSTART_H : (overdue ? PC_OVERDUE_H : "We could not finish this reading")) + '</h1>' +
+      '<p>' + esc(nostart ? PC_NOSTART : (overdue ? PC_OVERDUE : (unretryable ? PC_FAIL6 : (spent ? PC_FAIL5 : PC_FAIL2)))) + '</p>' +
       '<div class="pc-fail-actions">' +
         // FAIL6_V1: the retry control NEVER renders in the unretryable state. Its primary control is a
         // fresh upload, which is the capability that actually applies.
-        (unretryable ? '<button class="pc-btn" id="pc-reupload" type="button">' + esc(PC_FAIL6_CTA) + '</button>'
+        // UPLOAD_FAILURE_V1: nostart gets the same retry control, because a retry is
+        // exactly the thing that helps when nothing was enqueued. overdue gets NONE,
+        // because there is no failed job to retry and the accepted one may still land.
+        (overdue ? '' :
+         nostart ? '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>' :
+         unretryable ? '<button class="pc-btn" id="pc-reupload" type="button">' + esc(PC_FAIL6_CTA) + '</button>'
                      : (spent ? '' : '<button class="pc-btn" id="pc-retry" type="button">Try this report again</button>')) +
         '<button class="pc-btn-quiet" id="pc-todash" type="button">Go to my dashboard</button>' +
         // FAIL_CONTACT_V1. Every failure string on this screen ends "tell us and we will look
@@ -3419,11 +3473,42 @@ async function pollTick(reportId){
   }
 }
 
+// UPLOAD_FAILURE_V1, PATH 2. The overdue bail, and the derivation, because the
+// number is the whole decision and a later reader will want to tighten it.
+//
+// The measured happy path is 6.8 MINUTES end to end (see the PROCESSING_COPY_V2
+// note above: transcription enqueued 5.8s, cron claim 26.8s, Call A 97s,
+// interpretation claim 35s, Call B 241s).
+//
+// PC_LONG_MS at 9 minutes is NOT the ceiling and must not be reused here. It is a
+// COPY threshold, the point where IN-3 becomes IN-4, and a healthy run
+// legitimately passes it. Bailing there would tell a woman a working report had
+// stalled.
+//
+// The longest a report can still legitimately resolve is the reaper path at
+// ~20.5 minutes, recorded at line 3150 as MODELLED and explicitly not measured
+// end to end. Rounding a modelled figure to 21 would treat it as more precise
+// than it is, so this takes 25. Erring long costs her about four extra minutes
+// of waiting. Erring short tells her a working report failed, which is the
+// defect this whole change exists to remove.
+const PC_OVERDUE_MS = 25 * 60 * 1000;
+
 function pollForResult(reportId){
   if(pollTimer) clearInterval(pollTimer);
   __pcPollReportId = reportId;
   __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
   pollTimer = setInterval(async ()=>{
+    // The bail runs BEFORE the tick, so an overdue poll stops rather than issuing
+    // one more pair of queries it is about to ignore. __pcPollStart already exists
+    // and is set on the line above; no new clock is introduced.
+    if(__pcPollStart && (Date.now() - __pcPollStart) >= PC_OVERDUE_MS){
+      clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null;
+      console.error("[upload] UPLOAD_OVERDUE report_id=" + reportId +
+        " elapsed_ms=" + (Date.now() - __pcPollStart));
+      pcRenderFailure(reportId, "overdue");
+      showView("processing");
+      return;
+    }
     if(await pollTick(reportId)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; }
   }, 3000);
 }
