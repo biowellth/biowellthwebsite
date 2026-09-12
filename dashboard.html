@@ -2191,8 +2191,41 @@ function showAgeModal(){
     $("age-exit-state").classList.remove("hidden");
   };
 
+  // GATE_EXIT_V1. The exit from a blocking gate must hold on LOCAL storage alone.
+  // login.html:145 does getSession().then(s => s && location.replace("/dashboard")),
+  // so any session that survives this call bounces her straight back here, the gate
+  // re-opens, and "Sign out" visibly does nothing. Not a bypass, because the gates
+  // re-evaluate from her profile, but a loop she cannot leave.
+  //
+  // WHAT W4b ESTABLISHED, read from the shipped bundle at supabase-js 2.116.0,
+  // because it overturns the obvious reading of the old line. signOut RETURNS
+  // { error } and mostly does NOT throw: admin.signOut catches and returns any
+  // __isAuthError, which includes the retryable fetch error a network failure
+  // produces. So the empty catch was not the main defect. The return value was
+  // never read, here or at any of the four call sites.
+  //
+  // Branch (B) of _signOut still calls _removeSession when the server revoke
+  // fails, which is why a plain network failure was survivable. Branch (A) is the
+  // hole: if reading the session errors and it is not AuthSessionMissingError, it
+  // returns WITHOUT removing anything. The lock-acquire path can also throw.
+  //
+  // scope local, deliberately. A minor exiting this gate needs this device signed
+  // out, not every device revoked, and a global call adds a network round trip
+  // that can fail in exactly the way above.
+  //
+  // ON FAILURE WE DO NOT NAVIGATE. Sending her to /login with a live session is
+  // what creates the loop, so the button stays and stays enabled, which leaves her
+  // on the gate she was already on with the control still live. That is the honest
+  // outcome and it is why this needs no copy: she sees the gate, unchanged, and can
+  // press again.
   $("age-signout").onclick = async ()=>{
-    try{ await sb.auth.signOut(); }catch(_){}
+    let threw = null, res = null;
+    try{ res = await sb.auth.signOut({ scope: "local" }); }catch(e){ threw = e; }
+    if(threw || (res && res.error)){
+      console.error("[gate] GATE_EXIT_SIGNOUT_FAILED gate=age shape=" +
+        (threw ? "threw" : "error"));
+      return;                       // never navigate on a session that may still be live
+    }
     location.replace("/login");
   };
 
@@ -2297,8 +2330,30 @@ async function testerGate(){
       }
     };
 
+    // GATE_EXIT_V1, the same rule as the age gate above. See the long note there
+    // for what supabase-js 2.116.0 actually does; the short form is that signOut
+    // returns { error } rather than throwing in the common case, the return value
+    // was never read, and branch (A) of _signOut can leave the local session in
+    // place. login.html:145 then bounces that session back to /dashboard and the
+    // tester gate re-opens, so "Maybe later" appears to do nothing.
+    //
+    // scope local for the same reason: declining a tester agreement is a decision
+    // about this device, not a reason to revoke every session she has.
+    //
+    // ON FAILURE WE DO NOT NAVIGATE, and the control is restored so she can press
+    // again. The promise still never resolves, which is the existing contract of
+    // this branch: testerGate is awaited before any render, and resolving here
+    // would let the product paint behind a gate she has just declined.
     later.onclick = async function(){
-      try{ await sb.auth.signOut(); }catch(_){ }
+      later.disabled = true;
+      let threw = null, res = null;
+      try{ res = await sb.auth.signOut({ scope: "local" }); }catch(e){ threw = e; }
+      if(threw || (res && res.error)){
+        console.error("[gate] GATE_EXIT_SIGNOUT_FAILED gate=tester shape=" +
+          (threw ? "threw" : "error"));
+        later.disabled = false;
+        return;                     // never navigate on a session that may still be live
+      }
       location.replace("/login?declined=tester");
       // deliberately never resolves; the page is leaving
     };
