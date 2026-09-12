@@ -8,3 +8,8 @@
 .env
 .env.*
 !.env.example
+
+# Standalone review mocks. Working material, never served, and deliberately
+# untracked: CLAUDE.md has said so since before they were briefly committed.
+# The approved copies live outside this repo at ~/biowellth-mocks-approved/.
+mocks/
