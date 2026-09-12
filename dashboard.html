@@ -6867,12 +6867,12 @@ async function sanaEnsureLinked(token){
 // direction, because a future replacement containing & or < would land in the
 // markup unescaped, past the only escape this function performs.
 function sanaRender(text){
-  var esc = String(text == null ? "" : text)
+  var escaped = String(text == null ? "" : text)
     .replace(/ \u2014 /g, ", ")
     .replace(/\u2014/g, "-")
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-  var blocks = esc.split(/\n\s*\n/);
+  var blocks = escaped.split(/\n\s*\n/);
   var out = "";
 
   for (var b = 0; b < blocks.length; b++){
