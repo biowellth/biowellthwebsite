@@ -5400,7 +5400,19 @@ function dcSchedule(pool, reportId, rankMap){
   return three;
 }
 
+// dcEsc entity-encodes ONLY, and must keep doing so: its other caller writes the
+// data-aid attribute, and dcToggle reads that attribute back and compares it to
+// action.action_id, then writes it to action_completions.action_id. action_id is
+// model-authored (Call D), so a strip here would rewrite the identity on one side
+// of that comparison only and the tick would silently stop registering.
 function dcEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// dcProse is the PROSE path: base_text and the phase_notes flavor are model prose
+// from Call D, so they get esc()'s em-dash rules before the same entity encode.
+// Call D's own lint drops an action whose base_text carries an em dash, but that
+// is the writer's guarantee, not the renderer's, it does not cover phase_notes at
+// all, and it cannot reach rows a previous worker already wrote. Same split as
+// foundEsc/foundPipe: one escaper for identity, one pipe for prose.
+function dcProse(s){ return dcEsc(String(s==null?'':s).replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-")); }
 const DC_CHECK_SVG = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
 
 function dcUpdateProgress(){
@@ -5443,8 +5455,8 @@ function dcRenderCard(){
     const flavor = (t.phase && pn && typeof pn === 'object') ? pn[t.phase] : null;
     return '<div class="dc-act' + (done ? ' done' : '') + '" data-aid="' + dcEsc(t.action.action_id) + '" role="button" tabindex="0">'
       + '<div class="dc-tick">' + DC_CHECK_SVG + '</div>'
-      + '<div class="dc-body"><div class="dc-base">' + dcEsc(t.action.base_text) + '</div>'
-      + (flavor ? '<div class="dc-flavor">' + dcEsc(flavor) + '</div>' : '')
+      + '<div class="dc-body"><div class="dc-base">' + dcProse(t.action.base_text) + '</div>'
+      + (flavor ? '<div class="dc-flavor">' + dcProse(flavor) + '</div>' : '')
       + '</div></div>';
   }).join('');
   host.innerHTML =
