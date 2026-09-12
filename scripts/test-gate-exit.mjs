@@ -112,5 +112,33 @@ console.log("UNCHANGED — the tester promise contract");
 ok(/deliberately never resolves/.test(TESTER),
    "e: the never-resolves contract is preserved, the product must not paint behind a declined gate");
 
+console.log("ALL FOUR SITES — the return value is read everywhere");
+// Four signOut calls existed and ZERO assigned the result. This is the assertion
+// that stops a fifth being added the old way.
+const callLines = HTML.split("\n").filter((l) => /sb\.auth\.signOut\(/.test(l) && !/^\s*\/\//.test(l));
+eq(callLines.length, 4, "f: there are still exactly four signOut call sites");
+for (const l of callLines) {
+  ok(/(res|soRes)\s*=\s*await sb\.auth\.signOut/.test(l),
+     "f: assigns its return -> " + l.trim().slice(0, 62));
+}
+eq(HTML.split("\n").filter((l) => /^\s*(await )?sb\.auth\.signOut\(\);\s*$/.test(l)).length, 0,
+   "f: no bare unassigned signOut call remains");
+
+console.log("SCOPE — local on the gates, global on the account controls");
+eq((HTML.match(/signOut\(\{ scope: "local" \}\)/g) || []).length, 2,
+   "g: exactly two sites use scope local, the two gate exits");
+
+console.log("DELETE — a failed sign-out must not look like a failed delete");
+const DEL = HTML.slice(HTML.indexOf("DELETE_SIGNOUT_FAILED") - 1400, HTML.indexOf("DELETE_SIGNOUT_FAILED") + 400);
+ok(/soThrew\s*=\s*e/.test(DEL),
+   "f: the delete path captures its sign-out separately from the delete try");
+ok(/DELETE_SIGNOUT_FAILED/.test(DEL), "f: and logs it distinctly");
+// It must navigate even on failure: the account is gone.
+const delLogIdx = HTML.indexOf("DELETE_SIGNOUT_FAILED");
+const delNavIdx = HTML.indexOf('location.replace("/login")', delLogIdx);
+const delCatchIdx = HTML.indexOf("}catch(_){", delLogIdx);
+ok(delNavIdx > delLogIdx && delNavIdx < delCatchIdx,
+   "f: the delete path navigates AFTER the log and BEFORE the catch, so a deleted account always leaves");
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

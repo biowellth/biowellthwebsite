@@ -2470,7 +2470,27 @@ function initRailOffset(){
 }
 initRailOffset();
 
-$("logout").onclick = async ()=>{ await sb.auth.signOut(); location.replace("/login"); };
+// GATE_EXIT_V1, applied to the ordinary logout. Same bounce, same guard: a session
+// that survives sends her to /login and straight back to /dashboard, so "Log out"
+// appears to do nothing. This had no try at all, so a throw from the lock path
+// rejected the handler and the navigation never ran, silently.
+//
+// SCOPE STAYS GLOBAL HERE, unlike the two gate exits. Those are a decision about
+// leaving one page on one device. This is the account's own sign-out control, and
+// ending every session is the conventional meaning of it. Changing that would be a
+// product change rather than a fix, so it is left alone deliberately.
+//
+// On failure she stays on the dashboard, which is honest, because she IS still
+// signed in. No copy: a message would be describing the screen she is looking at.
+$("logout").onclick = async ()=>{
+  let threw = null, res = null;
+  try{ res = await sb.auth.signOut(); }catch(e){ threw = e; }
+  if(threw || (res && res.error)){
+    console.error("[account] LOGOUT_SIGNOUT_FAILED shape=" + (threw ? "threw" : "error"));
+    return;                         // never navigate on a session that may still be live
+  }
+  location.replace("/login");
+};
 
 // Account deletion (audit H1). Opens a typed-confirm modal; on confirm calls the delete-account edge
 // fn (self-only, JWT-derived uid — no id is passed), which purges the user's storage PDFs then deletes
@@ -2536,7 +2556,29 @@ $("del-confirm").onclick = async ()=>{
       stage = await delStageFrom(error, data);
       throw new Error("delete failed");
     }
-    await sb.auth.signOut();
+    // GATE_EXIT_V1. THE ACCOUNT IS ALREADY DELETED ON THIS LINE. delete-account
+    // returned ok above, so everything past it is cleanup.
+    //
+    // This used a bare `await sb.auth.signOut()` INSIDE the delete's try, so a
+    // throw from the sign-out fell into the catch below and rendered a
+    // delete-FAILURE state, with the button restored and an error message, for a
+    // deletion that had actually succeeded. She would be told her account was not
+    // deleted when it was, and would reasonably try again.
+    //
+    // So the sign-out gets its own capture and cannot reach that catch. AND IT
+    // NAVIGATES REGARDLESS, unlike every other site in this change: the account is
+    // gone, so leaving her on a dashboard for a deleted user is worse than leaving
+    // a stale local session behind. The failure is logged rather than shown,
+    // because there is nothing she can usefully do about it.
+    //
+    // Scope stays global. The user row is gone, and _signOut treats a 401, 403 or
+    // 404 from the revoke as a non-error and still clears locally, so the deleted
+    // account's rejected revoke is the expected path rather than a problem.
+    let soThrew = null, soRes = null;
+    try{ soRes = await sb.auth.signOut(); }catch(e){ soThrew = e; }
+    if(soThrew || (soRes && soRes.error)){
+      console.error("[account] DELETE_SIGNOUT_FAILED shape=" + (soThrew ? "threw" : "error"));
+    }
     location.replace("/login");
   }catch(_){
     btn.disabled = false; btn.textContent = "Delete everything";
