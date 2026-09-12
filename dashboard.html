@@ -5157,7 +5157,11 @@ function renderFoundations(p){
   else { leadEl.innerHTML = ""; leadEl.classList.add("hidden"); }
 
   $("found-levers").innerHTML = levers.map(lv=>{
-    const name = foundEsc(lv.display_name || lv.lever || "");
+    // display_name/lever is model output too, and it was the one field in this block
+    // taking the entity-only escaper while its siblings took the pipe. foundPipe is
+    // foundations' OWN dash rule (paired -> parenthetical, lone -> ", "), so the name
+    // now strips the same way as the connection and action lines beside it.
+    const name = foundPipe(lv.display_name || lv.lever || "");
     const conn = foundPipe(lv.connection || "");
     // Deploy B adds lever.action (prompt-side). Defensive: present -> action leads (primary),
     // connection drops to the muted line below; absent -> today's markup exactly (no empty node).
