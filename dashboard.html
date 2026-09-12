@@ -2679,9 +2679,30 @@ function initCycleCapture(){
 }
 // Read the optional cycle blocks into a partial payload (only fields with a value; the upload function
 // re-validates server-side). Full skip -> {} (no cycle keys in the payload).
+// CLIENT_TZ_V1. The browser's IANA zone, or "" when the runtime cannot supply
+// one. Read from Intl, which needs no permission and asks the user nothing, so
+// there is no copy and no prompt attached to this. Wrapped because a hostile or
+// very old runtime can throw or return a non-string, and a zone is never worth
+// breaking an upload or a turn over: absent is a fine answer and the server
+// already has a fallback.
+function clientTimeZone(){
+  try{
+    const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return (typeof z === "string" && z.trim()) ? z.trim() : "";
+  }catch(e){ return ""; }
+}
+
 function collectCycle(){
   const out = {};
   const inRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
+  // CLIENT_TZ_V1. Sent on BOTH process-report paths, and unconditionally, including
+  // the decline and full-skip branches below. It is not a cycle answer and declining
+  // to describe a draw is not declining to be in a timezone. This is the STORED
+  // fallback for any client that reaches the server without a live request to hang
+  // the X-Client-Timezone header on. Body field here, header on the chat path, and
+  // the two stay separate on purpose.
+  const tz = clientTimeZone();
+  if(tz) out.timezone = tz;
   // DURABLE PROFILE FIELDS MOVED OUT 2026-09-02. This block used to write
   // menstrual_status, on_hormonal_contraception, hormonal_contraception,
   // typical_cycle_length_days and typical_period_duration_days. All five are
@@ -7183,9 +7204,20 @@ async function sanaSend(){
 
   let res;
   try{
+    // CLIENT_TZ_V1. X-Client-Timezone carries the browser's IANA zone so the
+    // server can resolve "today" in HER day rather than in its own default.
+    // Without it the backend falls back to a hardcoded Asia/Kolkata, which put a
+    // user in New York on the wrong cycle day for the 5h30m either side of
+    // midnight IST. A HEADER, not a body field, because the body of this request
+    // is the turn and the zone is transport metadata about the caller. The
+    // upload path sends the same value as a body field instead, deliberately:
+    // that one has no live request to carry a header on.
     res = await fetch(SANA_API_BASE + "/agent/chat", {
       method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", "Accept": "text/event-stream" },
+      headers: Object.assign(
+        { "Authorization": "Bearer " + token, "Content-Type": "application/json", "Accept": "text/event-stream" },
+        clientTimeZone() ? { "X-Client-Timezone": clientTimeZone() } : {},
+      ),
       body: JSON.stringify({ message: text }),
     });
   }catch(e){ rollback(SANA_COPY.offline); return; }
