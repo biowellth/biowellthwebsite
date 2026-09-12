@@ -6855,8 +6855,21 @@ async function sanaEnsureLinked(token){
 // ESCAPE FIRST, then apply a CLOSED SET of marks. No headings, no links, no raw
 // HTML: everything the model emits is text until this function decides
 // otherwise, which is why the escape runs before anything else and never after.
+//
+// SANA_EM_DASH_V1 — the em-dash strip is the ONE thing that runs before the
+// escape, and it must. esc() (the page-wide escaper) applies exactly these two
+// replaces to the RAW string and then entity-encodes; running them here in the
+// same order on the same raw input is what makes the two paths provably agree
+// rather than merely look similar. It does not weaken the rule above: these are
+// text->text substitutions whose outputs (", " and "-") carry no HTML-special
+// character, so everything they produce is still escaped by the line below.
+// Doing it the other way round -- mutating already-escaped text -- is the unsafe
+// direction, because a future replacement containing & or < would land in the
+// markup unescaped, past the only escape this function performs.
 function sanaRender(text){
   var esc = String(text == null ? "" : text)
+    .replace(/ \u2014 /g, ", ")
+    .replace(/\u2014/g, "-")
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   var blocks = esc.split(/\n\s*\n/);
