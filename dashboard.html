@@ -2154,6 +2154,50 @@ async function maybeAffirmAge(){
 // parse-time IIFE would find no elements and silently never bind — the modal would render
 // with dead controls. onb2Open uses the same on-demand pattern for the same reason.
 // onclick assignment (not addEventListener) keeps this idempotent across re-shows.
+// GATE_EXIT_V2. The direct clear, used ONLY when signOut has already failed.
+//
+// WHY THIS EXISTS. Both earlier positions were dead ends. Navigating anyway walks
+// her into the /login -> /dashboard -> gate bounce loop, which is what DEC-3 was
+// written against. Refusing to navigate leaves her on the gate with a live button
+// and no exit. Neither is a way out.
+//
+// The underlying operation is deleting a key from storage. It cannot fail for
+// network reasons, which is what makes a real exit possible here at all.
+//
+// NOTHING IS HARDCODED. Read at supabase-js 2.116.0: the client assigns
+// `this.storageKey` and `this.storage` as plain properties, and with
+// persistSession true and no custom storage it uses globalThis.localStorage. The
+// default key is `sb-${new URL(url).hostname.split(".")[0]}-auth-token`, but we
+// never construct it. We read the client's own storageKey off the live instance,
+// so a library change to the format cannot silently drift us onto a stale key.
+//
+// _removeSession clears the main key, `-user`, `-code-verifier`, and a chunk
+// index plus chunk parts. ALL of those are prefixed with storageKey, so a prefix
+// sweep covers the layout without reimplementing it.
+//
+// THE PROOF IS THE READ-BACK, NOT THE REMOVAL. getSession is the exact call
+// login.html:145 makes to decide whether to bounce her, so asking it afterwards
+// answers the only question that matters. A write-then-assume would be the same
+// shape of mistake as everything else found this week.
+async function gateForceLocalSignOut(){
+  const key = sb.auth && sb.auth.storageKey;
+  if(!key) return false;
+  try{
+    if(typeof localStorage !== "undefined"){
+      for(const k of Object.keys(localStorage)) if(k.indexOf(key) === 0) localStorage.removeItem(k);
+    }
+    const store = (sb.auth && sb.auth.storage) || null;
+    if(store && typeof store.removeItem === "function"){
+      await store.removeItem(key);
+      await store.removeItem(key + "-user");
+    }
+  }catch(_){ /* fall through: the read-back below is what decides, not this */ }
+  try{
+    const { data } = await sb.auth.getSession();
+    return !(data && data.session);
+  }catch(_){ return false; }
+}
+
 function showAgeModal(){
   const m = $("age-modal"); if(!m) return;
   const chk = $("age-check");
@@ -2191,7 +2235,7 @@ function showAgeModal(){
     $("age-exit-state").classList.remove("hidden");
   };
 
-  // GATE_EXIT_V1. The exit from a blocking gate must hold on LOCAL storage alone.
+  // GATE_EXIT_V2. The exit from a blocking gate must hold on LOCAL storage alone.
   // login.html:145 does getSession().then(s => s && location.replace("/dashboard")),
   // so any session that survives this call bounces her straight back here, the gate
   // re-opens, and "Sign out" visibly does nothing. Not a bypass, because the gates
@@ -2222,9 +2266,14 @@ function showAgeModal(){
     let threw = null, res = null;
     try{ res = await sb.auth.signOut({ scope: "local" }); }catch(e){ threw = e; }
     if(threw || (res && res.error)){
+      // V2: clear the stored session directly, then CONFIRM through getSession
+      // before going anywhere. Only a session that is still readable afterwards
+      // keeps her here, and that is now the genuinely unrecoverable case rather
+      // than the ordinary one.
+      const cleared = await gateForceLocalSignOut();
       console.error("[gate] GATE_EXIT_SIGNOUT_FAILED gate=age shape=" +
-        (threw ? "threw" : "error"));
-      return;                       // never navigate on a session that may still be live
+        (threw ? "threw" : "error") + " forced_clear=" + (cleared ? "ok" : "failed"));
+      if(!cleared) return;          // still readable: navigating would bounce her back
     }
     location.replace("/login");
   };
@@ -2349,10 +2398,14 @@ async function testerGate(){
       let threw = null, res = null;
       try{ res = await sb.auth.signOut({ scope: "local" }); }catch(e){ threw = e; }
       if(threw || (res && res.error)){
+        // V2, same as the age gate: clear directly, then CONFIRM through
+        // getSession. DEC-3 was right that a failed sign out must not strand her
+        // and wrong that redirecting was the way out, because the redirect
+        // bounced her back. This gets her out for real.
+        const cleared = await gateForceLocalSignOut();
         console.error("[gate] GATE_EXIT_SIGNOUT_FAILED gate=tester shape=" +
-          (threw ? "threw" : "error"));
-        later.disabled = false;
-        return;                     // never navigate on a session that may still be live
+          (threw ? "threw" : "error") + " forced_clear=" + (cleared ? "ok" : "failed"));
+        if(!cleared){ later.disabled = false; return; }
       }
       location.replace("/login?declined=tester");
       // deliberately never resolves; the page is leaving

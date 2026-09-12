@@ -56,6 +56,21 @@ function handler(marker) {
   const end = HTML.indexOf("};", i);
   return HTML.slice(i, end + 2);
 }
+// Brace-matched extraction for a named function, so the force clear can be RUN
+// rather than pattern-matched.
+function extract(name) {
+  const re = new RegExp("(?:async\\s+)?function\\s+" + name + "\\s*\\(", "g");
+  const m = re.exec(HTML);
+  if (!m) throw new Error("not found in " + FILE + ": " + name);
+  let i = HTML.indexOf("{", m.index), depth = 0, end = -1;
+  for (let j = i; j < HTML.length; j++) {
+    if (HTML[j] === "{") depth++;
+    else if (HTML[j] === "}") { depth--; if (depth === 0) { end = j + 1; break; } }
+  }
+  if (end < 0) throw new Error("unbalanced braces: " + name);
+  return HTML.slice(m.index, end);
+}
+
 const AGE = handler('$("age-signout").onclick');
 const TESTER = handler("later.onclick = async function()");
 
@@ -111,6 +126,56 @@ ok(/later\.disabled = false;/.test(TESTER),
 console.log("UNCHANGED — the tester promise contract");
 ok(/deliberately never resolves/.test(TESTER),
    "e: the never-resolves contract is preserved, the product must not paint behind a declined gate");
+
+console.log("FORCE CLEAR — the shared mechanism, RUN for real, not asserted");
+// GATE_EXIT_V2. The age gate has no DOM harness of its own: test-dob-gate.mjs is a
+// pure-function test of dobIsAdult with 3 ok() calls and no boot. Rather than
+// build a second harness, the MECHANISM both gates depend on is executed here
+// against a real store, which is where the risk actually lives. The tester gate
+// covers the handler end to end in test-tester-gate.mjs DEC-3b/c/d.
+const FORCE = extract("gateForceLocalSignOut");
+const KEY = "sb-clacgutnrktdwhglvyua-auth-token";
+const makeStore = () => {
+  const m = { [KEY]: "s", [KEY + "-user"]: "u", [KEY + "-code-verifier"]: "v", "unrelated": "keep" };
+  return Object.assign(m, {
+    getItem: (k) => (k in m ? m[k] : null),
+    setItem: (k, v) => { m[k] = String(v); },
+    removeItem: (k) => { delete m[k]; },
+  });
+};
+const runForce = async (sessionAfter) => {
+  const store = makeStore();
+  const sb = { auth: { storageKey: KEY, storage: store,
+    getSession: async () => ({ data: { session: sessionAfter(store) } }) } };
+  const fn = new Function("sb", "localStorage", FORCE + "; return gateForceLocalSignOut;");
+  const cleared = await fn(sb, store)();
+  return { cleared, store };
+};
+
+// The ordinary case: storage clears, getSession then finds nothing.
+const r1 = await runForce((store) => (store.getItem(KEY) ? { user: {} } : null));
+eq(r1.cleared, true, "h: the force clear reports success when getSession finds no session after");
+eq(r1.store.getItem(KEY), null, "h: the main auth key is removed");
+eq(r1.store.getItem(KEY + "-user"), null, "h: the -user key is removed");
+eq(r1.store.getItem(KEY + "-code-verifier"), null, "h: the -code-verifier key is removed by the prefix sweep");
+eq(r1.store.getItem("unrelated"), "keep", "h: an unrelated key is NOT touched, the sweep is prefixed not total");
+
+// The unrecoverable case: storage was cleared but a session is somehow still
+// readable. It must report FAILURE, because navigating would bounce her back.
+const r2 = await runForce(() => ({ user: {} }));
+eq(r2.cleared, false, "h: it reports FAILURE when getSession still returns a session");
+
+console.log("FORCE CLEAR — both gates use it and guard on its result");
+for (const [name, SRC] of [["age", AGE], ["tester", TESTER]]) {
+  ok(/await gateForceLocalSignOut\(\)/.test(SRC), "h: " + name + " calls the force clear on failure");
+  ok(/if\(!cleared\)/.test(SRC), "h: " + name + " guards the navigation on its result");
+  ok(/forced_clear=/.test(SRC), "h: " + name + " logs whether the force clear worked");
+}
+// NOTHING IS HARDCODED. The helper must read the key off the live client.
+ok(/sb\.auth && sb\.auth\.storageKey/.test(FORCE),
+   "a: the key is read from the live client, never constructed or hardcoded");
+ok(!/sb-[a-z0-9]+-auth-token/.test(FORCE),
+   "a: no literal storage key appears in the helper");
 
 console.log("ALL FOUR SITES — the return value is read everywhere");
 // Four signOut calls existed and ZERO assigned the result. This is the assertion

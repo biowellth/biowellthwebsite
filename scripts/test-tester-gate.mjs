@@ -66,11 +66,34 @@ function boot({ src = SRC, acceptanceRows = [], invokeResult, signOut } = {}) {
     });
     return chain;
   };
+  // The auth client's own key layout, as read from supabase-js 2.116.0: a main
+  // key, plus -user, -code-verifier and chunk parts, ALL prefixed with storageKey.
+  const STORAGE_KEY = "sb-clacgutnrktdwhglvyua-auth-token";
+  const store = (() => {
+    const m = {};
+    m[STORAGE_KEY] = JSON.stringify({ access_token: "x" });
+    m[STORAGE_KEY + "-user"] = JSON.stringify({ id: "1e6eb2cc" });
+    m[STORAGE_KEY + "-code-verifier"] = "v";
+    const api = {
+      getItem: (k) => (k in m ? m[k] : null),
+      setItem: (k, v) => { m[k] = String(v); },
+      removeItem: (k) => { delete m[k]; },
+      clear: () => { for (const k of Object.keys(m)) delete m[k]; },
+    };
+    // Object.keys(localStorage) must see the keys, which is how the prefix sweep
+    // finds the chunk parts. A plain object with the api mixed in gives us both.
+    return Object.assign(m, api);
+  })();
+
   const sb = {
     auth: {
-      getSession: async () => ({ data: { session: { user: { id: "1e6eb2cc-0000-4000-8000-000000000000" } } } }),
+      storageKey: STORAGE_KEY,
+      storage: store,
+      getSession: async () => ({
+        data: { session: store.getItem(STORAGE_KEY)
+          ? { user: { id: "1e6eb2cc-0000-4000-8000-000000000000" } } : null } }),
       getUser: async () => ({ data: { user: null } }),
-      signOut: signOut || (async () => { calls.signedOut++; return { error: null }; }),
+      signOut: signOut || (async () => { calls.signedOut++; store.removeItem(STORAGE_KEY); return { error: null }; }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
     },
     from: (t) => { calls.selects.push(t); return thenable(t === "tester_acceptances" ? acceptanceRows : []); },  // .eq/.in/.limit all chain through the proxy
@@ -95,7 +118,12 @@ function boot({ src = SRC, acceptanceRows = [], invokeResult, signOut } = {}) {
     location: new Proxy({ href:"https://biowellth.ai/dashboard", search:"", hash:"", pathname:"/dashboard",
       origin:"https://biowellth.ai", replace:(u)=>calls.replaced.push(u), assign(){}, reload(){} },
       { get:(t,k)=> (k in t ? t[k] : "") }),
-    localStorage:{ getItem:()=>null, setItem(){}, removeItem(){}, clear(){} },
+    // GATE_EXIT_V2. A REAL store, enumerable, seeded with the auth keys the client
+    // owns. getSession below reads THROUGH it, so a test that clears storage and
+    // then asks getSession is exercising the actual mechanism rather than a stub
+    // that always answers the same way. The previous stub returned a session
+    // unconditionally, which made any read-back meaningless.
+    localStorage: store,
     sessionStorage:{ getItem:()=>null, setItem(){}, removeItem(){}, clear(){} },
     navigator:{ userAgent:"node", language:"en-US", clipboard:{ writeText: async()=>{} } },
     matchMedia:()=>({ matches:false, addEventListener(){}, removeEventListener(){}, addListener(){}, removeListener(){} }),
@@ -128,7 +156,7 @@ function boot({ src = SRC, acceptanceRows = [], invokeResult, signOut } = {}) {
   try { new vm.Script(src + tail, { filename: "dashboard-inline.js" }).runInContext(sandbox, { timeout: 20000 }); }
   catch (err) { bootError = err; }
   sandbox.__USER_SET({ id: "1e6eb2cc-0000-4000-8000-000000000000" });
-  return { sandbox, get, gate, calls, bootError };
+  return { sandbox, get, gate, calls, bootError, sb, store };
 }
 
 let pass = 0, fail = 0;
@@ -275,7 +303,27 @@ console.log("\nDECLINE");
      "DEC-2: and redirects to /login?declined=tester (got " + b.calls.replaced[b.calls.replaced.length - 1] + ")");
 }
 {
-  // A failing signOut must NOT strand the user on the gate.
+  // GATE_EXIT_V2. DEC-3 REWRITTEN, and it is STRICTLY STRONGER than the version it
+  // replaces. The original read:
+  //
+  //     // A failing signOut must NOT strand the user on the gate.
+  //     ok(replaced.last === "/login?declined=tester", "DEC-3: a failed sign out still redirects");
+  //
+  // IT WAS RIGHT ABOUT THE GOAL AND INCOMPLETE ABOUT THE MECHANISM. Not stranding
+  // her is exactly the right requirement. But redirecting is not the same as
+  // leaving, because login.html:145 does getSession().then(s => s &&
+  // location.replace("/dashboard")). A redirect with a live session lands her back
+  // on this gate, so the old assertion passed on a bounce loop.
+  //
+  // It caught a ruling made five days later that had no knowledge of it: the first
+  // fix guarded the navigation, which turned the loop into a dead stop on the gate
+  // with a live button. Also not an exit. This file going red is what surfaced
+  // that, one commit after it should have.
+  //
+  // The requirement is BOTH, and this asserts both: she redirects AND no session
+  // survives. Against the code DEC-3 was written for, which redirected without
+  // clearing anything, the second half fails. That is what makes this a
+  // consequence of the ruling rather than an accommodation of it.
   const b = boot({ src: SRC_ON, acceptanceRows: [], signOut: async () => { throw new Error("network"); } });
   b.sandbox.__testerGate();
   await new Promise((r) => setTimeout(r, 20));
@@ -283,6 +331,13 @@ console.log("\nDECLINE");
   await new Promise((r) => setTimeout(r, 20));
   ok(b.calls.replaced[b.calls.replaced.length - 1] === "/login?declined=tester",
      "DEC-3: a failed sign out still redirects");
+  const after = await b.sb.auth.getSession();
+  ok(!(after && after.data && after.data.session),
+     "DEC-3b: and leaves NO session behind, so /login cannot bounce her back");
+  ok(b.store.getItem("sb-clacgutnrktdwhglvyua-auth-token") === null,
+     "DEC-3c: the stored auth key is gone, cleared directly when signOut failed");
+  ok(b.sandbox.localStorage.getItem("sb-clacgutnrktdwhglvyua-auth-token-code-verifier") === null,
+     "DEC-3d: the prefix sweep took the sibling keys too, not just the main one");
 }
 {
   // KNOWN-NEGATIVE CONTROL. Without a decline nothing navigates, or DEC-2 could be
