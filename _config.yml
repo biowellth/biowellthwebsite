@@ -1,0 +1,10 @@
+# Internal paths, kept out of the Pages build.
+# Nothing here is loaded at runtime by any served page: the references to
+# mocks/ and docs/ in dashboard.html are provenance comments, not fetches,
+# so excluding them changes no rendered surface.
+exclude:
+  - mocks/
+  - scripts/
+  - docs/
+  - CLAUDE.md
+  - VERIFY-be37803.md
