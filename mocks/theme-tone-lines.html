@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — theme tone lines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF8F4; --cream-mid:#F2EDE3; --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE;
+    --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
+    --amber:#D4A94A; --amber-light:#FAF3E0; --orange-dark:#A56838;
+    --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 16px 80px}
+  .page{max-width:720px;margin:0 auto}
+  .page-h{text-align:center;margin-bottom:6px}
+  .page-h h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700}
+  .page-h p{font-size:12px;color:var(--brown-mid);margin-top:4px;max-width:52ch;margin-left:auto;margin-right:auto}
+  .slabel{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange-dark);margin:30px 0 12px;padding-left:2px}
+  .slabel b{color:var(--brown-mid);text-transform:none;letter-spacing:0;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:400}
+
+  /* live theme-grid classes */
+  .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:640px){.theme-grid{grid-template-columns:1fr}}
+  .theme-card{background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:18px 20px;text-align:left}
+  .theme-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .theme-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+  .theme-soon{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);background:var(--brown-soft);border-radius:100px;padding:3px 8px;flex:none}
+  .theme-count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);margin-bottom:8px}
+
+  /* the tone line — derived from the engine's flag/watch counts through toneFor register */
+  .theme-tone{font-size:13px;line-height:1.5;color:var(--brown-mid);display:flex;gap:8px;align-items:flex-start}
+  .theme-tone::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;margin-top:5px;background:var(--brown-light)}
+  .theme-tone.t-coral::before{background:var(--coral)}
+  .theme-tone.t-amber::before{background:var(--amber)}
+  .theme-tone.t-clear::before{background:var(--teal)}
+  .theme-tone.t-neutral::before{background:var(--brown-mid)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-h">
+    <h1>Mock — theme tone lines</h1>
+    <p>One line per theme card, derived only from the counts the engine already emits (worth a closer look / worth watching) through the toneFor register. Safety-class systems never get a reassuring register.</p>
+  </div>
+
+  <div class="slabel">Six themes from a live report <b>· register: coral = worth a closer look, amber = worth watching, teal = all reading well</b></div>
+  <div class="theme-grid">
+
+    <!-- coral: has a flag -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Metabolic health</span></div>
+      <div class="theme-count">14 markers · 1 worth a closer look</div>
+      <div class="theme-tone t-coral">One marker here is worth a closer look, and its priority card carries the plan.</div>
+    </div>
+
+    <!-- amber: watch, no flag -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Heart and vessels</span></div>
+      <div class="theme-count">9 markers · 2 worth watching</div>
+      <div class="theme-tone t-amber">A couple of markers here are worth keeping an eye on as you test over time.</div>
+    </div>
+
+    <!-- clear: all read well -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Thyroid</span></div>
+      <div class="theme-count">6 markers</div>
+      <div class="theme-tone t-clear">Everything here is reading in a steady range.</div>
+    </div>
+
+    <!-- coral -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Inflammation</span></div>
+      <div class="theme-count">5 markers · 1 worth a closer look</div>
+      <div class="theme-tone t-coral">One inflammation marker is worth a closer look. The rest are reading quietly.</div>
+    </div>
+
+    <!-- amber -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Nutrients</span></div>
+      <div class="theme-count">12 markers · 1 worth watching</div>
+      <div class="theme-tone t-amber">One nutrient is worth keeping an eye on over your next few panels.</div>
+    </div>
+
+    <!-- clear -->
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Blood and oxygen</span></div>
+      <div class="theme-count">8 markers</div>
+      <div class="theme-tone t-clear">These are all reading where we would hope to see them.</div>
+    </div>
+
+  </div>
+
+  <div class="slabel">Sensitive system (isSafetyClass) <b>· NEVER a reassuring register — neutral factual only, even when flagged</b></div>
+  <div class="theme-grid">
+    <div class="theme-card">
+      <div class="theme-card-head"><span class="theme-name">Heavy metals</span><span class="theme-soon">Referral</span></div>
+      <div class="theme-count">6 markers read</div>
+      <div class="theme-tone t-neutral">These are shown as measured. They are best read by a clinician alongside the full picture, so we do not score or reassure on them here.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

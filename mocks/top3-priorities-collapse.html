@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<title>Mock — top-3 priorities collapse</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#FAF8F4; --cream-mid:#F2EDE3;
+  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
+  --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30;
+  --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
+  --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--brown);font-family:'Instrument Sans',sans-serif;padding:28px 16px 80px}
+.wrap{max-width:1180px;margin:0 auto}
+.mockbar{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);background:var(--brown-soft);border:1px solid var(--brown-light);border-radius:10px;padding:9px 12px;margin-bottom:24px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--off-white);border:1px solid var(--brown-light);border-radius:18px;padding:20px 18px;box-shadow:var(--shadow)}
+.ptitle{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:12px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:8px}
+h1.display{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:25px;line-height:1.24;margin:0 0 6px}
+p.sub{font-size:14px;color:var(--brown-mid);margin:0 0 16px}
+.prio-card{display:flex;gap:13px;align-items:flex-start;background:var(--white);border:1px solid var(--brown-light);border-left-width:4px;border-radius:13px;padding:13px 15px;margin-bottom:9px}
+.t-coral{border-left-color:var(--coral)} .t-amber{border-left-color:var(--amber)} .t-teal{border-left-color:var(--teal)}
+.pnum{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--brown-mid);background:var(--brown-soft);border-radius:7px;min-width:25px;height:25px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-top:1px}
+.ptext{font-size:14.5px;line-height:1.45;font-weight:500}
+.seeall{width:100%;margin-top:6px;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--teal-dark);background:var(--teal-soft);border:1px solid var(--teal-mid);border-radius:12px;padding:12px;cursor:pointer}
+.seeall:hover{background:var(--teal-light)}
+.hidden{display:none}
+.note{font-size:12.5px;color:var(--brown-mid);margin-top:14px;padding-top:12px;border-top:1px dashed var(--brown-light)}
+</style></head><body><div class="wrap">
+<div class="mockbar">MOCK — untracked, not committed. Priority strings verbatim from flow9 report 87c3a330. Left: today (all 7). Right: top-3 + expansion.</div>
+<div class="cols">
+  <div class="panel">
+    <div class="ptitle">A · today — all seven</div>
+    <div class="eyebrow">Your priorities, in order</div>
+    <h1 class="display">Here is where to start.</h1>
+    <p class="sub">Tap any one to see what it means and where to begin.</p>
+      <div class="prio-card t-coral">
+        <div class="pnum">1</div>
+        <div class="ptext">Your liver is working harder than it should, and your B12 picture adds a layer that needs a doctor&#x27;s eye</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">2</div>
+        <div class="ptext">Your cholesterol numbers need a South Asian lens, not just the conventional cut-off</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">3</div>
+        <div class="ptext">Low-grade inflammation is running quietly in the background and is connecting several dots in your panel</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">4</div>
+        <div class="ptext">Your iron stores are quietly depleting, and your thyroid conversion is running low alongside it</div>
+      </div>
+      <div class="prio-card t-teal">
+        <div class="pnum">5</div>
+        <div class="ptext">Your DHEA-S is very low, and your adrenal picture reflects a typical but underappreciated part of perimenopause</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">6</div>
+        <div class="ptext">Your blood sugar is drifting above the functional optimal, and the full picture warrants watching carefully</div>
+      </div>
+      <div class="prio-card t-coral">
+        <div class="pnum">7</div>
+        <div class="ptext">There is blood in your urine and your urinary microalbumin is above the threshold, two findings that belong in a doctor&#x27;s conversation soon</div>
+      </div>
+    <div class="note">Seven cards, equal weight. The reveal ends on a long scroll and rank 1 competes with rank 7 for attention.</div>
+  </div>
+  <div class="panel">
+    <div class="ptitle">B · proposed — top three, rest on request</div>
+    <div class="eyebrow">Your priorities, in order</div>
+    <h1 class="display">Start with these three.</h1>
+    <p class="sub">These three carry the most of your picture. The rest are here when you want them.</p>
+      <div class="prio-card t-coral">
+        <div class="pnum">1</div>
+        <div class="ptext">Your liver is working harder than it should, and your B12 picture adds a layer that needs a doctor&#x27;s eye</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">2</div>
+        <div class="ptext">Your cholesterol numbers need a South Asian lens, not just the conventional cut-off</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">3</div>
+        <div class="ptext">Low-grade inflammation is running quietly in the background and is connecting several dots in your panel</div>
+      </div>
+    <div id="rest" class="hidden">
+      <div class="prio-card t-amber">
+        <div class="pnum">4</div>
+        <div class="ptext">Your iron stores are quietly depleting, and your thyroid conversion is running low alongside it</div>
+      </div>
+      <div class="prio-card t-teal">
+        <div class="pnum">5</div>
+        <div class="ptext">Your DHEA-S is very low, and your adrenal picture reflects a typical but underappreciated part of perimenopause</div>
+      </div>
+      <div class="prio-card t-amber">
+        <div class="pnum">6</div>
+        <div class="ptext">Your blood sugar is drifting above the functional optimal, and the full picture warrants watching carefully</div>
+      </div>
+      <div class="prio-card t-coral">
+        <div class="pnum">7</div>
+        <div class="ptext">There is blood in your urine and your urinary microalbumin is above the threshold, two findings that belong in a doctor&#x27;s conversation soon</div>
+      </div>
+    </div>
+    <button class="seeall" id="btn" onclick="var r=document.getElementById('rest'),b=document.getElementById('btn');var open=!r.classList.contains('hidden');r.classList.toggle('hidden');b.textContent=open?'See all 7 priorities':'Show fewer';">See all 7 priorities</button>
+    <div class="note">Collapsed state is the default. Expansion is one tap, no navigation, and preserves rank order 1-7.</div>
+  </div>
+</div></div></body></html>

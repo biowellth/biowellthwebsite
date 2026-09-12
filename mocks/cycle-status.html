@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cycle status mock</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#FAF8F4; --cream-mid:#F2EDE3;
+  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
+  --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30;
+  --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
+  --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
+  --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.hidden{display:none !important}
+.wrap{max-width:560px;margin:0 auto}
+.mockbar{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-dark);background:var(--teal-light);padding:6px 14px;border-radius:100px;display:inline-block;margin-bottom:18px;font-weight:700}
+.card{background:var(--white);border:1px solid var(--brown-light);border-radius:18px;padding:26px 24px;box-shadow:var(--shadow)}
+.card h1{font-size:21px;font-weight:600;margin-bottom:4px}
+.card .sub{font-size:14px;color:var(--brown-mid);margin-bottom:6px}
+.cyc-block{margin-top:22px;padding-top:20px;border-top:1px solid var(--brown-light);text-align:left}
+.cyc-h{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-mid);font-weight:700;margin-bottom:14px}
+.cyc-l{display:block;font-size:14px;font-weight:600;color:var(--brown);margin-bottom:7px}
+.cyc-date,.cyc-num{font-family:inherit;font-size:14px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:10px;padding:9px 12px;width:100%;max-width:230px}
+.cyc-guidance{font-size:12.5px;color:var(--brown-mid)}
+.cyc-alt,.cyc-decline{font-size:13px;color:var(--teal);font-weight:600;margin-top:10px;display:inline-block}
+.cyc-cd{margin-top:10px}
+.lmp-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.bc-q{margin-bottom:18px}
+.bc-q-t{font-size:15px;font-weight:600;color:var(--brown);line-height:1.4;margin-bottom:10px}
+.bc-opts{display:flex;gap:9px;flex-wrap:wrap}
+.bc-opt{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:9px 18px;cursor:pointer;transition:background .15s,transform .1s}
+.bc-opt:hover{transform:translateY(-1px)}
+.bc-opt.sel{background:var(--teal);color:#fff;border-color:var(--teal)}
+.newq{background:var(--teal-soft);border:1px solid var(--teal-mid);border-radius:14px;padding:16px 16px 4px;margin-bottom:16px}
+.newq .bc-q:last-child{margin-bottom:14px}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--teal-dark);margin-bottom:10px}
+.payload{margin-top:22px;background:var(--brown);color:var(--cream);border-radius:14px;padding:16px 18px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;white-space:pre;overflow-x:auto}
+.payload h2{font-family:'Instrument Sans',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:10px;font-weight:700}
+.derived{margin-top:12px;font-size:13px;color:var(--brown-mid)}
+.derived b{color:var(--brown)}
+.notebox{margin-top:16px;border:1px dashed var(--amber);background:var(--amber-light);border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--brown-mid);line-height:1.6}
+.notebox b{color:var(--amber-dark)}
+.notebox code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;background:var(--white);padding:2px 5px;border-radius:5px;color:var(--brown)}
+@media(max-width:420px){
+  .bc-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bc-opt{padding:9px 12px;text-align:center}
+  .lmp-row{display:block}
+  .lmp-row .bc-opt{margin-top:9px}
+  body{padding:18px 12px 48px}
+  .card{padding:20px 16px}
+}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="mockbar">Mock, not wired to a database</div>
+  <div class="card">
+    <h1>About this draw</h1>
+    <div class="sub">A few taps help us read your panel against the right ranges.</div>
+
+    <div class="cyc-block" id="cyc-newq" style="border-top:none;padding-top:0">
+      <div class="newq">
+        <div class="tag">New, only when menstrual status is unknown</div>
+        <div class="bc-q" id="q-preg">
+          <div class="bc-q-t">Are you currently pregnant, or have you been pregnant in the last 6 months?</div>
+          <div class="bc-opts" data-q="preg">
+            <button class="bc-opt" type="button" data-val="yes">Yes</button>
+            <button class="bc-opt" type="button" data-val="no">No</button>
+          </div>
+        </div>
+        <div class="bc-q" id="q-cycle">
+          <div class="bc-q-t">Where are you with your cycle right now?</div>
+          <div class="bc-opts" data-q="cycle">
+            <button class="bc-opt" type="button" data-val="regular">Regular cycles</button>
+            <button class="bc-opt" type="button" data-val="irregular_pcos">Irregular cycles or PCOS</button>
+            <button class="bc-opt" type="button" data-val="none">No periods at the moment</button>
+            <button class="bc-opt" type="button" data-val="perimenopause">Perimenopause</button>
+            <button class="bc-opt" type="button" data-val="postmenopause">Postmenopause</button>
+            <button class="bc-opt" type="button" data-val="decline">Prefer not to say</button>
+          </div>
+        </div>
+        <div class="bc-q hidden" id="q-reason">
+          <div class="bc-q-t">Is there a reason you know of?</div>
+          <div class="bc-opts" data-q="reason">
+            <button class="bc-opt" type="button" data-val="hormonal_contraception">Hormonal contraception</button>
+            <button class="bc-opt" type="button" data-val="breastfeeding">Breastfeeding</button>
+            <button class="bc-opt" type="button" data-val="medical">A medical reason or treatment</button>
+            <button class="bc-opt" type="button" data-val="not_sure">Not sure</button>
+          </div>
+        </div>
+        <div class="bc-q hidden" id="q-ht">
+          <div class="bc-q-t" id="q-ht-t">Are you using hormonal contraception or hormone therapy right now?</div>
+          <div class="bc-opts" data-q="ht">
+            <button class="bc-opt" type="button" data-val="yes">Yes</button>
+            <button class="bc-opt" type="button" data-val="no">No</button>
+            <button class="bc-opt" type="button" data-val="not_sure">Not sure</button>
+          </div>
+        </div>
+      </div>
+      <div class="derived">Derived menstrual status <b id="derived-out">not set</b></div>
+    </div>
+
+    <div class="cyc-block">
+      <div class="cyc-h">Your cycle</div>
+      <div id="cyc-selector">
+        <div id="cyc-lens" class="hidden">
+          <label class="cyc-l" for="cyc-lmp" id="cyc-lmp-label">When did your last period start?</label>
+          <div class="lmp-row">
+            <input class="cyc-date" id="cyc-lmp" type="date"/>
+            <button class="bc-opt" type="button" id="lmp-forget">Don't remember</button>
+          </div>
+          <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
+          <div id="cyc-cdgroup">
+            <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
+            <div class="cyc-cd hidden" id="cyc-cd-wrap">
+              <label class="cyc-l" for="cyc-cd">Cycle day on the day of the test</label>
+              <input class="cyc-num" id="cyc-cd" type="number" inputmode="numeric" min="1" max="120"/>
+            </div>
+          </div>
+          <button type="button" class="cyc-decline" id="cyc-decline">I don't remember</button>
+        </div>
+        <div id="cyc-hcgroup" class="hidden" style="margin-top:14px">
+          <label class="cyc-l">Are you on hormonal contraception or HRT?</label>
+          <div class="bc-opts">
+            <button class="bc-opt" type="button">Yes</button>
+            <button class="bc-opt" type="button">No</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cyc-block" id="ad-confounders">
+      <div class="bc-q"><div class="bc-q-t">Was this blood test done fasting?</div><div class="bc-opts" data-key="true_fasting_at_draw"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+      <div class="bc-q"><div class="bc-q-t">Were you unwell in the four weeks before this test?</div><div class="bc-opts" data-key="recent_illness_within_4_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+      <div class="bc-q"><div class="bc-q-t">Were you under unusual stress in the two weeks before this test?</div><div class="bc-opts" data-key="acute_stress_within_2_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+      <div class="bc-q" style="margin-bottom:2px"><div class="bc-q-t">Did you do hard exercise in the three days before this test?</div><div class="bc-opts" data-key="hard_training_within_72_hours"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
+    </div>
+  </div>
+
+  <div class="notebox">
+    <b>One line to change in the real function.</b> The no-periods case derives to
+    <code>null</code>, and <code>applyCycleLens</code> hides the lens on any falsy status, so LMP-only
+    is not reachable today. The lifted copy below is byte-identical and stays that way. The change
+    belongs in <code>dashboard.html line 2411</code>, and it is one line.
+    <br/><br/>
+    from <code>const withLens = !!(status &amp;&amp; status !== "decline");</code>
+    <br/>
+    to <code>const withLens = !!(status &amp;&amp; status !== "decline") || status === null;</code>
+    <br/><br/>
+    Nothing else moves. <code>cycling</code> is already false for <code>null</code>, so the cycle-day
+    and length groups stay hidden and the label keeps its default wording, which is exactly LMP-only.
+    <code>undefined</code>, the unanswered state, stays hidden because it is not <code>null</code>.
+    This mock reproduces that behaviour in a shim marked below, rather than editing the lifted copy.
+  </div>
+
+  <div class="payload"><h2>profiles update payload, also in the console</h2><span id="payload-out">{}</span></div>
+</div>
+
+<script>
+// ── LIFTED VERBATIM from dashboard.html ──────────────────────────────────────
+// applyCycleLens, dashboard.html:2403-2419
+function applyCycleLens(status){
+  // Hormonal-contraception question: shown for regular/irregular/perimenopausal AND postmenopausal
+  // (HRT-adjacent relevance); hidden for pregnant and decline. Own visibility, independent of the lens
+  // (which shows LMP for pregnant too), so toggle it before the decline early-return below.
+  const hc = document.getElementById("cyc-hcgroup");
+  const showHc = (status === "regular" || status === "irregular" || status === "perimenopausal" || status === "postmenopausal");
+  if(hc) hc.classList.toggle("hidden", !showHc);
+  const lens = document.getElementById("cyc-lens"); if(!lens) return;
+  const withLens = !!(status && status !== "decline");
+  lens.classList.toggle("hidden", !withLens);
+  if(!withLens) return;
+  const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
+  const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
+  const len = document.getElementById("cyc-lengroup"); if(len) len.classList.toggle("hidden", !cycling);
+  const lbl = document.getElementById("cyc-lmp-label");
+  if(lbl) lbl.textContent = (status === "postmenopausal") ? "When did your last period start, if you remember" : "When did your last period start?";
+}
+
+// onb2DeriveMenstrual, dashboard.html:5634-5646
+function onb2DeriveMenstrual(){
+  const a = onb2.ans, s = onb2.stored;
+  const preg = ("preg" in a) ? a.preg : s.pregnant_or_postpartum_within_6_months;
+  if(preg === true) return "pregnant";
+  const ls = ("life_stage" in a) ? a.life_stage : s.life_stage;
+  if(ls === "perimenopause") return "perimenopausal";
+  if(ls === "postmenopause") return "postmenopausal";
+  const cs = ("cycle_status" in a) ? a.cycle_status : s.cycle_status;
+  if(cs === "regular") return "regular";
+  if(cs === "irregular" || cs === "pcos") return "irregular";
+  if(cs === "amenorrheic" || cs === "none") return null;
+  return undefined;
+}
+// ── end lifted ───────────────────────────────────────────────────────────────
+
+// MOCK-LOCAL SHIM. Stands in for the one-line change described above, so the
+// lifted copy stays byte-identical to dashboard.html. Delete this once the real
+// function carries the `|| status === null` clause.
+function mockLmpOnlyShim(status){
+  if(status !== null) return;
+  const lens = document.getElementById("cyc-lens");
+  if(lens) lens.classList.remove("hidden");
+  const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.add("hidden");
+  const lbl = document.getElementById("cyc-lmp-label");
+  if(lbl) lbl.textContent = "When did your last period start?";
+}
+
+const onb2 = { ans: {}, stored: {
+  pregnant_or_postpartum_within_6_months: null,
+  life_stage: null,
+  cycle_status: null,
+  menstrual_status: null,
+} };
+
+let pregAnswer = null;     // "yes" | "no" | null
+let cycleAnswer = null;    // one of the six chip tokens
+let reasonAnswer = null;   // amenorrhea_reason
+let htAnswer = null;       // hormone_therapy_status
+
+const CYCLE_WRITES = {
+  regular:        { life_stage: "premenopause", cycle_status: "regular" },
+  irregular_pcos: { cycle_status: "pcos" },
+  none:           { cycle_status: "none" },
+  perimenopause:  { life_stage: "perimenopause" },
+  postmenopause:  { life_stage: "postmenopause" },
+  decline:        {},
+};
+
+function showHormoneQ(){
+  // Q4 hides when Q1 is Yes. Pregnancy is its own hormonal state, and asking about
+  // contraception on top of it reads wrong. It also hides for Prefer not to say.
+  if(pregAnswer === "yes") return false;
+  return !!cycleAnswer && cycleAnswer !== "decline";
+}
+
+function buildPayload(){
+  const p = {
+    pregnant_or_postpartum_within_6_months: null,
+    life_stage: null,
+    cycle_status: null,
+    menstrual_status: null,
+    amenorrhea_reason: null,
+    hormone_therapy_status: null,
+  };
+  if(pregAnswer === "yes"){
+    p.pregnant_or_postpartum_within_6_months = true;
+  } else {
+    if(pregAnswer === "no") p.pregnant_or_postpartum_within_6_months = false;
+    Object.assign(p, CYCLE_WRITES[cycleAnswer] || {});
+  }
+  // Q3 belongs to the no-periods case only.
+  if(cycleAnswer === "none" && reasonAnswer) p.amenorrhea_reason = reasonAnswer;
+  // Q4 is asked for every cycle answer except Prefer not to say, and never when
+  // Q1 is Yes, so a stale answer cannot survive into the payload.
+  if(showHormoneQ() && htAnswer) p.hormone_therapy_status = htAnswer;
+  return p;
+}
+
+function syncOnb2Ans(){
+  const a = {};
+  if(pregAnswer === "yes") a.preg = true;
+  else if(pregAnswer === "no") a.preg = false;
+  if(pregAnswer !== "yes") Object.assign(a, CYCLE_WRITES[cycleAnswer] || {});
+  onb2.ans = a;
+}
+
+function render(){
+  const pregYes = pregAnswer === "yes";
+  document.getElementById("q-cycle").classList.toggle("hidden", pregYes);
+  document.getElementById("q-reason").classList.toggle("hidden", pregYes || cycleAnswer !== "none");
+  document.getElementById("q-ht").classList.toggle("hidden", !showHormoneQ());
+  document.getElementById("q-ht-t").textContent = (cycleAnswer === "postmenopause" && !pregYes)
+    ? "Are you using hormone therapy right now?"
+    : "Are you using hormonal contraception or hormone therapy right now?";
+
+  syncOnb2Ans();
+  const derived = onb2DeriveMenstrual();
+  applyCycleLens(derived);
+  mockLmpOnlyShim(derived);
+
+  const payload = buildPayload();
+  payload.menstrual_status = (derived === undefined) ? null : derived;
+
+  document.getElementById("derived-out").textContent =
+    (derived === undefined) ? "not set" : (derived === null ? "null, no periods at the moment" : derived);
+  document.getElementById("payload-out").textContent = JSON.stringify(payload, null, 2);
+  console.log("[cycle-status] profiles update payload", payload);
+}
+
+function clearGroup(q){
+  document.querySelectorAll('.bc-opts[data-q="' + q + '"] .bc-opt').forEach(b=>b.classList.remove("sel"));
+}
+
+document.querySelectorAll('.bc-opts[data-q]').forEach(grp=>{
+  const q = grp.getAttribute("data-q");
+  grp.querySelectorAll(".bc-opt").forEach(btn=>{
+    btn.onclick = ()=>{
+      const val = btn.getAttribute("data-val");
+      grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+      if(q === "preg"){
+        pregAnswer = val;
+        if(val === "yes"){
+          cycleAnswer = null; reasonAnswer = null; htAnswer = null;
+          clearGroup("cycle"); clearGroup("reason"); clearGroup("ht");
+        }
+      } else if(q === "cycle"){
+        cycleAnswer = val;
+        if(val !== "none"){ reasonAnswer = null; clearGroup("reason"); }
+        if(val === "decline"){ htAnswer = null; clearGroup("ht"); }
+      } else if(q === "reason"){ reasonAnswer = val; }
+      else if(q === "ht"){ htAnswer = val; }
+      render();
+    };
+  });
+});
+
+document.getElementById("lmp-forget").onclick = ()=>{
+  const lmp = document.getElementById("cyc-lmp");
+  if(lmp) lmp.value = "";
+  document.getElementById("lmp-forget").classList.add("sel");
+};
+document.getElementById("cyc-lmp").oninput = ()=>{
+  document.getElementById("lmp-forget").classList.remove("sel");
+};
+
+document.querySelectorAll('#ad-confounders .bc-opts').forEach(grp=>{
+  grp.querySelectorAll(".bc-opt").forEach(btn=>{
+    btn.onclick = ()=> grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
+  });
+});
+
+render();
+</script>
+</body></html>

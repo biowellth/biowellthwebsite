@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI disclaimer coverage — reading surfaces</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+ :root{--cream:#FAF8F4;--cream-mid:#F2EDE3;--teal:#0C8E6B;--teal-dark:#097A5B;--teal-light:#E3F5EE;--teal-soft:#F0F9F5;
+  --coral:#D47C65;--coral-light:#FAF0ED;--coral-dark:#BC6550;--brown:#47372B;--brown-mid:#6B5047;--brown-light:#EDE4DA;
+  --amber-light:#FAF4E6;--white:#fff}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--cream-mid);font-family:'Instrument Sans',sans-serif;color:var(--brown);padding:36px 20px 70px;line-height:1.6}
+ .wrap{max-width:980px;margin:0 auto}
+ h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;margin:0 0 6px}
+ .sub{font-size:14px;color:var(--brown-mid);margin:0 0 26px}
+ table.cov{width:100%;border-collapse:collapse;background:var(--cream);border:1px solid var(--brown-light);border-radius:12px;overflow:hidden;font-size:13.5px;margin-bottom:26px}
+ table.cov th{background:var(--cream-mid);text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid)}
+ table.cov td{padding:10px 12px;border-top:1px solid var(--brown-light);vertical-align:top}
+ .ok{color:var(--teal-dark);font-weight:600}
+ .gap{color:var(--coral-dark);font-weight:600}
+ .item{background:var(--cream);border:1px solid var(--brown-light);border-radius:14px;padding:18px 20px;margin-bottom:18px}
+ .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:5px;margin-bottom:10px}
+ .t-gap{background:var(--coral-light);color:var(--coral-dark)}
+ .t-ext{background:var(--amber-light);color:#8A6D1F}
+ .anchor{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--brown-mid);margin-bottom:12px}
+ /* deck mock */
+ .phone{max-width:360px;margin:0 auto;background:var(--cream);border:1px solid var(--brown-light);border-radius:26px;padding:16px 14px 14px;box-shadow:0 12px 34px rgba(71,55,43,.10)}
+ .segs{display:flex;gap:5px;margin-bottom:16px}
+ .segs i{flex:1;height:3px;border-radius:2px;background:var(--brown-light)}
+ .segs i.on{background:var(--teal)}
+ .card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:22px 18px;min-height:210px}
+ .eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;margin-bottom:10px}
+ .display{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;line-height:1.3;margin:0 0 10px}
+ .cardsub{font-size:13.5px;color:var(--brown-mid);margin:0}
+ .nav{display:flex;justify-content:flex-end;margin-top:14px}
+ .navbtn{background:var(--teal);color:#fff;border:0;border-radius:100px;padding:9px 18px;font-family:inherit;font-weight:600;font-size:13px}
+ .deck-ai-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--brown-light);font-size:11.5px;line-height:1.55;color:var(--brown-mid);text-align:center}
+ .disclaimer{background:#F7F2EB;border-radius:12px;padding:16px;font-size:12.5px;line-height:1.7;color:var(--brown-mid);margin-top:8px}
+ .disclaimer strong{color:var(--brown)}
+ .new{background:var(--teal-soft);outline:2px solid var(--teal-light)}
+ .note{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--brown-mid);margin-top:14px}
+ .note b{color:var(--teal-dark)}
+</style>
+</head>
+<body><div class="wrap">
+<h1>AI disclaimer coverage across the reading surfaces</h1>
+<p class="sub">What I actually found when I checked, rather than what the brief assumed. The companion card was covered an hour ago; the two gaps are elsewhere.</p>
+
+<table class="cov">
+ <tr><th>Surface</th><th>Has a disclaimer?</th><th>Mentions AI?</th><th>Verdict</th></tr>
+ <tr><td><code>.companion</code> (Sana card)</td><td>yes, <code>:1448</code></td><td class="ok">yes</td><td class="ok">already fine — shipped in AI_DISCLOSURE_V1</td></tr>
+ <tr><td><code>view-reveal</code> (the deck)<br><small>first delivery of the reading</small></td><td class="gap">NONE</td><td class="gap">no</td><td class="gap">REAL GAP · highest stakes</td></tr>
+ <tr><td><code>view-dashboard</code> body</td><td>yes, <code>:1535</code></td><td class="gap">no</td><td class="t-ext" style="color:#8A6D1F;font-weight:600">extend, do not duplicate</td></tr>
+ <tr><td><code>#report-doc</code> (printable)</td><td>yes, <code>:4226</code></td><td class="gap">no</td><td class="t-ext" style="color:#8A6D1F;font-weight:600">extend (printed, circulates)</td></tr>
+</table>
+
+<div class="item">
+ <span class="tag t-gap">Gap 1 · the reveal deck has nothing at all</span>
+ <div class="anchor">dashboard.html — inside <code>.phone</code>, below the nav, so it shows on EVERY beat</div>
+ <div class="phone">
+   <div class="segs"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+   <div class="card">
+     <div class="eyebrow">Your results, read differently</div>
+     <p class="display">Here is what your body is telling us.</p>
+     <p class="cardsub">This looks at how well you are, not just whether something is wrong.</p>
+   </div>
+   <div class="nav"><button class="navbtn">Begin ›</button></div>
+   <p class="deck-ai-note new">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
+ </div>
+ <div class="note"><b>Why in the chrome, not as a beat.</b> A beat can be skipped, and the deck has a Skip control. Placing it under the nav means it is on screen for every beat including the one showing her score, and it survives a screenshot of any single beat.</div>
+</div>
+
+<div class="item">
+ <span class="tag t-ext">Gap 2 · existing disclaimers lack the AI dimension</span>
+ <div class="anchor">dashboard.html:1535 (dashboard body) and the same sentence in reportDocHtml at :4226</div>
+ <div class="disclaimer new"><strong>This is educational, not a diagnosis.</strong> Your reading is generated by AI and can contain mistakes. We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.</div>
+ <div class="note"><b>One sentence added, nothing replaced.</b> The existing copy is signed and stays byte-identical around it. This adds only the specifically-AI dimension, which is the part a not-medical-advice clause does not cover.</div>
+</div>
+
+<div class="note" style="margin-top:22px"><b>What was already fine.</b> The companion card, and every existing not-medical-advice disclaimer. Nothing here replaces signed copy; gap 1 adds a new line, gap 2 inserts one sentence.</div>
+</div></body></html>

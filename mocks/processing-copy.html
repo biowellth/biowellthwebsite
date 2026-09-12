@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<title>Mock — processing copy honesty</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#FAF8F4; --cream-mid:#F2EDE3; --off-white:#FDFBF8; --white:#FFFFFF;
+  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
+  --amber:#D4A94A; --amber-light:#FAF3E0;
+  --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB;
+  --shadow:0 18px 50px -24px rgba(71,55,43,.45);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--brown);font-family:'Instrument Sans',sans-serif;padding:26px 16px 80px}
+.wrap{max-width:1240px;margin:0 auto}
+.mockbar{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.65;color:var(--brown-mid);background:var(--brown-soft);border:1px solid var(--brown-light);border-radius:10px;padding:11px 13px;margin-bottom:22px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--off-white);border:1px solid var(--brown-light);border-radius:18px;padding:22px 20px;box-shadow:var(--shadow);margin-bottom:20px}
+.ptitle{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:4px}
+.pwhen{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--teal-dark);margin-bottom:16px}
+.pwhen.warn{color:var(--coral-dark)}
+.stage{background:var(--cream);border:1px dashed var(--brown-light);border-radius:14px;padding:26px 20px}
+
+/* --- live classes, copied from dashboard.html --- */
+.proc{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.spinner{width:46px;height:46px;border-radius:50%;border:3px solid var(--brown-light);border-top-color:var(--teal);animation:spin .9s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;margin:0 0 10px;font-weight:600}
+.proc p{font-size:15px;color:var(--brown-mid);max-width:430px;line-height:1.7;margin:0}
+.interim-status{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.interim-dot{width:9px;height:9px;border-radius:50%;background:var(--teal);animation:pulse 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.interim-status-t{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
+.interim-sweep{position:relative;height:3px;border-radius:3px;background:var(--teal-light);overflow:hidden;margin-bottom:26px}
+.interim-sweep span{position:absolute;left:-40%;top:0;height:100%;width:40%;background:var(--teal);border-radius:3px;animation:sweep 1.9s ease-in-out infinite}
+@keyframes sweep{to{left:100%}}
+.interim-head{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:24px;line-height:1.25;margin:0 0 8px}
+.interim-sub{font-size:15px;color:var(--brown-mid);line-height:1.65;margin:0}
+.tiles{display:flex;gap:10px;margin-top:20px}
+.tile{flex:1;background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 14px}
+.tile .n{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:var(--teal-dark)}
+.tile .l{font-size:11.5px;color:var(--brown-mid);margin-top:2px}
+
+/* --- proposed failure state --- */
+.fail-icon{width:44px;height:44px;border-radius:50%;background:var(--coral-light);border:1px solid #F0DAD2;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.fail-icon svg{width:22px;height:22px;color:var(--coral-dark)}
+.btn-primary{margin-top:20px;font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);border:none;border-radius:12px;padding:12px 22px;cursor:pointer}
+.btn-primary:hover{background:var(--teal-dark)}
+.btn-quiet{margin-top:10px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--brown-mid);background:none;border:none;text-decoration:underline;cursor:pointer}
+.old{background:var(--coral-soft);border:1px solid #F0DAD2;border-radius:10px;padding:11px 13px;font-size:13px;color:var(--brown-mid);margin-top:14px;line-height:1.6}
+.old b{color:var(--coral-dark)}
+.note{font-size:12.5px;color:var(--brown-mid);margin-top:16px;padding-top:12px;border-top:1px dashed var(--brown-light);line-height:1.6}
+.sig{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--coral-dark);background:var(--coral-light);border:1px solid #F0DAD2;border-radius:6px;padding:2px 7px;margin-left:8px;vertical-align:middle}
+</style></head><body><div class="wrap">
+
+<div class="mockbar">
+MOCK — untracked, not committed. Four states of the processing lifecycle, live tokens and fonts.<br/>
+RECON CORRECTION: the copy never said "about a minute". Upload and processing screens already say
+"up to about ten minutes" and already promise leave-and-return. The real gap is on the INTERIM screen,
+where the long Call B wait actually happens, and in the FAILURE state.<br/>
+<b>SIGNED</b> = byte-exact in docs/biowellth-between-calls-copy-SIGNED.md. Changing it needs your signature first.
+</div>
+
+<div class="cols">
+
+  <!-- ============ A ============ -->
+  <div class="panel">
+    <div class="ptitle">A · normal — Call A, "Reading your report"</div>
+    <div class="pwhen">shown 0 to ~3 min · NO CHANGE PROPOSED</div>
+    <div class="stage proc">
+      <div class="spinner"></div>
+      <h1>Reading your report</h1>
+      <p>We are reading every result and comparing it against functional ranges built for South Asian women. This can take up to about ten minutes. You can close this page and come back, and your results will be saved.</p>
+    </div>
+    <div class="note">This is already honest and already promises leave-and-return. Recon confirms the
+    promise holds: the report picker marks a report viewable on <code>status === "done"</code>, so a
+    completed reading is there on return. Leave as is.</div>
+  </div>
+
+  <!-- ============ B ============ -->
+  <div class="panel">
+    <div class="ptitle">B · normal — interim, your numbers are in</div>
+    <div class="pwhen">shown from ~3 min, while Call B runs</div>
+    <div class="stage">
+      <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Still reading your full results</span></div>
+      <div class="interim-sweep"><span></span></div>
+      <h1 class="interim-head">We found <b>191</b> markers across your body's systems.</h1>
+      <p class="interim-sub">We are working through your full reading now. This part usually takes a few minutes.</p>
+      <div class="tiles">
+        <div class="tile"><div class="n">191</div><div class="l">markers read</div></div>
+        <div class="tile"><div class="n">17</div><div class="l">systems covered</div></div>
+      </div>
+    </div>
+    <div class="old">REPLACES <b>IN-3</b> <span class="sig">signed</span><br/>
+      current: <b>"Your full results are almost ready."</b><br/>
+      This is the one string that is not true. It is shown at the ~3 minute mark and the reading
+      typically takes several more minutes from there, sometimes much longer.</div>
+    <div class="note">IN-1 and IN-2 unchanged and still byte-exact. Only IN-3 moves.</div>
+  </div>
+
+  <!-- ============ C ============ -->
+  <div class="panel">
+    <div class="ptitle">C · long-running — interim, past ~6 min</div>
+    <div class="pwhen">elapsed &gt; ~6 min · same screen, one string swaps</div>
+    <div class="stage">
+      <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Still reading your full results</span></div>
+      <div class="interim-sweep"><span></span></div>
+      <h1 class="interim-head">We found <b>191</b> markers across your body's systems.</h1>
+      <p class="interim-sub">Still working. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.</p>
+      <div class="tiles">
+        <div class="tile"><div class="n">191</div><div class="l">markers read</div></div>
+        <div class="tile"><div class="n">17</div><div class="l">systems covered</div></div>
+      </div>
+    </div>
+    <div class="note"><b>RETRY IS NOT DISTINGUISHABLE, so state C and the brief's state D are one
+    state.</b> Recon: <code>failPhase</code> writes <code>reports.status = "error"</code> only when
+    retries are exhausted, so during attempts 2 and 3 the front end sees exactly what it saw before.
+    This calm continuation therefore covers the retry case too, which is correct, because a retry is
+    the queue working, not a fault she needs to know about.<br/>
+    Elapsed is detectable front-end side from the poll start, and on a revisit from
+    <code>reports.created_at</code>.</div>
+  </div>
+
+  <!-- ============ D ============ -->
+  <div class="panel">
+    <div class="ptitle">D · failure — all attempts exhausted</div>
+    <div class="pwhen warn">reports.status = "error" · CURRENT STATE IS CONTRADICTORY</div>
+    <div class="stage proc">
+      <div class="fail-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <h1>We could not finish this reading</h1>
+      <p>Your report is saved and nothing is lost. Something went wrong while we were reading it, and it is worth another try. If it stops again, tell us and we will look at it with you.</p>
+      <button class="btn-primary">Try this report again</button>
+      <button class="btn-quiet">Go to my dashboard</button>
+    </div>
+    <div class="old">REPLACES the current failure state, which is worse than no copy.<br/>
+      Today the spinner <b>keeps spinning</b>, the headline still reads <b>"Reading your report"</b>,
+      the body still promises <b>"up to about ten minutes"</b>, and a small coral line underneath says
+      <b>"Something went wrong reading this report. Please try uploading it again."</b>
+      She is told it is still working and that it failed, at the same time, and there is no control to
+      act on.</div>
+    <div class="note">The "Try this report again" control is <b>new</b> and needs a backend decision
+    before it can be built: re-enqueueing the existing report is cheap and keeps her transcription, but
+    there is no front-end-reachable path to do it today. If you would rather not build that now, the
+    honest fallback is to drop the button and keep the copy, pointing her at a fresh upload.</div>
+  </div>
+
+</div>
+
+<div class="panel">
+  <div class="ptitle">What is actually true, for reference while you read the copy</div>
+  <div class="note" style="border-top:none;padding-top:4px;margin-top:6px">
+    Typical: your numbers appear at ~3 min, the full reading lands ~5 min in.
+    Measured Call B on a maximal panel: 293 seconds.
+    Worst case with queue retries: about 20 minutes.
+    Hard failure is possible after three attempts.
+    The upload screen's "up to about ten minutes" covers the typical and long cases honestly, and
+    understates only the rare retry case. No proposed string promises a number we cannot keep.
+  </div>
+</div>
+
+</div></body></html>
