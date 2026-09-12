@@ -92,6 +92,26 @@ One file, one global scope. Structure: `<style>` (lines ~12–1143) → markup f
 
 **Honesty over polish** is the recurring standard in this codebase, and several commits exist purely to fix a screen that overstated what happened. When a state is uncertain, say so; when a control will not work, do not render it.
 
+**One writing session per repo (rule 18).** Before any write, check for `docs/.session-lock`. A
+fresh lock you do not own means go read-only. Otherwise create it (session id, UTC stamp, scope,
+repos) and commit it with your first write; remove it at seal. Read-only parallel sessions are
+fine; the lock governs writes.
+
+**The lock is COMMITTED, not just written.** A lock that exists only in a working tree protects
+nobody, because the thing it protects against is another session operating on that same working
+tree. Both incidents below were invisible to anyone reading the file list.
+
+**This lock matters more here than in the backend repos, because a push here IS a deploy.**
+`main` is served by GitHub Pages at biowellth.ai and new bytes are live in roughly 61 seconds.
+There is no staging step and no review gate between a push and a stranger reading the page.
+
+Earned 2026-09-12, twice in one afternoon. First a commit landed on `main` beside an in-flight
+session's work and rode along in its push set. Then, while that session was mid-command, another
+one checked out a different branch in the same working tree, cherry-picked onto it and pushed.
+Every file the first session had touched reverted on disk underneath it, its test assertions
+read as deleted, and only the reflog showed why. Nothing was lost, and that was luck rather than
+design.
+
 **Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page.
 
 **`mocks/`** holds standalone single-file mocks named after the change token (`mocks/quota-429.html`, `mocks/processing-copy.html`). Each copies the live classes out of `dashboard.html` and renders every state of a screen side by side for review before the change is wired into the app. The directory is untracked working material — build a mock here first for anything that changes what a user sees in a hard-to-reach state (a failure, a quota block, a long-running job).

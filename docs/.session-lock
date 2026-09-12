@@ -1,0 +1,6 @@
+session:  claude-code 2026-09-12 website reconcile and cycle work
+taken:    2026-09-12T19:58:16Z
+scope:    dashboard.html cycle questions, upload failure surfacing, copy rule inventory
+repos:    biowellth-website
+note:     Remove at seal. A fresh lock you do not own means go read-only.
+          See CLAUDE.md, rule 18. A push here deploys to biowellth.ai in about 61 seconds.
