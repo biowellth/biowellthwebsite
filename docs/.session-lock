@@ -1,0 +1,10 @@
+session:  claude-code 2026-09-13 cycle capture on the upload card
+taken:    2026-09-13T01:58:00Z
+scope:    W3.2b widen loadProfile's profiles select by the two typical_* columns.
+          W3.2c the two cycle questions on the per-draw upload card, rendered only
+          when the stored value is not a valid integer, sent on both process-report
+          call sites. ONBOARDING_ENABLED stays false. dashboard.html and
+          scripts/test-*.mjs only.
+repos:    biowellth-website
+note:     Remove at seal. A fresh lock you do not own means go read-only.
+          See CLAUDE.md rule 18. A push here IS a deploy, live in about 61s.

@@ -1842,7 +1842,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at, menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, amenorrhea_reason, hormone_therapy_status").eq("id", USER.id).maybeSingle();
+    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at, menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, amenorrhea_reason, hormone_therapy_status, typical_cycle_length_days, typical_period_duration_days").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
   applyDobGate();   // DOB_GATE_V1 -- before applyConsentUI, which reads DOB_GATE_OPEN
