@@ -1,8 +1,0 @@
-session:  claude-code 2026-09-13 live exclusion check and the stale CLAUDE.md section
-taken:    2026-09-13T02:55:00Z
-scope:    P1 a live-fetch checker for internal paths under scripts/. P3 rewrite the
-          stale "Deferred: FIX NOW" section in CLAUDE.md and record the _config.yml
-          dependency. P4 is report only. No dashboard.html change expected.
-repos:    biowellth-website
-note:     Remove at seal. A fresh lock you do not own means go read-only.
-          See CLAUDE.md rule 18. A push here IS a deploy, live in about 61s.
