@@ -1500,6 +1500,24 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
               <div class="bc-opts" data-cq="ht"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
             </div>
           </div>
+          <!-- CYCLE_CAPTURE_V2. The group applyCycleUI already toggles on `cycling` and
+               which, until now, did not exist in the markup at all, so that line was
+               inert. Both questions are OPTIONAL and blank means skip: collectCycle
+               omits the key entirely rather than sending null or a default.
+
+               Each one renders only when we do not already hold a valid integer, so a
+               woman who has answered is never asked twice. The bounds match supa
+               migration 0015, which CHECKs 15 to 90 and 1 to 15. -->
+          <div id="cyc-lengroup" class="hidden">
+            <div class="cyc-cd" id="cyc-len-q">
+              <label class="cyc-l" for="cyc-len">About how long is your usual cycle?</label>
+              <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90"/>
+            </div>
+            <div class="cyc-cd" id="cyc-dur-q">
+              <label class="cyc-l" for="cyc-dur">About how many days does your period last?</label>
+              <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15"/>
+            </div>
+          </div>
           <!-- CYCLE_DAY_ORDER_V1. Lifted out of #cyc-lens and placed AFTER #cyc-questions,
                because in the first-time state both are on screen at once and the cycle day
                control used to render ABOVE the question that reveals it. It carries `hidden`
@@ -2802,11 +2820,18 @@ function applyCycleLens(status){
     // return, or a declined status would leave the cycle day control on screen.
     const cdOut = document.getElementById("cyc-cdgroup");
     if(cdOut) cdOut.classList.add("hidden");
+    // CYCLE_CAPTURE_V2. #cyc-lengroup sits outside #cyc-lens for the same reason
+    // #cyc-cdgroup does, so it needs the same explicit hide before the early
+    // return. Without it a declined status leaves both cycle questions on screen,
+    // which is precisely the bug CYCLE_DAY_ORDER_V1 fixed for its sibling.
+    const lenOut = document.getElementById("cyc-lengroup");
+    if(lenOut) lenOut.classList.add("hidden");
     return;
   }
   const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
   const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
   const len = document.getElementById("cyc-lengroup"); if(len) len.classList.toggle("hidden", !cycling);
+  applyCycleLenGate();   // CYCLE_CAPTURE_V2, per question, on top of the group toggle
   const lbl = document.getElementById("cyc-lmp-label");
   if(lbl) lbl.textContent = (status === "postmenopausal") ? "When did your last period start, if you remember" : "When did your last period start?";
 }
@@ -2842,9 +2867,29 @@ function clientTimeZone(){
   }catch(e){ return ""; }
 }
 
+// CYCLE_CAPTURE_V2. Hoisted out of collectCycle, unchanged, so the render gate and
+// the collector cannot disagree about what a valid answer is. One notion of valid.
+//
+// Returns the integer or null. It is a PARSE, not a truthiness test, which is what
+// makes a stored 0 ask again: 0 is an integer but outside both CHECK ranges, so it
+// comes back null and the question renders. `!v` would have done the same thing here
+// by accident and the wrong thing the day a bound starts at 0.
+const cycInRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
+// Bounds are supa migration 0015's CHECK constraints, not numbers chosen here.
+const CYC_LEN_MIN = 15, CYC_LEN_MAX = 90, CYC_DUR_MIN = 1, CYC_DUR_MAX = 15;
+
+// Each question renders only when we do NOT already hold a valid integer for it.
+// PROFILE is the boot read, widened by CYCLE_READ_V1 to carry both columns.
+function cycNeedsLen(){ return cycInRange((PROFILE||{}).typical_cycle_length_days, CYC_LEN_MIN, CYC_LEN_MAX) == null; }
+function cycNeedsDur(){ return cycInRange((PROFILE||{}).typical_period_duration_days, CYC_DUR_MIN, CYC_DUR_MAX) == null; }
+function applyCycleLenGate(){
+  const q1 = document.getElementById("cyc-len-q"); if(q1) q1.classList.toggle("hidden", !cycNeedsLen());
+  const q2 = document.getElementById("cyc-dur-q"); if(q2) q2.classList.toggle("hidden", !cycNeedsDur());
+}
+
 function collectCycle(){
   const out = {};
-  const inRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
+  const inRange = cycInRange;
   // CLIENT_TZ_V1. Sent on BOTH process-report paths, and unconditionally, including
   // the decline and full-skip branches below. It is not a cycle answer and declining
   // to describe a draw is not declining to be in a timezone. This is the STORED
@@ -2860,6 +2905,13 @@ function collectCycle(){
   // asker per column is the rule. process-report still accepts them, so nothing
   // server side changed; this client simply stops sending them.
   //
+  // CORRECTED 2026-09-13. Two of the five came BACK, above: the onboarding flow
+  // that was going to ask them is behind ONBOARDING_ENABLED, which is false, so
+  // between 2026-09-02 and today NOTHING asked, and both columns are null for
+  // every user. One asker per column still holds; this card is now that asker for
+  // the two, and it only asks when we do not already hold an answer, so it cannot
+  // become a second asker if onboarding is ever switched on.
+  //
   // WHAT REMAINS HERE IS GENUINELY PER-DRAW and cannot move: lmp_date_before_draw,
   // cycle_day_at_draw and cycle_context_declined describe THIS blood draw, not
   // the person. process-report routes them to the reports row, not profiles.
@@ -2868,6 +2920,23 @@ function collectCycle(){
     const lmpV = (document.getElementById("cyc-lmp")||{}).value; const today = new Date().toISOString().slice(0,10);
     if(lmpV && lmpV <= today) out.lmp_date_before_draw = lmpV;
     const cd = inRange((document.getElementById("cyc-cd")||{}).value, 1, 120); if(cd!=null) out.cycle_day_at_draw = cd;
+    // CYCLE_CAPTURE_V2. The two durable columns, asked here because nothing else
+    // asks them: ONBOARDING_ENABLED is false and the per-draw card stopped sending
+    // them on 2026-09-02, so they are null for every user. bb derives period_end_date
+    // from the duration, and without it phaseForDay falls back to Menstrual being
+    // days 1 to 5 for everyone, so a woman who bleeds seven days is told Follicular
+    // on day 6.
+    //
+    // ONLY WHEN ASKED. A hidden question is a question we did not put to her, so its
+    // input is not read: sending the stored value back would be a write we invented.
+    if(cycNeedsLen()){
+      const cl = inRange((document.getElementById("cyc-len")||{}).value, CYC_LEN_MIN, CYC_LEN_MAX);
+      if(cl!=null) out.typical_cycle_length_days = cl;   // blank or invalid: key omitted, never null
+    }
+    if(cycNeedsDur()){
+      const du = inRange((document.getElementById("cyc-dur")||{}).value, CYC_DUR_MIN, CYC_DUR_MAX);
+      if(du!=null) out.typical_period_duration_days = du;
+    }
   }
   return out;
 }
