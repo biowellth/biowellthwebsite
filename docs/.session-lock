@@ -1,0 +1,13 @@
+session:  claude-code 2026-09-14 the scan entry point copy and its one call site
+taken:    2026-09-14T23:35:19Z
+scope:    dashboard.html gains the three founder-approved strings in SANA_COPY,
+          the entry-point markup on the Sana card, renderScanEntry as the visual
+          consent gate, and the single call site for openFaceScan. Hooked from
+          sanaMountChat because renderCompanionChips is sha-locked at
+          27df0486c6f6f070 and sanaMountChat is its last statement. Plus new
+          assertions in scripts/test-scan-handoff.mjs.
+          bb (e4d98c9 local, 1 ahead, unpushed), ~/shen-host and
+          ~/Desktop/biowellth-backend-supa are not touched.
+repos:    biowellth-website
+note:     Remove at seal. A fresh lock you do not own means go read-only.
+          See CLAUDE.md rule 18. A push here IS a deploy, live in about 61s.

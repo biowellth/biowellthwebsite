@@ -154,6 +154,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
    output. Not a dismissable toast: screenshots of a reading circulate without the policy
    attached, so the disclaimer has to be on the content itself. */
 .comp-ai-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--brown-light);font-size:12px;line-height:1.6;color:var(--brown-mid)}
+.scan-entry{margin-top:14px;padding-top:12px;border-top:1px solid var(--brown-light)}
+.scan-intro{margin:0 0 4px;font-size:13px;line-height:1.6;color:var(--brown-mid)}
+.scan-detail{margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--brown-mid);opacity:.9}
 /* AGE_AFFIRM_V1 — grandfathered-account affirmation. Reuses .onb-modal/.onb-card geometry,
    but this one is BLOCKING: no skip control, no backdrop close, no Escape. A skippable
    affirmation records nothing. .age-under is the quiet under-18 exit. */
@@ -1671,6 +1674,26 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div id="sana-consent" class="sana-consent"></div>
       <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
+      <!-- FACE_SCAN_ENTRY_V1. Hidden until sanaConsentGranted resolves true; see
+           renderScanEntry. Every string is set from SANA_COPY, so the no-colon
+           and no-em-dash rule stays checkable in one place.
+
+           THE INTRO SITS ABOVE THE BUTTON IN MARKUP, and that is the point. A
+           browser camera prompt arriving with no preceding sentence is the
+           failure this block exists to avoid, and document order is the only
+           thing a handler, a race or a style cannot reorder later. It is not a
+           class, not an insertBefore, not a flex order.
+
+           It sits BELOW the AI disclosure so that note stays attached to the
+           chat it describes. A camera reading is not Sana talking.
+
+           Dashboard card only. view-companion has its own -nopanel mounts and a
+           second copy here would duplicate the ids. -->
+      <div class="scan-entry hidden" id="scan-entry">
+        <p class="scan-intro" id="scan-intro"></p>
+        <p class="scan-detail" id="scan-detail"></p>
+        <button class="btn-ghost" id="scan-go" type="button"></button>
+      </div>
     </div>
 
     <!-- CARD_ORDER_V1 2026-09-06: score card first, Sana second, invitations third.
@@ -7097,6 +7120,15 @@ const SANA_COPY = {
   runtime:     "Something went wrong answering that. Please try again.",
   offline:     "We could not reach Sana just now. Please check your connection and try again.",
 
+  // FACE_SCAN_ENTRY_V1 copy. Founder approved 2026-09-14 and used VERBATIM; do
+  // not reword. No colon, no em dash, American spelling. No range or assessment
+  // language belongs here. The results screen already carries the approved
+  // disclaimer, and saying it twice in different words is how two versions of
+  // one promise start to drift.
+  scanLabel:   "Take a camera reading",
+  scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
+  scanDetail:  "You will see your heart rate, heart rate variability and breathing rate.",
+
   // SANA_CONSENT_V3 — counsel's data-flow language, adapted to the copy rules
   // (no em dashes, no colons in body copy, short plain sentences).
   //
@@ -7396,6 +7428,37 @@ async function sanaConsentGranted(){
 // ruling. One call site is all that remains.
 const SCAN_ORIGIN = "https://scan.biowellth.ai";
 
+// FACE_SCAN_ENTRY_V1 - the VISUAL gate, and the only place openFaceScan is wired.
+//
+// HIDDEN, NOT DISABLED, and not rendered at all without consent. A disabled
+// control still tells a woman who declined that a camera flow exists and is
+// being withheld from her, which is a different message from not offering it.
+// The node ships carrying the "hidden" class in markup, so the default state is
+// invisible and this function can only ever ADD visibility. It can never be the
+// step that was supposed to hide something and did not run.
+//
+// THIS IS THE SECOND GATE, NOT THE ONLY ONE. openFaceScan re-checks
+// sanaConsentGranted before minting a token, because a visual gate is a fact
+// about the DOM and anything can edit the DOM.
+//
+// Called from sanaMountChat rather than renderCompanionChips: that function body
+// is sha-locked, and sanaMountChat is its last statement, so this is the one
+// hook on that path that may change.
+async function renderScanEntry(){
+  const host = $("scan-entry");
+  if(!host) return;
+  if(!(await sanaConsentGranted())) return;   // stays hidden, nothing rendered
+
+  const intro = $("scan-intro"), detail = $("scan-detail"), go = $("scan-go");
+  if(!intro || !detail || !go) return;
+  // textContent, not innerHTML. Copy is copy, and none of this is markup.
+  intro.textContent  = SANA_COPY.scanIntro;
+  detail.textContent = SANA_COPY.scanDetail;
+  go.textContent     = SANA_COPY.scanLabel;
+  go.onclick = openFaceScan;
+  host.classList.remove("hidden");
+}
+
 async function openFaceScan(){
   // CONSENT BEFORE A CAMERA, and before any token is minted. The same gate Sana
   // uses, read the same way: a woman who has not accepted must not reach a
@@ -7692,6 +7755,11 @@ async function sanaSend(){
 // exactly where the companion block already appears, gated on the same
 // condition. No panel, no companion block, no chat.
 function sanaMountChat(){
+  // The camera reading is not the chat, so it renders on its own consent gate
+  // and BEFORE the chat flag is consulted. Gating it on SANA_CHAT_ENABLED would
+  // tie a camera feature to whether a chat box is switched on, a coupling nobody
+  // decided on.
+  renderScanEntry();
   if(!SANA_CHAT_ENABLED) return;
   const mount = $(SANA_MOUNT_ID);
   // A node with no dataset is not a real element to mount into. Checking it here

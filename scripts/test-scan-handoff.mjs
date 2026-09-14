@@ -186,8 +186,94 @@ ok("strict order: consent, then token, then open",
 // ---------------------------------------------------------------------------
 const STRINGS = (CODE.match(/"[^"\n]{4,}"/g) || []);
 ok("string control: the file does carry many literals", STRINGS.length > 100);
-eq("no user-facing scan or camera copy shipped",
-  STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s)).length, 0);
+// PASS 1 asserted zero scan or camera copy, which was right while the entry point
+// had no label. The approved copy now ships, so the assertion is INVERTED rather
+// than deleted: exactly the approved strings, and no fourth one smuggled in beside
+// them.
+const SCANNY = STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s));
+eq("exactly two scan or camera literals ship", SCANNY.length, 2);
+ok("and both are the founder-approved strings",
+  SCANNY.every((s) => s.includes("Take a camera reading") ||
+                      s.includes("This uses your camera for about a minute")));
+
+// ---------------------------------------------------------------------------
+// 6. THE CALL SITE. Exactly one, and it is the button's handler.
+// ---------------------------------------------------------------------------
+const CALLS = (CODE.match(/openFaceScan/g) || []);
+eq("openFaceScan appears exactly twice in code: the declaration and the wiring",
+  CALLS.length, 2);
+eq("exactly one call site: the button handler",
+  (CODE.match(/go\.onclick = openFaceScan;/g) || []).length, 1);
+eq("exactly one declaration", (CODE.match(/async function openFaceScan\(/g) || []).length, 1);
+// The declaration is removed FIRST. "async function openFaceScan()" contains the
+// literal "openFaceScan()", so a naive invocation check fails on a correct file.
+// That happened on this file's first run of these assertions.
+const NO_DECL = CODE.replace("async function openFaceScan(", "async function __decl(");
+ok("it is never invoked at load time", !/openFaceScan\(\)/.test(NO_DECL));
+ok("declaration-strip control: the declaration really was there and is now gone",
+  /openFaceScan\(\)/.test(CODE) && CODE !== NO_DECL);
+ok("call-site control: the matcher DOES fire on a real invocation",
+  /openFaceScan\(\)/.test("openFaceScan();"));
+
+// ---------------------------------------------------------------------------
+// 7. THE COPY. In the object, never inline, and reaching the DOM from there.
+// ---------------------------------------------------------------------------
+const COPY_OBJ = (CODE.match(/const SANA_COPY = \{[\s\S]*?\n\};/) || [""])[0];
+ok("copy object control: SANA_COPY was found and is non-trivial", COPY_OBJ.length > 400);
+const THREE = [
+  ["scanLabel",  "Take a camera reading"],
+  ["scanIntro",  "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."],
+  ["scanDetail", "You will see your heart rate, heart rate variability and breathing rate."],
+];
+for (const [key, text] of THREE) {
+  ok("SANA_COPY." + key + " carries the approved string verbatim",
+    COPY_OBJ.includes('"' + text + '"'));
+  // RAW, NOT CODE. CODE is script-only, so an approved string inlined into the
+  // MARKUP -- the exact mistake this assertion exists to catch -- is invisible to
+  // a CODE-based count. A mutation that inlined the label into the button passed
+  // a green suite until this was changed.
+  eq("zero inline literals of " + key + " anywhere in the file",
+    (RAW.split(text).length - 1) - (COPY_OBJ.split(text).length - 1), 0);
+  ok("inline control: the string IS present once, in the copy object",
+    (RAW.split(text).length - 1) === 1);
+  ok(key + " reaches the DOM from the copy object",
+    new RegExp("textContent\\s*=\\s*SANA_COPY\\." + key).test(CODE));
+}
+ok("no em dash in the three strings", THREE.every(([, t]) => !t.includes("\u2014")));
+ok("no colon in the three strings", THREE.every(([, t]) => !t.includes(":")));
+ok("copy control: an em dash IS detectable by that test", "a \u2014 b".includes("\u2014"));
+
+// ---------------------------------------------------------------------------
+// 8. THE VISUAL GATE. Hidden by default, revealed only on a true consent.
+// ---------------------------------------------------------------------------
+ok("the entry node ships carrying the hidden class",
+  /<div class="scan-entry hidden" id="scan-entry">/.test(RAW));
+const RS = body("renderScanEntry");
+ok("renderScanEntry control: body extracted and mentions the host", /scan-entry/.test(RS));
+ok("consent is awaited before anything is rendered",
+  /if\(!\(await sanaConsentGranted\(\)\)\) return;/.test(RS) &&
+  RS.indexOf("sanaConsentGranted") < RS.indexOf("classList.remove"));
+ok("a false consent returns BEFORE the class is removed and BEFORE the handler is wired",
+  RS.indexOf("sanaConsentGranted") < RS.indexOf("go.onclick"));
+ok("the only visibility change ADDS visibility, never removes it",
+  /classList\.remove\("hidden"\)/.test(RS) && !/classList\.add\("hidden"\)/.test(RS));
+ok("hidden, not disabled: nothing sets a disabled property here",
+  !/\.disabled\s*=/.test(RS));
+ok("disabled control: that matcher fires on a line that does disable something",
+  /\.disabled\s*=/.test("btn.disabled = true;"));
+
+// ---------------------------------------------------------------------------
+// 9. ORDERING ACROSS BOTH GATES. Visual gate resolves first; the token gate is
+//    re-checked independently before anything is minted.
+// ---------------------------------------------------------------------------
+ok("both gates read the same consent function",
+  /sanaConsentGranted/.test(RS) && /sanaConsentGranted/.test(FN));
+ok("the render hook runs before the chat flag is consulted",
+  /renderScanEntry\(\);\n  if\(!SANA_CHAT_ENABLED\) return;/.test(CODE));
+eq("renderScanEntry has exactly one call site", (CODE.match(/renderScanEntry\(\);/g) || []).length, 1);
+ok("markup order, not handler order, puts the intro above the button",
+  RAW.indexOf('id="scan-intro"') < RAW.indexOf('id="scan-go"'));
+ok("markup order control: the ids really are present", RAW.indexOf('id="scan-go"') > 0);
 
 console.log("");
 console.log("  " + pass + " passed, " + fail + " failed");
