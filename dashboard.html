@@ -7368,6 +7368,63 @@ async function sanaConsentGranted(){
   return SANA_CONSENT_STATE;
 }
 
+// FACE_SCAN_ENTRY_V1 — the one-tap authenticated hand-off to the scan page.
+//
+// THE MECHANISM, ratified: a one-time Supabase access token in the URL FRAGMENT,
+// assembled at click time and handed straight to window.open. A fragment is never
+// sent to a server, so it appears in no request line and no access log. The scan
+// page reads it once in a classic head script and strips it with
+// history.replaceState before anything else runs.
+//
+// NOOPENER IS KEPT ON PURPOSE. It is what makes window.opener null on the far
+// side, and scan.biowellth.ai serves COOP same-origin, so there is no handle to
+// postMessage through in either direction. The fragment is not a workaround for
+// the missing channel -- it is the consequence of a boundary we want, and
+// dropping noopener to get a channel back would hand the scan page a live
+// reference to this tab. A second login on scan.biowellth.ai was rejected
+// separately, as a second auth surface for the same woman.
+//
+// THE TOKEN IS NEVER PERSISTED AND NEVER RENDERED. It lives in two local consts
+// for the length of this call and nowhere else: no element, no data attribute, no
+// localStorage, no sessionStorage, no cookie, no console. Both consts die with
+// the call frame, so nothing retains the URL after window.open returns.
+//
+// NOT WIRED TO A CONTROL YET, deliberately. A visible entry point needs a label
+// and a line saying it uses the camera, and this repo has no scan or camera copy
+// at all. Writing that copy here would put unreviewed user-facing words on the
+// dashboard, so the mechanism ships gated and tested and the copy is a separate
+// ruling. One call site is all that remains.
+const SCAN_ORIGIN = "https://scan.biowellth.ai";
+
+async function openFaceScan(){
+  // CONSENT BEFORE A CAMERA, and before any token is minted. The same gate Sana
+  // uses, read the same way: a woman who has not accepted must not reach a
+  // camera flow, and an unknown answer counts as not granted.
+  if(!(await sanaConsentGranted())) return false;
+
+  // Re-read the session rather than caching one, for sanaAccessToken's own
+  // reason: a dashboard tab outlives an access token, so a cached one is a
+  // guaranteed failure on the far side later.
+  const token = await sanaAccessToken();
+  if(!token){
+    // No live session, so do not open the page at all. This is the EXISTING
+    // affordance sanaSend uses at exactly this point, with the existing copy;
+    // no new string is introduced for it.
+    const thread = $("sana-thread");
+    if(thread){
+      const n = document.createElement("div"); n.className = "sana-turn";
+      thread.appendChild(n); sanaNote(n, SANA_COPY.expired);
+    }
+    return false;
+  }
+
+  // Raw, not encoded: the scan page reads the fragment as h.slice(1) with no
+  // decode step, so encoding here would hand it a token it cannot use.
+  const url = SCAN_ORIGIN + "/index-scan.html#" + token;
+  window.open(url, "_blank", "noopener");
+  return true;
+}
+
 // Renders the notice and resolves true only on an affirmative tap that the server
 // accepted. Declining resolves false and stamps nothing.
 function sanaAskConsent(){

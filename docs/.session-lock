@@ -1,0 +1,15 @@
+session:  claude-code 2026-09-14 one-tap authenticated hand-off to the scan page
+taken:    2026-09-14T23:27:58Z
+scope:    dashboard.html gains FACE_SCAN_ENTRY_V1: a one-time Supabase access
+          token in the URL FRAGMENT, assembled at click time and handed straight
+          to window.open(..., "noopener"). Built on the report-vault handler at
+          dashboard.html:2000-2016 and sanaAccessToken at :7201-7206. Gated on
+          sanaConsentGranted, the same gate Sana uses. Plus one new offline test
+          under scripts/. NO new user-facing copy: the repo has 0 scan or camera
+          strings today, so the visible entry point is NOT rendered in this pass
+          and the required copy is reported instead.
+          bb (e4d98c9 local, unpushed), ~/shen-host and
+          ~/Desktop/biowellth-backend-supa are not touched.
+repos:    biowellth-website
+note:     Remove at seal. A fresh lock you do not own means go read-only.
+          See CLAUDE.md rule 18. A push here IS a deploy, live in about 61s.
