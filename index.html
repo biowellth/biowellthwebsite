@@ -913,11 +913,62 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
       <p>Open across India. Takes under two minutes.</p>
     </section>
     <div class="ea-form ea-form-desktop">
-      <iframe src="https://form.typeform.com/to/t0eULTZa" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
+      <iframe id="ea-tf-iframe" data-tf-base="https://form.typeform.com/to/t0eULTZa" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
     </div>
     <div class="ea-form-mobile">
-      <button data-tf-popup="t0eULTZa" data-tf-size="100" class="btn-teal ea-mobile-btn">Open the waitlist form</button>
+      <button id="ea-tf-popup" data-tf-popup="t0eULTZa" data-tf-size="100" class="btn-teal ea-mobile-btn">Open the waitlist form</button>
     </div>
+    <!-- TYPEFORM_UTM_HIDDEN_V1. Carries utm_source, utm_medium and utm_content from
+         this page's URL into the form's hidden fields of the same names. Two embeds,
+         two mechanisms, one set of values:
+           desktop  raw iframe   -> hidden fields go in the form URL's #hash, which is
+                                    exactly what embed.js itself builds for its embeds
+           mobile   data-tf-popup -> data-tf-hidden="k=v,k=v", read by embed.js at init,
+                                    so this must run before the embed.js tag at the end
+                                    of body, and it does
+         The iframe's src moved here from the markup, otherwise the form loads once bare
+         and again with the hash. No-JS loses nothing: .page is display:none until the
+         router activates it.
+         Values are lowercased and passed only if the whole value matches [a-z0-9_.-]
+         and is at most 64 chars, otherwise passed empty. Dropping the whole value rather
+         than stripping characters keeps a mangled tag from reading as a real one, and the
+         allowlist is also what keeps a comma, ampersand or equals out of both encodings.
+         Absent keys pass empty, never a default: /waitlist sets direct upstream. Note
+         embed.js omits empty values from the popup URL, which lands identically, a blank
+         hidden field. fbclid and every other param are never read here.
+         No analytics, pixel or extra request.
+         TYPEFORM_UTM_HIDDEN_V2: the form loading is non-negotiable, the tags are best
+         effort. V1 read the params first and returned on a throw, which left the
+         desktop iframe with no src at all and no signup path. Now src is assigned
+         exactly once, in a finally, so no path out of the try can skip it: base plus
+         the hidden pairs on success, the bare base on any throw, with nothing set on
+         the popup. It is deliberately NOT "bare first, then overwrite": measured
+         2026-09-16 in Chrome, two src assignments in one task send two requests for
+         the form (3 of 3 runs, against a one-assignment control that sent 1). No
+         URLSearchParams polyfill: without it the bare form is the right outcome. -->
+    <script>
+    (function(){
+      var iframe = document.getElementById("ea-tf-iframe");
+      var base = iframe && iframe.getAttribute("data-tf-base");
+      var src = base;
+      try{
+        var KEYS = ["utm_source","utm_medium","utm_content"];
+        var q = new URLSearchParams(location.search);
+        var pairs = KEYS.map(function(k){
+          var v = (q.get(k) || "").toLowerCase();
+          return k + "=" + (/^[a-z0-9_.-]{1,64}$/.test(v) ? v : "");
+        });
+        var hashed = base + "#" + pairs.join("&");
+        var popup = document.getElementById("ea-tf-popup");
+        if(popup) popup.setAttribute("data-tf-hidden", pairs.join(","));
+        src = hashed;
+      }catch(_){
+        src = base;
+      }finally{
+        if(base) iframe.src = src;
+      }
+    })();
+    </script>
     <div class="ea-perks">
       <div class="perk">
         <div class="perk-dot"></div>
