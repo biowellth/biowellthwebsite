@@ -190,20 +190,43 @@ ok("string control: the file does carry many literals", STRINGS.length > 100);
 // had no label. The approved copy now ships, so the assertion is INVERTED rather
 // than deleted: exactly the approved strings, and no fourth one smuggled in beside
 // them.
+// UPDATED 2026-09-16 with the top bar entry point, which adds a third literal,
+// "Camera reading". The count moves 2 -> 3 and the approved list gains that one
+// string. The "no fourth one smuggled in" property is what this pair is for and
+// it is unchanged; the set is now pinned EXACTLY rather than checked with an
+// every() over an or-chain, so a swap of one approved string for another
+// approved string can no longer pass unnoticed.
 const SCANNY = STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s));
-eq("exactly two scan or camera literals ship", SCANNY.length, 2);
-ok("and both are the founder-approved strings",
-  SCANNY.every((s) => s.includes("Take a camera reading") ||
-                      s.includes("This uses your camera for about a minute")));
+eq("exactly three scan or camera literals ship", SCANNY.length, 3);
+const SCAN_APPROVED = [
+  '"Take a camera reading"',
+  '"Camera reading"',
+  '"This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."',
+];
+eq("and they are exactly the founder-approved set, no more and no fewer",
+  SCANNY.slice().sort().join("|"), SCAN_APPROVED.slice().sort().join("|"));
+ok("approved-set control: the matcher fires on a literal that is NOT approved",
+  ['"Start your face scan"'].join("|") !== SCAN_APPROVED.slice().sort().join("|"));
+ok("no user-facing string says face scan",
+  !STRINGS.some((s) => /face scan/i.test(s)));
+ok("face-scan control: that matcher DOES fire on a string containing it",
+  /face scan/i.test('"Start your face scan"'));
 
 // ---------------------------------------------------------------------------
 // 6. THE CALL SITE. Exactly one, and it is the button's handler.
 // ---------------------------------------------------------------------------
+// UPDATED 2026-09-16. Was 2, the declaration plus the companion button. The top
+// bar is a second entry point, so it is 3. The COUNT IS NOT MERELY RAISED: every
+// wiring is now pinned BY NAME below, so a fourth reference appearing without a
+// matching named assertion breaks the total and says which one is unaccounted
+// for. Raising a bare count is how a silent extra reference gets waved through.
 const CALLS = (CODE.match(/openFaceScan/g) || []);
-eq("openFaceScan appears exactly twice in code: the declaration and the wiring",
-  CALLS.length, 2);
-eq("exactly one call site: the button handler",
+eq("openFaceScan appears exactly three times: the declaration and two wirings",
+  CALLS.length, 3);
+eq("wiring 1 of 2: the companion entry button",
   (CODE.match(/go\.onclick = openFaceScan;/g) || []).length, 1);
+eq("wiring 2 of 2: the top bar nav item",
+  (CODE.match(/nav\.onclick = openFaceScan;/g) || []).length, 1);
 eq("exactly one declaration", (CODE.match(/async function openFaceScan\(/g) || []).length, 1);
 // The declaration is removed FIRST. "async function openFaceScan()" contains the
 // literal "openFaceScan()", so a naive invocation check fails on a correct file.
@@ -255,6 +278,35 @@ ok("consent is awaited before anything is rendered",
   RS.indexOf("sanaConsentGranted") < RS.indexOf("classList.remove"));
 ok("a false consent returns BEFORE the class is removed and BEFORE the handler is wired",
   RS.indexOf("sanaConsentGranted") < RS.indexOf("go.onclick"));
+// NEW 2026-09-16. The top bar item must not be able to offer a reading that the
+// companion card is withholding, so it rides the same gate in the same function.
+ok("the top bar item is wired INSIDE the same consent gate",
+  /nav\.onclick = openFaceScan;/.test(RS) &&
+  RS.indexOf("sanaConsentGranted") < RS.indexOf("nav.onclick"));
+// TEXT ORDER IS NOT REACHABILITY, and this pair exists because the assertion above
+// alone did not catch it. A mutation inserting a bare `return;` immediately above
+// the nav block left every index comparison satisfied and the whole suite green,
+// while the top bar item could never be wired at all. That is the same shape as
+// the CHIP-4 note in test-sana-thread.mjs: matching the call without pinning the
+// guard passes a mutation that makes the call unreachable.
+// So the EXIT COUNT is pinned. Three returns, each named below. A fourth, wherever
+// it is inserted, breaks this.
+const RS_RETURNS = (RS.match(/\breturn;/g) || []).length;
+eq("renderScanEntry has exactly three exits, so a new early return cannot hide", RS_RETURNS, 3);
+ok("and they are the three expected guards, in order",
+  RS.indexOf("if(!host) return;") <
+  RS.indexOf("if(!(await sanaConsentGranted())) return;") &&
+  RS.indexOf("if(!(await sanaConsentGranted())) return;") <
+  RS.indexOf("if(!intro || !detail || !go) return;"));
+ok("exit-count control: the matcher fires on an added return",
+  ((RS + "\n  return;").match(/\breturn;/g) || []).length === RS_RETURNS + 1);
+ok("the top bar item ships hidden and is only ever REVEALED here",
+  /<button class="btn-ghost hidden" id="btn-scan" type="button"><\/button>/.test(RAW) &&
+  /nav\.classList\.remove\("hidden"\)/.test(RS));
+ok("top-bar-hidden control: that markup matcher fires on the shipped node and not on a visible one",
+  !/<button class="btn-ghost" id="btn-scan"/.test(RAW));
+ok("the label comes from the copy object, never inline",
+  /nav\.textContent = SANA_COPY\.scanNavLabel;/.test(RS));
 ok("the only visibility change ADDS visibility, never removes it",
   /classList\.remove\("hidden"\)/.test(RS) && !/classList\.add\("hidden"\)/.test(RS));
 ok("hidden, not disabled: nothing sets a disabled property here",

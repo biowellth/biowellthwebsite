@@ -30,6 +30,20 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .brand-mark{width:30px;height:30px;color:var(--teal)}
 .brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
 .topbar-right{display:flex;align-items:center;gap:6px}
+/* CAMERA_READING_NAV_V1, 2026-09-16. Before this line NOT ONE media query touched
+   the header: no hamburger, no collapse, no flex-wrap on .topbar-right, and no
+   overflow-x guard anywhere in this file. A fourth control therefore went into a
+   fixed 60px non-wrapping row and pushed a phone into horizontal scroll.
+   The row is allowed to WRAP instead, and the bar grows to fit. That is chosen
+   over computing whether four labels happen to fit, which is a bet on font
+   metrics that breaks the first time a label is reworded or a font falls back.
+   Wrapping cannot overflow at any width or any label length.
+   NOT the index.html pattern at its own 640px rule, which hides nav links with no
+   replacement and leaves them unreachable. Nothing here is hidden by width. */
+@media(max-width:600px){
+  .topbar-inner{height:auto;min-height:60px;flex-wrap:wrap;row-gap:6px;padding:9px 0}
+  .topbar-right{flex-wrap:wrap;justify-content:flex-end}
+}
 .btn-ghost{font-size:13px;color:var(--brown-mid);font-weight:600;padding:8px 14px;border-radius:100px}
 /* Account deletion (audit H1): discreet link + strong typed-confirm modal (not a primary button). */
 .del-link{font-size:12px;color:var(--coral-dark);opacity:.7}
@@ -1383,6 +1397,17 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div class="topbar-right">
       <select class="report-picker hidden" id="report-picker" title="Switch between your panels"></select>
       <button class="btn-ghost hidden" id="btn-new">New upload</button>
+      <!-- CAMERA_READING_NAV_V1. Ships HIDDEN and EMPTY, and both matter.
+           HIDDEN because openFaceScan returns false and does nothing visible when
+           sana consent has not been granted. A bar button that silently does
+           nothing is a dead control, and this file's own standard is that a
+           control which will not work is not rendered. renderScanEntry reveals it
+           on the same consent gate that reveals the companion button, so the two
+           surfaces cannot disagree about whether the reading is available.
+           EMPTY because the label comes from SANA_COPY at render time, like every
+           other string in this feature, so the no-colon and no-em-dash rule stays
+           checkable in one place. -->
+      <button class="btn-ghost hidden" id="btn-scan" type="button"></button>
       <button class="btn-ghost" id="btn-account">Account</button>
     </div>
   </div>
@@ -7126,6 +7151,12 @@ const SANA_COPY = {
   // disclaimer, and saying it twice in different words is how two versions of
   // one promise start to drift.
   scanLabel:   "Take a camera reading",
+  // R2, 2026-09-16. The TOP BAR takes the short form. Two surfaces, one constant
+  // each, so changing either is a one line edit and neither can drag the other
+  // with it. The companion button and the suggestion chip share scanLabel above
+  // because they are the same call to action in two places; the bar is a nav
+  // item sitting beside "New upload" and "Account" and reads as one.
+  scanNavLabel: "Camera reading",
   scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
   scanDetail:  "You will see your heart rate, heart rate variability and breathing rate.",
 
@@ -7457,6 +7488,22 @@ async function renderScanEntry(){
   go.textContent     = SANA_COPY.scanLabel;
   go.onclick = openFaceScan;
   host.classList.remove("hidden");
+
+  // CAMERA_READING_NAV_V1. The SECOND entry point, wired here rather than beside
+  // btn-new and btn-account for two reasons. It rides the consent gate above, so
+  // the bar cannot offer a reading the companion card is withholding. And
+  // SANA_COPY is declared far below those top level onclick assignments, so
+  // reading it from there would hit the temporal dead zone and throw on boot.
+  //
+  // A BARE REFERENCE, never openFaceScan(). The suite asserts this handler is
+  // never invoked at load time, and an arrow wrapper would defeat that check
+  // while looking identical.
+  const nav = $("btn-scan");
+  if(nav){
+    nav.textContent = SANA_COPY.scanNavLabel;
+    nav.onclick = openFaceScan;
+    nav.classList.remove("hidden");
+  }
 }
 
 async function openFaceScan(){
