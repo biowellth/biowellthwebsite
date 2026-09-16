@@ -244,11 +244,37 @@ ok("no user-facing string calls the action a camera reading",
   !STRINGS.some((s) => /camera reading/i.test(s)));
 ok("camera-reading control: that matcher DOES fire on the old string",
   /camera reading/i.test('"Take a camera reading"'));
-// THE OUTPUT SIDE OF THE SAME RULING. scanIntro and scanDetail describe what she
-// GETS and must not have been swept up by the rename.
-ok("the description of the output is untouched by the rename",
-  STRINGS.some((s) => s.includes("read your pulse and breathing")) &&
-  STRINGS.some((s) => s.includes("heart rate variability and breathing rate")));
+// REPLACED 2026-09-16, NOT DELETED, and the difference matters. This pair used to
+// REQUIRE the card's second line, which enumerated three metrics. That line named three
+// while the results card shows four, with two more requested and stored but not
+// displayed because the licence returns null for them. It was wrong and it was removed.
+//
+// Deleting the assertion with the string would have left nothing stopping a metric list
+// coming back, by a future session that reads a one-line card as incomplete. So it is
+// INVERTED: the card must not enumerate metrics AT ALL, and the surviving line is
+// pinned verbatim so it cannot be quietly reworded into one.
+//
+// scanIntro says what the scan DOES, which is stable. The removed line said what she
+// GETS, which is not, and that is the whole reason one survived and one did not.
+ok("the surviving line is verbatim and describes what the scan DOES",
+  STRINGS.some((s) => s.includes("read your pulse and breathing")));
+ok("the card carries ONE explanatory line, not two",
+  !/scanDetail/.test(CODE) && !/id="scan-detail"/.test(RAW));
+ok("one-line control: the matcher DOES fire on the node that used to be there",
+  /id="scan-detail"/.test('<p class="scan-detail" id="scan-detail"></p>'));
+
+// NO METRIC ENUMERATION in the face scan explainer. Scoped to that one string rather
+// than the file, because the results card names metrics legitimately and a file-wide ban
+// would be wrong. Each metric is named separately so a red says WHICH one crept back.
+const SCAN_EXPLAINER = (COPY_OBJ_EARLY().match(/scanIntro:\s*"([^"]*)"/) || [, ""])[1];
+ok("explainer control: it was extracted and is a real sentence", SCAN_EXPLAINER.length > 40);
+for (const metric of ["heart rate", "heart rate variability", "hrv", "stress index",
+                      "blood pressure", "cardiac workload", "breathing rate"])
+  ok("the face scan card does not name " + metric,
+    !SCAN_EXPLAINER.toLowerCase().includes(metric));
+ok("metric-ban control: that matcher DOES fire on the copy that was removed",
+  "you will see your heart rate, heart rate variability and breathing rate."
+    .includes("heart rate variability"));
 
 // ---------------------------------------------------------------------------
 // 6. THE CALL SITE. Exactly one, and it is the button's handler.
@@ -283,13 +309,16 @@ ok("call-site control: the matcher DOES fire on a real invocation",
 // ---------------------------------------------------------------------------
 const COPY_OBJ = COPY_OBJ_EARLY();
 ok("copy object control: SANA_COPY was found and is non-trivial", COPY_OBJ.length > 400);
-// UPDATED 2026-09-16. scanLabel became one constant with two variants, so it is
-// listed as both, and the inline check below still runs per string.
+// UPDATED 2026-09-16 twice. scanLabel became one constant with two variants, so it is
+// listed as both. Then scanDetail was removed with the card's second line, so its row
+// went with it: a verbatim pin on a string that no longer exists can only ever be red.
+// What replaces it is the inversion above, which is a stronger guarantee than the row
+// was. scanIntro keeps all four of its checks here, INCLUDING the rendering pin, so the
+// surviving line is proven to reach the DOM and not merely to sit in the copy object.
 const THREE = [
   ["scanLabel.action", "Start a face scan"],
   ["scanLabel.nav",    "Face Scan"],
   ["scanIntro",  "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."],
-  ["scanDetail", "You will see your heart rate, heart rate variability and breathing rate."],
 ];
 for (const [key, text] of THREE) {
   ok("SANA_COPY." + key + " carries the approved string verbatim",
@@ -340,7 +369,7 @@ ok("and they are the three expected guards, in order",
   RS.indexOf("if(!host) return;") <
   RS.indexOf("if(!(await sanaConsentGranted())) return;") &&
   RS.indexOf("if(!(await sanaConsentGranted())) return;") <
-  RS.indexOf("if(!intro || !detail || !go) return;"));
+  RS.indexOf("if(!intro || !go) return;"));
 ok("exit-count control: the matcher fires on an added return",
   ((RS + "\n  return;").match(/\breturn;/g) || []).length === RS_RETURNS + 1);
 ok("the top bar item ships hidden and is only ever REVEALED here",
@@ -438,6 +467,19 @@ eq("renderScanEntry has exactly one call site", (CODE.match(/renderScanEntry\(\)
 ok("markup order, not handler order, puts the intro above the button",
   RAW.indexOf('id="scan-intro"') < RAW.indexOf('id="scan-go"'));
 ok("markup order control: the ids really are present", RAW.indexOf('id="scan-go"') > 0);
+// NEW 2026-09-16. The card is intro then button, with nothing between them. A second
+// paragraph reappearing is exactly how a metric list would come back, so the SHAPE is
+// pinned and not just the absence of the old id.
+ok("the card is one paragraph and one button, nothing between",
+  /<div class="scan-entry hidden" id="scan-entry">\s*<p class="scan-intro" id="scan-intro"><\/p>\s*<button class="btn-ghost" id="scan-go" type="button"><\/button>\s*<\/div>/
+    .test(RAW));
+ok("card-shape control: that matcher does NOT fire with a second paragraph present",
+  !/<div class="scan-entry hidden" id="scan-entry">\s*<p class="scan-intro" id="scan-intro"><\/p>\s*<button class="btn-ghost" id="scan-go" type="button"><\/button>\s*<\/div>/
+    .test('<div class="scan-entry hidden" id="scan-entry">\n<p class="scan-intro" id="scan-intro"></p>\n<p class="scan-detail" id="scan-detail"></p>\n<button class="btn-ghost" id="scan-go" type="button"></button>\n</div>'));
+ok("the dead class is gone from the stylesheet too",
+  !/\.scan-detail\{/.test(RAW));
+ok("dead-class control: the sibling rule IS still there",
+  /\.scan-intro\{/.test(RAW));
 
 console.log("");
 console.log("  " + pass + " passed, " + fail + " failed");

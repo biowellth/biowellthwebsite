@@ -169,8 +169,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
    attached, so the disclaimer has to be on the content itself. */
 .comp-ai-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--brown-light);font-size:12px;line-height:1.6;color:var(--brown-mid)}
 .scan-entry{margin-top:14px;padding-top:12px;border-top:1px solid var(--brown-light)}
-.scan-intro{margin:0 0 4px;font-size:13px;line-height:1.6;color:var(--brown-mid)}
-.scan-detail{margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--brown-mid);opacity:.9}
+/* 4px became 8px when scan-detail was removed: this is now the last line before the
+   button and inherits the gap the pair used to provide. Not a restyle, the same total. */
+.scan-intro{margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--brown-mid)}
 /* AGE_AFFIRM_V1 — grandfathered-account affirmation. Reuses .onb-modal/.onb-card geometry,
    but this one is BLOCKING: no skip control, no backdrop close, no Escape. A skippable
    affirmation records nothing. .age-under is the quiet under-18 exit. */
@@ -1732,7 +1733,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
            second copy here would duplicate the ids. -->
       <div class="scan-entry hidden" id="scan-entry">
         <p class="scan-intro" id="scan-intro"></p>
-        <p class="scan-detail" id="scan-detail"></p>
         <button class="btn-ghost" id="scan-go" type="button"></button>
       </div>
     </div>
@@ -7209,8 +7209,22 @@ const SANA_COPY = {
     action: "Start a face scan",   // the suggestion chip and the dashboard button
     nav:    "Face Scan",           // the top bar, TITLE case beside New Upload and Account
   },
+  // ONE LINE, NOT TWO, as of 2026-09-16. scanDetail is GONE and scanIntro stays
+  // verbatim. The distinction that killed the second line, recorded so a future
+  // session does not reintroduce a metric list:
+  //
+  //   scanIntro says what the scan DOES. That is stable.
+  //   scanDetail said what she GETS. That is not, and it went stale.
+  //
+  // It named three metrics while the results card shows four. Two more are requested
+  // and stored but not displayed, because the licence returns null for them, and the
+  // day that changes the card changes with it. Any copy that enumerates metrics is
+  // therefore wrong on a schedule nobody controls.
+  //
+  // DO NOT ADD A REPLACEMENT. Not a shorter list, not an info affordance. scanIntro
+  // already explains the feature, so there is nothing left for one to reveal, and a
+  // list behind a tap goes stale exactly as fast as a list in the open.
   scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
-  scanDetail:  "You will see your heart rate, heart rate variability and breathing rate.",
 
   // SANA_CONSENT_V3 — counsel's data-flow language, adapted to the copy rules
   // (no em dashes, no colons in body copy, short plain sentences).
@@ -7532,11 +7546,10 @@ async function renderScanEntry(){
   if(!host) return;
   if(!(await sanaConsentGranted())) return;   // stays hidden, nothing rendered
 
-  const intro = $("scan-intro"), detail = $("scan-detail"), go = $("scan-go");
-  if(!intro || !detail || !go) return;
+  const intro = $("scan-intro"), go = $("scan-go");
+  if(!intro || !go) return;
   // textContent, not innerHTML. Copy is copy, and none of this is markup.
   intro.textContent  = SANA_COPY.scanIntro;
-  detail.textContent = SANA_COPY.scanDetail;
   go.textContent     = SANA_COPY.scanLabel.action;
   go.onclick = openFaceScan;
   host.classList.remove("hidden");
