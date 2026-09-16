@@ -185,6 +185,11 @@ ok("strict order: consent, then token, then open",
 //    because the visible entry point is a separate ruling.
 // ---------------------------------------------------------------------------
 const STRINGS = (CODE.match(/"[^"\n]{4,}"/g) || []);
+// Lazily read, because the approved-set block above needs the copy object and this
+// file builds COPY_OBJ further down. One reader, so the two cannot drift.
+function COPY_OBJ_EARLY(){
+  return (CODE.match(/const SANA_COPY = \{[\s\S]*?\n\};/) || [""])[0];
+}
 ok("string control: the file does carry many literals", STRINGS.length > 100);
 // PASS 1 asserted zero scan or camera copy, which was right while the entry point
 // had no label. The approved copy now ships, so the assertion is INVERTED rather
@@ -199,18 +204,36 @@ ok("string control: the file does carry many literals", STRINGS.length > 100);
 const SCANNY = STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s));
 eq("exactly three scan or camera literals ship", SCANNY.length, 3);
 const SCAN_APPROVED = [
-  '"Take a camera reading"',
-  '"Camera reading"',
+  '"Start a face scan"',
+  '"Face scan"',
   '"This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."',
 ];
 eq("and they are exactly the founder-approved set, no more and no fewer",
   SCANNY.slice().sort().join("|"), SCAN_APPROVED.slice().sort().join("|"));
 ok("approved-set control: the matcher fires on a literal that is NOT approved",
   ['"Start your face scan"'].join("|") !== SCAN_APPROVED.slice().sort().join("|"));
-ok("no user-facing string says face scan",
-  !STRINGS.some((s) => /face scan/i.test(s)));
-ok("face-scan control: that matcher DOES fire on a string containing it",
-  /face scan/i.test('"Start your face scan"'));
+
+// REVERSED 2026-09-16 BY RULING, and replaced rather than deleted. This pair used to
+// assert that NO user-facing string said "face scan", which was correct under the
+// previous naming and is exactly wrong now: the feature IS a wellness face scan and
+// the action copy says so.
+//
+// THE ACTION IS A FACE SCAN. THE OUTPUT IS A READING. A blanket find-and-replace
+// would have destroyed that distinction silently, so it is now pinned in BOTH
+// directions here: the action labels must say face scan, and no user-facing string
+// may still call the action a camera reading.
+ok("the ACTION labels say face scan, both variants, verbatim",
+  COPY_OBJ_EARLY().includes('action: "Start a face scan"') &&
+  COPY_OBJ_EARLY().includes('nav:    "Face scan"'));
+ok("no user-facing string calls the action a camera reading",
+  !STRINGS.some((s) => /camera reading/i.test(s)));
+ok("camera-reading control: that matcher DOES fire on the old string",
+  /camera reading/i.test('"Take a camera reading"'));
+// THE OUTPUT SIDE OF THE SAME RULING. scanIntro and scanDetail describe what she
+// GETS and must not have been swept up by the rename.
+ok("the description of the output is untouched by the rename",
+  STRINGS.some((s) => s.includes("read your pulse and breathing")) &&
+  STRINGS.some((s) => s.includes("heart rate variability and breathing rate")));
 
 // ---------------------------------------------------------------------------
 // 6. THE CALL SITE. Exactly one, and it is the button's handler.
@@ -228,7 +251,7 @@ eq("wiring 1 of 3: the companion entry button",
 eq("wiring 2 of 3: the top bar nav item",
   (CODE.match(/nav\.onclick = openFaceScan;/g) || []).length, 1);
 eq("wiring 3 of 3: the suggestion chip, as an action rather than a call",
-  (CODE.match(/items\.unshift\(\{ q: SANA_COPY\.scanLabel, action: openFaceScan \}\);/g) || []).length, 1);
+  (CODE.match(/items\.unshift\(\{ q: SANA_COPY\.scanLabel\.action, action: openFaceScan \}\);/g) || []).length, 1);
 eq("exactly one declaration", (CODE.match(/async function openFaceScan\(/g) || []).length, 1);
 // The declaration is removed FIRST. "async function openFaceScan()" contains the
 // literal "openFaceScan()", so a naive invocation check fails on a correct file.
@@ -243,10 +266,13 @@ ok("call-site control: the matcher DOES fire on a real invocation",
 // ---------------------------------------------------------------------------
 // 7. THE COPY. In the object, never inline, and reaching the DOM from there.
 // ---------------------------------------------------------------------------
-const COPY_OBJ = (CODE.match(/const SANA_COPY = \{[\s\S]*?\n\};/) || [""])[0];
+const COPY_OBJ = COPY_OBJ_EARLY();
 ok("copy object control: SANA_COPY was found and is non-trivial", COPY_OBJ.length > 400);
+// UPDATED 2026-09-16. scanLabel became one constant with two variants, so it is
+// listed as both, and the inline check below still runs per string.
 const THREE = [
-  ["scanLabel",  "Take a camera reading"],
+  ["scanLabel.action", "Start a face scan"],
+  ["scanLabel.nav",    "Face scan"],
   ["scanIntro",  "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."],
   ["scanDetail", "You will see your heart rate, heart rate variability and breathing rate."],
 ];
@@ -308,7 +334,11 @@ ok("the top bar item ships hidden and is only ever REVEALED here",
 ok("top-bar-hidden control: that markup matcher fires on the shipped node and not on a visible one",
   !/<button class="btn-ghost" id="btn-scan"/.test(RAW));
 ok("the label comes from the copy object, never inline",
-  /nav\.textContent = SANA_COPY\.scanNavLabel;/.test(RS));
+  /nav\.textContent = SANA_COPY\.scanLabel\.nav;/.test(RS));
+ok("and the dashboard button takes the OTHER variant of that same constant",
+  /go\.textContent     = SANA_COPY\.scanLabel\.action;/.test(RS));
+ok("the two variants are different strings, so one constant did not collapse them",
+  /action: "Start a face scan"/.test(RAW) && /nav:    "Face scan"/.test(RAW));
 
 // ---------------------------------------------------------------------------
 // 8b. THE SUGGESTION CHIP. NEW 2026-09-16. The third entry point.
@@ -329,7 +359,7 @@ ok("and BEFORE the row is rendered",
 // IT IS AN ACTION, NOT A QUESTION. The row's shared handler assumes q and a; this
 // one must branch out before that, append no turn, and not be spent.
 ok("the chip carries action and no pre-generated answer",
-  /items\.unshift\(\{ q: SANA_COPY\.scanLabel, action: openFaceScan \}\);/.test(RC));
+  /items\.unshift\(\{ q: SANA_COPY\.scanLabel\.action, action: openFaceScan \}\);/.test(RC));
 ok("the handler branches on action BEFORE appending a turn",
   RC.indexOf("if(items[idx].action)") > -1 &&
   RC.indexOf("if(items[idx].action)") < RC.indexOf("sanaAppendChipTurn("));

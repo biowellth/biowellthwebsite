@@ -6321,7 +6321,7 @@ function renderCompanionChips(p, score){
   // render marks it, so the row never silently mixes two behaviors behind one look.
   //
   // A BARE REFERENCE again, never openFaceScan(). Same reason as the top bar.
-  items.unshift({ q: SANA_COPY.scanLabel, action: openFaceScan });
+  items.unshift({ q: SANA_COPY.scanLabel.action, action: openFaceScan });
 
   // COMPANION_CHAT_POLISH_V1 — inline pill chips + one shared #comp-answer response area with a brief
   // thinking-dots delay before the answer swaps in. One answer visible at a time; tapping the active
@@ -7185,13 +7185,20 @@ const SANA_COPY = {
   // language belongs here. The results screen already carries the approved
   // disclaimer, and saying it twice in different words is how two versions of
   // one promise start to drift.
-  scanLabel:   "Take a camera reading",
-  // R2, 2026-09-16. The TOP BAR takes the short form. Two surfaces, one constant
-  // each, so changing either is a one line edit and neither can drag the other
-  // with it. The companion button and the suggestion chip share scanLabel above
-  // because they are the same call to action in two places; the bar is a nav
-  // item sitting beside "New upload" and "Account" and reads as one.
-  scanNavLabel: "Camera reading",
+  // ONE CONSTANT, TWO VARIANTS. R1, 2026-09-16. Was two sibling keys, scanLabel and
+  // scanNavLabel, which is two lines to change and two places to forget. They are
+  // now one object so a future rename is a single edit at a single key.
+  //
+  // THE ACTION IS A FACE SCAN. THE OUTPUT IS A READING. Everywhere we ask her to DO
+  // it says face scan; everywhere we name what she GETS still says reading, and
+  // results.h "Your reading" and the results disclaimer are untouched by this. That
+  // distinction is the whole rename and a blanket replace would destroy it.
+  //
+  // The old label described the mechanism and told a woman nothing.
+  scanLabel: {
+    action: "Start a face scan",   // the suggestion chip and the dashboard button
+    nav:    "Face scan",           // the top bar, sentence case beside New upload and Account
+  },
   scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
   scanDetail:  "You will see your heart rate, heart rate variability and breathing rate.",
 
@@ -7520,7 +7527,7 @@ async function renderScanEntry(){
   // textContent, not innerHTML. Copy is copy, and none of this is markup.
   intro.textContent  = SANA_COPY.scanIntro;
   detail.textContent = SANA_COPY.scanDetail;
-  go.textContent     = SANA_COPY.scanLabel;
+  go.textContent     = SANA_COPY.scanLabel.action;
   go.onclick = openFaceScan;
   host.classList.remove("hidden");
 
@@ -7535,7 +7542,7 @@ async function renderScanEntry(){
   // while looking identical.
   const nav = $("btn-scan");
   if(nav){
-    nav.textContent = SANA_COPY.scanNavLabel;
+    nav.textContent = SANA_COPY.scanLabel.nav;
     nav.onclick = openFaceScan;
     nav.classList.remove("hidden");
   }
