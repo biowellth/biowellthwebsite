@@ -1,6 +1,0 @@
-session: f426d234-60bf-4068-a6ce-92953e07f614
-utc:     2026-09-16T02:30:41Z
-scope:   rename the ACTION copy to face scan across the three entry points, keeping
-         every string that names the OUTPUT as a reading; plus two strings on the
-         scan page and one assertion in supa, both separate repos.
-repos:   biowellth-website (write), shen-host (write), biowellth-backend-supa (write)
