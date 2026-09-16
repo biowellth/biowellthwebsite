@@ -1,0 +1,6 @@
+session: f426d234-60bf-4068-a6ce-92953e07f614
+utc:     2026-09-16T02:15:00Z
+scope:   two new entry points to the camera reading, the companion suggestion row
+         and the top bar, both calling the existing openFaceScan handler; plus the
+         preparing-screen copy on the scan page, which is a different repo.
+repos:   biowellth-website (write), shen-host (write, separate repo, no lock there)
