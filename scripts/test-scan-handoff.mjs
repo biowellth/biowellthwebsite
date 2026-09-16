@@ -221,12 +221,14 @@ ok("face-scan control: that matcher DOES fire on a string containing it",
 // matching named assertion breaks the total and says which one is unaccounted
 // for. Raising a bare count is how a silent extra reference gets waved through.
 const CALLS = (CODE.match(/openFaceScan/g) || []);
-eq("openFaceScan appears exactly three times: the declaration and two wirings",
-  CALLS.length, 3);
-eq("wiring 1 of 2: the companion entry button",
+eq("openFaceScan appears exactly four times: the declaration and three wirings",
+  CALLS.length, 4);
+eq("wiring 1 of 3: the companion entry button",
   (CODE.match(/go\.onclick = openFaceScan;/g) || []).length, 1);
-eq("wiring 2 of 2: the top bar nav item",
+eq("wiring 2 of 3: the top bar nav item",
   (CODE.match(/nav\.onclick = openFaceScan;/g) || []).length, 1);
+eq("wiring 3 of 3: the suggestion chip, as an action rather than a call",
+  (CODE.match(/items\.unshift\(\{ q: SANA_COPY\.scanLabel, action: openFaceScan \}\);/g) || []).length, 1);
 eq("exactly one declaration", (CODE.match(/async function openFaceScan\(/g) || []).length, 1);
 // The declaration is removed FIRST. "async function openFaceScan()" contains the
 // literal "openFaceScan()", so a naive invocation check fails on a correct file.
@@ -307,6 +309,49 @@ ok("top-bar-hidden control: that markup matcher fires on the shipped node and no
   !/<button class="btn-ghost" id="btn-scan"/.test(RAW));
 ok("the label comes from the copy object, never inline",
   /nav\.textContent = SANA_COPY\.scanNavLabel;/.test(RS));
+
+// ---------------------------------------------------------------------------
+// 8b. THE SUGGESTION CHIP. NEW 2026-09-16. The third entry point.
+// ---------------------------------------------------------------------------
+const RC = body("renderCompanionChips");
+ok("chip control: renderCompanionChips body extracted and mentions the row",
+  /comp-chips/.test(RC) || /chipsEl/.test(RC));
+// PREPENDED AT THE SEAM. Generation runs on this woman's own panel and must not be
+// touched, so the fixed entry goes in AFTER the last push and BEFORE the render.
+ok("the chip is prepended, never pushed into the generated run",
+  /items\.unshift\(/.test(RC) && !/items\.push\(\{ q: SANA_COPY/.test(RC));
+ok("prepend control: the matcher would fire on a push of the same item",
+  /items\.push\(\{ q: SANA_COPY/.test('items.push({ q: SANA_COPY.scanLabel'));
+ok("it is prepended AFTER the generated items are assembled",
+  RC.lastIndexOf("items.push(") < RC.indexOf("items.unshift("));
+ok("and BEFORE the row is rendered",
+  RC.indexOf("items.unshift(") < RC.indexOf("chipsEl.innerHTML = items.map("));
+// IT IS AN ACTION, NOT A QUESTION. The row's shared handler assumes q and a; this
+// one must branch out before that, append no turn, and not be spent.
+ok("the chip carries action and no pre-generated answer",
+  /items\.unshift\(\{ q: SANA_COPY\.scanLabel, action: openFaceScan \}\);/.test(RC));
+ok("the handler branches on action BEFORE appending a turn",
+  RC.indexOf("if(items[idx].action)") > -1 &&
+  RC.indexOf("if(items[idx].action)") < RC.indexOf("sanaAppendChipTurn("));
+ok("the action branch returns, so no turn is appended and the chip is not spent",
+  /if\(items\[idx\]\.action\)\{ items\[idx\]\.action\(\); return; \}/.test(RC));
+ok("action-branch control: that matcher does NOT fire without the return",
+  !/if\(items\[idx\]\.action\)\{ items\[idx\]\.action\(\); return; \}/
+    .test("if(items[idx].action){ items[idx].action(); }"));
+// R3. MARKED, in vocabulary the file already speaks, and not the loudest thing.
+ok("the action chip is visually distinguished by a modifier class",
+  /comp-chip comp-chip-do/.test(RC));
+ok("it uses the chevron this file already uses for opening something",
+  /&#8250;/.test(RC) && (RAW.match(/&#8250;/g) || []).length > 1);
+ok("it claims no aria-expanded, because it expands nothing",
+  !/comp-chip comp-chip-do[^']*aria-expanded/.test(RC));
+ok("aria control: the QUESTION chip still declares aria-expanded",
+  RC.includes('\'<button class="comp-chip" type="button" data-i="\'+i+\'" aria-expanded="false">\''));
+ok("the modifier borrows an existing token, it does not invent a color",
+  /\.comp-chip-do\{border-color:var\(--teal-mid\);color:var\(--teal-dark\)\}/.test(RAW) &&
+  /\.comp-chip:hover\{border-color:var\(--teal-mid\)\}/.test(RAW));
+ok("it is not filled, so it is not the loudest thing in the row",
+  !/\.comp-chip-do\{[^}]*background:var\(--teal\)/.test(RAW));
 ok("the only visibility change ADDS visibility, never removes it",
   /classList\.remove\("hidden"\)/.test(RS) && !/classList\.add\("hidden"\)/.test(RS));
 ok("hidden, not disabled: nothing sets a disabled property here",

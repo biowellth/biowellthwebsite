@@ -1050,6 +1050,12 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .comp-status{font-size:11px;color:var(--brown-mid);margin-top:2px}
 .comp-chip{font-family:'Instrument Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--brown);background:var(--white);border:1px solid var(--teal-light);border-radius:100px;padding:10px 16px;cursor:pointer}
 .comp-chip:hover{border-color:var(--teal-mid)}
+/* CAMERA_READING_CHIP_V1. The action chip in a row of questions. --teal-mid is
+   already .comp-chip's hover border and .clarify-opt's resting border, so this
+   reads as "reaching out" in a vocabulary the page already uses. No fill, no new
+   color, no new shape: an action should be findable, not loud. */
+.comp-chip-do{border-color:var(--teal-mid);color:var(--teal-dark)}
+.comp-chip-do:hover{background:var(--teal-soft)}
 .comp-chip.active{border-color:var(--teal-mid);background:var(--teal-soft)}
 .comp-response{display:none;margin-top:12px;border:1px solid var(--teal-light);border-radius:12px;padding:12px 14px;background:var(--teal-soft)}
 .comp-response.show{display:block}
@@ -6304,13 +6310,37 @@ function renderCompanionChips(p, score){
   items.push({ q: "What should I do next?",
     a: "Start with your priority cards. Each one carries a plan you can act on now. Your retest window is the heartbeat, since the real story is how your markers move over time. Everything else worth a look sits in its body system section with the full picture around it. " + CLOSING });
 
+  // CAMERA_READING_CHIP_V1, 2026-09-16. THE THIRD ENTRY POINT, prepended at the
+  // ASSEMBLY SEAM. Every items.push above is generation, driven by this woman's own
+  // panel, and none of it is touched here: this runs after the last push and before
+  // the render, so the fixed entry rides in front without the generator knowing it
+  // exists. data-i is derived from this same array's map index, so nothing shifts.
+  //
+  // IT CARRIES action, NOT a. Every other chip is a question whose answer was
+  // pre-generated above; this one opens a tab. The handler branches on that, and the
+  // render marks it, so the row never silently mixes two behaviors behind one look.
+  //
+  // A BARE REFERENCE again, never openFaceScan(). Same reason as the top bar.
+  items.unshift({ q: SANA_COPY.scanLabel, action: openFaceScan });
+
   // COMPANION_CHAT_POLISH_V1 — inline pill chips + one shared #comp-answer response area with a brief
   // thinking-dots delay before the answer swaps in. One answer visible at a time; tapping the active
   // chip closes the area; tapping another chip mid-dots clears the pending timer and retargets cleanly.
   // Reduced motion: dots skipped, answer immediate. aria-live on the response area announces the swap.
   const ansEl = $("comp-answer");
+  // R3. AN ACTION IS MARKED, and only with vocabulary this file already speaks.
+  // The chevron span is the same one .prio-bridge and .tp-all already use for "this
+  // opens something", and --teal-mid is already .comp-chip's own hover border and
+  // .clarify-opt's resting border, which is how this design separates "this does
+  // something" from "this asks something". Nothing new is invented and nothing is
+  // filled, so it is not the loudest thing in the row.
+  //
+  // aria-expanded is omitted on an action chip because it expands nothing. Claiming
+  // a collapsed region that does not exist is worse than saying nothing.
   chipsEl.innerHTML = items.map((it,i)=>
-    '<button class="comp-chip" type="button" data-i="'+i+'" aria-expanded="false">'+esc(it.q)+'</button>').join("");
+    it.action
+      ? '<button class="comp-chip comp-chip-do" type="button" data-i="'+i+'">'+esc(it.q)+' <span aria-hidden="true">&#8250;</span></button>'
+      : '<button class="comp-chip" type="button" data-i="'+i+'" aria-expanded="false">'+esc(it.q)+'</button>').join("");
   if(!ansEl) return;
   ansEl.className = "comp-response"; ansEl.innerHTML = "";
 
@@ -6331,6 +6361,11 @@ function renderCompanionChips(p, score){
   // rather than leaving spent chips that reopen an answer already in the thread.
   chips.forEach((btn,idx)=>{
     btn.onclick = ()=>{
+      // AN ACTION CHIP IS NOT SPENT. A question is answered once and the chip goes,
+      // because its answer is now in the thread above. A camera reading can be taken
+      // again tomorrow, and removing the entry point after one use would be the third
+      // way to lose it. It also appends no turn: nothing was said to Sana.
+      if(items[idx].action){ items[idx].action(); return; }
       sanaAppendChipTurn(items[idx].q, items[idx].a);
       btn.remove();
       const left = chipsEl.querySelectorAll(".comp-chip").length;
