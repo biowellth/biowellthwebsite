@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Get early access · BioWellth</title>
+<meta name="robots" content="noindex"/>
+<link rel="canonical" href="https://biowellth.ai/early-access/"/>
+<!-- WAITLIST_REDIRECT_V1. One vanity path for every channel. GitHub Pages has no
+     edge rules we control (the Fastly in its response headers is GitHub's, not
+     ours), so the source is inferred here instead of at the edge. Precedence:
+       1. an inbound utm_source wins and nothing is added
+       2. Instagram in-app browser (User-Agent)   -> ig / social / link_in_bio
+       3. fbclid in the query                      -> meta / social / link_in_bio
+       4. Referer on substack, linkedin, youtube   -> that domain / referral
+       5. otherwise                                -> direct / web / waitlist
+     The inbound query string is kept byte for byte and new keys are appended
+     after it, never re-serialised, so fbclid and unknown params survive exactly.
+     A key already present is never overwritten.
+     WAITLIST_REDIRECT_V2: the target is /?query#early-access, not /early-access/.
+     /early-access/ is itself a stub that replaces to /?query#early-access, so
+     going there first cost a third load. index.html's route() sees the page hash
+     and replaceStates to /early-access?query with no further load, so the bar
+     still ends on the clean path. Two loads instead of three. -->
+<script>
+(function(){
+  var PATH = "/", HASH = "#early-access";
+  var raw = location.search.replace(/^\?/, "");
+  try{
+    var q = new URLSearchParams(raw);
+    var add = null;
+    if(!q.has("utm_source")){
+      var ua = navigator.userAgent || "";
+      var host = "";
+      try{ host = document.referrer ? new URL(document.referrer).hostname.toLowerCase() : ""; }catch(_){}
+      var ref = ["substack.com","linkedin.com","youtube.com"].filter(function(d){
+        return host === d || host.slice(-(d.length + 1)) === "." + d;
+      })[0];
+      if(ua.indexOf("Instagram") !== -1) add = {utm_source:"ig", utm_medium:"social", utm_content:"link_in_bio"};
+      else if(q.has("fbclid"))           add = {utm_source:"meta", utm_medium:"social", utm_content:"link_in_bio"};
+      else if(ref)                       add = {utm_source:ref, utm_medium:"referral"};
+      else                               add = {utm_source:"direct", utm_medium:"web", utm_content:"waitlist"};
+    }
+    var extra = [];
+    if(add) for(var k in add) if(!q.has(k)) extra.push(k + "=" + encodeURIComponent(add[k]));
+    var query = [raw, extra.join("&")].filter(Boolean).join("&");
+    location.replace(PATH + (query ? "?" + query : "") + HASH);
+  }catch(_){
+    location.replace(PATH + (raw ? "?" + raw : "?utm_source=direct&utm_medium=web&utm_content=waitlist") + HASH);
+  }
+})();
+</script>
+<meta http-equiv="refresh" content="0;url=/?utm_source=direct&amp;utm_medium=web&amp;utm_content=waitlist#early-access"/>
+<style>
+:root{--cream:#FAF8F4;--brown:#47372B}
+html,body{margin:0;height:100%;background:var(--cream);color:var(--brown)}
+body{display:flex;align-items:center;justify-content:center;font-family:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.6}
+a{color:var(--brown)}
+</style>
+</head><body><p>Taking you to early access… <a href="/?utm_source=direct&amp;utm_medium=web&amp;utm_content=waitlist#early-access">Continue</a></p></body></html>
