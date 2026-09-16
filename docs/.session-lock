@@ -1,5 +1,0 @@
-session: a305ac6a-c27a-4077-be15-6c52240bdb50
-utc:     2026-09-16T20:46:17Z
-scope:   add /waitlist/index.html, a static redirect to /early-access/ that infers
-         utm_source. No other path touched.
-repos:   biowellth-website (write)
