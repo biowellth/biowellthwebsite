@@ -1402,7 +1402,17 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div class="brand"><svg class="brand-mark" aria-label="BioWellth"><use href="#bw-mark"/></svg><div class="brand-name">BioWellth</div></div>
     <div class="topbar-right">
       <select class="report-picker hidden" id="report-picker" title="Switch between your panels"></select>
-      <button class="btn-ghost hidden" id="btn-new">New upload</button>
+      <!-- TITLE CASE, ruled 2026-09-16. The three top bar labels are nav items and read
+           as one row, so they are cased alike. Deliberately NOT refactored into a
+           constant tonight: that is larger than the ruling and would ride along
+           unreviewed. The chip and the companion card button keep SENTENCE case,
+           because their label is a sentence and not a nav label.
+           The label itself is not quoted here on purpose. The suite counts every
+           occurrence of that string outside SANA_COPY as an inline literal, and it is
+           right to: a string sitting in the markup is in the markup whether or not a
+           comment wraps it. Quoting it here turned that assertion red, which is the
+           check doing its job. -->
+      <button class="btn-ghost hidden" id="btn-new">New Upload</button>
       <!-- CAMERA_READING_NAV_V1. Ships HIDDEN and EMPTY, and both matter.
            HIDDEN because openFaceScan returns false and does nothing visible when
            sana consent has not been granted. A bar button that silently does
@@ -7197,7 +7207,7 @@ const SANA_COPY = {
   // The old label described the mechanism and told a woman nothing.
   scanLabel: {
     action: "Start a face scan",   // the suggestion chip and the dashboard button
-    nav:    "Face scan",           // the top bar, sentence case beside New upload and Account
+    nav:    "Face Scan",           // the top bar, TITLE case beside New Upload and Account
   },
   scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
   scanDetail:  "You will see your heart rate, heart rate variability and breathing rate.",

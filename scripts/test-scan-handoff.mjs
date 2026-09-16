@@ -203,9 +203,12 @@ ok("string control: the file does carry many literals", STRINGS.length > 100);
 // approved string can no longer pass unnoticed.
 const SCANNY = STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s));
 eq("exactly three scan or camera literals ship", SCANNY.length, 3);
+// CASING UPDATED 2026-09-16 BY RULING. The nav label is TITLE case, the chip and the
+// companion button stay SENTENCE case. The two are pinned SEPARATELY and exactly, so a
+// future session cannot "fix the inconsistency" in either direction without going red.
 const SCAN_APPROVED = [
   '"Start a face scan"',
-  '"Face scan"',
+  '"Face Scan"',
   '"This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."',
 ];
 eq("and they are exactly the founder-approved set, no more and no fewer",
@@ -222,9 +225,21 @@ ok("approved-set control: the matcher fires on a literal that is NOT approved",
 // would have destroyed that distinction silently, so it is now pinned in BOTH
 // directions here: the action labels must say face scan, and no user-facing string
 // may still call the action a camera reading.
-ok("the ACTION labels say face scan, both variants, verbatim",
+ok("the ACTION labels say face scan, both variants, verbatim and in their own casing",
   COPY_OBJ_EARLY().includes('action: "Start a face scan"') &&
-  COPY_OBJ_EARLY().includes('nav:    "Face scan"'));
+  COPY_OBJ_EARLY().includes('nav:    "Face Scan"'));
+// THE CASING DIFFERENCE IS DELIBERATE AND IS PINNED AS SUCH. A nav label sits in a row
+// with New Upload and Account and is title cased with them; the chip and the companion
+// button are sentences. Left only to the verbatim pins above, a future session reading
+// two spellings of the same feature would reasonably "tidy" one of them. This says out
+// loud that they are supposed to differ, and breaks if either is normalised.
+ok("nav is title case and the sentence variant is not, deliberately",
+  /nav:    "Face Scan"/.test(RAW) &&
+  !/nav:    "Face scan"/.test(RAW) &&
+  /action: "Start a face scan"/.test(RAW) &&
+  !/action: "Start A Face Scan"/.test(RAW));
+ok("casing control: the matcher can tell the two spellings apart",
+  /"Face Scan"/.test('nav:    "Face Scan"') && !/"Face Scan"/.test('nav:    "Face scan"'));
 ok("no user-facing string calls the action a camera reading",
   !STRINGS.some((s) => /camera reading/i.test(s)));
 ok("camera-reading control: that matcher DOES fire on the old string",
@@ -272,7 +287,7 @@ ok("copy object control: SANA_COPY was found and is non-trivial", COPY_OBJ.lengt
 // listed as both, and the inline check below still runs per string.
 const THREE = [
   ["scanLabel.action", "Start a face scan"],
-  ["scanLabel.nav",    "Face scan"],
+  ["scanLabel.nav",    "Face Scan"],
   ["scanIntro",  "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."],
   ["scanDetail", "You will see your heart rate, heart rate variability and breathing rate."],
 ];
@@ -338,7 +353,29 @@ ok("the label comes from the copy object, never inline",
 ok("and the dashboard button takes the OTHER variant of that same constant",
   /go\.textContent     = SANA_COPY\.scanLabel\.action;/.test(RS));
 ok("the two variants are different strings, so one constant did not collapse them",
-  /action: "Start a face scan"/.test(RAW) && /nav:    "Face scan"/.test(RAW));
+  /action: "Start a face scan"/.test(RAW) && /nav:    "Face Scan"/.test(RAW));
+
+// ---------------------------------------------------------------------------
+// 8a. THE TOP BAR READS AS ONE ROW. NEW 2026-09-16.
+// ---------------------------------------------------------------------------
+// New Upload and Account have no constant; they are inline markup, and refactoring them
+// was ruled out of scope tonight. So they are pinned AT THE MARKUP, which for those two
+// is also where they are rendered from, and the whole row is checked together. Casing
+// one label and missing its neighbours is the failure this catches.
+ok("the top bar carries all three nav labels in title case",
+  /<button class="btn-ghost hidden" id="btn-new">New Upload<\/button>/.test(RAW) &&
+  /<button class="btn-ghost" id="btn-account">Account<\/button>/.test(RAW) &&
+  COPY_OBJ_EARLY().includes('nav:    "Face Scan"'));
+ok("top-bar control: the matcher fires on the OLD casing and would have caught it",
+  /<button class="btn-ghost hidden" id="btn-new">New upload<\/button>/
+    .test('<button class="btn-ghost hidden" id="btn-new">New upload</button>'));
+ok("no lower-case survivor of either inline label",
+  !/>New upload</.test(RAW) && !/>account</.test(RAW));
+// AND THE FACE SCAN LABEL STILL REACHES THE BAR. Text presence is not rendering: the
+// constant could read "Face Scan" while nothing wired it to the button.
+ok("the nav label is still rendered from the constant, not merely present in it",
+  /nav\.textContent = SANA_COPY\.scanLabel\.nav;/.test(RS) &&
+  /<button class="btn-ghost hidden" id="btn-scan" type="button"><\/button>/.test(RAW));
 
 // ---------------------------------------------------------------------------
 // 8b. THE SUGGESTION CHIP. NEW 2026-09-16. The third entry point.
