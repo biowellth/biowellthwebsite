@@ -5968,6 +5968,48 @@ async function dcResumeLate(){
 document.addEventListener('visibilitychange', dcResumeLate);
 window.addEventListener('focus', dcResumeLate);
 
+// DENSITY_COLLAPSE_V1 — the disclosure labels for every collapsed section on the dashboard.
+// ONE pair, shared by the priority cards, the going-right cards and the foundations levers, so
+// the three surfaces cannot drift into saying three different things about the same gesture.
+//
+// Before this commit the priority toggle carried a SINGLE static string, "See the detail", set
+// once in the markup and never rewritten -- the only open-state signal was the chevron rotating
+// in CSS. Measured: zero textContent writes on .prio-toggle, against a live control of one on
+// the reveal deck's see-all button. So the open label is new, not a rename of an existing one.
+//
+// Written into a dedicated .*-toggle-label SPAN, never onto the button. The button also holds
+// the chevron span, and assigning button.textContent would delete the chevron -- which is how
+// the reveal deck's see-all toggle can get away with the simpler form and this one cannot.
+//
+// No colon and no em dash, per the copy tone rule.
+const PRIO_TOGGLE_LABEL = { closed: "See more details", open: "Hide details" };
+const MORE_TOGGLE_LABEL = { closed: "See more", open: "See less" };
+
+// DENSITY_COLLAPSE_V1 — shared wiring for every .*-toggle / .*-detail pair on the dashboard.
+// The priority cards already had this shape (reset-to-closed on every render, in-memory class
+// only, each card independent) and it was correct, so the going-right and foundations sections
+// reuse it rather than growing a second idiom beside it.
+//
+// RESET IS NOT OPTIONAL and it is why this takes a host rather than being wired at build time.
+// renderDashboard re-runs on a panel switch, and a card left open from the previous panel would
+// come back open against different content. Every call starts every card closed.
+function wireDisclosures(host, cardSel, togSel, labels){
+  if(!host) return;
+  host.querySelectorAll(cardSel).forEach(card=>{
+    card.classList.remove("open");
+    const tog = card.querySelector(togSel);
+    if(!tog) return;
+    tog.setAttribute("aria-expanded","false");
+    const lab = tog.querySelector("[class$='-toggle-label']");
+    if(lab) lab.textContent = labels.closed;
+    tog.onclick = ()=>{
+      const isOpen = card.classList.toggle("open");
+      tog.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      if(lab) lab.textContent = isOpen ? labels.open : labels.closed;
+    };
+  });
+}
+
 async function renderDashboard(p, reportId){
   // P0 SENSITIVE PARTITION: sensitive-system findings (heavy_metals / autoimmune / tumor, via
   // prioritySensitive) must NOT appear in the wellness "priorities" list — they are referrals, not
@@ -6180,7 +6222,17 @@ async function renderDashboard(p, reportId){
             (range ? '<span class="prio-mk-range">'+esc(range)+'</span>' : '')+'</div>';
         }).join('') + '</div>'
       : '';
+    // DENSITY_COLLAPSE_V1 — why_this_matters LEADS the detail rather than sitting on the card
+    // face. A test user read the dashboard as a wall of text, and this paragraph was the bulk of
+    // it: every priority carried one, always expanded, above the fold. It is not deleted and not
+    // shortened, it moved, so the collapsed card is rank + headline + chips + toggle and nothing
+    // else. It goes FIRST in the detail because it is the answer to the question the toggle asks.
+    // Consequence worth naming: `detail` is now non-empty whenever why_this_matters is present,
+    // so a priority that previously had no toggle (no markers, no connection, no lever, no
+    // promise) now gets one. That is correct -- the paragraph has to be reachable -- but it means
+    // the "no detail blocks -> no toggle" guard below is now satisfied more often than before.
     const detail =
+      (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
       markersBlock +
       (x.the_connection?'<div class="prio-finding prio-connect">'+esc(x.the_connection)+'</div>':'')+
       (lever?'<div class="prio-action"><strong>Start here:</strong> '+esc(lever)+'</div>':'')+
@@ -6201,9 +6253,10 @@ async function renderDashboard(p, reportId){
       '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
       '<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+
       chipsRow +
-      (x.why_this_matters?'<div class="prio-finding">'+esc(x.why_this_matters)+'</div>':'')+
       (detail
-        ? '<button class="prio-toggle" type="button" aria-expanded="false">See the detail <span class="prio-chev">&rsaquo;</span></button>'+
+        ? '<button class="prio-toggle" type="button" aria-expanded="false">'+
+            '<span class="prio-toggle-label">'+PRIO_TOGGLE_LABEL.closed+'</span>'+
+            ' <span class="prio-chev">&rsaquo;</span></button>'+
           '<div class="prio-detail">'+detail+'</div>'
         : '')+
     '</div>';
@@ -6221,17 +6274,10 @@ async function renderDashboard(p, reportId){
   // Per-card toggle wiring — mirrors longi: every card starts CLOSED on each render
   // (no persist across renders/panel switches), in-memory class only (no storage),
   // each card toggles independently.
-  $("prios").querySelectorAll(".prio").forEach(card=>{
-    card.classList.remove("open");
-    const tog = card.querySelector(".prio-toggle");
-    if(tog){
-      tog.setAttribute("aria-expanded","false");
-      tog.onclick = ()=>{
-        const isOpen = card.classList.toggle("open");
-        tog.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      };
-    }
-  });
+  // DENSITY_COLLAPSE_V1 — this loop moved into wireDisclosures unchanged in behaviour, so the
+  // going-right and foundations sections inherit the reset rather than reimplementing it. The
+  // label swap is the only thing added; reset-to-closed and per-card independence are as before.
+  wireDisclosures($("prios"), ".prio", ".prio-toggle", PRIO_TOGGLE_LABEL);
 
   // Clarify chip (companion ask, above priorities) + escalated_soft reveal (calm block below).
   // Deploy D2. Chip suppressed once the answer is persisted (profile.supp_*).
