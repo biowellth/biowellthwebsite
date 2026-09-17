@@ -72,8 +72,70 @@ def parse_range(s):
     return None
 
 
+ENGINE_FILENAME = 'vitality-engine.js'
+
+
+def parse_tier0_labels(engine_path):
+    """Read BAND_TIERS[0].labels out of the engine source.
+
+    THE ENGINE IS THE AUTHORITY ON WHAT "IN RANGE" MEANS, and this function exists so the
+    dashboard never holds a second copy of that fact. The band a marker carries is assigned by
+    vitality-engine.js; the dashboard's consistency rule decides whether a drawn track agrees
+    with that band. Two hand-maintained lists of the same six words drift the first time a
+    seventh is added to a tier -- which is exactly how the shipped regex came to read
+    suboptimal_high as optimal.
+
+    SIBLING OF THE LIBRARY, NOT A SEPARATE ARGUMENT. The engine lives beside the library inside
+    process-report-worker/, so deriving the path couples the tier table to the very library whose
+    band vocabulary it classifies. A second CLI argument would let someone build ranges from one
+    worker's library and tier-0 from another's, and nothing would report it.
+
+    Parsed, never retyped. Raises rather than returning a short list: a silently short family is
+    the defect this whole change exists to prevent -- a missing word reads as "not optimal",
+    which suppresses a legitimate track and looks exactly like a clean render.
+    """
+    src = Path(engine_path).read_text()
+    m = re.search(r'const\s+BAND_TIERS\s*=\s*\[', src)
+    if not m:
+        raise SystemExit(f'BAND_TIERS not found in {engine_path}')
+    # First element of the array is tier 0; take it by brace matching rather than by a greedy
+    # regex, which would run to the last "}" in the file.
+    i = src.index('{', m.end())
+    depth = 0
+    for j in range(i, len(src)):
+        if src[j] == '{':
+            depth += 1
+        elif src[j] == '}':
+            depth -= 1
+            if depth == 0:
+                tier0 = src[i:j + 1]
+                break
+    else:
+        raise SystemExit(f'BAND_TIERS[0] never closes in {engine_path}')
+    lm = re.search(r'labels\s*:\s*\[([^\]]*)\]', tier0)
+    if not lm:
+        raise SystemExit(f'BAND_TIERS[0].labels not found in {engine_path}')
+    labels = re.findall(r'"([^"]+)"|\'([^\']+)\'', lm.group(1))
+    labels = [a or b for a, b in labels]
+    if len(labels) != EXPECTED_TIER0_COUNT:
+        raise SystemExit(
+            f'BAND_TIERS[0].labels parsed to {len(labels)} labels, expected '
+            f'{EXPECTED_TIER0_COUNT}: {labels!r}. Refusing to emit a short optimal family.')
+    if len(set(labels)) != len(labels):
+        raise SystemExit(f'BAND_TIERS[0].labels contains duplicates: {labels!r}')
+    return labels
+
+
+# The count is pinned rather than left open because "however many I found" cannot detect the
+# failure that matters. If the engine legitimately gains a seventh tier-0 band, this number moves
+# in the same commit as the regenerated JSON, deliberately, and the dashboard's assertions see it.
+EXPECTED_TIER0_COUNT = 6
+
+
 def main(library_path, out_path):
     lib = json.loads(Path(library_path).read_text())
+    engine_path = Path(library_path).parent / ENGINE_FILENAME
+    band_family_optimal = parse_tier0_labels(engine_path)
     schema_version = (lib.get('meta') or {}).get('schema_version', 'unknown')
     markers = lib.get('markers', [])
 
@@ -151,6 +213,7 @@ def main(library_path, out_path):
         'by_display_name_lc': by_dn,
         'by_alias_lc': by_alias,
         'themes_by_marker_id': themes_by_id,
+        'band_family_optimal': band_family_optimal,
     }
     Path(out_path).write_text(json.dumps(out, separators=(',', ':')))
 
@@ -161,6 +224,8 @@ def main(library_path, out_path):
     print(f'  by_display_name_lc    : {len(by_dn)}')
     print(f'  by_alias_lc           : {len(by_alias)}')
     print(f'  themes_by_marker_id   : {len(themes_by_id)}')
+    print(f'  band_family_optimal   : {band_family_optimal}')
+    print(f'  engine source         : {engine_path}')
     conv_n = sum(1 for v in by_id.values() if 'conv_low' in v)
     print(f'  with conv bounds      : {conv_n}')
     print(f'  without conv bounds   : {len(by_id) - conv_n}')
