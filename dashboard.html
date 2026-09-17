@@ -8745,12 +8745,39 @@ function markerBandHTML(ref, value){
     '</div>';
 }
 
-// MARKER_BAND_V2 — the engine's optimal family, copied VERBATIM from the engine that assigns the
-// band: vitality-engine.js:424, `/optimal|reassuring|normal|negative|^absent/`. It is copied
-// rather than re-derived so the two cannot drift into disagreeing about what "in range" means; if
-// the engine's regex changes, this one is wrong and the consistency check below will start
-// suppressing tracks, which is the safe direction.
-const BAND_OPTIMAL_FAMILY = /optimal|reassuring|normal|negative|^absent/;
+// BAND_FAMILY_GENERATED_V1 — the optimal family is READ from ranges-slim.json, never written
+// here. scripts/build-ranges-slim.py parses BAND_TIERS[0].labels out of vitality-engine.js and
+// emits them as band_family_optimal, so there is ONE definition of what "in range" means and the
+// page holds a copy of it rather than an opinion about it.
+//
+// WHAT THIS REPLACES. This line shipped `/optimal|reassuring|normal|negative|^absent/`, a
+// five-alternative regex I composed by hand against a set that was never the engine's. supa's
+// BAND_FAMILY_EXACT_V1 measured what the family actually is: six words, and the same unanchored
+// substring reading was a live defect in the engine itself, inflating 128 stored rows by a median
+// of 8 points. The page's copy fails in the OPPOSITE direction -- `optimal` sits inside
+// suboptimal_high and suboptimal_low, so a correctly-drawn track read as a contradiction and was
+// SUPPRESSED. Measured before this change: one such suppression on each of two real reports, both
+// Vitamin B12 (serum), one band suboptimal_high and one suboptimal_low.
+//
+// EXACT MEMBERSHIP, NOT SUBSTRING, NOT A PREFIX. The library's band vocabulary is 39 words
+// carrying 22 substring pairs, so any substring test over it is a defect waiting for the right
+// band to appear. Trimmed and lowercased, compared whole.
+//
+// IT FAILS CLOSED, AND THAT IS THE LOAD-BEARING DECISION. A browser holding a ranges-slim.json
+// cached from before this deploy has ranges but no band_family_optimal. Defaulting to "everything
+// is optimal family" there would silently restore a version of the old behaviour on exactly the
+// clients that cannot tell you they did. So a missing, empty or non-array value makes this return
+// false for EVERY word, which turns every in-range marker into a suppression -- a value with no
+// track, which is a true statement -- instead of a picture. (RANGES_BUILD is bumped alongside this
+// so the refetch happens; the guard is what covers the window before it does.)
+function isOptimalBandWord(band){
+  const fam = RANGES_LOOKUP && RANGES_LOOKUP.band_family_optimal;
+  if(!Array.isArray(fam) || fam.length === 0) return false;
+  const w = String(band == null ? "" : band).trim().toLowerCase();
+  if(!w) return false;
+  for(const f of fam) if(String(f == null ? "" : f).trim().toLowerCase() === w) return true;
+  return false;
+}
 
 // MARKER_BAND_V2 — THE CONSISTENCY RULE, computed at render time and never assumed.
 //
@@ -8778,7 +8805,7 @@ function bandContradictsEngine(ref, value, band){
   const w = axis_hi - axis_lo;
   const g0 = (f_low - axis_lo) / w * 100, g1 = (f_high - axis_lo) / w * 100;
   const inGreen = dot >= g0 && dot <= g1;
-  const optimal = BAND_OPTIMAL_FAMILY.test(String(band || ""));
+  const optimal = isOptimalBandWord(band);
   return optimal !== inGreen;
 }
 function healthyRangeText(ref, unit){
@@ -9290,7 +9317,7 @@ let RANGES_LOOKUP = null;
 // edits, so a rebuilt ranges-slim.json would otherwise be ignored by a browser that already
 // cached it. Bump RANGES_BUILD (date int) whenever ranges-slim.json is regenerated -> new URL
 // -> guaranteed refetch; within a build the cached copy still serves fast.
-const RANGES_BUILD = "20260824a";
+const RANGES_BUILD = "20260917a";
 (async () => {
   try {
     const res = await fetch('/ranges-slim.json?v=' + RANGES_BUILD, { cache: 'force-cache' });

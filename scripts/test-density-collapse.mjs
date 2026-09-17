@@ -178,10 +178,16 @@ const markerBandHTML = new Function("esc",
 // MARKER_BAND_V2 added a consistency check to the priority mapper. It is injected REAL, not
 // stubbed to false: a stub would let the check regress while these assertions stayed green. Its
 // own behaviour is asserted in test-band-nav-centring.mjs; this file only has to let it run.
-const BAND_OPTIMAL_FAMILY = new RegExp(CODE.match(/const BAND_OPTIMAL_FAMILY = \/([^/]+)\//)[1]);
-const bandContradictsEngine = new Function("esc", "markerBandHTML", "BAND_OPTIMAL_FAMILY",
+// BAND_FAMILY_GENERATED_V1 — the family is no longer a regex in the page, it is the
+// band_family_optimal array in ranges-slim.json. The REAL generated file is loaded and the REAL
+// classifier is compiled against it; a hand-written six-word list here would be the second
+// definition this change exists to delete.
+const RANGES_SLIM = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8"));
+const isOptimalBandWord = new Function("RANGES_LOOKUP",
+  "return " + cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}") + ";")(RANGES_SLIM);
+const bandContradictsEngine = new Function("esc", "markerBandHTML", "isOptimalBandWord",
   "return " + cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}") + ";"
-)(esc, markerBandHTML, BAND_OPTIMAL_FAMILY);
+)(esc, markerBandHTML, isOptimalBandWord);
 
 // ---------------------------------------------------------------------------
 // 1. THE PRIORITY CARD, executed.

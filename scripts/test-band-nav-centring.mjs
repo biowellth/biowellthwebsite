@@ -109,10 +109,16 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
 // ===========================================================================
 const bandSrc = cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}");
 const markerBandHTML = new Function("esc", "return " + bandSrc + ";")(esc);
-const BAND_OPTIMAL_FAMILY = new RegExp(CODE.match(/const BAND_OPTIMAL_FAMILY = \/([^/]+)\//)[1]);
-const bandContradictsEngine = new Function("esc", "markerBandHTML", "BAND_OPTIMAL_FAMILY",
+// BAND_FAMILY_GENERATED_V1 — the family is no longer a regex in the page, it is the
+// band_family_optimal array in ranges-slim.json. The REAL generated file is loaded and the REAL
+// classifier is compiled against it; a hand-written six-word list here would be the second
+// definition this change exists to delete.
+const RANGES_SLIM = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8"));
+const isOptimalBandWord = new Function("RANGES_LOOKUP",
+  "return " + cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}") + ";")(RANGES_SLIM);
+const bandContradictsEngine = new Function("esc", "markerBandHTML", "isOptimalBandWord",
   "return " + cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}") + ";"
-)(esc, markerBandHTML, BAND_OPTIMAL_FAMILY);
+)(esc, markerBandHTML, isOptimalBandWord);
 ok("band extraction control: it compiled to a function",
   typeof markerBandHTML === "function");
 
