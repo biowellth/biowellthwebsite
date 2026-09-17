@@ -167,6 +167,14 @@ const priority = {
   trajectory_promise: "SENTINEL_PROMISE_ZQ",
 };
 const chipSysByMarker = { sentinel_marker: "metabolic" };
+// MARKER_BAND_V1 added two dependencies to this mapper: a marker_id -> value map
+// and markerBandHTML. They are injected here rather than stubbed away so this
+// suite keeps exercising the REAL template; a stub that returned "" would let the
+// band regress while these assertions stayed green. The band's own behaviour is
+// asserted in test-band-nav-centring.mjs, so this file only has to let it run.
+const chipValByMarker = { sentinel_marker: 7 };
+const markerBandHTML = new Function("esc",
+  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc);
 
 // ---------------------------------------------------------------------------
 // 1. THE PRIORITY CARD, executed.
@@ -175,10 +183,12 @@ const prioSrc = cutAfter(CODE, '$("prios").innerHTML = pr.map((x,i)=>{', "{", "}
 const prioArrow = prioSrc.slice(prioSrc.indexOf("(x,i)=>"));
 const prioFn = new Function(
   "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
-  "chipSysByMarker", "lookupRange", "healthyRangeText", "PRIO_TOGGLE_LABEL",
+  "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
+  "markerBandHTML", "PRIO_TOGGLE_LABEL",
   "return " + prioArrow + ";"
 )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
-  chipSysByMarker, lookupRange, healthyRangeText, PRIO_TOGGLE_LABEL);
+  chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
+  markerBandHTML, PRIO_TOGGLE_LABEL);
 
 const card = prioFn(priority, 0);
 ok("priority render control: it produced a .prio card at all", /class="prio /.test(card));

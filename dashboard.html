@@ -469,6 +469,16 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
 .prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
+/* MARKER_BAND_V1 — NEUTRAL BY CONSTRUCTION. Every colour here is a brown token, the same one at
+   both ends of the track and for the dot. There is deliberately no .mk-band-dot--high or
+   --low variant and no status class hook: a band that could be coloured would eventually be
+   coloured, and a coloured band is a verdict drawn by the display layer. The dot's POSITION is
+   the only thing that varies. */
+.mk-band{margin:6px 0 2px}
+.mk-band-track{position:relative;height:4px;border-radius:4px;background:var(--brown-soft);border:1px solid var(--brown-light)}
+.mk-band-dot{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--brown-mid);border:2px solid var(--white)}
+.mk-band-ends{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--brown-mid)}
+.mk-band-cap{letter-spacing:.06em;text-transform:uppercase;font-size:9.5px;opacity:.75}
 /* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
 /* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the approved spec.
    The thread scrolls inside the card so a long conversation cannot push the
@@ -6260,8 +6270,26 @@ async function renderDashboard(p, reportId){
   // from the mSys const in reportDropDeferredQW (that stays untouched). Defensive: absent /
   // non-array p.systems -> empty map -> every chip resolves s-none, never teal, no throw.
   const chipSysByMarker = {};
+  // MARKER_BAND_V1 — marker_id -> measured value, built in the SAME pass over p.systems and for
+  // the same reason the system map is: the object the priority renderer receives does not carry
+  // what the renderer needs.
+  //
+  // MEASURED, NOT ASSUMED. priorities[].primary_markers carry exactly six keys on the current
+  // panel -- band, display_name, flag_status, marker_id, model_band, position -- and `value` is
+  // NOT among them, while systems[].markers carry value, unit, normalized_value and the rest.
+  // So `pm.value` on the priority path is undefined for every marker, and a band keyed on it
+  // would have been dead code that no test using a hand-built fixture would ever catch.
+  //
+  // THIS IS ALSO WHY THE CHIP AT THE CARD FACE SHOWS A BARE NAME. Its label is
+  // [markerName(pm), pm.value] filtered for empties, so the value silently drops out. That is a
+  // pre-existing defect, it is NOT fixed here, and fixing it is a visible copy change that wants
+  // its own ruling rather than riding along inside a band commit.
+  const chipValByMarker = {};
   for(const s of (Array.isArray(p.systems) ? p.systems : []))
-    for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id) chipSysByMarker[m.marker_id] = s.system_id;
+    for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id){
+      chipSysByMarker[m.marker_id] = s.system_id;
+      if(m.value !== null && m.value !== undefined && m.value !== "") chipValByMarker[m.marker_id] = m.value;
+    }
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
@@ -6286,9 +6314,16 @@ async function renderDashboard(p, reportId){
           // ranges-slim) -> name only too; never a status-word fallback.
           const sysId = chipSysByMarker[pm.marker_id];
           const sensitive = !sysId || SENSITIVE_SYSTEMS.has(sysId);
-          const range = sensitive ? '' : healthyRangeText(lookupRange(pm), pm.unit);
+          const ref = sensitive ? null : lookupRange(pm);
+          const range = sensitive ? '' : healthyRangeText(ref, pm.unit);
+          // MARKER_BAND_V1 — the band rides the SAME `sensitive` flag as the range sentence, not
+          // a second check of its own. A heavy-metals, autoimmune or tumour marker therefore
+          // cannot reach it: `ref` is already null by the line above, and markerBandHTML returns
+          // "" on a null ref regardless. Two independent guards for one rule is how they drift;
+          // this one cannot, because the band is downstream of the range's own decision.
+          const band = sensitive ? '' : markerBandHTML(ref, chipValByMarker[pm.marker_id]);
           return '<div class="prio-mk"><span class="prio-mk-name">'+esc(markerName(pm))+'</span>'+
-            (range ? '<span class="prio-mk-range">'+esc(range)+'</span>' : '')+'</div>';
+            (range ? '<span class="prio-mk-range">'+esc(range)+'</span>' : '')+'</div>'+band;
         }).join('') + '</div>'
       : '';
     // DENSITY_COLLAPSE_V1 — why_this_matters LEADS the detail rather than sitting on the card
@@ -8517,6 +8552,45 @@ function renderThemePanel(p){
 // reading a limit as a target. It survived because the string was duplicated across two call sites
 // (inlineRange + markerDetailHTML); keep it in one place so they can never diverge again. Display
 // only — never infers direction from marker id, system, or status.
+// MARKER_BAND_V1 — the position band. A track whose ends are the functional range and a dot at
+// her value. It is scoped to exactly where healthyRangeText already renders, so it introduces no
+// coverage gap that the range text does not already have: same lookupRange, same ranges-slim,
+// same markers.
+//
+// DRAWN ONLY WITH BOTH BOUNDS AND A NUMERIC VALUE. Measured on the current panel, 95 of 169
+// markers carry two bounds, 55 carry one and 19 carry none, and regenerating ranges-slim.json
+// does not move that -- the ceiling is in the library's own range strings. A one-ended range
+// cannot place a dot on a track, and half a track invites the reader to infer the missing end.
+// One bound or none renders exactly what renders today: the range sentence, no band.
+//
+// NO VERDICT ANYWHERE, and this is the whole design constraint rather than a detail. The track
+// carries the two numbers and the words "functional range"; the dot carries her value. There is
+// no colour that encodes good or bad and no status word in any label -- a band that turned red
+// would be the engine's verdict restated by a decoration, which is the one thing the display
+// layer must never do. Both ends use the same neutral tone for the same reason.
+//
+// THE CLAMP IS 4% AT EACH END. A value far outside the range would otherwise sit at a negative
+// or >100% offset and vanish off the track, which reads as "no data" rather than "well outside".
+// Clamping to [4, 96] keeps the dot visible and hard against the end it exceeded, so the
+// direction is still legible from position alone without a word for it.
+//
+// ARIA-HIDDEN. The band restates, in a picture, two facts already present as text on this card:
+// the value, in the status chip on the card face, and the range, in the .prio-mk-range sentence
+// beside this very track. A screen reader that announced the track as well would hear the same
+// numbers twice, so it is marked decorative.
+function markerBandHTML(ref, value){
+  if(!ref || ref.low == null || ref.high == null) return '';
+  const lo = Number(ref.low), hi = Number(ref.high), v = Number(value);
+  if(!isFinite(lo) || !isFinite(hi) || !isFinite(v) || hi <= lo) return '';
+  const raw = (v - lo) / (hi - lo);
+  const pct = Math.min(96, Math.max(4, raw * 100));
+  return '<div class="mk-band" aria-hidden="true">'+
+      '<div class="mk-band-track"><span class="mk-band-dot" style="left:'+pct.toFixed(1)+'%"></span></div>'+
+      '<div class="mk-band-ends"><span>'+esc(String(ref.low))+'</span>'+
+        '<span class="mk-band-cap">functional range</span>'+
+        '<span>'+esc(String(ref.high))+'</span></div>'+
+    '</div>';
+}
 function healthyRangeText(ref, unit){
   if(!ref || (ref.low==null && ref.high==null)) return "";
   const u = unit ? " " + unit : "";
