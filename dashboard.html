@@ -8868,8 +8868,29 @@ function renderLongitudinal(p){
   // empty movement arrays. computeLongitudinal only runs when a prior panel exists, and always sets
   // baseline_panel_date then; so a two-panel user whose markers all held steady has a real
   // baseline_panel_date with empty arrays -> that is NOT a first panel.
+  // DENSITY_COLLAPSE_V1 — a FIRST PANEL NOW HIDES THIS SECTION ENTIRELY. It used to render the
+  // first-panel state: a "Your first panel" card listing the markers this space will track. That
+  // card is honest but it is a promise about a future panel, and on the one screen a first-time
+  // user sees it is pure weight with nothing to read yet. It returns with the second panel, which
+  // is the first moment it has anything to say.
+  //
+  // THE TEST IS baseline_panel_date ABSENCE, NOT A REPORT COUNT, and that is deliberate.
+  // window.__allReports, window.__doneReportIds and the picker's option count are all in scope
+  // here, and every one of them is wrong for this: a report count includes failed and
+  // still-processing rows, so a woman whose second upload errored would see a trajectory section
+  // with no baseline to compare against. computeLongitudinal sets baseline_panel_date only when a
+  // prior panel actually exists, so its absence IS "there is nothing to compare yet" -- which is
+  // the question being asked. The Stage 5 reasoning in the comment above still holds unchanged:
+  // empty movement arrays are NOT the test, because a two-panel user whose markers all held
+  // steady has a real baseline with empty arrays.
+  //
+  // renderFirstPanelTrajectory is deliberately LEFT IN PLACE AND NOW UNREFERENCED. It is not dead
+  // code to be swept: the second-panel work needs it, and rewriting it later from scratch would
+  // lose the "dot only, never a line" rule at its top, which exists so the card cannot imply
+  // history that does not exist.
   if(!L || !L.baseline_panel_date){
-    return renderFirstPanelTrajectory(p, wrap, fp, lgBlock);
+    wrap.classList.add("hidden");
+    return;
   }
   // State 2: baseline exists but nothing moved -> keep the section hidden, exactly as before Stage 5.
   if((open.length+resolved.length+crossed.length)===0){
