@@ -175,6 +175,13 @@ const chipSysByMarker = { sentinel_marker: "metabolic" };
 const chipValByMarker = { sentinel_marker: 7 };
 const markerBandHTML = new Function("esc",
   "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc);
+// MARKER_BAND_V2 added a consistency check to the priority mapper. It is injected REAL, not
+// stubbed to false: a stub would let the check regress while these assertions stayed green. Its
+// own behaviour is asserted in test-band-nav-centring.mjs; this file only has to let it run.
+const BAND_OPTIMAL_FAMILY = new RegExp(CODE.match(/const BAND_OPTIMAL_FAMILY = \/([^/]+)\//)[1]);
+const bandContradictsEngine = new Function("esc", "markerBandHTML", "BAND_OPTIMAL_FAMILY",
+  "return " + cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}") + ";"
+)(esc, markerBandHTML, BAND_OPTIMAL_FAMILY);
 
 // ---------------------------------------------------------------------------
 // 1. THE PRIORITY CARD, executed.
@@ -184,11 +191,11 @@ const prioArrow = prioSrc.slice(prioSrc.indexOf("(x,i)=>"));
 const prioFn = new Function(
   "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
   "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-  "markerBandHTML", "PRIO_TOGGLE_LABEL",
+  "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
   "return " + prioArrow + ";"
 )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
   chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-  markerBandHTML, PRIO_TOGGLE_LABEL);
+  markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL);
 
 const card = prioFn(priority, 0);
 ok("priority render control: it produced a .prio card at all", /class="prio /.test(card));

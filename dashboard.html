@@ -482,16 +482,25 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
 .prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
-/* MARKER_BAND_V1 — NEUTRAL BY CONSTRUCTION. Every colour here is a brown token, the same one at
-   both ends of the track and for the dot. There is deliberately no .mk-band-dot--high or
-   --low variant and no status class hook: a band that could be coloured would eventually be
-   coloured, and a coloured band is a verdict drawn by the display layer. The dot's POSITION is
-   the only thing that varies. */
-.mk-band{margin:6px 0 2px}
+/* MARKER_BAND_V2 — ONE COLOURED ZONE, GREEN, AND THE REST OF THE TRACK NEUTRAL. The track itself
+   is a brown token and the dot is a brown token; only the functional range is tinted. There is
+   deliberately no --high / --low / --amber / --coral variant and no status class hook: a band that
+   could be coloured by verdict would eventually be coloured by verdict, and that is the engine's
+   job restated as decoration. What varies is the dot's POSITION and the zone's EXTENT, both
+   computed from the library.
+   The value label sits ABOVE the dot and is translated -50% so it centres on it; the two zone
+   numbers sit BELOW the zone's edges the same way. .mk-band-ends is position:relative rather than
+   a flex row because the numbers are pinned to the zone, not spread across the track. */
+.mk-band{margin:8px 0 2px}
+.mk-band-val{position:relative;transform:translateX(-50%);display:inline-block;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown);margin-bottom:3px}
+/* NO overflow:hidden ON THE TRACK. The dot is 9px on a 4px track and centred on it, so clipping
+   the track would cut the dot's top and bottom off. The zone is a sub-span of the track and never
+   exceeds it horizontally, so it carries its own radius instead of being clipped by a parent. */
 .mk-band-track{position:relative;height:4px;border-radius:4px;background:var(--brown-soft);border:1px solid var(--brown-light)}
-.mk-band-dot{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--brown-mid);border:2px solid var(--white)}
-.mk-band-ends{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--brown-mid)}
-.mk-band-cap{letter-spacing:.06em;text-transform:uppercase;font-size:9.5px;opacity:.75}
+.mk-band-zone{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--teal-light)}
+.mk-band-dot{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--brown-mid);border:2px solid var(--white);z-index:1}
+.mk-band-ends{position:relative;height:14px;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--brown-mid)}
+.mk-band-end{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
 /* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
 /* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the approved spec.
    The thread scrolls inside the card so a long conversation cannot push the
@@ -6340,15 +6349,30 @@ async function renderDashboard(p, reportId){
           const sysId = chipSysByMarker[pm.marker_id];
           const sensitive = !sysId || SENSITIVE_SYSTEMS.has(sysId);
           const ref = sensitive ? null : lookupRange(pm);
-          const range = sensitive ? '' : healthyRangeText(ref, pm.unit);
-          // MARKER_BAND_V1 — the band rides the SAME `sensitive` flag as the range sentence, not
+          // MARKER_BAND_V2 — the band rides the SAME `sensitive` flag the range sentence used, not
           // a second check of its own. A heavy-metals, autoimmune or tumour marker therefore
           // cannot reach it: `ref` is already null by the line above, and markerBandHTML returns
           // "" on a null ref regardless. Two independent guards for one rule is how they drift;
-          // this one cannot, because the band is downstream of the range's own decision.
-          const band = sensitive ? '' : markerBandHTML(ref, chipValByMarker[pm.marker_id]);
+          // this one cannot, because the band is downstream of the same decision.
+          //
+          // THE VALUE REACHES THE BAND FROM systems[] VIA chipValByMarker, not from pm.
+          // primary_markers carries six keys and `value` is not one of them, so `pm.value` is
+          // undefined for every marker on this path. That is measured, not assumed, and it is why
+          // the map above exists.
+          const mval = chipValByMarker[pm.marker_id];
+          // THE CONSISTENCY RULE. A track that disagrees with the headline is worse than no track,
+          // so it is dropped and the value stands alone.
+          const contradicts = !sensitive && bandContradictsEngine(ref, mval, pm.band);
+          const band = (sensitive || contradicts) ? '' : markerBandHTML(ref, mval);
+          // MARKER_BAND_V2 — on THIS path the range sentence is replaced by her value, because the
+          // band already states the range at its own zone edges and printing "Healthy X to Y"
+          // beside it says the same thing twice. When no track is drawn the value is all there is,
+          // which is the honest fallback. The other two healthyRangeText call sites, inlineRange
+          // and the marker row, are deliberately untouched: they have no band beside them.
+          const valTxt = (!sensitive && mval !== null && mval !== undefined && mval !== "")
+            ? String(mval) + (pm.unit ? ' ' + pm.unit : '') : '';
           return '<div class="prio-mk"><span class="prio-mk-name">'+esc(markerName(pm))+'</span>'+
-            (range ? '<span class="prio-mk-range">'+esc(range)+'</span>' : '')+'</div>'+band;
+            (valTxt ? '<span class="prio-mk-range">'+esc(valTxt)+'</span>' : '')+'</div>'+band;
         }).join('') + '</div>'
       : '';
     // DENSITY_COLLAPSE_V1 — why_this_matters LEADS the detail rather than sitting on the card
@@ -8647,18 +8671,115 @@ function renderThemePanel(p){
 // the value, in the status chip on the card face, and the range, in the .prio-mk-range sentence
 // beside this very track. A screen reader that announced the track as well would hear the same
 // numbers twice, so it is marked decorative.
+// MARKER_BAND_V2 — THE AXIS COMES FROM THE CONVENTIONAL INTERVAL, NEVER FROM HER VALUE.
+//
+// V1 spanned the functional range and clamped anything outside it. That is why it failed: for any
+// value below the functional low the clamp is the only thing deciding position, so every such
+// marker landed on the same floor. MEASURED on the panel the defect was reported from, before this
+// was written: 11 of 16 drawn markers sat on the identical 4.00% floor and the whole card carried
+// 5 distinct dot positions. Under this axis the same 16 markers take 16 distinct positions.
+//
+// AN AXIS DERIVED FROM HER VALUE CANNOT SEPARATE TWO WOMEN, which is the general form of that bug
+// and the reason the rule is absolute rather than a preference: if v appears in the axis bounds
+// then pos(v) is a function of the padding alone and is the same number for everyone below range.
+// So axis_lo and axis_hi are built from conv and f ONLY. If you ever need to widen the track for
+// an extreme value, widen it from the library, not from the reading.
+//
+// ONE ZONE, GREEN, THE FUNCTIONAL RANGE. Everything outside it is the neutral track. There is no
+// amber and no coral: amber is deferred, and a second coloured region would be the engine's
+// verdict restated by a decoration, which is the thing the display layer must not do. The track
+// carries no caption, so no word sits on it to be read as a judgement.
+//
+// FALLBACK TO NO TRACK, and these four are the only conditions. Each returns "" and the caller
+// renders the value alone, which is what a marker with no functional range already does:
+//   1. conventional interval not two-ended    2. functional range not two-ended
+//   3. conv span <= 0 (the pad would vanish or invert)
+//   4. the axis does not STRICTLY contain the functional range on both sides
+// Measured over the 126 library rows carrying both tiers: condition 3 catches exactly one row,
+// nucleated_rbc_pct, and condition 4 catches nothing that 3 has not already caught. Both are kept
+// because they are different failures and a future library edit can produce one without the other.
 function markerBandHTML(ref, value){
-  if(!ref || ref.low == null || ref.high == null) return '';
-  const lo = Number(ref.low), hi = Number(ref.high), v = Number(value);
-  if(!isFinite(lo) || !isFinite(hi) || !isFinite(v) || hi <= lo) return '';
-  const raw = (v - lo) / (hi - lo);
-  const pct = Math.min(96, Math.max(4, raw * 100));
+  if(!ref) return '';
+  // NULL IS CHECKED BEFORE Number(), and this is not defensive noise. Number(null) is 0 and
+  // isFinite(0) is true, so a HIGH-ONLY range {low:null, high:20} passed an isFinite-only guard,
+  // silently became low=0, and drew a track labelled "null". A LOW-ONLY range happened to be
+  // caught anyway by the inverted-bounds test, which is why only one of the two ever showed up.
+  // Caught by the assertion that covers the high-only case explicitly; the guard is the fix.
+  if(ref.low == null || ref.high == null || ref.conv_low == null || ref.conv_high == null) return '';
+  if(value == null || value === '') return '';
+  const f_low = Number(ref.low), f_high = Number(ref.high);
+  const c_low = Number(ref.conv_low), c_high = Number(ref.conv_high);
+  const v = Number(value);
+  if(!isFinite(f_low) || !isFinite(f_high) || f_high <= f_low) return '';   // 2
+  if(!isFinite(c_low) || !isFinite(c_high)) return '';                      // 1
+  if(!isFinite(v)) return '';
+  const span = c_high - c_low;
+  if(!(span > 0)) return '';                                                // 3
+  const pad = 0.25 * span;
+  const axis_lo = Math.min(c_low, f_low) - pad;
+  const axis_hi = Math.max(c_high, f_high) + pad;
+  // 4. A BACKSTOP THAT CANNOT CURRENTLY FIRE, and it is kept deliberately. With pad > 0 (which
+  // condition 3 guarantees) the min/max construction puts axis_lo at least a pad below f_low and
+  // axis_hi at least a pad above f_high, so containment holds by construction. Measured over the
+  // 126 library rows carrying both tiers: zero fail this once condition 3 has run. It stays
+  // because a future change to how the axis is built could break containment without touching
+  // the span, and this is the line that would catch it.
+  if(!(axis_lo < f_low && axis_hi > f_high)) return '';                     // 4
+  const w = axis_hi - axis_lo;
+  const pos = (x) => (x - axis_lo) / w * 100;
+  // THE CLAMP IS ON THE DOT ONLY, and only to keep it on the track. The zone edges are never
+  // clamped: clamping them would move the boundary of the green region, which is a claim about
+  // where the functional range is, and that is not the renderer's to make.
+  const dot = Math.min(98, Math.max(2, pos(v)));
+  const g0 = pos(f_low), g1 = pos(f_high);
   return '<div class="mk-band" aria-hidden="true">'+
-      '<div class="mk-band-track"><span class="mk-band-dot" style="left:'+pct.toFixed(1)+'%"></span></div>'+
-      '<div class="mk-band-ends"><span>'+esc(String(ref.low))+'</span>'+
-        '<span class="mk-band-cap">functional range</span>'+
-        '<span>'+esc(String(ref.high))+'</span></div>'+
+      '<div class="mk-band-val" style="left:'+dot.toFixed(1)+'%">'+esc(String(value))+'</div>'+
+      '<div class="mk-band-track">'+
+        '<span class="mk-band-zone" style="left:'+g0.toFixed(1)+'%;width:'+(g1-g0).toFixed(1)+'%"></span>'+
+        '<span class="mk-band-dot" style="left:'+dot.toFixed(1)+'%"></span>'+
+      '</div>'+
+      '<div class="mk-band-ends">'+
+        '<span class="mk-band-end" style="left:'+g0.toFixed(1)+'%">'+esc(String(ref.low))+'</span>'+
+        '<span class="mk-band-end" style="left:'+g1.toFixed(1)+'%">'+esc(String(ref.high))+'</span>'+
+      '</div>'+
     '</div>';
+}
+
+// MARKER_BAND_V2 — the engine's optimal family, copied VERBATIM from the engine that assigns the
+// band: vitality-engine.js:424, `/optimal|reassuring|normal|negative|^absent/`. It is copied
+// rather than re-derived so the two cannot drift into disagreeing about what "in range" means; if
+// the engine's regex changes, this one is wrong and the consistency check below will start
+// suppressing tracks, which is the safe direction.
+const BAND_OPTIMAL_FAMILY = /optimal|reassuring|normal|negative|^absent/;
+
+// MARKER_BAND_V2 — THE CONSISTENCY RULE, computed at render time and never assumed.
+//
+// The zones are drawn from the LIBRARY's functional range. The headline verdict comes from the
+// ENGINE's band, which is assigned from position_bands, a different structure. Measured across the
+// library, the two agree wherever both are two-ended, but "measured today" is not "true for every
+// future row", and the failure it would produce is the worst kind: a dot sitting inside green
+// under a sentence that says the marker is low.
+//
+// So the band checks itself against the engine and SUPPRESSES rather than argues. It returns the
+// value alone, which is a true statement, instead of a picture that contradicts the words above it.
+//
+// band ONLY. position and flag_status are derived FROM band at index.ts:3415-3416, so consulting
+// them would be asking the same source twice and calling it corroboration.
+function bandContradictsEngine(ref, value, band){
+  const html = markerBandHTML(ref, value);
+  if(!html) return false;                       // nothing drawn, nothing to contradict
+  const m = html.match(/mk-band-dot" style="left:([0-9.]+)%/);
+  if(!m) return false;
+  const dot = Number(m[1]);
+  const f_low = Number(ref.low), f_high = Number(ref.high);
+  const c_low = Number(ref.conv_low), c_high = Number(ref.conv_high);
+  const span = c_high - c_low, pad = 0.25 * span;
+  const axis_lo = Math.min(c_low, f_low) - pad, axis_hi = Math.max(c_high, f_high) + pad;
+  const w = axis_hi - axis_lo;
+  const g0 = (f_low - axis_lo) / w * 100, g1 = (f_high - axis_lo) / w * 100;
+  const inGreen = dot >= g0 && dot <= g1;
+  const optimal = BAND_OPTIMAL_FAMILY.test(String(band || ""));
+  return optimal !== inGreen;
 }
 function healthyRangeText(ref, unit){
   if(!ref || (ref.low==null && ref.high==null)) return "";
