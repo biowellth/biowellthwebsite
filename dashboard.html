@@ -795,7 +795,34 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 #view-reveal .card[data-beat-kind="ring"]::before{content:"";position:absolute;top:38%;left:50%;width:min(560px,78vw);height:min(560px,78vw);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(212,169,74,.42) 0%,rgba(212,147,88,.24) 36%,rgba(212,124,101,0) 70%);filter:blur(6px);z-index:0;pointer-events:none;animation:heroPulse 7s ease-in-out infinite}
 #view-reveal .card:not(.card--hero):not([data-beat-kind="ring"])>*{position:relative;z-index:1}
 #view-reveal .card:not(.card--hero):not([data-beat-kind="ring"])::before{content:"";position:absolute;top:34%;left:50%;width:min(640px,90%);height:min(520px,70%);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(212,169,74,.14) 0%,rgba(212,147,88,.08) 40%,rgba(212,124,101,0) 70%);filter:blur(10px);z-index:0;pointer-events:none}
-@media(max-height:760px){#view-reveal .card{justify-content:flex-start}}
+/* REVEAL_CENTRING_V1 — the max-height:760px override is REMOVED, not retargeted, and the history
+   is the reason. It was introduced with the original deck in 96ff71b (2026-06-03). Later, b9b1808
+   (2026-08-16) replaced justify-content:center with `safe center` to stop an overflowing step
+   pushing its first paragraph above the scroll origin, and its commit body says of this rule, in
+   as many words: "max-height:760px override left in place as belt-and-suspenders". So it was
+   already redundant the day it was kept, by its author's own account.
+
+   IT IS NOT A DUPLICATE OF `safe`, AND THAT DIFFERENCE IS THE BUG. `safe` degrades to
+   start-alignment only when the content actually overflows. This rule fired on VIEWPORT HEIGHT,
+   so on a 646px-tall window every beat top-aligned, including a two-line one with half the screen
+   empty beneath it. That is the reported symptom and `safe center` never produces it.
+
+   RETARGETING IT TO PLAIN `center` WOULD REGRESS b9b1808 exactly where it matters most. A short
+   viewport is where a step is most likely to overflow, and plain center on an overflowing flex
+   column is the unreachable-top bug that commit exists to fix. Removal is the only option that
+   keeps both behaviours.
+
+   THE UNSUPPORTED-BROWSER CASE CANNOT GET WORSE. A UA that does not know the `safe` keyword drops
+   the whole declaration as invalid and falls back to the initial value, which lays a flex column
+   out from the start edge -- the same top-aligned result this rule was producing. So the
+   belt-and-suspenders concern is already answered by how `safe center` fails.
+
+   THE TALL BEAT IS SAFE BY CONSTRUCTION, not by measurement: .card carries overflow-y:auto, and
+   `safe` start-aligns precisely when content exceeds the box, so no beat can clip its top at any
+   height. Measured for the record, the longest static beat template in buildDeck is the handoff
+   beat at 815 characters of visible copy, ahead of the three-tier explainer at 626; the
+   data-driven priority beat can exceed both at a high priority count, which is why the guarantee
+   is structural rather than a bound on any one beat. */
 #view-reveal .eyebrow{display:block;background:none;padding:0;margin:0 0 18px;border-radius:0;
   font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--teal-dark);font-weight:400}
