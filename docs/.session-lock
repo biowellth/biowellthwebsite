@@ -1,9 +1,0 @@
-session: c341556f-d993-45c3-89bb-e62478183f2f
-utc:     2026-09-17T23:26:54Z
-scope:   BAND_FAMILY_GENERATED_V1. Generate the optimal band family into
-         ranges-slim.json from the engine's BAND_TIERS[0].labels and have the
-         dashboard's consistency rule read it as exact membership, failing
-         closed when the array is missing, empty or not an array. Touches
-         scripts/build-ranges-slim.py, ranges-slim.json, dashboard.html and
-         scripts/ tests. Reads supa; writes nothing there.
-repos:   biowellth-website (write)
