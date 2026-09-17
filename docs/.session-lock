@@ -1,8 +1,0 @@
-session: c341556f-d993-45c3-89bb-e62478183f2f
-utc:     2026-09-17T19:05:00Z
-scope:   DENSITY_COLLAPSE_V1, dashboard.html only. Move why_this_matters into
-         .prio-detail and relabel its toggle; add the same disclosure to the
-         going-right cards and the foundations levers; hide the longitudinal
-         section on a first panel. Plus one new test suite under scripts/.
-         No other path touched.
-repos:   biowellth-website (write)
