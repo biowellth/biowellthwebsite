@@ -1,8 +1,0 @@
-session: c341556f-d993-45c3-89bb-e62478183f2f
-utc:     2026-09-17T22:40:00Z
-scope:   MARKER_BAND_V2. Regenerate ranges-slim.json carrying conv_low/conv_high
-         from ranges.default.conventional_india, and rewrite markerBandHTML so the
-         axis comes from the conventional bounds rather than from her value.
-         dashboard.html, ranges-slim.json, scripts/build-ranges-slim.py and the
-         test suites only. No other path touched.
-repos:   biowellth-website (write)
