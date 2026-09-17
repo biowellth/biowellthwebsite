@@ -541,6 +541,19 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .quiet{background:#fff;border:1px solid var(--teal-light);border-radius:16px;padding:20px}
 .quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:5px}
 .quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.55}
+/* DENSITY_COLLAPSE_V1 — the clamp is the COLLAPSED state, so it lives on .quiet-note itself and
+   .quiet.open releases it. Written the other way round (clamp added by a class) an entry whose
+   JS never ran would render fully expanded, which is the failure direction this file avoids:
+   the default state must be the quiet one. -webkit-line-clamp is the only cross-browser way to
+   clamp to a line COUNT rather than a pixel height, and a pixel height would break the moment a
+   font falls back. It needs all four declarations together; overflow:hidden alone does nothing. */
+.quiet-note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quiet.open .quiet-note{display:block;-webkit-line-clamp:none;overflow:visible}
+/* The three disclosure toggles share .prio-toggle's look. Listed rather than merged into that
+   selector so a future change to one section's control does not silently move the other two. */
+.quiet-toggle,.lever-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-top:10px}
+.quiet-toggle:hover,.lever-toggle:hover{color:var(--brown)}
+.quiet.open .prio-chev,.lever.open .prio-chev{transform:rotate(90deg)}
 .quiet-foot{font-style:italic;color:var(--teal-dark);font-size:14px;margin-top:18px}
 .gap-card{background:#fff;border:1px solid var(--cream-mid);border-radius:18px;padding:28px 32px}
 .gap-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--brown);margin-bottom:8px}
@@ -6295,10 +6308,26 @@ async function renderDashboard(p, reportId){
   $("quiet-intro").textContent = q.length
     ? "A lot is quietly going right. These are the systems that tend to be hardest to move, and yours are steady."
     : "";
+  // DENSITY_COLLAPSE_V1 — the implication line is CLAMPED to two lines and the rest sits behind
+  // the same disclosure the priority cards use. The headline (.quiet-title) is always visible.
+  //
+  // The clamp is CSS, not a substring: .quiet-note stays in the DOM in full, so nothing is lost
+  // to a screen reader, to find-in-page, or to a user who opens it. Truncating the string here
+  // would have been the shorter edit and it would have thrown copy away.
+  //
+  // The toggle renders ONLY when there is an implication to reveal. A "See more" on a card whose
+  // body is one short line is a control that does nothing, which this file's own standard
+  // forbids. So an entry with no implication renders exactly as it did before.
   $("quiet").innerHTML = q.map(x=>
     '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
-    (x.implication?'<div class="quiet-note">'+esc(x.implication)+'</div>':'')+'</div>'
+    (x.implication
+      ? '<div class="quiet-note">'+esc(x.implication)+'</div>'+
+        '<button class="quiet-toggle" type="button" aria-expanded="false">'+
+          '<span class="quiet-toggle-label">'+MORE_TOGGLE_LABEL.closed+'</span>'+
+          ' <span class="prio-chev">&rsaquo;</span></button>'
+      : '')+'</div>'
   ).join("");
+  wireDisclosures($("quiet"), ".quiet", ".quiet-toggle", MORE_TOGGLE_LABEL);
 
   renderCoverageGap(p);
   // Rail browse nav built LAST (after renderCoverageGap sets RD_GAPS_SHOWN). Each row is gated on
