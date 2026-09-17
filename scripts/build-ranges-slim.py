@@ -106,6 +106,35 @@ def main(library_path, out_path):
                             'display_name': dn,
                             'biowellth_optimal': rng_str})
             continue
+
+        # MARKER_BAND_V2 — carry the CONVENTIONAL interval alongside the functional one, because
+        # the band's axis is derived from it and an axis derived from her value cannot separate
+        # two women whose results differ. Measured on one real panel before this line was written:
+        # the value-derived axis put 11 of 16 drawn markers on the same 4.00% floor and produced 5
+        # distinct dot positions in total; the conventional-derived axis produces 16 distinct
+        # positions for the same 16 markers.
+        #
+        # SAME parse_range, no second parser. conventional_india is the same kind of string as
+        # biowellth_optimal ("70-100", "<5.7", ">=40") and returns the identical {low, high}
+        # shape, so a second parser would be two things to keep in step for no gain.
+        #
+        # EMITTED ONLY WHEN TWO-ENDED. A one-ended conventional interval cannot bound an axis, and
+        # writing a null would make the consumer test for two different absences. Absent means
+        # absent: the dashboard falls back to no track, which is what it already does for a marker
+        # with no functional range.
+        #
+        # Attached to the SHARED rng object deliberately. The note below forbids PER-MAP fields,
+        # because the three maps hold the same object and a field set on one would appear on all
+        # three and mislead. A per-MARKER field is the opposite case: it belongs to the marker, so
+        # every map that resolves to that marker should carry it. The cost is that the pair is
+        # serialised once per map entry rather than once, which the byte count in the commit
+        # message accounts for.
+        conv = parse_range((((m.get('ranges') or {}).get('default') or {})
+                            .get('conventional_india')))
+        if conv and conv['low'] is not None and conv['high'] is not None:
+            rng = dict(rng)
+            rng['conv_low'] = conv['low']
+            rng['conv_high'] = conv['high']
         # The three range maps share one rng object (Step 0b) — do NOT attach per-map fields here.
         if mid:
             by_id[mid] = rng
@@ -132,6 +161,9 @@ def main(library_path, out_path):
     print(f'  by_display_name_lc    : {len(by_dn)}')
     print(f'  by_alias_lc           : {len(by_alias)}')
     print(f'  themes_by_marker_id   : {len(themes_by_id)}')
+    conv_n = sum(1 for v in by_id.values() if 'conv_low' in v)
+    print(f'  with conv bounds      : {conv_n}')
+    print(f'  without conv bounds   : {len(by_id) - conv_n}')
     print(f'  skipped (unparseable) : {len(skipped)}')
     if skipped[:5]:
         print('  first 5 skipped:')
