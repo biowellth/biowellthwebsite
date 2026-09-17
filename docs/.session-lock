@@ -1,8 +1,0 @@
-session: c341556f-d993-45c3-89bb-e62478183f2f
-utc:     2026-09-17T20:02:00Z
-scope:   Part two of the dashboard rework, dashboard.html only. Fix the reveal
-         card centring on a short viewport, draw a marker position band on the
-         priority path where healthyRangeText already renders, and add an Ask
-         Sana control to the top bar with the wrap extended. Plus test additions
-         under scripts/. No other path touched.
-repos:   biowellth-website (write)
