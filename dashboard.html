@@ -25,11 +25,21 @@ body.ready{visibility:visible}
 .mono{font-family:'JetBrains Mono',monospace}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .topbar{background:var(--white);border-bottom:1px solid var(--brown-light);padding:0 24px;position:sticky;top:0;z-index:70}
-.topbar-inner{max-width:1100px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
+.topbar-inner{max-width:1100px;margin:0 auto;min-height:60px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:10px;cursor:pointer}
 .brand-mark{width:30px;height:30px;color:var(--teal)}
 .brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
-.topbar-right{display:flex;align-items:center;gap:6px}
+/* ASK_SANA_NAV_V1 — the wrap moves OUT of the 600px query and onto the base rule. The reasoning
+   at CAMERA_READING_NAV_V1 below was right and was simply scoped too narrowly: "Wrapping cannot
+   overflow at any width or any label length" is an argument for wrapping at EVERY width, and the
+   media query only granted it below 600px. With the panel picker visible, Ask Sana makes five
+   controls in what was a fixed-height non-wrapping row, and the band from 601px up to wherever
+   1100px of max-width stops giving slack was unprotected -- the same horizontal scroll that entry
+   was written to prevent, one viewport class over.
+   height:60px becomes min-height:60px for the same reason: a row that may wrap cannot be pinned
+   to one row's height, or the second row is clipped instead of scrolled. At one row nothing moves,
+   because min-height and height agree there. */
+.topbar-right{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
 /* CAMERA_READING_NAV_V1, 2026-09-16. Before this line NOT ONE media query touched
    the header: no hamburger, no collapse, no flex-wrap on .topbar-right, and no
    overflow-x guard anywhere in this file. A fourth control therefore went into a
@@ -40,9 +50,12 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
    Wrapping cannot overflow at any width or any label length.
    NOT the index.html pattern at its own 640px rule, which hides nav links with no
    replacement and leaves them unreachable. Nothing here is hidden by width. */
+/* ASK_SANA_NAV_V1 — flex-wrap and justify-content moved to the base rules above, so this query
+   now carries only what is genuinely phone-specific: the row gap and the vertical padding a
+   wrapped bar needs. Leaving duplicate wrap declarations here would have made the base rule look
+   optional. */
 @media(max-width:600px){
-  .topbar-inner{height:auto;min-height:60px;flex-wrap:wrap;row-gap:6px;padding:9px 0}
-  .topbar-right{flex-wrap:wrap;justify-content:flex-end}
+  .topbar-inner{row-gap:6px;padding:9px 0}
 }
 .btn-ghost{font-size:13px;color:var(--brown-mid);font-weight:600;padding:8px 14px;border-radius:100px}
 /* Account deletion (audit H1): discreet link + strong typed-confirm modal (not a primary button). */
@@ -1482,6 +1495,18 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
            other string in this feature, so the no-colon and no-em-dash rule stays
            checkable in one place. -->
       <button class="btn-ghost hidden" id="btn-scan" type="button"></button>
+      <!-- ASK_SANA_NAV_V1. Ships HIDDEN and EMPTY for the same two reasons btn-scan does.
+           HIDDEN because the control must not point at a chat that is not there: askSana
+           scrolls to #sana-mount and focuses its input, and with SANA_CHAT_ENABLED off or the
+           mount absent there is no input to focus. sanaMountChat reveals it at the moment it has
+           actually built the input, so the bar cannot offer a conversation the page is not
+           hosting.
+           EMPTY because the label comes from SANA_COPY at render time, like every other string
+           in this feature, so the no-colon and no-em-dash rule stays checkable in one place.
+           NOT gated on consent, deliberately. sanaSend already asks for consent in the thread
+           when it is missing, so a woman who has not consented is taken to the place that asks
+           her rather than shown nothing. Hiding it would withhold the request, not the feature. -->
+      <button class="btn-ghost hidden" id="btn-sana" type="button"></button>
       <button class="btn-ghost" id="btn-account">Account</button>
     </div>
   </div>
@@ -7349,6 +7374,10 @@ const SANA_API_BASE = "https://biowealth-backend-prod-3.azurewebsites.net/api";
 const SANA_COPY = {
   placeholder: "Ask Sana about your panel",
   send:        "Ask",
+  // ASK_SANA_NAV_V1. TITLE CASE, per the locked top bar naming convention recorded beside the
+  // markup: the bar's labels are nav items and read as one row, so they are cased alike. The
+  // chip and the companion card button keep sentence case because their label is a sentence.
+  navLabel:    "Ask Sana",
   notOn:       "Sana is not switched on yet. She will be available here soon.",
   collision:   "We could not connect this account. Please email support@mybiowellth.com and we will sort it out.",
   expired:     "Your session has expired. Please sign in again.",
@@ -8079,6 +8108,46 @@ function sanaMountChat(){
   if(badge) badge.remove();
   $("sana-send").onclick = sanaSend;
   $("sana-input").onkeydown = (e)=>{ if(e.key === "Enter") sanaSend(); };
+  renderSanaEntry();
+}
+
+// ASK_SANA_NAV_V1 — the top bar entry point, wired HERE and not beside the other top-level
+// onclick assignments, for the reason FACE_SCAN_ENTRY_V1 already records: SANA_COPY is declared
+// far below those assignments, so reading it from there hits the temporal dead zone and throws
+// on boot. Called from sanaMountChat's last statement, which is the one hook on that path.
+//
+// IT REVEALS ONLY WHAT IS ALREADY BUILT. sanaMountChat has just created #sana-input by the time
+// this runs, so the control cannot be shown pointing at a chat that does not exist. The node
+// ships carrying "hidden" in markup, so this function can only ever ADD visibility and can never
+// be the step that was supposed to hide something and did not run.
+//
+// A BARE REFERENCE, never askSana(). The suite asserts the handler is not invoked at load, and
+// an arrow wrapper would defeat that check while looking identical.
+function renderSanaEntry(){
+  const nav = $("btn-sana");
+  if(!nav) return;
+  if(!SANA_CHAT_ENABLED || !$("sana-input")) return;   // nothing to send her to
+  nav.textContent = SANA_COPY.navLabel;
+  nav.onclick = askSana;
+  nav.classList.remove("hidden");
+}
+
+// ASK_SANA_NAV_V1 — SCROLL, DO NOT SWITCH VIEWS, and that is a finding about the code rather
+// than a preference. #view-companion is reachable from exactly ONE place, the `!completed.length`
+// branch in the boot fork, so it is the NO-PANEL fallback and not a richer Sana. A woman reading
+// her dashboard has a completed panel by definition and can never reach it; sending her there
+// would move her from the panel she is looking at to the view built for having none.
+//
+// #sana-mount is already on her screen, so this brings it into view and puts the cursor in it.
+// scrollIntoView is guarded because it is absent in some embedded webviews, and focus() is
+// preventScroll so the two do not fight over the final position.
+function askSana(){
+  const input = $("sana-input");
+  if(!input) return false;
+  const card = $("sana-mount") || input;
+  if(typeof card.scrollIntoView === "function") card.scrollIntoView({ behavior: "smooth", block: "center" });
+  try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); }
+  return true;
 }
 
 // Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: systems (body
