@@ -113,8 +113,16 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
 const markerBandGeometry = new Function(
   "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
 const bandSrc = cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}");
-const markerBandHTML = new Function("esc", "markerBandGeometry",
-  "return " + bandSrc + ";")(esc, markerBandGeometry);
+// The note table and its renderer are compiled TOGETHER, in one scope, so the table the page
+// ships is the one the assertions read. Copying the strings into this file would be the second
+// definition the ruled copy exists to avoid.
+const bandZoneNoteHTML = new Function(
+  "return (function(){\n" +
+  cutAfter(CODE, "const BAND_ZONE_NOTE = {", "{", "}") + ";\n" +
+  cutAfter(CODE, "function bandZoneNoteHTML(g){", "{", "}") + ";\n" +
+  "return bandZoneNoteHTML; })();")();
+const markerBandHTML = new Function("esc", "markerBandGeometry", "bandZoneNoteHTML",
+  "return " + bandSrc + ";")(esc, markerBandGeometry, bandZoneNoteHTML);
 // BAND_FAMILY_GENERATED_V1 — the family is no longer a regex in the page, it is the
 // band_family_optimal array in ranges-slim.json. The REAL generated file is loaded and the REAL
 // classifier is compiled against it; a hand-written six-word list here would be the second
@@ -156,8 +164,6 @@ ok("amber runs from the functional high edge to the conventional high edge",
 ok("coral runs from the conventional high edge to the axis end",
   two.includes('class="mk-band-zone mk-zone-coral" style="left:82.8%;width:17.2%"'));
 ok("the dot sits at pos(value) = 41.4%", two.includes('class="mk-band-dot" style="left:41.4%"'));
-ok("her value is labelled, above the dot and at the same offset",
-  two.includes('class="mk-band-val" style="left:41.4%">15<'));
 ok("only the GREEN zone's edges carry numbers",
   two.includes('class="mk-band-end" style="left:27.6%">10<') &&
   two.includes('class="mk-band-end" style="left:55.2%">20<'));
@@ -515,6 +521,9 @@ const toneFor = () => "t-coral";
 const healthyRangeText = (ref) => (ref && ref.low != null && ref.high != null)
   ? ("Healthy " + ref.low + " to " + ref.high) : "";
 const PRIO_TOGGLE_LABEL = { closed: "See more details", open: "Hide details" };
+// MARKER_BAND_V3 — the legend markup is read out of the page, not restated here.
+const BAND_LEGEND_HTML = new Function(
+  "return " + (CODE.match(/const BAND_LEGEND_HTML = ([\s\S]*?);\n/) || [])[1] + ";")();
 
 function renderPriority({ sysId, ref, value, band }) {
   const chipSysByMarker = { m1: sysId };
@@ -523,10 +532,12 @@ function renderPriority({ sysId, ref, value, band }) {
   const fn = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "return " + prioArrow + ";"
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL);
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandGeometry, BAND_LEGEND_HTML);
   return fn({
     rank: 1, headline: "SENTINEL_HEADLINE",
     primary_markers: [{ marker_id: "m1", display_name: "Sentinel Marker",
@@ -583,10 +594,12 @@ ok("WIRING: with the map empty, no band draws even if a value is set on pm", (()
   const fn = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "return " + prioArrow + ";"
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, () => F, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL);
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandGeometry, BAND_LEGEND_HTML);
   const html = fn({ rank: 1, headline: "H",
     primary_markers: [{ marker_id: "m1", display_name: "M", band: "optimal", value: 15 }] }, 0);
   return !html.includes('class="mk-band"');
@@ -743,6 +756,152 @@ ok("the 600px query no longer duplicates the wrap declarations",
   !/@media\(max-width:600px\)\{[^}]*\.topbar-right\{[^}]*flex-wrap/.test(RAW));
 ok("and it still carries the phone-specific padding",
   /@media\(max-width:600px\)\{\s*\.topbar-inner\{row-gap:6px;padding:9px 0\}/.test(RAW));
+
+
+// ===========================================================================
+// 9. MARKER_BAND_V3 — THE RENDERING AND THE RULED COPY.
+// ===========================================================================
+// THE FLOATING VALUE IS GONE. Her value appears once, at the right of the row, where it already
+// is. The duplicate above the dot is what clipped MCHC's label against the left edge.
+eq("no floating value label survives in the band", (two.match(/mk-band-val/g) || []).length, 0);
+ok("value-deletion control: the dot it used to sit above is still drawn",
+  two.includes('class="mk-band-dot"'));
+eq("and .mk-band-val is gone from the stylesheet too", (RAW.match(/\.mk-band-val\{/g) || []).length, 0);
+ok("stylesheet control: the same matcher finds a rule that IS there", /\.mk-band-dot\{/.test(RAW));
+
+// THE DOT SITS OUTSIDE THE TRACK, which now clips. A dot inside a 9px overflow-hidden track
+// would lose its top and bottom, and at 15px it would lose most of itself.
+ok("the dot is in its own wrapper", two.includes('class="mk-band-dotwrap"'));
+{
+  const track = two.slice(two.indexOf('<div class="mk-band-track">'),
+                          two.indexOf('<div class="mk-band-dotwrap">'));
+  ok("and the wrapper is OUTSIDE the track, not nested in it", !track.includes("mk-band-dot\""));
+  ok("track-slice control: the slice really is the track and holds the zones",
+    track.includes("mk-band-zone"));
+}
+ok("the track clips its zones to its rounded ends",
+  /\.mk-band-track\{[^}]*overflow:hidden/.test(RAW));
+ok("the track is 9px tall with a 5px radius",
+  /\.mk-band-track\{[^}]*height:9px/.test(RAW) && /\.mk-band-track\{[^}]*border-radius:5px/.test(RAW));
+ok("THE BAND IS CAPPED AT 420px, which is the change that does most of the work",
+  /\.mk-band\{[^}]*max-width:420px/.test(RAW));
+ok("the dot is 15px, offset by half that, ringed in the card colour and shadowed",
+  /\.mk-band-dot\{[^}]*width:15px/.test(RAW) && /\.mk-band-dot\{[^}]*margin-left:-7\.5px/.test(RAW) &&
+  /\.mk-band-dot\{[^}]*border:3px solid var\(--white\)/.test(RAW) &&
+  /\.mk-band-dot\{[^}]*box-shadow:0 0 0 1px rgba\(71,55,43,\.28\)/.test(RAW));
+ok("css-matcher control: the same matcher does NOT find a size the dot is not",
+  !/\.mk-band-dot\{[^}]*width:9px/.test(RAW));
+
+// THE PALETTE, EXACT. Two of the eight already existed as tokens and are reused rather than
+// duplicated: --brown is the dot's ink and --white is the ring.
+for (const [name, hex] of [["--band-track", "#EFE9E1"], ["--band-green", "#9CCFB8"],
+  ["--band-green-ink", "#0A6B51"], ["--band-amber", "#EFD49A"], ["--band-amber-ink", "#8A6520"],
+  ["--band-coral", "#E8B4A2"], ["--band-coral-ink", "#9C4A32"]]) {
+  ok("palette: " + name + " is " + hex, RAW.includes(name + ":" + hex));
+}
+ok("the dot reuses the EXISTING --brown token, which already holds #47372B",
+  /--brown:#47372B/.test(RAW) && /\.mk-band-dot\{[^}]*background:var\(--brown\)/.test(RAW));
+ok("palette control: a hex that is NOT in the ratified palette is absent",
+  !RAW.includes("--band-green:#B8E4D4"));
+eq("no second palette: each band token is declared exactly once",
+  (RAW.match(/--band-green:#/g) || []).length, 1);
+
+// THE ZONE NOTE, one line beneath each track, in that zone's ink. Ruled copy, verbatim.
+const noteOf = (h) => { const m = h.match(/<div class="mk-band-note ([^"]*)">([^<]*)<\/div>/); return m ? [m[1], m[2]] : null; };
+ok("note control: the fixture band carries exactly one note",
+  (two.match(/mk-band-note/g) || []).length === 1);
+eq("green: the dot inside the functional range",
+  JSON.stringify(noteOf(markerBandHTML(F, 15))),
+  JSON.stringify(["mk-note-green", "In the functional range"]));
+eq("amber low: inside the wider range, below the functional one",
+  JSON.stringify(noteOf(markerBandHTML(F, 7))),
+  JSON.stringify(["mk-note-amber", "In the wider reference range, below the functional range"]));
+eq("amber high: inside the wider range, above the functional one",
+  JSON.stringify(noteOf(markerBandHTML(F, 25))),
+  JSON.stringify(["mk-note-amber", "In the wider reference range, above the functional range"]));
+eq("coral low, not clamped",
+  JSON.stringify(noteOf(markerBandHTML(F, 2))),
+  JSON.stringify(["mk-note-coral", "Outside both"]));
+eq("coral high, not clamped",
+  JSON.stringify(noteOf(markerBandHTML(F, 34))),
+  JSON.stringify(["mk-note-coral", "Outside both"]));
+eq("coral and clamped: at the edge of the axis",
+  JSON.stringify(noteOf(markerBandHTML(F, -1e6))),
+  JSON.stringify(["mk-note-coral", "Outside both, at the edge of the axis"]));
+eq("clamp-note control: the same zone unclamped does NOT say edge of the axis",
+  noteOf(markerBandHTML(F, 2))[1].includes("edge of the axis"), false);
+// The note and the consistency rule read the same comparison, so they cannot disagree.
+for (const v of [2, 7, 15, 25, 34, -1e6, 1e6]) {
+  const inGreenNote = noteOf(markerBandHTML(F, v))[1] === "In the functional range";
+  eq("note and consistency rule agree at value " + v,
+    inGreenNote, bandContradictsEngine(F, v, "optimal") === false);
+}
+
+// NO COLONS, AMERICAN SPELLING, AND "YOUR LAB" NOWHERE. These are our library's conventional
+// reference range, not the interval printed on her report, and the two differ.
+{
+  const allCopy = [two, markerBandHTML(F, 7), markerBandHTML(F, 25), markerBandHTML(F, 2),
+                   markerBandHTML(F, -1e6), BAND_LEGEND_HTML].join(" ");
+  ok("no colon in any zone note or legend item",
+    !/<div class="mk-band-note [^"]*">[^<]*:/.test(allCopy) &&
+    !/<span class="mk-lg [^"]*">(?:<span[^>]*><\/span>)?[^<]*:/.test(allCopy));
+  ok("the string 'your lab' appears nowhere in the band, the legend or any note",
+    !allCopy.toLowerCase().includes("your lab"));
+  ok("your-lab control: the scanner DOES fire on a planted instance",
+    (allCopy + " your lab").toLowerCase().includes("your lab"));
+  ok("colon control: the note matcher DOES fire on a planted colon",
+    /<div class="mk-band-note [^"]*">[^<]*:/.test(
+      '<div class="mk-band-note mk-note-green">Status: in the functional range</div>'));
+  ok("colon control: the legend matcher DOES fire on a planted colon",
+    /<span class="mk-lg [^"]*">(?:<span[^>]*><\/span>)?[^<]*:/.test(
+      '<span class="mk-lg mk-lg-green"><span class="mk-sw"></span>Range: functional</span>'));
+  ok("British -ise spellings absent from the ruled copy",
+    !/\b\w+ised\b|\bcolour\b|\bcentre\b/.test(
+      allCopy.replace(/<[^>]*>/g, " ")));
+  ok("spelling control: the same matcher DOES fire on a planted British spelling",
+    /\b\w+ised\b|\bcolour\b|\bcentre\b/.test("the colour of the centre"));
+}
+
+// THE LEGEND, ONCE PER CARD, NEVER PER ROW.
+ok("the legend carries the three ruled items, in order",
+  BAND_LEGEND_HTML.indexOf("Functional range") < BAND_LEGEND_HTML.indexOf("Wider reference range") &&
+  BAND_LEGEND_HTML.indexOf("Wider reference range") < BAND_LEGEND_HTML.indexOf("Outside both"));
+eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || []).length, 3);
+{
+  // A card with THREE marker rows, all drawing a Tier 1 band.
+  const many = new Function(
+    "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
+    "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+  )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
+    { m1: "metabolic", m2: "metabolic", m3: "metabolic" }, { m1: 7, m2: 25, m3: 2 },
+    () => F, healthyRangeText, markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandGeometry, BAND_LEGEND_HTML);
+  const card = many({ rank: 1, headline: "H", why_this_matters: "W", primary_markers: [
+    { marker_id: "m1", display_name: "One", band: "low" },
+    { marker_id: "m2", display_name: "Two", band: "high" },
+    { marker_id: "m3", display_name: "Three", band: "low" }] }, 0);
+  eq("row control: the card really drew three bands", (card.match(/class="mk-band"/g) || []).length, 3);
+  eq("the legend appears ONCE on a three-row card", (card.match(/class="mk-band-legend"/g) || []).length, 1);
+  ok("and it sits ABOVE the first row, not between rows",
+    card.indexOf("mk-band-legend") < card.indexOf("mk-band\" aria-hidden"));
+  eq("each row still carries its own note", (card.match(/class="mk-band-note/g) || []).length, 3);
+  // A card whose markers draw NO Tier 1 band gets no legend: there is no amber and no coral to
+  // explain, and naming two regions that are not on screen is a claim about data it does not have.
+  const none = new Function(
+    "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
+    "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+  )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
+    { m1: "metabolic" }, { m1: 7 }, () => ({ low: 10, high: 20 }), healthyRangeText,
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, markerBandGeometry, BAND_LEGEND_HTML)(
+    { rank: 1, headline: "H", why_this_matters: "W",
+      primary_markers: [{ marker_id: "m1", display_name: "One", band: "low" }] }, 0);
+  eq("no-band control: that card drew no band at all", (none.match(/class="mk-band"/g) || []).length, 0);
+  eq("and therefore no legend", (none.match(/class="mk-band-legend"/g) || []).length, 0);
+}
 
 console.log("");
 console.log("  " + pass + " passed, " + fail + " failed");

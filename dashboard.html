@@ -18,6 +18,12 @@
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
   --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
   --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
+  /* MARKER_BAND_V3 band palette, ratified. Six values that exist nowhere else in this
+     file; the dot reuses --brown and its ring reuses --white, which already hold them. */
+  --band-track:#EFE9E1;
+  --band-green:#9CCFB8; --band-green-ink:#0A6B51;
+  --band-amber:#EFD49A; --band-amber-ink:#8A6520;
+  --band-coral:#E8B4A2; --band-coral-ink:#9C4A32;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;visibility:hidden}
@@ -482,25 +488,47 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .prio-mk{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .prio-mk-name{font-size:13.5px;color:var(--brown)}
 .prio-mk-range{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);text-align:right;flex:none}
-/* MARKER_BAND_V2 — ONE COLOURED ZONE, GREEN, AND THE REST OF THE TRACK NEUTRAL. The track itself
-   is a brown token and the dot is a brown token; only the functional range is tinted. There is
-   deliberately no --high / --low / --amber / --coral variant and no status class hook: a band that
-   could be coloured by verdict would eventually be coloured by verdict, and that is the engine's
-   job restated as decoration. What varies is the dot's POSITION and the zone's EXTENT, both
-   computed from the library.
-   The value label sits ABOVE the dot and is translated -50% so it centres on it; the two zone
-   numbers sit BELOW the zone's edges the same way. .mk-band-ends is position:relative rather than
-   a flex row because the numbers are pinned to the zone, not spread across the track. */
-.mk-band{margin:8px 0 2px}
-.mk-band-val{position:relative;transform:translateX(-50%);display:inline-block;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown);margin-bottom:3px}
-/* NO overflow:hidden ON THE TRACK. The dot is 9px on a 4px track and centred on it, so clipping
-   the track would cut the dot's top and bottom off. The zone is a sub-span of the track and never
-   exceeds it horizontally, so it carries its own radius instead of being clipped by a parent. */
-.mk-band-track{position:relative;height:4px;border-radius:4px;background:var(--brown-soft);border:1px solid var(--brown-light)}
-.mk-band-zone{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--teal-light)}
-.mk-band-dot{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--brown-mid);border:2px solid var(--white);z-index:1}
-.mk-band-ends{position:relative;height:14px;margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--brown-mid)}
+/* MARKER_BAND_V3 — THE RATIFIED THREE-ZONE BAND. The axis is the one V2 already shipped, drawn
+   from conventional_india, so the zones need no new data and claim nothing the track did not
+   already encode. What was wrong was the drawing: a 4px hairline across the full card width, a
+   zone tint a few percent off the neutral, a 9px dot with no ring, and her value printed twice
+   per row.
+   THE 420px CAP DOES MOST OF THE WORK. A zone cannot read as a region when it is stretched across
+   a whole card; at 420px it reads as one.
+   THE DOT SITS OUTSIDE THE TRACK, in its own zero-height positioned wrapper. The track now has
+   overflow:hidden so the zones clip to its rounded ends, and a 15px dot inside a 9px clipped
+   track would lose its top and bottom. top:-12px on a wrapper immediately below a 9px track puts
+   the dot's centre at 4.5px, the track's midline.
+   COLOURS: only two of these already existed as tokens -- var(--brown) is the dot's #47372B and
+   var(--white) is the card's #FFFFFF, used for the dot's border so it stays readable sitting on a
+   zone. The other six values appear nowhere in this file, so they are added as band tokens rather
+   than approximated with --teal-light or --coral, which are different colours. */
+.mk-band{margin:10px 0 2px;max-width:420px}
+.mk-band-track{position:relative;height:9px;border-radius:5px;background:var(--band-track);overflow:hidden}
+.mk-band-zone{position:absolute;top:0;height:9px}
+.mk-zone-green{background:var(--band-green)}
+.mk-zone-amber{background:var(--band-amber)}
+.mk-zone-coral{background:var(--band-coral)}
+.mk-band-dotwrap{position:relative;max-width:420px;height:0}
+.mk-band-dot{position:absolute;top:-12px;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;background:var(--brown);border:3px solid var(--white);box-sizing:border-box;box-shadow:0 0 0 1px rgba(71,55,43,.28)}
+/* Only the GREEN edges carry numbers. The amber boundary is a region, not a number she needs. */
+.mk-band-ends{position:relative;height:17px;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--band-green-ink)}
 .mk-band-end{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.mk-band-note{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:8px}
+.mk-note-green{color:var(--band-green-ink)}
+.mk-note-amber{color:var(--band-amber-ink)}
+.mk-note-coral{color:var(--band-coral-ink)}
+.mk-note-plain{color:var(--brown-mid)}
+/* ONCE PER CARD, never per row. */
+.mk-band-legend{display:flex;flex-wrap:wrap;gap:14px;padding:0 0 12px;margin:2px 0 6px;border-bottom:1px solid var(--brown-light)}
+.mk-lg{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+.mk-sw{width:18px;height:9px;border-radius:5px;display:inline-block;flex:0 0 auto}
+.mk-lg-green{color:var(--band-green-ink)}
+.mk-lg-amber{color:var(--band-amber-ink)}
+.mk-lg-coral{color:var(--band-coral-ink)}
+.mk-sw-green{background:var(--band-green)}
+.mk-sw-amber{background:var(--band-amber)}
+.mk-sw-coral{background:var(--band-coral)}
 /* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
 /* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the approved spec.
    The thread scrolls inside the card so a long conversation cannot push the
@@ -6340,8 +6368,13 @@ async function renderDashboard(p, reportId){
     // (the value lives in the chip on the card face), so the range keeps its unit. Guard: no detail
     // blocks -> no toggle.
     const mkList = Array.isArray(x.primary_markers) ? x.primary_markers : [];
-    const markersBlock = mkList.length
-      ? '<div class="prio-markers">' + mkList.map(pm=>{
+    // MARKER_BAND_V3 — THE LEGEND RENDERS ONCE PER CARD, never per row, and only when a TIER 1
+    // band actually drew on this card. A card whose only tracks are Tier 2 has no amber and no
+    // coral to explain, and a legend naming two regions that are not on screen is a claim about
+    // data this marker does not have. Set inside the map below, read after it, which is why the
+    // markup is built first and assembled second.
+    let anyTier1Band = false;
+    const mkRows = mkList.map(pm=>{
           // SENSITIVE GUARD: resolve the marker's system via chipSysByMarker (built above).
           // heavy_metals / autoimmune / unmapped -> NO range, name only (a range for a toxic marker
           // is the "Healthy 150" bug the chips already guard against). Empty range (not in
@@ -6364,6 +6397,10 @@ async function renderDashboard(p, reportId){
           // so it is dropped and the value stands alone.
           const contradicts = !sensitive && bandContradictsEngine(ref, mval, pm.band);
           const band = (sensitive || contradicts) ? '' : markerBandHTML(ref, mval);
+          // TIER IS READ FROM THE GEOMETRY, not sniffed out of the rendered markup. A test for
+          // "does the html contain mk-zone-coral" would be true for a Tier 1 band today and
+          // silently wrong the first time a Tier 1 axis floors flush against its outer bound.
+          if(band){ const g = markerBandGeometry(ref, mval); if(g && g.tier === 1) anyTier1Band = true; }
           // MARKER_BAND_V2 — on THIS path the range sentence is replaced by her value, because the
           // band already states the range at its own zone edges and printing "Healthy X to Y"
           // beside it says the same thing twice. When no track is drawn the value is all there is,
@@ -6373,7 +6410,9 @@ async function renderDashboard(p, reportId){
             ? String(mval) + (pm.unit ? ' ' + pm.unit : '') : '';
           return '<div class="prio-mk"><span class="prio-mk-name">'+esc(markerName(pm))+'</span>'+
             (valTxt ? '<span class="prio-mk-range">'+esc(valTxt)+'</span>' : '')+'</div>'+band;
-        }).join('') + '</div>'
+        }).join('');
+    const markersBlock = mkList.length
+      ? '<div class="prio-markers">' + (anyTier1Band ? BAND_LEGEND_HTML : '') + mkRows + '</div>'
       : '';
     // DENSITY_COLLAPSE_V1 — why_this_matters LEADS the detail rather than sitting on the card
     // face. A test user read the dashboard as a wall of text, and this paragraph was the bulk of
@@ -8785,17 +8824,50 @@ function markerBandHTML(ref, value){
     zones += '<span class="mk-band-zone '+s.cls+'" style="left:'+s.left.toFixed(1)+
              '%;width:'+s.width.toFixed(1)+'%"></span>';
   }
+  // HER VALUE APPEARS ONCE, at the right of the row where it already is. The floating label
+  // above the dot was the duplicate, and on a long name like MCHC it was the thing that clipped
+  // against the left edge of the card.
+  // THE DOT IS OUTSIDE THE TRACK. The track clips its zones to its rounded ends, and a dot inside
+  // it would be clipped too.
   return '<div class="mk-band" aria-hidden="true">'+
-      '<div class="mk-band-val" style="left:'+g.dot.toFixed(1)+'%">'+esc(String(value))+'</div>'+
-      '<div class="mk-band-track">'+zones+
+      '<div class="mk-band-track">'+zones+'</div>'+
+      '<div class="mk-band-dotwrap">'+
         '<span class="mk-band-dot" style="left:'+g.dot.toFixed(1)+'%"></span>'+
       '</div>'+
       '<div class="mk-band-ends">'+
         '<span class="mk-band-end" style="left:'+g.bounds[2].toFixed(1)+'%">'+esc(String(ref.low))+'</span>'+
         '<span class="mk-band-end" style="left:'+g.bounds[3].toFixed(1)+'%">'+esc(String(ref.high))+'</span>'+
       '</div>'+
+      bandZoneNoteHTML(g)+
     '</div>';
 }
+// MARKER_BAND_V3 — THE ZONE NOTE, one line beneath each track in that zone's ink. Ruled copy,
+// verbatim, no colons and American spelling. "Your lab" appears nowhere and must not: these are
+// our library's conventional reference range, not the interval printed on her report, and the two
+// differ. The note is keyed on g.zone, which is read off the SAME dot-against-green comparison the
+// consistency rule uses, so the words under the picture cannot disagree with the picture.
+const BAND_ZONE_NOTE = {
+  green:      ['mk-note-green', 'In the functional range'],
+  amber_low:  ['mk-note-amber', 'In the wider reference range, below the functional range'],
+  amber_high: ['mk-note-amber', 'In the wider reference range, above the functional range'],
+  coral:      ['mk-note-coral', 'Outside both'],
+  coral_edge: ['mk-note-coral', 'Outside both, at the edge of the axis'],
+  tier2:      ['mk-note-plain', 'No wider range on file, so only the functional range is shown']
+};
+function bandZoneNoteHTML(g){
+  if(!g) return '';
+  const key = g.tier === 2 ? 'tier2'
+            : (g.zone === 'coral' && g.clamped) ? 'coral_edge' : g.zone;
+  const n = BAND_ZONE_NOTE[key];
+  if(!n) return '';
+  return '<div class="mk-band-note '+n[0]+'">'+n[1]+'</div>';
+}
+// THE LEGEND, ONCE PER CARD, never per row. Three items, ruled copy.
+const BAND_LEGEND_HTML = '<div class="mk-band-legend" aria-hidden="true">'+
+  '<span class="mk-lg mk-lg-green"><span class="mk-sw mk-sw-green"></span>Functional range</span>'+
+  '<span class="mk-lg mk-lg-amber"><span class="mk-sw mk-sw-amber"></span>Wider reference range</span>'+
+  '<span class="mk-lg mk-lg-coral"><span class="mk-sw mk-sw-coral"></span>Outside both</span>'+
+  '</div>';
 
 // BAND_FAMILY_GENERATED_V1 — the optimal family is READ from ranges-slim.json, never written
 // here. scripts/build-ranges-slim.py parses BAND_TIERS[0].labels out of vitality-engine.js and

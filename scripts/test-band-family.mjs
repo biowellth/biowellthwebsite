@@ -162,8 +162,16 @@ const V_OUT = 25;   // dot 70.0 -> outside the zone
 
 const markerBandGeometry = new Function(
   "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
-const markerBandHTML = new Function("esc", "markerBandGeometry",
-  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry);
+// The note table and its renderer are compiled TOGETHER, in one scope, so the table the page
+// ships is the one the assertions read. Copying the strings into this file would be the second
+// definition the ruled copy exists to avoid.
+const bandZoneNoteHTML = new Function(
+  "return (function(){\n" +
+  cutAfter(CODE, "const BAND_ZONE_NOTE = {", "{", "}") + ";\n" +
+  cutAfter(CODE, "function bandZoneNoteHTML(g){", "{", "}") + ";\n" +
+  "return bandZoneNoteHTML; })();")();
+const markerBandHTML = new Function("esc", "markerBandGeometry", "bandZoneNoteHTML",
+  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry, bandZoneNoteHTML);
 const isOptimalBandWordSrc = cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}");
 const bandContradictsEngineSrc = cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}");
 const prioSrc = cutAfter(CODE, '$("prios").innerHTML = pr.map((x,i)=>{', "{", "}");
@@ -177,6 +185,9 @@ const toneFor = () => "t-coral";
 const SENSITIVE_SYSTEMS = new Set(["heavy_metals", "autoimmune", "tumor_markers"]);
 const healthyRangeText = () => "";
 const lookupRange = () => REF;
+// MARKER_BAND_V3 — the legend markup is read out of the page, not restated here.
+const BAND_LEGEND_HTML = new Function(
+  "return " + (CODE.match(/const BAND_LEGEND_HTML = ([\s\S]*?);\n/) || [])[1] + ";")();
 
 // renderWith(lookupObj, band, value) -> does a track appear on the rendered card?
 // lookupObj is whatever RANGES_LOOKUP is for this render, so the degraded shapes below are
@@ -191,10 +202,12 @@ function renderWith(lookupObj, band, value) {
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandGeometry", "BAND_LEGEND_HTML",
     "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL);
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandGeometry, BAND_LEGEND_HTML);
   const card = prioFn({
     rank: 1, headline: "H", system_id: "metabolic",
     primary_markers: [{ marker_id: "fixture_marker", display_name: "Fixture Marker", band: band }],

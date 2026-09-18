@@ -143,6 +143,9 @@ const shipped = (name) => {
   return new Function("return " + m[0].replace("const " + name + " = ", "") + ";")();
 };
 const PRIO_TOGGLE_LABEL = shipped("PRIO_TOGGLE_LABEL");
+// MARKER_BAND_V3 — the legend markup is read out of the page, not restated here.
+const BAND_LEGEND_HTML = new Function(
+  "return " + (CODE.match(/const BAND_LEGEND_HTML = ([\s\S]*?);\n/) || [])[1] + ";")();
 const MORE_TOGGLE_LABEL = shipped("MORE_TOGGLE_LABEL");
 ok("label-source control: both constants were read out of the page, not defaulted",
   typeof PRIO_TOGGLE_LABEL.closed === "string" && typeof MORE_TOGGLE_LABEL.closed === "string");
@@ -175,8 +178,16 @@ const chipSysByMarker = { sentinel_marker: "metabolic" };
 const chipValByMarker = { sentinel_marker: 7 };
 const markerBandGeometry = new Function(
   "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
-const markerBandHTML = new Function("esc", "markerBandGeometry",
-  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry);
+// The note table and its renderer are compiled TOGETHER, in one scope, so the table the page
+// ships is the one the assertions read. Copying the strings into this file would be the second
+// definition the ruled copy exists to avoid.
+const bandZoneNoteHTML = new Function(
+  "return (function(){\n" +
+  cutAfter(CODE, "const BAND_ZONE_NOTE = {", "{", "}") + ";\n" +
+  cutAfter(CODE, "function bandZoneNoteHTML(g){", "{", "}") + ";\n" +
+  "return bandZoneNoteHTML; })();")();
+const markerBandHTML = new Function("esc", "markerBandGeometry", "bandZoneNoteHTML",
+  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry, bandZoneNoteHTML);
 // MARKER_BAND_V2 added a consistency check to the priority mapper. It is injected REAL, not
 // stubbed to false: a stub would let the check regress while these assertions stayed green. Its
 // own behaviour is asserted in test-band-nav-centring.mjs; this file only has to let it run.
@@ -200,10 +211,12 @@ const prioFn = new Function(
   "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
   "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
   "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+  "markerBandGeometry", "BAND_LEGEND_HTML",
   "return " + prioArrow + ";"
 )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
   chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-  markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL);
+  markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+  markerBandGeometry, BAND_LEGEND_HTML);
 
 const card = prioFn(priority, 0);
 ok("priority render control: it produced a .prio card at all", /class="prio /.test(card));
