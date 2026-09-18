@@ -173,8 +173,10 @@ const chipSysByMarker = { sentinel_marker: "metabolic" };
 // band regress while these assertions stayed green. The band's own behaviour is
 // asserted in test-band-nav-centring.mjs, so this file only has to let it run.
 const chipValByMarker = { sentinel_marker: 7 };
-const markerBandHTML = new Function("esc",
-  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc);
+const markerBandGeometry = new Function(
+  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
+const markerBandHTML = new Function("esc", "markerBandGeometry",
+  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry);
 // MARKER_BAND_V2 added a consistency check to the priority mapper. It is injected REAL, not
 // stubbed to false: a stub would let the check regress while these assertions stayed green. Its
 // own behaviour is asserted in test-band-nav-centring.mjs; this file only has to let it run.
@@ -185,9 +187,9 @@ const markerBandHTML = new Function("esc",
 const RANGES_SLIM = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8"));
 const isOptimalBandWord = new Function("RANGES_LOOKUP",
   "return " + cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}") + ";")(RANGES_SLIM);
-const bandContradictsEngine = new Function("esc", "markerBandHTML", "isOptimalBandWord",
+const bandContradictsEngine = new Function("markerBandGeometry", "isOptimalBandWord",
   "return " + cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}") + ";"
-)(esc, markerBandHTML, isOptimalBandWord);
+)(markerBandGeometry, isOptimalBandWord);
 
 // ---------------------------------------------------------------------------
 // 1. THE PRIORITY CARD, executed.

@@ -8698,49 +8698,101 @@ function renderThemePanel(p){
 // Measured over the 126 library rows carrying both tiers: condition 3 catches exactly one row,
 // nucleated_rbc_pct, and condition 4 catches nothing that 3 has not already caught. Both are kept
 // because they are different failures and a future library edit can produce one without the other.
-function markerBandHTML(ref, value){
-  if(!ref) return '';
+// MARKER_BAND_V3 — THE GEOMETRY, computed once and shared. markerBandHTML renders it and
+// bandContradictsEngine reads it; neither re-derives an axis of its own. V2 had the consistency
+// rule rebuild the axis from the ref and parse the dot back out of the rendered HTML, which was
+// correct only for as long as the two constructions stayed identical. The zero floor below breaks
+// that: an axis that floors moves BOTH the dot and the zone edges, and a re-derivation that did
+// not know about the floor would compare a floored dot against unfloored edges.
+//
+// THE FIVE SEGMENTS PARTITION THE AXIS BY CONSTRUCTION, with no gaps and no overlaps:
+//   coral  axis_lo .. outer_lo        amber  outer_lo .. f_low
+//   green  f_low   .. f_high
+//   amber  f_high  .. outer_hi        coral  outer_hi .. axis_hi
+// They are emitted from SIX BOUNDARIES rounded once, with each width taken as the difference of
+// two rounded boundaries rather than a separately rounded width. Rounding the widths independently
+// leaves sub-0.1% seams between neighbours that no assertion on either number alone would catch.
+//
+// WHERE THE CONVENTIONAL RANGE IS NARROWER THAN THE FUNCTIONAL ONE on a side, that amber segment
+// has zero width and the coral runs to the green edge. That falls out of min/max; it is not
+// special-cased, and a zero-width segment renders nothing.
+//
+// THE ZERO FLOOR. If every bound on file for the marker is >= 0 and the padded axis would start
+// below zero, the axis starts at zero instead. Ferritin's axis ran to about minus 21, a tenth of
+// the track spent on concentrations that cannot exist, and it squeezed green. If ANY bound on file
+// is negative the floor does not apply, because then negative values are real for that marker.
+function markerBandGeometry(ref, value){
+  if(!ref) return null;
   // NULL IS CHECKED BEFORE Number(), and this is not defensive noise. Number(null) is 0 and
   // isFinite(0) is true, so a HIGH-ONLY range {low:null, high:20} passed an isFinite-only guard,
-  // silently became low=0, and drew a track labelled "null". A LOW-ONLY range happened to be
-  // caught anyway by the inverted-bounds test, which is why only one of the two ever showed up.
-  // Caught by the assertion that covers the high-only case explicitly; the guard is the fix.
-  if(ref.low == null || ref.high == null || ref.conv_low == null || ref.conv_high == null) return '';
-  if(value == null || value === '') return '';
+  // silently became low=0, and drew a track labelled "null".
+  if(ref.low == null || ref.high == null || ref.conv_low == null || ref.conv_high == null) return null;
+  if(value == null || value === '') return null;
   const f_low = Number(ref.low), f_high = Number(ref.high);
   const c_low = Number(ref.conv_low), c_high = Number(ref.conv_high);
   const v = Number(value);
-  if(!isFinite(f_low) || !isFinite(f_high) || f_high <= f_low) return '';   // 2
-  if(!isFinite(c_low) || !isFinite(c_high)) return '';                      // 1
-  if(!isFinite(v)) return '';
+  if(!isFinite(f_low) || !isFinite(f_high) || f_high <= f_low) return null;   // 2
+  if(!isFinite(c_low) || !isFinite(c_high)) return null;                      // 1
+  if(!isFinite(v)) return null;
   const span = c_high - c_low;
-  if(!(span > 0)) return '';                                                // 3
+  if(!(span > 0)) return null;                                                // 3
   const pad = 0.25 * span;
-  const axis_lo = Math.min(c_low, f_low) - pad;
-  const axis_hi = Math.max(c_high, f_high) + pad;
-  // 4. A BACKSTOP THAT CANNOT CURRENTLY FIRE, and it is kept deliberately. With pad > 0 (which
-  // condition 3 guarantees) the min/max construction puts axis_lo at least a pad below f_low and
-  // axis_hi at least a pad above f_high, so containment holds by construction. Measured over the
-  // 126 library rows carrying both tiers: zero fail this once condition 3 has run. It stays
-  // because a future change to how the axis is built could break containment without touching
-  // the span, and this is the line that would catch it.
-  if(!(axis_lo < f_low && axis_hi > f_high)) return '';                     // 4
+  const outer_lo = Math.min(c_low, f_low);
+  const outer_hi = Math.max(c_high, f_high);
+  let axis_lo = outer_lo - pad;
+  const axis_hi = outer_hi + pad;
+  const onFile = [f_low, f_high, c_low, c_high];
+  const floored = !onFile.some(function(b){ return b < 0; }) && axis_lo < 0;
+  if(floored) axis_lo = 0;
+  // 4. CONTAINMENT. No longer a backstop that cannot fire: the zero floor can raise axis_lo to
+  // exactly f_low when f_low is 0, and a functional range starting at zero then has no room below
+  // it. That marker draws nothing, which is the honest outcome.
+  if(!(axis_lo < f_low && axis_hi > f_high)) return null;                     // 4
   const w = axis_hi - axis_lo;
-  const pos = (x) => (x - axis_lo) / w * 100;
-  // THE CLAMP IS ON THE DOT ONLY, and only to keep it on the track. The zone edges are never
-  // clamped: clamping them would move the boundary of the green region, which is a claim about
-  // where the functional range is, and that is not the renderer's to make.
-  const dot = Math.min(98, Math.max(2, pos(v)));
-  const g0 = pos(f_low), g1 = pos(f_high);
+  if(!(w > 0)) return null;
+  const pos = function(x){ return (x - axis_lo) / w * 100; };
+  // THE CLAMP IS ON THE DOT ONLY, and only to keep it on the track. Zone edges are NEVER clamped:
+  // clamping them would move the boundary of a region, which is a claim about where that range is.
+  const raw = pos(v);
+  const dot = Number(Math.min(98, Math.max(2, raw)).toFixed(1));
+  const g0 = pos(f_low), g1 = pos(f_high), o0 = pos(outer_lo), o1 = pos(outer_hi);
+  const b = [0, o0, g0, g1, o1, 100].map(function(x){ return Number(x.toFixed(1)); });
+  const segs = [
+    { cls: 'mk-zone-coral', left: b[0], width: Number((b[1] - b[0]).toFixed(1)) },
+    { cls: 'mk-zone-amber', left: b[1], width: Number((b[2] - b[1]).toFixed(1)) },
+    { cls: 'mk-zone-green', left: b[2], width: Number((b[3] - b[2]).toFixed(1)) },
+    { cls: 'mk-zone-amber', left: b[3], width: Number((b[4] - b[3]).toFixed(1)) },
+    { cls: 'mk-zone-coral', left: b[4], width: Number((b[5] - b[4]).toFixed(1)) }
+  ];
+  // THE ZONE IS READ OFF THE SAME QUANTITY THE CONSISTENCY RULE USES — the rendered dot against
+  // the unrounded boundaries — so "the note says green" and "the rule says in green" cannot
+  // disagree. Two definitions of in-range under one picture is the contradiction this whole band
+  // is built to avoid, and it would be introduced by classifying in value space instead.
+  // outer_lo <= f_low and outer_hi >= f_high always, so the chain below is ordered.
+  const zone = dot < o0 ? 'coral' : dot < g0 ? 'amber_low'
+             : dot <= g1 ? 'green' : dot <= o1 ? 'amber_high' : 'coral';
+  return { tier: 1, f_low: f_low, f_high: f_high, outer_lo: outer_lo, outer_hi: outer_hi,
+           axis_lo: axis_lo, axis_hi: axis_hi, w: w, floored: floored, raw: raw, dot: dot,
+           g0: g0, g1: g1, o0: o0, o1: o1, bounds: b, segs: segs, zone: zone,
+           clamped: raw < 2 || raw > 98 };
+}
+function markerBandHTML(ref, value){
+  const g = markerBandGeometry(ref, value);
+  if(!g) return '';
+  let zones = '';
+  for(const s of g.segs){
+    if(!(s.width > 0)) continue;   // a zero-width segment renders NOTHING, never a sliver
+    zones += '<span class="mk-band-zone '+s.cls+'" style="left:'+s.left.toFixed(1)+
+             '%;width:'+s.width.toFixed(1)+'%"></span>';
+  }
   return '<div class="mk-band" aria-hidden="true">'+
-      '<div class="mk-band-val" style="left:'+dot.toFixed(1)+'%">'+esc(String(value))+'</div>'+
-      '<div class="mk-band-track">'+
-        '<span class="mk-band-zone" style="left:'+g0.toFixed(1)+'%;width:'+(g1-g0).toFixed(1)+'%"></span>'+
-        '<span class="mk-band-dot" style="left:'+dot.toFixed(1)+'%"></span>'+
+      '<div class="mk-band-val" style="left:'+g.dot.toFixed(1)+'%">'+esc(String(value))+'</div>'+
+      '<div class="mk-band-track">'+zones+
+        '<span class="mk-band-dot" style="left:'+g.dot.toFixed(1)+'%"></span>'+
       '</div>'+
       '<div class="mk-band-ends">'+
-        '<span class="mk-band-end" style="left:'+g0.toFixed(1)+'%">'+esc(String(ref.low))+'</span>'+
-        '<span class="mk-band-end" style="left:'+g1.toFixed(1)+'%">'+esc(String(ref.high))+'</span>'+
+        '<span class="mk-band-end" style="left:'+g.bounds[2].toFixed(1)+'%">'+esc(String(ref.low))+'</span>'+
+        '<span class="mk-band-end" style="left:'+g.bounds[3].toFixed(1)+'%">'+esc(String(ref.high))+'</span>'+
       '</div>'+
     '</div>';
 }
@@ -8793,18 +8845,15 @@ function isOptimalBandWord(band){
 // band ONLY. position and flag_status are derived FROM band at index.ts:3415-3416, so consulting
 // them would be asking the same source twice and calling it corroboration.
 function bandContradictsEngine(ref, value, band){
-  const html = markerBandHTML(ref, value);
-  if(!html) return false;                       // nothing drawn, nothing to contradict
-  const m = html.match(/mk-band-dot" style="left:([0-9.]+)%/);
-  if(!m) return false;
-  const dot = Number(m[1]);
-  const f_low = Number(ref.low), f_high = Number(ref.high);
-  const c_low = Number(ref.conv_low), c_high = Number(ref.conv_high);
-  const span = c_high - c_low, pad = 0.25 * span;
-  const axis_lo = Math.min(c_low, f_low) - pad, axis_hi = Math.max(c_high, f_high) + pad;
-  const w = axis_hi - axis_lo;
-  const g0 = (f_low - axis_lo) / w * 100, g1 = (f_high - axis_lo) / w * 100;
-  const inGreen = dot >= g0 && dot <= g1;
+  // MARKER_BAND_V3 — SAME RULE, ONE SOURCE OF GEOMETRY. This read the dot back out of the
+  // rendered HTML with a regex and rebuilt the axis from the ref, which agreed with the renderer
+  // only while the two constructions stayed identical. The zero floor ends that: a floored axis
+  // moves the dot and the zone edges together, and a re-derivation without the floor would
+  // compare a floored dot against unfloored edges and call a correct picture a contradiction.
+  // The comparison itself is unchanged -- the rendered dot against the unrounded green edges.
+  const g = markerBandGeometry(ref, value);
+  if(!g) return false;                          // nothing drawn, nothing to contradict
+  const inGreen = g.dot >= g.g0 && g.dot <= g.g1;
   const optimal = isOptimalBandWord(band);
   return optimal !== inGreen;
 }

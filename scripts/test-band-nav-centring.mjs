@@ -107,8 +107,14 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
 // ===========================================================================
 // 1. THE BAND, executed.
 // ===========================================================================
+// MARKER_BAND_V3 — the renderer and the consistency rule both read ONE geometry, so it is
+// compiled and injected rather than stubbed. A stub would let the geometry regress while every
+// assertion below stayed green on this file's idea of an axis.
+const markerBandGeometry = new Function(
+  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
 const bandSrc = cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}");
-const markerBandHTML = new Function("esc", "return " + bandSrc + ";")(esc);
+const markerBandHTML = new Function("esc", "markerBandGeometry",
+  "return " + bandSrc + ";")(esc, markerBandGeometry);
 // BAND_FAMILY_GENERATED_V1 — the family is no longer a regex in the page, it is the
 // band_family_optimal array in ranges-slim.json. The REAL generated file is loaded and the REAL
 // classifier is compiled against it; a hand-written six-word list here would be the second
@@ -116,15 +122,19 @@ const markerBandHTML = new Function("esc", "return " + bandSrc + ";")(esc);
 const RANGES_SLIM = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8"));
 const isOptimalBandWord = new Function("RANGES_LOOKUP",
   "return " + cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}") + ";")(RANGES_SLIM);
-const bandContradictsEngine = new Function("esc", "markerBandHTML", "isOptimalBandWord",
+const bandContradictsEngine = new Function("markerBandGeometry", "isOptimalBandWord",
   "return " + cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}") + ";"
-)(esc, markerBandHTML, isOptimalBandWord);
+)(markerBandGeometry, isOptimalBandWord);
 ok("band extraction control: it compiled to a function",
   typeof markerBandHTML === "function");
 
-// MARKER_BAND_V2. F = functional [10,20], C = conventional [5,30].
-//   span 25, pad 6.25, axis [-1.25, 36.25], width 37.5
-//   pos(10)=30.0  pos(20)=56.7  pos(15)=43.3
+// MARKER_BAND_V3. F = functional [10,20], conventional [5,30].
+//   span 25, pad 6.25, outer [5,30], axis would be [-1.25, 36.25]
+//   EVERY BOUND ON FILE IS >= 0 AND THE AXIS WOULD START BELOW ZERO, SO IT FLOORS:
+//   axis [0, 36.25], width 36.25
+//   pos(5)=13.8  pos(10)=27.6  pos(15)=41.4  pos(20)=55.2  pos(30)=82.8
+//   five segments: coral 0..13.8, amber 13.8..27.6, green 27.6..55.2,
+//                  amber 55.2..82.8, coral 82.8..100
 // Every expected number below is derived from the ruled formula by hand, not read back out of the
 // implementation, so a wrong implementation cannot make them agree with itself.
 const F = { low: 10, high: 20, conv_low: 5, conv_high: 30 };
@@ -133,55 +143,120 @@ ok("band renders with two functional bounds, two conventional bounds and a numer
   two.includes('class="mk-band"'));
 ok("it draws a track", two.includes('class="mk-band-track"'));
 ok("it draws a dot", two.includes('class="mk-band-dot"'));
-ok("it draws exactly ONE zone", (two.match(/class="mk-band-zone"/g) || []).length === 1);
-ok("the zone starts at pos(f_low) = 30.0%", two.includes('class="mk-band-zone" style="left:30.0%'));
-ok("the zone is pos(f_high) - pos(f_low) = 26.7% wide", two.includes('width:26.7%'));
-ok("the dot sits at pos(value) = 43.3%", two.includes('class="mk-band-dot" style="left:43.3%"'));
+const zonesOf = (h) => (h.match(/class="mk-band-zone [^"]*" style="left:[0-9.]+%;width:[0-9.]+%"/g) || []);
+eq("it draws FIVE zones, not one", zonesOf(two).length, 5);
+ok("coral runs from the axis start to the conventional low edge",
+  two.includes('class="mk-band-zone mk-zone-coral" style="left:0.0%;width:13.8%"'));
+ok("amber runs from the conventional low edge to the functional low edge",
+  two.includes('class="mk-band-zone mk-zone-amber" style="left:13.8%;width:13.8%"'));
+ok("green is the functional range, pos(10) to pos(20)",
+  two.includes('class="mk-band-zone mk-zone-green" style="left:27.6%;width:27.6%"'));
+ok("amber runs from the functional high edge to the conventional high edge",
+  two.includes('class="mk-band-zone mk-zone-amber" style="left:55.2%;width:27.6%"'));
+ok("coral runs from the conventional high edge to the axis end",
+  two.includes('class="mk-band-zone mk-zone-coral" style="left:82.8%;width:17.2%"'));
+ok("the dot sits at pos(value) = 41.4%", two.includes('class="mk-band-dot" style="left:41.4%"'));
 ok("her value is labelled, above the dot and at the same offset",
-  two.includes('class="mk-band-val" style="left:43.3%">15<'));
-ok("the zone's two numbers are pinned to its edges",
-  two.includes('class="mk-band-end" style="left:30.0%">10<') &&
-  two.includes('class="mk-band-end" style="left:56.7%">20<'));
+  two.includes('class="mk-band-val" style="left:41.4%">15<'));
+ok("only the GREEN zone's edges carry numbers",
+  two.includes('class="mk-band-end" style="left:27.6%">10<') &&
+  two.includes('class="mk-band-end" style="left:55.2%">20<'));
+eq("and there are exactly two of them, so no amber boundary is numbered",
+  (two.match(/class="mk-band-end"/g) || []).length, 2);
 
-// THE AXIS IS NOT DERIVED FROM HER VALUE. This is the defect the rewrite exists to fix, so it is
-// asserted directly: move the value far outside the range and the ZONE must not move at all.
+// THE FIVE SEGMENTS PARTITION THE AXIS. Widths are differences of rounded boundaries, so they
+// chain exactly; summing separately-rounded widths would leave sub-0.1% seams instead.
+const segsOf = (h) => zonesOf(h).map((z) => ({
+  left: Number(z.match(/left:([0-9.]+)%/)[1]), width: Number(z.match(/width:([0-9.]+)%/)[1]) }));
+const partitionOK = (h) => {
+  const s = segsOf(h); if (!s.length) return false;
+  if (s[0].left !== 0) return false;
+  for (let i = 1; i < s.length; i++)
+    if (Math.abs((s[i - 1].left + s[i - 1].width) - s[i].left) > 1e-9) return false;
+  const last = s[s.length - 1];
+  return Math.abs((last.left + last.width) - 100) < 1e-9;
+};
+ok("the segments start at 0, chain with no gap and no overlap, and end at 100", partitionOK(two));
+eq("and their widths sum to exactly 100 percent of the axis",
+  Number(segsOf(two).reduce((a, s) => a + s.width, 0).toFixed(6)), 100);
+ok("partition control: the summation DOES fail on a deliberately broken chain", !partitionOK(
+  '<span class="mk-band-zone mk-zone-coral" style="left:0.0%;width:10.0%"></span>' +
+  '<span class="mk-band-zone mk-zone-green" style="left:20.0%;width:80.0%"></span>'));
+
+// THE AXIS IS NOT DERIVED FROM HER VALUE. Move the value far outside and the ZONES must not move.
 const far = markerBandHTML(F, -9999);
-ok("AXIS INDEPENDENCE: a wildly different value leaves the zone exactly where it was",
-  far.includes('class="mk-band-zone" style="left:30.0%') && far.includes('width:26.7%'));
-ok("axis-independence control: the DOT did move", !far.includes('mk-band-dot" style="left:43.3%"'));
+ok("AXIS INDEPENDENCE: a wildly different value leaves every zone exactly where it was",
+  JSON.stringify(segsOf(far)) === JSON.stringify(segsOf(two)));
+ok("axis-independence control: the DOT did move", !far.includes('mk-band-dot" style="left:41.4%"'));
 
 // Two different below-range values must NOT collapse onto one position. Under V1 both were 4%.
 const a1 = markerBandHTML(F, 8), a2 = markerBandHTML(F, 6);
 const dotOf = (h) => (h.match(/mk-band-dot" style="left:([0-9.]+)%/) || [])[1];
 ok("two different below-range values take DIFFERENT positions", dotOf(a1) !== dotOf(a2));
+eq("and at the ruled positions, pos(8) = 22.1%", dotOf(a1), "22.1");
+eq("pos(6) = 16.6%", dotOf(a2), "16.6");
 ok("separation control: the same value twice takes the SAME position",
   dotOf(markerBandHTML(F, 8)) === dotOf(a1));
 
-// CLAMP: dot only, to [2,98]. The zone edges are never clamped.
+// CLAMP: dot only, to [2,98]. Zone edges are never clamped.
 ok("a value far below clamps the DOT to 2%", dotOf(markerBandHTML(F, -1e6)) === "2.0");
 ok("a value far above clamps the DOT to 98%", dotOf(markerBandHTML(F, 1e6)) === "98.0");
-ok("clamp control: an in-axis value is NOT clamped", dotOf(two) === "43.3");
-ok("the ZONE is never clamped, even when the dot is",
-  markerBandHTML(F, -1e6).includes('class="mk-band-zone" style="left:30.0%'));
-// M10 GAP, closed. The fixture above has its zone at 30.0..56.7, which [2,98] would not move, so
-// clamping the edges too was invisible. This one puts the zone at 0.2..99.8, outside the clamp on
-// BOTH sides: a wide functional range against a narrow conventional one.
-//   W: f [0,1000], conv [400,410]. span 10, pad 2.5, axis [-2.5, 1002.5], width 1005.
-//   pos(0) = 2.5/1005 = 0.2   pos(1000) = 1002.5/1005 = 99.8
+ok("clamp control: an in-axis value is NOT clamped", dotOf(two) === "41.4");
+ok("the ZONES are never clamped, even when the dot is",
+  JSON.stringify(segsOf(markerBandHTML(F, -1e6))) === JSON.stringify(segsOf(two)));
+
+// A FIXTURE WHOSE ZONE EDGES LIE OUTSIDE THE CLAMP RANGE ON BOTH SIDES, so clamping an edge would
+// be visible. It also exercises the zero-width amber: the conventional range sits strictly INSIDE
+// the functional one on both sides, so outer_lo is f_low and outer_hi is f_high.
+//   W: f [1,1000], conv [400,410]. span 10, pad 2.5, outer [1,1000], axis would be [-1.5, 1002.5]
+//   all bounds >= 0 -> FLOORS to [0, 1002.5], width 1002.5
+//   pos(1) = 0.1   pos(1000) = 99.8   pos(405) = 40.4
 {
-  const W = { low: 0, high: 1000, conv_low: 400, conv_high: 410 };
+  const W = { low: 1, high: 1000, conv_low: 400, conv_high: 410 };
   const wide = markerBandHTML(W, 405);
   ok("zone-clamp control: this fixture really does draw", wide !== "");
   ok("a zone edge BELOW 2% is left where it is, not clamped up",
-    wide.includes('class="mk-band-zone" style="left:0.2%'));
-  // 99.5, not 99.6. The width is (g1 - g0) rounded ONCE, not the difference of the two rounded
-  // ends: 99.751 - 0.249 = 99.502 -> 99.5. Subtracting the displayed ends would have given 99.6
-  // and been wrong by a rounding step.
+    wide.includes('class="mk-band-zone mk-zone-green" style="left:0.1%;width:99.7%"'));
   ok("a zone edge ABOVE 98% is left where it is, not clamped down",
-    wide.includes('width:99.5%'));
-  ok("the zone's own numbers are pinned outside the clamp range too",
-    wide.includes('class="mk-band-end" style="left:0.2%') &&
-    wide.includes('class="mk-band-end" style="left:99.8%'));
+    wide.includes('class="mk-band-zone mk-zone-coral" style="left:99.8%;width:0.2%"'));
+  ok("the green zone's own numbers are pinned outside the clamp range too",
+    wide.includes('class="mk-band-end" style="left:0.1%">1<') &&
+    wide.includes('class="mk-band-end" style="left:99.8%">1000<'));
+  // ZERO-WIDTH AMBER RENDERS NOTHING, not a sliver.
+  eq("a conventional range inside the functional one draws NO amber at all",
+    (wide.match(/mk-zone-amber/g) || []).length, 0);
+  eq("so three segments are drawn, not five", zonesOf(wide).length, 3);
+  ok("and they still partition the axis with no gap", partitionOK(wide));
+  ok("zero-width control: the five-segment fixture DOES draw amber",
+    (two.match(/mk-zone-amber/g) || []).length === 2);
+}
+
+// THE ZERO FLOOR, and the case where it must NOT apply.
+//   FE: f [60,100], conv [13,150]. span 137, pad 34.25, axis would be [-21.25, 184.25]
+//   all bounds >= 0 -> FLOORS to [0, 184.25]
+//   pos(13)=7.1  pos(60)=32.6  pos(100)=54.3  pos(150)=81.4  pos(70)=38.0
+{
+  const FE = { low: 60, high: 100, conv_low: 13, conv_high: 150 };
+  const fe = markerBandHTML(FE, 70);
+  ok("a marker whose padded axis would start below zero starts at zero instead",
+    fe.includes('class="mk-band-zone mk-zone-coral" style="left:0.0%;width:7.1%"'));
+  ok("and its green sits where the floored axis puts it",
+    fe.includes('class="mk-band-zone mk-zone-green" style="left:32.6%;width:21.7%"'));
+  eq("floor control: on the UNfloored axis pos(60) would be 39.5, not 32.6",
+    Number((((60) - (-21.25)) / (184.25 - (-21.25)) * 100).toFixed(1)), 39.5);
+  //   N: f [-10,10], conv [-20,20]. span 40, pad 10, axis [-30, 30], width 60.
+  //   A BOUND ON FILE IS NEGATIVE, so the floor does NOT apply even though axis_lo < 0.
+  //   pos(-20)=16.7  pos(-10)=33.3  pos(10)=66.7  pos(20)=83.3  pos(0)=50.0
+  const N = { low: -10, high: 10, conv_low: -20, conv_high: 20 };
+  const neg = markerBandHTML(N, 0);
+  ok("a marker with a negative bound on file keeps its negative axis",
+    neg.includes('class="mk-band-zone mk-zone-amber" style="left:16.7%;width:16.6%"') &&
+    neg.includes('class="mk-band-zone mk-zone-green" style="left:33.3%;width:33.4%"'));
+  ok("its dot sits at pos(0) = 50.0%, which is only true on an UNfloored axis",
+    neg.includes('class="mk-band-dot" style="left:50.0%"'));
+  ok("and it still partitions", partitionOK(neg));
+  ok("negative-fixture control: the floored fixture does NOT put its green at 33.3%",
+    !fe.includes('mk-zone-green" style="left:33.3%'));
 }
 
 // FALLBACK, the four ruled conditions and nothing else.

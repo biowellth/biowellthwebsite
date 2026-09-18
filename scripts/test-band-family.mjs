@@ -160,8 +160,10 @@ const REF = { low: 10, high: 20, conv_low: 5, conv_high: 30 };
 const V_IN = 15;    // dot 43.3 -> inside the zone
 const V_OUT = 25;   // dot 70.0 -> outside the zone
 
-const markerBandHTML = new Function("esc",
-  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc);
+const markerBandGeometry = new Function(
+  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
+const markerBandHTML = new Function("esc", "markerBandGeometry",
+  "return " + cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}") + ";")(esc, markerBandGeometry);
 const isOptimalBandWordSrc = cutAfter(CODE, "function isOptimalBandWord(band){", "{", "}");
 const bandContradictsEngineSrc = cutAfter(CODE, "function bandContradictsEngine(ref, value, band){", "{", "}");
 const prioSrc = cutAfter(CODE, '$("prios").innerHTML = pr.map((x,i)=>{', "{", "}");
@@ -181,8 +183,8 @@ const lookupRange = () => REF;
 // exercised through the SAME path a browser takes.
 function renderWith(lookupObj, band, value) {
   const isOptimalBandWord = new Function("RANGES_LOOKUP", "return " + isOptimalBandWordSrc + ";")(lookupObj);
-  const bandContradictsEngine = new Function("esc", "markerBandHTML", "isOptimalBandWord",
-    "return " + bandContradictsEngineSrc + ";")(esc, markerBandHTML, isOptimalBandWord);
+  const bandContradictsEngine = new Function("markerBandGeometry", "isOptimalBandWord",
+    "return " + bandContradictsEngineSrc + ";")(markerBandGeometry, isOptimalBandWord);
   const chipSysByMarker = { fixture_marker: "metabolic" };
   const chipValByMarker = { fixture_marker: value };
   const prioFn = new Function(
