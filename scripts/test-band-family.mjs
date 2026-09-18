@@ -160,8 +160,11 @@ const REF = { low: 10, high: 20, conv_low: 5, conv_high: 30 };
 const V_IN = 15;    // dot 43.3 -> inside the zone
 const V_OUT = 25;   // dot 70.0 -> outside the zone
 
-const markerBandGeometry = new Function(
-  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
+// MARKER_BAND_V3 — the Tier 2 pad constant is READ OUT OF THE PAGE, never restated here. A
+// number typed into this file is a second definition and would agree with itself forever.
+const BAND_FALLBACK_PAD_K = Number(CODE.match(/const BAND_FALLBACK_PAD_K = ([0-9.]+)/)[1]);
+const markerBandGeometry = new Function("BAND_FALLBACK_PAD_K",
+  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")(BAND_FALLBACK_PAD_K);
 // The note table and its renderer are compiled TOGETHER, in one scope, so the table the page
 // ships is the one the assertions read. Copying the strings into this file would be the second
 // definition the ruled copy exists to avoid.

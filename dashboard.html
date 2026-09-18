@@ -8760,27 +8760,44 @@ function renderThemePanel(p){
 // below zero, the axis starts at zero instead. Ferritin's axis ran to about minus 21, a tenth of
 // the track spent on concentrations that cannot exist, and it squeezed green. If ANY bound on file
 // is negative the floor does not apply, because then negative values are real for that marker.
+// MARKER_BAND_V3 TIER 2 — THE FALLBACK AXIS for a marker with no usable conventional interval.
+// RULED AT 1.0, on how the zone reads, not selected from a measurement: the separation test that
+// would have chosen it is vacuous at a sample of one Tier 2 marker on one report and none on the
+// other, and a criterion that cannot fail is not a criterion. One named constant, so moving it is
+// one edit and one assertion.
+//   pad = K * (f_high - f_low), axis = [f_low - pad, f_high + pad]
+// At K = 1 the functional range is exactly one third of the axis, which is what the assertions
+// compute rather than hardcode.
+const BAND_FALLBACK_PAD_K = 1.0;
 function markerBandGeometry(ref, value){
   if(!ref) return null;
   // NULL IS CHECKED BEFORE Number(), and this is not defensive noise. Number(null) is 0 and
   // isFinite(0) is true, so a HIGH-ONLY range {low:null, high:20} passed an isFinite-only guard,
   // silently became low=0, and drew a track labelled "null".
-  if(ref.low == null || ref.high == null || ref.conv_low == null || ref.conv_high == null) return null;
+  if(ref.low == null || ref.high == null) return null;
   if(value == null || value === '') return null;
   const f_low = Number(ref.low), f_high = Number(ref.high);
-  const c_low = Number(ref.conv_low), c_high = Number(ref.conv_high);
   const v = Number(value);
   if(!isFinite(f_low) || !isFinite(f_high) || f_high <= f_low) return null;   // 2
-  if(!isFinite(c_low) || !isFinite(c_high)) return null;                      // 1
   if(!isFinite(v)) return null;
-  const span = c_high - c_low;
-  if(!(span > 0)) return null;                                                // 3
-  const pad = 0.25 * span;
-  const outer_lo = Math.min(c_low, f_low);
-  const outer_hi = Math.max(c_high, f_high);
+  // TIER 1 NEEDS A USABLE CONVENTIONAL INTERVAL and Tier 2 is everything else. The three ways it
+  // can be unusable -- absent, non-numeric or infinite, and zero-width or inverted -- were three
+  // separate no-track conditions until this commit. They are now three routes to the same
+  // fallback. nucleated_rbc_pct reaches it through the third: it carries both conv keys with
+  // conv_high equal to conv_low, which is not an interval.
+  const c_low = ref.conv_low == null ? NaN : Number(ref.conv_low);
+  const c_high = ref.conv_high == null ? NaN : Number(ref.conv_high);
+  const tier = (isFinite(c_low) && isFinite(c_high) && (c_high - c_low) > 0) ? 1 : 2;
+  const pad = tier === 1 ? 0.25 * (c_high - c_low) : BAND_FALLBACK_PAD_K * (f_high - f_low);
+  const outer_lo = tier === 1 ? Math.min(c_low, f_low) : f_low;
+  const outer_hi = tier === 1 ? Math.max(c_high, f_high) : f_high;
   let axis_lo = outer_lo - pad;
   const axis_hi = outer_hi + pad;
-  const onFile = [f_low, f_high, c_low, c_high];
+  // THE ZERO FLOOR APPLIES TO BOTH TIERS. Only bounds actually ON FILE count: a Tier 2 marker has
+  // no conventional pair to consult, and a degenerate one is still on file and still consulted.
+  const onFile = [f_low, f_high];
+  if(isFinite(c_low)) onFile.push(c_low);
+  if(isFinite(c_high)) onFile.push(c_high);
   const floored = !onFile.some(function(b){ return b < 0; }) && axis_lo < 0;
   if(floored) axis_lo = 0;
   // 4. CONTAINMENT. No longer a backstop that cannot fire: the zero floor can raise axis_lo to
@@ -8796,7 +8813,12 @@ function markerBandGeometry(ref, value){
   const dot = Number(Math.min(98, Math.max(2, raw)).toFixed(1));
   const g0 = pos(f_low), g1 = pos(f_high), o0 = pos(outer_lo), o1 = pos(outer_hi);
   const b = [0, o0, g0, g1, o1, 100].map(function(x){ return Number(x.toFixed(1)); });
-  const segs = [
+  // TIER 2 DRAWS GREEN AND NOTHING ELSE. Everything outside the functional range is the neutral
+  // track, because there is no wider range to claim severity FROM. Painting the pad coral would
+  // be inventing a reference interval out of the padding constant.
+  const segs = tier === 2
+    ? [ { cls: 'mk-zone-green', left: b[2], width: Number((b[3] - b[2]).toFixed(1)) } ]
+    : [
     { cls: 'mk-zone-coral', left: b[0], width: Number((b[1] - b[0]).toFixed(1)) },
     { cls: 'mk-zone-amber', left: b[1], width: Number((b[2] - b[1]).toFixed(1)) },
     { cls: 'mk-zone-green', left: b[2], width: Number((b[3] - b[2]).toFixed(1)) },
@@ -8810,7 +8832,7 @@ function markerBandGeometry(ref, value){
   // outer_lo <= f_low and outer_hi >= f_high always, so the chain below is ordered.
   const zone = dot < o0 ? 'coral' : dot < g0 ? 'amber_low'
              : dot <= g1 ? 'green' : dot <= o1 ? 'amber_high' : 'coral';
-  return { tier: 1, f_low: f_low, f_high: f_high, outer_lo: outer_lo, outer_hi: outer_hi,
+  return { tier: tier, f_low: f_low, f_high: f_high, outer_lo: outer_lo, outer_hi: outer_hi,
            axis_lo: axis_lo, axis_hi: axis_hi, w: w, floored: floored, raw: raw, dot: dot,
            g0: g0, g1: g1, o0: o0, o1: o1, bounds: b, segs: segs, zone: zone,
            clamped: raw < 2 || raw > 98 };

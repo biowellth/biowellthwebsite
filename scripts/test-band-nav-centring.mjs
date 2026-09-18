@@ -110,8 +110,11 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
 // MARKER_BAND_V3 — the renderer and the consistency rule both read ONE geometry, so it is
 // compiled and injected rather than stubbed. A stub would let the geometry regress while every
 // assertion below stayed green on this file's idea of an axis.
-const markerBandGeometry = new Function(
-  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")();
+// MARKER_BAND_V3 — the Tier 2 pad constant is READ OUT OF THE PAGE, never restated here. A
+// number typed into this file is a second definition and would agree with itself forever.
+const BAND_FALLBACK_PAD_K = Number(CODE.match(/const BAND_FALLBACK_PAD_K = ([0-9.]+)/)[1]);
+const markerBandGeometry = new Function("BAND_FALLBACK_PAD_K",
+  "return " + cutAfter(CODE, "function markerBandGeometry(ref, value){", "{", "}") + ";")(BAND_FALLBACK_PAD_K);
 const bandSrc = cutAfter(CODE, "function markerBandHTML(ref, value){", "{", "}");
 // The note table and its renderer are compiled TOGETHER, in one scope, so the table the page
 // ships is the one the assertions read. Copying the strings into this file would be the second
@@ -203,6 +206,23 @@ eq("and at the ruled positions, pos(8) = 22.1%", dotOf(a1), "22.1");
 eq("pos(6) = 16.6%", dotOf(a2), "16.6");
 ok("separation control: the same value twice takes the SAME position",
   dotOf(markerBandHTML(F, 8)) === dotOf(a1));
+// TWO DIFFERENT AXES MAY PUT DIFFERENT VALUES ON THE SAME PERCENTAGE, and that is a coincidence,
+// not the collapse the separation work was about. Measured on report ae52d923: ferritin and tsh
+// both land on 35.7%. They are different markers in different rows on different axes, so the
+// number they share means nothing. What must never happen is two values collapsing on ONE axis,
+// which is what the assertions above pin.
+{
+  // NOT a scaled copy of F. {100,200,50,300} is exactly ten times {10,20,5,30} and the geometry
+  // is scale invariant, so its segments are identical to the decimal -- which is itself worth
+  // knowing, and is why this fixture changes SHAPE rather than magnitude.
+  const G = { low: 100, high: 200, conv_low: 90, conv_high: 400 };
+  ok("cross-axis control: these two fixtures really do have different axes",
+    JSON.stringify(segsOf(markerBandHTML(F, 15))) !== JSON.stringify(segsOf(markerBandHTML(G, 150))));
+  ok("and the SAME value placed on both lands in different places",
+    dotOf(markerBandHTML(F, 15)) !== dotOf(markerBandHTML(G, 15)));
+  ok("while on ONE axis two different values never collapse",
+    dotOf(markerBandHTML(F, 12)) !== dotOf(markerBandHTML(F, 18)));
+}
 
 // CLAMP: dot only, to [2,98]. Zone edges are never clamped.
 ok("a value far below clamps the DOT to 2%", dotOf(markerBandHTML(F, -1e6)) === "2.0");
@@ -265,42 +285,150 @@ ok("the ZONES are never clamped, even when the dot is",
     !fe.includes('mk-zone-green" style="left:33.3%'));
 }
 
-// FALLBACK, the four ruled conditions and nothing else.
-eq("no band without conventional bounds", markerBandHTML({ low: 10, high: 20 }, 15), "");
-// M3 GAP, closed, and the guards turned out to overlap in a way worth recording.
-//   - an ABSENT conv bound is caught by the null guard, not by the isFinite guard
-//   - a NON-NUMERIC conv bound ("n/a") makes span NaN, and !(NaN > 0) means the SPAN guard
-//     catches it first
-//   - so the isFinite guard's UNIQUE responsibility is a bound that is a number but INFINITE,
-//     where span is +Infinity and sails through the span guard
-// All three are asserted, and the infinite case is the one that actually isolates guard 1.
-eq("no band when conv_low is absent (null guard owns this)",
-  markerBandHTML({ low: 10, high: 20, conv_high: 30 }, 15), "");
-eq("no band when conv_low is present but not a number (span guard owns this)",
-  markerBandHTML({ low: 10, high: 20, conv_low: "n/a", conv_high: 30 }, 15), "");
-eq("no band when conv_low is -Infinity (the isFinite guard owns this ALONE)",
-  markerBandHTML({ low: 10, high: 20, conv_low: -Infinity, conv_high: 30 }, 15), "");
-eq("no band when conv_high is +Infinity (likewise)",
-  markerBandHTML({ low: 10, high: 20, conv_low: 5, conv_high: Infinity }, 15), "");
-ok("guard control: the same fixture with finite numeric conv bounds DOES draw",
-  markerBandHTML({ low: 10, high: 20, conv_low: 5, conv_high: 30 }, 15) !== "");
-eq("no band with only conv_low", markerBandHTML({ low: 10, high: 20, conv_low: 5 }, 15), "");
-eq("no band with only conv_high", markerBandHTML({ low: 10, high: 20, conv_high: 30 }, 15), "");
-eq("no band when the functional range is LOW-ONLY",
-  markerBandHTML({ low: 10, high: null, conv_low: 5, conv_high: 30 }, 15), "");
-eq("no band when the functional range is HIGH-ONLY",
-  markerBandHTML({ low: null, high: 20, conv_low: 5, conv_high: 30 }, 15), "");
-eq("no band with no functional bounds at all",
-  markerBandHTML({ low: null, high: null, conv_low: 5, conv_high: 30 }, 15), "");
+// TIER 2 — THE FALLBACK AXIS. A marker with no usable conventional interval draws GREEN ONLY, on
+// an axis padded by K times the functional width. There is no wider range on file, so there is no
+// amber and no coral: painting the pad coral would invent a reference interval out of a constant.
+// The three former no-track conditions -- conventional absent, non-numeric or infinite, and
+// zero-width or inverted -- are now three routes to the same fallback.
+eq("the fallback pad constant is exactly 1.0", BAND_FALLBACK_PAD_K, 1.0);
+{
+  //   T: f [30,40], no conventional. pad = 1.0 * 10 = 10, axis [20,50], width 30, no floor.
+  //   pos(30)=33.3  pos(35)=50.0  pos(40)=66.7
+  const T = { low: 30, high: 40 };
+  const t2 = markerBandHTML(T, 35);
+  ok("a marker with no conventional bounds now DRAWS", t2 !== "");
+  eq("and it is Tier 2", markerBandGeometry(T, 35).tier, 2);
+  eq("it draws exactly ONE zone", zonesOf(t2).length, 1);
+  ok("and that zone is green", t2.includes('class="mk-band-zone mk-zone-green" style="left:33.3%;width:33.4%"'));
+  eq("no amber anywhere", (t2.match(/mk-zone-amber/g) || []).length, 0);
+  eq("no coral anywhere", (t2.match(/mk-zone-coral/g) || []).length, 0);
+  ok("its dot is placed on the padded axis, pos(35) = 50.0%",
+    t2.includes('class="mk-band-dot" style="left:50.0%"'));
+  const noteOfT2 = (h) => { const m = h.match(/<div class="mk-band-note ([^"]*)">([^<]*)<\/div>/); return m ? [m[1], m[2]] : null; };
+  eq("and it carries the Tier 2 note", JSON.stringify(noteOfT2(t2)),
+    JSON.stringify(["mk-note-plain", "No wider range on file, so only the functional range is shown"]));
+  // GREEN IS ONE THIRD OF THE AXIS AT K = 1, computed from the constant rather than hardcoded.
+  const g = markerBandGeometry(T, 35);
+  const expected = 100 / (1 + 2 * BAND_FALLBACK_PAD_K);
+  ok("green occupies 1/(1+2K) of the axis, which at K = 1 is one third",
+    Math.abs((g.g1 - g.g0) - expected) < 1e-9);
+  ok("K control: the same assertion FAILS if K were 0.5, which would make green one half",
+    Math.abs((g.g1 - g.g0) - 100 / (1 + 2 * 0.5)) > 1e-9);
+  eq("and one third is 33.33..., not 50", Number(expected.toFixed(4)), 33.3333);
+}
+// Every route to Tier 2, each asserted separately so a red names which one broke.
+for (const [label, ref] of [
+  ["no conventional keys at all", { low: 10, high: 20 }],
+  ["conv_low absent", { low: 10, high: 20, conv_high: 30 }],
+  ["conv_high absent", { low: 10, high: 20, conv_low: 5 }],
+  ["conv_low non-numeric", { low: 10, high: 20, conv_low: "n/a", conv_high: 30 }],
+  ["conv_low -Infinity", { low: 10, high: 20, conv_low: -Infinity, conv_high: 30 }],
+  ["conv_high +Infinity", { low: 10, high: 20, conv_low: 5, conv_high: Infinity }],
+  ["conv span zero", { low: 10, high: 20, conv_low: 30, conv_high: 30 }],
+  ["conv span inverted", { low: 10, high: 20, conv_low: 30, conv_high: 5 }],
+]) {
+  eq("TIER 2 route, " + label, markerBandGeometry(ref, 15).tier, 2);
+  eq("  and it draws green only, " + label,
+    (markerBandHTML(ref, 15).match(/mk-zone-(amber|coral)/g) || []).length, 0);
+}
+ok("tier control: a usable conventional interval still gives TIER 1",
+  markerBandGeometry({ low: 10, high: 20, conv_low: 5, conv_high: 30 }, 15).tier === 1);
+
+// THE FOUR NO-TRACK CONDITIONS, and now they really are the only ones.
+eq("no band when the functional range is LOW-ONLY", markerBandHTML({ low: 10, high: null }, 15), "");
+eq("no band when the functional range is HIGH-ONLY", markerBandHTML({ low: null, high: 20 }, 15), "");
+eq("no band with no functional bounds at all", markerBandHTML({ low: null, high: null }, 15), "");
+eq("no band when the functional bounds are inverted", markerBandHTML({ low: 20, high: 10 }, 15), "");
 eq("no band with a null ref", markerBandHTML(null, 15), "");
-eq("no band with a non-numeric value", markerBandHTML(F, "positive"), "");
-eq("no band with an absent value", markerBandHTML(F, undefined), "");
-eq("no band when conv span is zero",
-  markerBandHTML({ low: 10, high: 20, conv_low: 30, conv_high: 30 }, 15), "");
-eq("no band when conv span is inverted",
-  markerBandHTML({ low: 10, high: 20, conv_low: 30, conv_high: 5 }, 15), "");
-eq("no band when the functional bounds are inverted",
-  markerBandHTML({ low: 20, high: 10, conv_low: 5, conv_high: 30 }, 15), "");
+eq("no band with a non-numeric value", markerBandHTML({ low: 10, high: 20 }, "positive"), "");
+eq("no band with an absent value", markerBandHTML({ low: 10, high: 20 }, undefined), "");
+ok("no-track control: the same fixture WITH a numeric value draws",
+  markerBandHTML({ low: 10, high: 20 }, 15) !== "");
+
+// THE ZERO FLOOR APPLIES TO TIER 2 TOO, and still not when a bound on file is negative.
+{
+  //   f [3,10], pad 7, axis would be [-4, 17] -> FLOORS to [0, 17]
+  //   pos(3) = 17.6   pos(10) = 58.8, so green is wider than a third because the floor took the
+  //   whole low pad away. That is the point: the axis stops claiming impossible concentrations.
+  const fl = markerBandGeometry({ low: 3, high: 10 }, 5);
+  ok("a Tier 2 axis that would start below zero starts at zero", fl.floored === true && fl.axis_lo === 0);
+  ok("and its green is correspondingly wider than one third",
+    (fl.g1 - fl.g0) > 100 / (1 + 2 * BAND_FALLBACK_PAD_K));
+  const ng = markerBandGeometry({ low: -5, high: 5 }, 0);
+  ok("a Tier 2 marker with a negative bound on file keeps its negative axis",
+    ng.floored === false && ng.axis_lo === -15);
+  ok("floor control: the unfloored Tier 2 fixture is exactly one third",
+    Math.abs((ng.g1 - ng.g0) - 100 / (1 + 2 * BAND_FALLBACK_PAD_K)) < 1e-9);
+}
+
+// THE SHIPPED LIBRARY, by name and by count. Every number here is measured from the real
+// ranges-slim.json at run time, not written down, and the populations are counted separately from
+// what actually draws because the two differ and the difference is the finding.
+{
+  const RS = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8")).by_marker_id;
+  const entries = Object.entries(RS);
+  eq("library control: ranges-slim carries the expected number of entries", entries.length, 228);
+  const twoEnded = (r) => r.low != null && r.high != null && Number(r.high) > Number(r.low);
+  const usableConv = (r) => r.conv_low != null && r.conv_high != null &&
+    isFinite(Number(r.conv_low)) && isFinite(Number(r.conv_high)) &&
+    Number(r.conv_high) > Number(r.conv_low);
+  const mid = (r) => (Number(r.low) + Number(r.high)) / 2;
+  const geoOf = (r) => twoEnded(r) ? markerBandGeometry(r, mid(r)) : null;
+
+  let t1 = 0, t2 = 0, none = 0, floored = 0, notTwoEnded = 0; const gw = [], t1Dropped = [];
+  for (const [id, r] of entries) {
+    if (!twoEnded(r)) { notTwoEnded++; none++;
+      ok("an entry that is not two-ended draws nothing: " + id, markerBandHTML(r, 1) === "");
+      continue; }
+    const g = geoOf(r);
+    if (!g) { none++; t1Dropped.push(id); continue; }
+    if (g.tier === 1) t1++;
+    else { t2++; if (g.floored) floored++; gw.push(g.g1 - g.g0); }
+  }
+  gw.sort((a, b) => a - b);
+  eq("library: entries with a TWO-ENDED functional range", entries.length - notTwoEnded, 140);
+  eq("library: entries with only ONE functional bound, which can never draw", notTwoEnded, 88);
+  eq("library: entries that build a TIER 1 axis", t1, 123);
+  eq("library: entries that build a TIER 2 axis", t2, 16);
+  eq("library: entries that draw NOTHING under either tier", none, 89);
+  eq("and those three partition the library", t1 + t2 + none, entries.length);
+  eq("library: Tier 2 axes that floor at zero", floored, 8);
+  eq("library: narrowest Tier 2 green, to one decimal", Number(gw[0].toFixed(1)), 33.3);
+  eq("library: median Tier 2 green", Number(gw[Math.floor(gw.length / 2)].toFixed(1)), 40.0);
+  eq("library: widest Tier 2 green", Number(gw[gw.length - 1].toFixed(1)), 44.4);
+
+  // THE ZERO FLOOR COSTS EXACTLY ONE TIER 1 TRACK, and it is named rather than counted away.
+  // basophils_pct has a functional range starting at 0. Its unfloored axis padded below zero and
+  // it drew; the floored axis starts AT f_low, so nothing strictly contains the range and the
+  // renderer refuses. That is the ruled containment condition doing its job, not a regression to
+  // be worked around: an axis whose first pixel is the functional minimum cannot show a value
+  // below it, and this marker's values are all at or above zero by definition.
+  eq("the zero floor costs exactly one Tier 1 track", t1Dropped.length, 1);
+  eq("and it is basophils_pct, by name", t1Dropped[0], "basophils_pct");
+  ok("its functional range starts at exactly zero, which is why", Number(RS["basophils_pct"].low) === 0);
+  ok("floor-cost control: a Tier 1 marker whose range does NOT start at zero still draws",
+    markerBandHTML(RS["ferritin"], mid(RS["ferritin"])) !== "");
+
+  // nucleated_rbc_pct — CORRECTING WHAT THE PREVIOUS PASS REPORTED. It was read as reaching Tier 2
+  // through its zero-width conventional interval. It carries one, and that part was right, but it
+  // never reaches the tier branch at all: its FUNCTIONAL high equals its functional low, so it
+  // fails the two-ended guard first and draws nothing under either tier. The earlier reading came
+  // from a conventional-key cross-tab that never checked the functional range.
+  const NR = RS["nucleated_rbc_pct"];
+  ok("nucleated_rbc_pct carries both conventional keys", NR.conv_low != null && NR.conv_high != null);
+  ok("and that conventional interval really is zero width",
+    Number(NR.conv_high) === Number(NR.conv_low));
+  ok("BUT its functional high equals its functional low", Number(NR.high) === Number(NR.low));
+  ok("so it is not two-ended", !twoEnded(NR));
+  eq("and it draws NOTHING, under either tier", markerBandHTML(NR, Number(NR.high)), "");
+  eq("its geometry is null, so it never reaches the tier branch", markerBandGeometry(NR, Number(NR.high)), null);
+  ok("nucleated control: a marker that DOES reach Tier 2 exists and draws",
+    (() => { const k = entries.find(([, r]) => twoEnded(r) && !usableConv(r));
+      return !!k && markerBandHTML(k[1], mid(k[1])) !== ""; })());
+  ok("tier-by-name control: a marker with a real conventional interval is Tier 1",
+    (() => { const k = entries.find(([, r]) => twoEnded(r) && usableConv(r) && Number(r.low) !== 0);
+      return markerBandGeometry(k[1], mid(k[1])).tier === 1; })());
+}
 // containment: conv sits strictly inside f on BOTH sides and the pad is too small to escape it
 // The containment guard is a BACKSTOP that cannot fire while conditions 1-3 hold: pad > 0 puts
 // axis_lo strictly below f_low and axis_hi strictly above f_high by construction. So it is
@@ -507,7 +635,7 @@ ok("the optimal FAMILY is the engine's, not a narrower guess",
   bandContradictsEngine(F, 15, "reassuring") === false &&
   bandContradictsEngine(F, 15, "negative") === false);
 ok("consistency control: nothing drawn means nothing to contradict",
-  bandContradictsEngine({ low: 10, high: 20 }, 15, "low") === false);
+  bandContradictsEngine({ low: 10, high: null }, 15, "low") === false);
 
 // ===========================================================================
 // 2. THE BAND ON THE PRIORITY PATH, executed, including the sensitive guard.
@@ -895,7 +1023,7 @@ eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || [])
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
     "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
-    { m1: "metabolic" }, { m1: 7 }, () => ({ low: 10, high: 20 }), healthyRangeText,
+    { m1: "metabolic" }, { m1: 7 }, () => ({ low: 10, high: null }), healthyRangeText,
     markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, markerBandGeometry, BAND_LEGEND_HTML)(
     { rank: 1, headline: "H", why_this_matters: "W",
       primary_markers: [{ marker_id: "m1", display_name: "One", band: "low" }] }, 0);
