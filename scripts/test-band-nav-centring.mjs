@@ -241,18 +241,174 @@ ok("containment holds for EVERY shipped entry that passes conditions 1-3", (() =
 ok("the containment guard is present in the shipped source",
   /axis_lo < f_low && axis_hi > f_high/.test(CODE));
 
+// ---------------------------------------------------------------------------
 // NO VERDICT, one word at a time, on the RENDERED markup rather than the source.
+//
+// THE LIST IS UNCHANGED AT TWENTY WORDS. THE SCOPE NARROWED, 2026-09-18, and the
+// difference matters: this assertion was written against a band that carried no
+// words and no colour names, so the band could not restate the engine's verdict
+// in prose or in a class a future change could colour. MARKER_BAND_V3, the
+// ratified three-zone design, gives the band both. It draws green, amber and
+// coral zones, labels them in a legend, and writes one line beneath each track
+// saying which zone her value landed in. Four of the twenty -- amber, coral,
+// green, range -- are on the list precisely BECAUSE the old design refused to
+// use them, and six of the nine ratified strings trip on "range" alone.
+//
+// So the list keeps all twenty and the SCOPE narrows to exactly three exemptions,
+// BY ELEMENT AND BY ATTRIBUTE:
+//     .mk-band-legend   the whole element, subtree included
+//     .mk-band-note     the whole element, subtree included
+//     .mk-band-zone     its CLASS ATTRIBUTE VALUE only
+// Everything else in the band stays under the full twenty: the dot, the track,
+// the edge labels, every other class name, every inline style, every aria
+// attribute. A zone therefore carries its colour in its class and its geometry in
+// its style, and the style is still scanned -- so background:green in an inline
+// style goes red while class="mk-zone-green" does not.
+//
+// IT IS PARSED, NOT SUBSTRING-DELETED. Deleting the exempt elements from the
+// string before scanning would also blind the scan to a banned word sitting
+// immediately beside one, because the deletion's own pattern decides where the
+// element ends. The parser walks tags and attributes and rebuilds the remainder,
+// and the adjacency assertion below is what tells the two implementations apart.
+//
+// THIS IS A NARROWING, NOT DRIFT. If a future change wants a fourth exemption it
+// is a ruling, not a convenience: the scan is the only thing standing between the
+// band and a picture that argues with the sentence above it.
+// ---------------------------------------------------------------------------
 const VERDICT = ["high", "low", "normal", "optimal", "good", "bad", "flag", "watch",
   "elevated", "deficient", "critical", "healthy", "abnormal", "concern", "risk", "poor",
   "amber", "coral", "green", "range"];
-const bandText = two.toLowerCase();
+eq("the verdict list still holds all twenty words", VERDICT.length, 20);
+eq("and it is still the ratified twenty, none removed", VERDICT.slice().sort().join(","),
+  "abnormal,amber,bad,concern,coral,critical,deficient,elevated,flag,good,green,healthy," +
+  "high,low,normal,optimal,poor,range,risk,watch");
+
+// Whole-subtree exemptions, by class token.
+const EXEMPT_ELEMENT = ["mk-band-legend", "mk-band-note"];
+// Class-attribute-value-only exemptions, by class token.
+const EXEMPT_CLASS_ATTR = ["mk-band-zone"];
+
+// Rebuild the scannable remainder by walking the markup. Emits tag names, attribute
+// names, attribute values and text; drops an exempt element entirely, and drops only
+// the VALUE of a class attribute on an exempt-class-attr element.
+function scannableRemainder(markup) {
+  const out = [];
+  const tagRe = /<\/?[a-zA-Z][^>]*>/g;
+  let last = 0, depth = 0, skipFrom = null, m;
+  const classTokens = (tag) => {
+    const c = tag.match(/\bclass\s*=\s*"([^"]*)"/);
+    return c ? c[1].trim().split(/\s+/) : [];
+  };
+  while ((m = tagRe.exec(markup)) !== null) {
+    const text = markup.slice(last, m.index);
+    if (skipFrom === null && text) out.push(text);
+    last = m.index + m[0].length;
+    const tag = m[0];
+    const closing = tag.startsWith("</");
+    const selfClosing = /\/>$/.test(tag);
+    if (closing) {
+      depth--;
+      // depth has already been decremented, so the exempt element's OWN close tag brings
+      // depth back TO skipFrom, not below it. "<" left the skip latched forever and swallowed
+      // everything after the note -- caught by the adjacency assertion below, which is the one
+      // assertion in this file whose whole job is to fail when the exemption over-reaches.
+      if (skipFrom !== null && depth <= skipFrom) skipFrom = null;
+      else if (skipFrom === null) out.push(tag.replace(/[<>/]/g, " "));
+      continue;
+    }
+    const toks = classTokens(tag);
+    if (skipFrom === null && EXEMPT_ELEMENT.some((e) => toks.includes(e))) {
+      if (!selfClosing) { skipFrom = depth; depth++; }
+      continue;
+    }
+    if (skipFrom === null) {
+      const name = tag.match(/^<\s*([a-zA-Z][a-zA-Z0-9-]*)/)[1];
+      out.push(name);
+      const exemptClass = EXEMPT_CLASS_ATTR.some((e) => toks.includes(e));
+      const attrRe = /([a-zA-Z-]+)\s*=\s*"([^"]*)"/g;
+      let a;
+      while ((a = attrRe.exec(tag)) !== null) {
+        out.push(a[1]);
+        if (!(a[1].toLowerCase() === "class" && exemptClass)) out.push(a[2]);
+      }
+    }
+    if (!selfClosing) depth++;
+  }
+  const tail = markup.slice(last);
+  if (skipFrom === null && tail) out.push(tail);
+  return out.join(" ").toLowerCase();
+}
+const verdictHits = (markup) => VERDICT.filter((w) => scannableRemainder(markup).includes(w));
+
+// --- the parser's own controls, before it is trusted with anything -----------
+ok("parser control: it keeps ordinary text",
+  scannableRemainder("<span>hello</span>").includes("hello"));
+ok("parser control: it keeps a class value on a NON-exempt element",
+  scannableRemainder('<span class="mk-band-dot"></span>').includes("mk-band-dot"));
+ok("parser control: it keeps an inline style on an exempt-class-attr element",
+  scannableRemainder('<span class="mk-band-zone" style="left:1%"></span>').includes("left:1%"));
+ok("parser control: it drops the class VALUE on an exempt-class-attr element",
+  !scannableRemainder('<span class="mk-band-zone zzq"></span>').includes("zzq"));
+ok("parser control: it drops an exempt element's TEXT",
+  !scannableRemainder('<div class="mk-band-note">zzq</div>').includes("zzq"));
+ok("parser control: it drops an exempt element's nested children",
+  !scannableRemainder('<div class="mk-band-legend"><span class="sw">zzq</span></div>').includes("zzq"));
+
+// --- the twenty, one at a time, on the REAL rendered band -------------------
 for (const w of VERDICT) {
-  ok("no verdict word in the rendered band: " + w, !bandText.includes(w));
+  ok("no verdict word in the rendered band: " + w, !verdictHits(two).includes(w));
 }
 ok("verdict-scan control: the scanner DOES fire on a planted word",
-  (bandText + " optimal").includes("optimal"));
+  verdictHits(two + '<span class="optimal"></span>').includes("optimal"));
+
+// --- the three exemptions, each asserted with the control that discriminates --
+const NOTE = '<div class="mk-band-note mk-note-amber">In the wider reference range, ' +
+  'below the functional range</div>';
+eq("EXEMPT: the zone-note element carries ruled copy and reports nothing",
+  verdictHits(NOTE).length, 0);
+ok("control: the SAME copy in a non-exempt element still trips",
+  verdictHits('<div class="mk-band-ends">In the wider reference range</div>').length > 0);
+
+const LEGEND = '<div class="mk-band-legend"><span class="mk-lg mk-lg-green">' +
+  '<span class="mk-sw"></span>Functional range</span><span class="mk-lg mk-lg-amber">' +
+  '<span class="mk-sw"></span>Wider reference range</span><span class="mk-lg mk-lg-coral">' +
+  '<span class="mk-sw"></span>Outside both</span></div>';
+eq("EXEMPT: the legend element carries ruled copy and colour names, reports nothing",
+  verdictHits(LEGEND).length, 0);
+ok("control: the same legend markup under a non-exempt class trips",
+  verdictHits(LEGEND.replace("mk-band-legend", "mk-band-legendx")).length > 0);
+
+eq("EXEMPT: a zone element's CLASS attribute may name its colour",
+  verdictHits('<span class="mk-band-zone mk-zone-green" style="left:0.0%;width:9.9%"></span>').length, 0);
+ok("control: the zone's INLINE STYLE is not exempt, so a colour there still trips",
+  verdictHits('<span class="mk-band-zone" style="background:green"></span>').includes("green"));
+ok("control: the same colour class on a NON-exempt element still trips",
+  verdictHits('<span class="mk-band-dot mk-zone-green"></span>').includes("green"));
+
+// --- everything else stays under the full twenty ----------------------------
+ok("NOT EXEMPT: a verdict word in the dot's class trips",
+  verdictHits('<span class="mk-band-dot optimal"></span>').includes("optimal"));
+ok("NOT EXEMPT: a verdict word in an edge label's text trips",
+  verdictHits('<span class="mk-band-end">elevated</span>').includes("elevated"));
+ok("NOT EXEMPT: a verdict word in the track's class trips",
+  verdictHits('<div class="mk-band-track flag"></div>').includes("flag"));
+ok("NOT EXEMPT: a verdict word in an aria attribute trips",
+  verdictHits('<div class="mk-band" aria-label="critical"></div>').includes("critical"));
+
+// --- ADJACENCY. This is the assertion that tells parsing from deletion apart. -
+// A substring deletion keyed on the note element swallows whatever its pattern
+// happens to reach; the parser stops at the close tag. Both words below sit
+// OUTSIDE the exempt element and must be found.
+const ADJACENT = '<div class="mk-band">' + NOTE + '<span class="mk-band-end">optimal</span></div>';
+ok("ADJACENCY: a banned word immediately AFTER an exempt element is still found",
+  verdictHits(ADJACENT).includes("optimal"));
+ok("ADJACENCY: a banned word immediately BEFORE an exempt element is still found",
+  verdictHits('<div class="mk-band"><span class="mk-band-end">watch</span>' + NOTE + '</div>')
+    .includes("watch"));
+ok("ADJACENCY control: the exempt element's own copy is still not reported",
+  !verdictHits(ADJACENT).includes("range"));
 ok("no status class hook that a future change could colour",
-  !/s-good|s-watch|s-flag|s-ref/.test(bandText));
+  !/s-good|s-watch|s-flag|s-ref/.test(two.toLowerCase()));
 ok("the band is marked decorative for assistive tech",
   two.includes('aria-hidden="true"'));
 
