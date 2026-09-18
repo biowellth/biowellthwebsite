@@ -603,6 +603,13 @@ ok("NOT EXEMPT: a verdict word in the track's class trips",
   verdictHits('<div class="mk-band-track flag"></div>').includes("flag"));
 ok("NOT EXEMPT: a verdict word in an aria attribute trips",
   verdictHits('<div class="mk-band" aria-label="critical"></div>').includes("critical"));
+// PLANTED INSIDE THE REAL BAND, not beside it. Every assertion above plants its word in a
+// standalone fragment, so widening the exemption to the whole .mk-band element would leave them
+// all green while the scan stopped looking at anything that matters.
+ok("NOT EXEMPT: a verdict word planted INSIDE the band's own track is still found",
+  verdictHits(two.replace('class="mk-band-track"', 'class="mk-band-track optimal"')).includes("optimal"));
+ok("plant control: the unmutated band does NOT contain that word",
+  !verdictHits(two).includes("optimal"));
 
 // --- ADJACENCY. This is the assertion that tells parsing from deletion apart. -
 // A substring deletion keyed on the note element swallows whatever its pattern
