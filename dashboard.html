@@ -10779,6 +10779,54 @@ function buildDeck(p, reportId, faceScanConsented){
   );
   }
 
+  // WALKTHROUGH_MAP_V1 - the deck's FINAL beat, and a FIRST PANEL ONLY beat.
+  //
+  // WHY FIRST PANEL ONLY. The reveal is gated per REPORT on reveal_seen_at, so a woman on her
+  // third panel pages this deck again. A map of the dashboard is worth one reading, not three.
+  //
+  // KEYED ON baseline_panel_date, the same field the longitudinal section hides on, and written
+  // in the same null-safe shape that section uses. This is not defensive noise: most stored
+  // payloads carry longitudinal as a NON-OBJECT, so p.longitudinal.baseline_panel_date on its own
+  // throws on most panels. A string reads as first-panel here because a string has no
+  // baseline_panel_date, which is the correct answer for a payload that never computed one.
+  //
+  // ITEM 6 IS OMITTED ENTIRELY when the face scan is not consented. Not greyed, not captioned,
+  // absent -- the same rule renderScanEntry follows, for the same reason: a withheld control
+  // tells a woman who declined that a camera flow exists and is being kept from her.
+  // faceScanOK is the STRICT boolean resolved by the caller; see FACE_SCAN_PARAM_V1 above.
+  //
+  // TEN DIRECT CHILDREN WITH SIX ITEMS, NINE WITH FIVE, AND THERE IS NO HEADROOM.
+  // .stag carries exactly ten :nth-child delay rules, so an eleventh direct child animates with
+  // no delay, out of sequence with the rest. That is why the items are flat siblings and NOT
+  // wrapped in a list: a wrapper would collapse them to one child and break the stagger the
+  // reveal centring depends on. Adding an item here means adding a delay rule first.
+  if(!p.longitudinal || !p.longitudinal.baseline_panel_date){
+    // Ruled copy, verbatim. Double-quoted so the apostrophe in item 2 is never escaped -- an
+    // escaped quote inside a single-quoted string has unbalanced a brace counter in this
+    // codebase before, and the suite's extractor is proven against this exact string.
+    const wtItems = [
+      ["What needs attention", "The findings this panel puts first, and the markers behind each one."],
+      ["What's going right", "What this panel says is already working."],
+      ["Where to start", "The few habits that move several of these findings at once."],
+      ["Across your panels", "How each marker has moved since your last panel. It appears once you have two."],
+      ["Sana", "Ask her anything about this panel. She reads from your results."]
+    ];
+    if(faceScanOK) wtItems.push(["Face scan", "A sixty second face scan reading your pulse and breathing."]);
+    beats.push(
+      '<section class="card">' +
+        '<div class="eyebrow stag">WHAT HAPPENS NEXT</div>' +
+        '<h1 class="display h-lg stag">Everything from here lives on one page.</h1>' +
+        '<p class="sub stag">You can come back to it any time. Here is what each part is for.</p>' +
+        wtItems.map(function(it){
+          return '<p class="sub stag"><b>' + esc(it[0]) + '</b> ' + esc(it[1]) + '</p>';
+        }).join('') +
+        // .prio-seeall is REUSED, not redefined: it is already the deck's in-card full-width
+        // button, and onPrioClick skips it because it is not a .prio-card.
+        '<button type="button" class="prio-seeall stag" id="rd-walkgo">' + esc("Open my results >") + '</button>' +
+      '</section>'
+    );
+  }
+
   // Mount deck + build segments from the populated beat count.
   const deck = $('rd-deck');
   deck.innerHTML = beats.join('');
@@ -10910,6 +10958,11 @@ function buildDeck(p, reportId, faceScanConsented){
       seeAllBtn.textContent = opening ? 'Show fewer' : ('See all ' + priCount + ' priorities');
     });
   }
+
+  // WALKTHROUGH_MAP_V1 - the beat's own button does what Next does on the last beat: stamp the
+  // reveal as seen, which lands her on the dashboard. Absent on a later panel, hence the guard.
+  const walkGo = $('rd-walkgo');
+  if(walkGo) walkGo.addEventListener('click', ()=>stampSeen(reportId));
 
   const onKey = (e)=>{
     if(!$('view-reveal') || $('view-reveal').classList.contains('hidden')) return;

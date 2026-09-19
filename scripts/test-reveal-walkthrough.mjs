@@ -307,6 +307,161 @@ function runReplay(consentImpl) {
   eq("R1 STRICT: a truthy non-boolean resolves to false at the call site", r.calls[0], false);
 }
 
+// ---------------------------------------------------------------------------------------
+// R2/R3. THE WALKTHROUGH BEAT. Everything below reads the EXECUTED deck, never the source.
+// ---------------------------------------------------------------------------------------
+// Pull the walkthrough beat out of the rendered deck by its eyebrow, then take that <section>.
+function beatOf(html) {
+  const key = '<div class="eyebrow stag">WHAT HAPPENS NEXT</div>';
+  const k = html.indexOf(key);
+  if (k < 0) return null;
+  const start = html.lastIndexOf("<section", k);
+  const end = html.indexOf("</section>", k);
+  if (start < 0 || end < 0) return null;
+  return html.slice(start, end + "</section>".length);
+}
+// Direct children of the beat's <section>: elements opened at depth 0 inside it.
+// NULL-SAFE. A mutant that removes the beat leaves beatOf returning null, and an unguarded
+// .replace on it would kill the process. A dead runner is not a red, so a missing beat has to
+// arrive as an empty list and fail the count assertions by name.
+function directChildren(beat) {
+  if (!beat) return [];
+  const inner = beat.replace(/^<section\b[^>]*>/, "").replace(/<\/section>$/, "");
+  const out = []; let depth = 0;
+  const re = /<(\/?)([a-zA-Z][\w-]*)([^>]*)>/g; let m;
+  while ((m = re.exec(inner))) {
+    const close = m[1], tag = m[2], attrs = m[3];
+    if (close) { depth--; continue; }
+    if (/\/\s*$/.test(attrs) || /^(br|img|input|hr)$/i.test(tag)) { if (depth === 0) out.push(tag); continue; }
+    if (depth === 0) out.push(tag);
+    depth++;
+  }
+  return out;
+}
+// Text nodes of the beat, tags removed and entities decoded. Proven against the apostrophe.
+function textOf(beat) {
+  if (!beat) return "";
+  return beat.replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ").trim();
+}
+
+const FIRST = runDeck(firstPanel(), true);
+const FIRST5 = runDeck(firstPanel(), false);
+const LATER = runDeck(laterPanel(), true);
+eq("beat fixtures ran without throwing",
+  JSON.stringify([FIRST.threw, FIRST5.threw, LATER.threw]), JSON.stringify([null, null, null]));
+
+const B6 = beatOf(FIRST.html), B5 = beatOf(FIRST5.html);
+ok("extractor control: the beat was found on a first panel", !!B6);
+ok("extractor control: it is a single <section> and not the whole deck",
+  !!B6 && B6.startsWith("<section") && (B6.match(/<section/g) || []).length === 1);
+ok("extractor impossible control: it finds nothing in markup with no such eyebrow",
+  beatOf('<section class="card"><div class="eyebrow stag">SOMETHING ELSE</div></section>') === null);
+
+// THE APOSTROPHE. On this codebase's instrument-fault record twice. Proven, with a control.
+ok("apostrophe control: textOf returns the apostrophe string intact",
+  textOf('<p><b>What' + "'" + 's going right</b> x</p>').includes("What" + "'" + "s going right"));
+ok("apostrophe control: and it survives the entity form too",
+  textOf("<p><b>What&#39;s going right</b> x</p>").includes("What" + "'" + "s going right"));
+ok("apostrophe control: the extractor does NOT silently drop it",
+  !textOf('<p>What' + "'" + 's</p>').includes("Whats"));
+
+// R2. FIRST PANEL ONLY, five named fixtures.
+ok("R2 longitudinal null          -> beat present", !!beatOf(runDeck(firstPanel({ longitudinal: null }), true).html));
+ok("R2 longitudinal undefined     -> beat present", !!beatOf(runDeck(firstPanel({ longitudinal: undefined }), true).html));
+ok("R2 longitudinal a string      -> beat present, and no throw",
+  runDeck(firstPanel({ longitudinal: "not-an-object" }), true).threw === null &&
+  !!beatOf(runDeck(firstPanel({ longitudinal: "not-an-object" }), true).html));
+ok("R2 longitudinal an empty object -> beat present", !!beatOf(runDeck(firstPanel({ longitudinal: {} }), true).html));
+ok("R2 longitudinal with baseline_panel_date -> beat ABSENT", beatOf(LATER.html) === null);
+
+// R2. THE BEAT COUNT MOVES BY EXACTLY ONE, executed, not inspected.
+eq("R2 a first panel adds exactly one beat", FIRST.cards - LATER.cards, 1);
+eq("R2 a later panel adds exactly none", LATER.cards - LATER.cards, 0);
+ok("R2 beat-count control: the later panel still rendered a real deck", LATER.cards > 1);
+ok("R2 BEATS is still read from cards.length after the write, so no constant changed",
+  /deck\.innerHTML = beats\.join\(''\);/.test(CODE) &&
+  /const cards = \[\.\.\.deck\.querySelectorAll\('\.card'\)\];/.test(CODE) &&
+  /const BEATS = cards\.length;/.test(CODE) &&
+  CODE.indexOf("const BEATS = cards.length") > CODE.indexOf("deck.innerHTML = beats.join('')"));
+ok("R2 BEATS control: it is never assigned a literal",
+  (CODE.match(/const BEATS\s*=\s*[0-9]/g) || []).length === 0);
+
+// R2. THE BEAT IS LAST.
+ok("R2 the walkthrough beat is the FINAL beat in the deck",
+  FIRST.html.lastIndexOf("<section") === FIRST.html.lastIndexOf(B6));
+ok("R2 position control: it is NOT the first beat either",
+  FIRST.html.indexOf("<section") !== FIRST.html.lastIndexOf(B6));
+
+// R2. THE .stag CEILING, computed from the CSS at run time.
+const STAG_RULES = (RAW.match(/#view-reveal \.card\.active \.stag:nth-child\(\d+\)\{animation-delay:[0-9.]+s\}/g) || []).length;
+eq("R2 the .stag delay rule count, read from the stylesheet", STAG_RULES, 10);
+ok("R2 stag-rule control: the matcher finds rules, and none at 11",
+  STAG_RULES > 0 && !/\.stag:nth-child\(11\)/.test(RAW));
+const KIDS6 = directChildren(B6), KIDS5 = directChildren(B5);
+eq("R2 the beat has this many direct children with six items", KIDS6.length, 10);
+eq("R2 and this many with the face scan omitted", KIDS5.length, 9);
+ok("R2 the direct-child count is within the .stag rule count, six items", KIDS6.length <= STAG_RULES);
+ok("R2 the direct-child count is within the .stag rule count, five items", KIDS5.length <= STAG_RULES);
+ok("R2 ceiling control: the SAME assertion fails at eleven children",
+  !((KIDS6.length + 1) <= STAG_RULES));
+ok("R2 every direct child carries .stag, so every one is staggered",
+  ((B6 || "").match(/ class="[^"]*\bstag\b[^"]*"/g) || []).length >= KIDS6.length);
+ok("R2 NO WRAPPER: the children are the flat tags, not one container",
+  JSON.stringify(KIDS6) === JSON.stringify(["div", "h1", "p", "p", "p", "p", "p", "p", "p", "button"]));
+ok("R2 wrapper control: a wrapped beat would read as ONE direct child",
+  directChildren('<section class="card"><div class="wrap"><p>a</p><p>b</p></div></section>').length === 1);
+
+// R2. ITEM 6 IS CONDITIONAL.
+const itemsOf = (b) => ((b || "").match(/<p class="sub stag"><b>/g) || []).length;
+eq("R2 six items render when the parameter is true", itemsOf(B6), 6);
+eq("R2 five items render when it is false", itemsOf(B5), 5);
+ok("R2 'face scan' appears NOWHERE in the beat when not consented",
+  !/face\s*scan/i.test(textOf(B5)));
+ok("R2 face-scan control: it DOES appear when consented", /face\s*scan/i.test(textOf(B6)));
+// STRICT: unknown is not consent, now observable.
+for (const [label, v] of [["null", null], ["undefined", undefined], ["the string 'yes'", "yes"],
+                          ["the number 1", 1], ["a pending Promise", Promise.resolve(true)]]) {
+  const b = beatOf(runDeck(firstPanel(), v).html);
+  ok("R2 STRICT: " + label + " omits the face scan", !!b && itemsOf(b) === 5);
+}
+
+// R3. THE COPY, VERBATIM, one assertion per string.
+const T6 = textOf(B6);
+for (const str of [
+  "WHAT HAPPENS NEXT",
+  "Everything from here lives on one page.",
+  "You can come back to it any time. Here is what each part is for.",
+  "What needs attention",
+  "The findings this panel puts first, and the markers behind each one.",
+  "What" + "'" + "s going right",
+  "What this panel says is already working.",
+  "Where to start",
+  "The few habits that move several of these findings at once.",
+  "Across your panels",
+  "How each marker has moved since your last panel. It appears once you have two.",
+  "Sana",
+  "Ask her anything about this panel. She reads from your results.",
+  "Face scan",
+  "A sixty second face scan reading your pulse and breathing.",
+  "Open my results >",
+]) ok("R3 verbatim: " + JSON.stringify(str), T6.includes(str));
+ok("R3 verbatim control: a string that is NOT ruled is absent",
+  !T6.includes("Everything from here lives on one screen."));
+
+// R3. NO COLON, with a control proving the scan fires on a planted one.
+eq("R3 no colon anywhere in the beat's text", (T6.match(/:/g) || []).length, 0);
+ok("R3 colon control: the same scan DOES fire on a planted colon",
+  (textOf((B6 || "").replace("Where to start", "Where to start:")).match(/:/g) || []).length === 1);
+ok("R3 'camera reading' appears nowhere, case-insensitive", !/camera\s*reading/i.test(T6));
+ok("R3 camera control: the same matcher fires on a planted instance",
+  /camera\s*reading/i.test(textOf((B6 || "").replace("A sixty second face scan", "A camera reading"))));
+ok("R3 American spelling: no -ise form in the beat", !/\b\w+ised?\b/i.test(T6));
+ok("R3 spelling control: the matcher fires on a planted British spelling",
+  /\b\w+ised?\b/i.test(textOf((B6 || "").replace("already working", "already personalised"))));
+
 console.log("");
 console.log("  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

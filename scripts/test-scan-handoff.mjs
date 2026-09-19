@@ -202,14 +202,25 @@ ok("string control: the file does carry many literals", STRINGS.length > 100);
 // every() over an or-chain, so a swap of one approved string for another
 // approved string can no longer pass unnoticed.
 const SCANNY = STRINGS.filter((s) => /\b(face scan|camera|scan now|start scan)\b/i.test(s));
-eq("exactly three scan or camera literals ship", SCANNY.length, 3);
+// UPDATED 2026-09-19 BY RULING, with the reveal deck's walkthrough beat. The count moves 3 -> 5
+// and the approved list gains the beat's item 6, a title and a description. The beat renders that
+// item ONLY when the face scan is consented and omits it entirely otherwise, which is the same
+// rule renderScanEntry follows; the strings still ship in the source either way, which is what
+// this gate reads, so they have to be approved here.
+eq("exactly five scan or camera literals ship", SCANNY.length, 5);
 // CASING UPDATED 2026-09-16 BY RULING. The nav label is TITLE case, the chip and the
 // companion button stay SENTENCE case. The two are pinned SEPARATELY and exactly, so a
 // future session cannot "fix the inconsistency" in either direction without going red.
+// A THIRD CASING NOW EXISTS AND IT IS DELIBERATE. The nav label is Title case, the chip and the
+// companion button are Sentence case, and the walkthrough beat's item title is Sentence case too.
+// All are pinned separately and exactly, so a future session cannot "fix the inconsistency" in
+// any direction without going red. That is the point of the exact set, not an oversight in it.
 const SCAN_APPROVED = [
   '"Start a face scan"',
   '"Face Scan"',
   '"This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab."',
+  '"Face scan"',
+  '"A sixty second face scan reading your pulse and breathing."',
 ];
 eq("and they are exactly the founder-approved set, no more and no fewer",
   SCANNY.slice().sort().join("|"), SCAN_APPROVED.slice().sort().join("|"));
