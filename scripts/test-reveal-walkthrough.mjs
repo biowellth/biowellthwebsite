@@ -107,7 +107,11 @@ function mkNode(id) {
       },
     },
     appendChild(c) { this.children.push(c); return c; },
-    addEventListener() {}, removeEventListener() {}, setAttribute() {},
+    // LISTENERS ARE RECORDED, not discarded, so Next / Skip / keydown can be fired for real.
+    _l: {},
+    addEventListener(t, fn) { (this._l[t] = this._l[t] || []).push(fn); },
+    removeEventListener() {}, setAttribute() {},
+    fire(t, ev) { (this._l[t] || []).forEach((fn) => fn(ev || {})); },
     cloneNode() { const c = mkNode(id); c.parentNode = this.parentNode; return c; },
     querySelectorAll(sel) {
       if (sel !== ".card") return [];
@@ -121,10 +125,14 @@ function mkNode(id) {
       return out;
     },
   };
-  n.parentNode = { replaceChild(nw) { nw.parentNode = n.parentNode; } };
+  // The deck re-clones next/back/skip to drop prior listeners. Register the clone under the same
+  // id, or the node the suite reaches is the dead original and every fired click is a no-op that
+  // reads exactly like a control that does not fire.
+  n.parentNode = { replaceChild(nw) { nw.parentNode = n.parentNode; REG[nw.id] = nw; } };
   return n;
 }
 let REG = {};
+let STAMPS = [];
 const $ = (id) => (REG[id] = REG[id] || mkNode(id));
 
 const BASE = {
@@ -145,8 +153,14 @@ const BASE = {
   isSuppressed: () => false,
   PROFILE: { full_name: "Testname Surname" },
   toneFor: () => "t-neutral",
-  stampSeen: () => {},
-  document: { createElement: () => mkNode("el"), addEventListener() {}, removeEventListener() {} },
+  stampSeen: () => { STAMPS.push(1); },
+  document: {
+    createElement: () => mkNode("el"),
+    _l: {},
+    addEventListener(t, fn) { (this._l[t] = this._l[t] || []).push(fn); },
+    removeEventListener() {},
+    fire(t, ev) { (this._l[t] || []).forEach((fn) => fn(ev || {})); },
+  },
   window: {},
   matchMedia: () => ({ matches: true }),
   requestAnimationFrame: () => {},
@@ -164,6 +178,8 @@ ok("compile control: buildDeck compiled and is a function of arity 3",
 // not a red. A throw is captured and surfaced as a named failure instead.
 function runDeck(p, consented) {
   REG = {};
+  STAMPS = [];
+  BASE.document._l = {};
   BASE.window = {};
   try {
     buildDeck(p, "rpt-synthetic", consented);
@@ -401,16 +417,23 @@ eq("R2 the .stag delay rule count, read from the stylesheet", STAG_RULES, 10);
 ok("R2 stag-rule control: the matcher finds rules, and none at 11",
   STAG_RULES > 0 && !/\.stag:nth-child\(11\)/.test(RAW));
 const KIDS6 = directChildren(B6), KIDS5 = directChildren(B5);
-eq("R2 the beat has this many direct children with six items", KIDS6.length, 10);
-eq("R2 and this many with the face scan omitted", KIDS5.length, 9);
-ok("R2 the direct-child count is within the .stag rule count, six items", KIDS6.length <= STAG_RULES);
-ok("R2 the direct-child count is within the .stag rule count, five items", KIDS5.length <= STAG_RULES);
-ok("R2 ceiling control: the SAME assertion fails at eleven children",
-  !((KIDS6.length + 1) <= STAG_RULES));
+eq("R2 the beat has this many direct children with six items", KIDS6.length, 9);
+eq("R2 and this many with the face scan omitted", KIDS5.length, 8);
+// ONE PREDICATE, applied to the real counts and to the boundary, so the control is the same
+// test rather than a restatement of it. It is pinned at ELEVEN absolutely: written as
+// KIDS6.length + 1 it quietly became a test of ten when the in-card button was removed, and ten
+// is inside the ceiling, so it failed while nothing was wrong. Instrument fault, caught here.
+const withinCeiling = (n) => n <= STAG_RULES;
+ok("R2 the direct-child count is within the .stag rule count, six items", withinCeiling(KIDS6.length));
+ok("R2 the direct-child count is within the .stag rule count, five items", withinCeiling(KIDS5.length));
+ok("R2 ceiling control: the SAME predicate FAILS at eleven children", !withinCeiling(11));
+ok("R2 ceiling control: and PASSES at ten, the last value it should accept", withinCeiling(10));
+ok("R2 headroom is a consequence, not a target: the beat sits one under the ceiling",
+  KIDS6.length === STAG_RULES - 1);
 ok("R2 every direct child carries .stag, so every one is staggered",
   ((B6 || "").match(/ class="[^"]*\bstag\b[^"]*"/g) || []).length >= KIDS6.length);
 ok("R2 NO WRAPPER: the children are the flat tags, not one container",
-  JSON.stringify(KIDS6) === JSON.stringify(["div", "h1", "p", "p", "p", "p", "p", "p", "p", "button"]));
+  JSON.stringify(KIDS6) === JSON.stringify(["div", "h1", "p", "p", "p", "p", "p", "p", "p"]));
 ok("R2 wrapper control: a wrapped beat would read as ONE direct child",
   directChildren('<section class="card"><div class="wrap"><p>a</p><p>b</p></div></section>').length === 1);
 
@@ -426,6 +449,77 @@ for (const [label, v] of [["null", null], ["undefined", undefined], ["the string
                           ["the number 1", 1], ["a pending Promise", Promise.resolve(true)]]) {
   const b = beatOf(runDeck(firstPanel(), v).html);
   ok("R2 STRICT: " + label + " omits the face scan", !!b && itemsOf(b) === 5);
+}
+
+// ---------------------------------------------------------------------------------------
+// X1. THE IN-CARD BUTTON IS GONE, AND THE DECK'S NEXT IS THE SINGLE EXIT.
+// Two exits on the beat that explains where everything lives is one too many. Next is the
+// deck's own furniture: it sits with Back and the segment bar and it is the primary action.
+// ---------------------------------------------------------------------------------------
+eq("X1 the beat carries no button at all", (B6.match(/<button/g) || []).length, 0);
+eq("X1 and none when the face scan is omitted either", (B5.match(/<button/g) || []).length, 0);
+ok("X1 the rd-walkgo id is gone from the whole file",
+  (CODE.match(/rd-walkgo/g) || []).length === 0);
+ok("X1 the button's copy is gone from the whole file",
+  (CODE.match(/Open my results/g) || []).length === 0);
+// The one-priority fixture renders NO button anywhere, so /<button/ on it cannot fail and its
+// verdict would be worthless. The see-all button needs more than three priorities to render, so
+// the control is run against a fixture that produces one.
+const FOURPRI = runDeck(Object.assign(firstPanel(), {
+  priorities: [1, 2, 3, 4].map((i) => ({
+    headline: "Synthetic finding " + i, why_this_matters: "Invented sentence.",
+    action_layer: { primary_lever: "Invented lever." },
+    primary_markers: [{ marker_id: "synthmarker" + i, value: 1, unit: "u" }],
+  })),
+}), true);
+ok("X1 button control: the SAME matcher finds a button that IS still there, elsewhere in the deck",
+  (FOURPRI.html.match(/<button/g) || []).length > 0);
+eq("X1 button control: and the beat inside THAT deck still carries none",
+  (beatOf(FOURPRI.html).match(/<button/g) || []).length, 0);
+ok("X1 impossible control: a button id that never existed",
+  (CODE.match(/rd-walkgo-nonesuch-zzz/g) || []).length === 0);
+
+// THE DECK'S NEXT LABEL IS UNCHANGED. It predates this beat and stampSeen fires either way.
+ok("X1 the last-beat Next label is still 'Open Sana'",
+  /'Open Sana <svg viewBox="0 0 24 24"/.test(CODE));
+ok("X1 label control: the same matcher does NOT find a label it is not",
+  !/'Open my results <svg/.test(CODE));
+
+// ---------------------------------------------------------------------------------------
+// X1. stampSeen STILL FIRES ON THIS BEAT, once per path, FIRED not inspected.
+// ---------------------------------------------------------------------------------------
+function stampsVia(path) {
+  const r = runDeck(firstPanel(), true);
+  const n = r.cards;
+  if (path === "skip") { REG["rd-skip"].fire("click"); return { stamps: STAMPS.length, beats: n }; }
+  if (path === "next") {
+    for (let i = 0; i < n; i++) REG["rd-next"].fire("click");
+    return { stamps: STAMPS.length, beats: n };
+  }
+  if (path === "key") {
+    for (let i = 0; i < n; i++) BASE.document.fire("keydown", { key: "ArrowRight" });
+    return { stamps: STAMPS.length, beats: n };
+  }
+  return { stamps: -1, beats: n };
+}
+{
+  const n = stampsVia("next");
+  eq("X1 Next, paged to the last beat and clicked once more, stamps exactly once", n.stamps, 1);
+  ok("X1 path control: that walk really did cross more than one beat", n.beats > 1);
+}
+eq("X1 Skip stamps exactly once", stampsVia("skip").stamps, 1);
+eq("X1 ArrowRight, paged to the end, stamps exactly once", stampsVia("key").stamps, 1);
+{
+  // The stamp is not fired merely by BUILDING the deck, which would make the three above vacuous.
+  runDeck(firstPanel(), true);
+  eq("X1 stamp control: building the deck alone stamps ZERO times", STAMPS.length, 0);
+}
+{
+  // And the paths are live rather than silently absent: a click below the last beat advances
+  // without stamping, so a stamp of 1 above is the last-beat branch and not an always-stamp.
+  const r = runDeck(firstPanel(), true);
+  REG["rd-next"].fire("click");
+  eq("X1 stamp control: one Next click from beat 0 does NOT stamp", STAMPS.length, 0);
 }
 
 // R3. THE COPY, VERBATIM, one assertion per string.
@@ -446,7 +540,9 @@ for (const str of [
   "Ask her anything about this panel. She reads from your results.",
   "Face scan",
   "A sixty second face scan reading your pulse and breathing.",
-  "Open my results >",
+  // "Open my results >" WAS PINNED HERE and is removed with the button it labelled, 2026-09-19.
+  // An assertion pinning a string that no longer ships is one that can only ever fail or be
+  // quietly deleted later; X1 above now pins its ABSENCE instead.
 ]) ok("R3 verbatim: " + JSON.stringify(str), T6.includes(str));
 ok("R3 verbatim control: a string that is NOT ruled is absent",
   !T6.includes("Everything from here lives on one screen."));

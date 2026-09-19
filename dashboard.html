@@ -10795,11 +10795,19 @@ function buildDeck(p, reportId, faceScanConsented){
   // tells a woman who declined that a camera flow exists and is being kept from her.
   // faceScanOK is the STRICT boolean resolved by the caller; see FACE_SCAN_PARAM_V1 above.
   //
-  // TEN DIRECT CHILDREN WITH SIX ITEMS, NINE WITH FIVE, AND THERE IS NO HEADROOM.
+  // NINE DIRECT CHILDREN WITH SIX ITEMS, EIGHT WITH FIVE.
   // .stag carries exactly ten :nth-child delay rules, so an eleventh direct child animates with
   // no delay, out of sequence with the rest. That is why the items are flat siblings and NOT
   // wrapped in a list: a wrapper would collapse them to one child and break the stagger the
-  // reveal centring depends on. Adding an item here means adding a delay rule first.
+  // reveal centring depends on. Adding an item here means adding a delay rule first. The one
+  // spare row is a CONSEQUENCE of removing the in-card button, not an invitation to spend it.
+  //
+  // THERE IS ONE EXIT AND IT IS THE DECK'S OWN NEXT. This beat carried its own
+  // "Open my results" button until 2026-09-19; two exits on the beat that explains where
+  // everything lives is one too many, and Next is the established furniture -- it sits with Back
+  // and the segment bar, it is styled as the primary action, and it is where a reader's hand
+  // already is after eight beats. stampSeen still fires on this beat from Next, from Skip and
+  // from ArrowRight/Space, none of which ever depended on the button.
   if(!p.longitudinal || !p.longitudinal.baseline_panel_date){
     // Ruled copy, verbatim. Double-quoted so the apostrophe in item 2 is never escaped -- an
     // escaped quote inside a single-quoted string has unbalanced a brace counter in this
@@ -10820,9 +10828,6 @@ function buildDeck(p, reportId, faceScanConsented){
         wtItems.map(function(it){
           return '<p class="sub stag"><b>' + esc(it[0]) + '</b> ' + esc(it[1]) + '</p>';
         }).join('') +
-        // .prio-seeall is REUSED, not redefined: it is already the deck's in-card full-width
-        // button, and onPrioClick skips it because it is not a .prio-card.
-        '<button type="button" class="prio-seeall stag" id="rd-walkgo">' + esc("Open my results >") + '</button>' +
       '</section>'
     );
   }
@@ -10958,11 +10963,6 @@ function buildDeck(p, reportId, faceScanConsented){
       seeAllBtn.textContent = opening ? 'Show fewer' : ('See all ' + priCount + ' priorities');
     });
   }
-
-  // WALKTHROUGH_MAP_V1 - the beat's own button does what Next does on the last beat: stamp the
-  // reveal as seen, which lands her on the dashboard. Absent on a later panel, hence the guard.
-  const walkGo = $('rd-walkgo');
-  if(walkGo) walkGo.addEventListener('click', ()=>stampSeen(reportId));
 
   const onKey = (e)=>{
     if(!$('view-reveal') || $('view-reveal').classList.contains('hidden')) return;
