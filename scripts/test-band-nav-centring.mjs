@@ -918,8 +918,133 @@ ok("the track clips its zones to its rounded ends",
   /\.mk-band-track\{[^}]*overflow:hidden/.test(RAW));
 ok("the track is 9px tall with a 5px radius",
   /\.mk-band-track\{[^}]*height:9px/.test(RAW) && /\.mk-band-track\{[^}]*border-radius:5px/.test(RAW));
-ok("THE BAND IS CAPPED AT 420px, which is the change that does most of the work",
-  /\.mk-band\{[^}]*max-width:420px/.test(RAW));
+// ---------------------------------------------------------------------------------------
+// Z10, REWRITTEN 2026-09-19. THE OLD FORM WAS /\.mk-band\{[^}]*max-width:420px/ AGAINST RAW,
+// AND IT GOVERNED NOTHING. It pinned the PRESENCE of the declaration and its position inside
+// the .mk-band block, and nothing else. It would have stayed green with the track moved out
+// of .mk-band entirely, with a later rule re-declaring a width on it, or with the cap sitting
+// on an element the track does not inherit its width from. TEXT PRESENCE IS NOT WIRING.
+//
+// WHAT THIS PINS INSTEAD is the property chain that DETERMINES the track's used width:
+//   Z10-A  the 420px cap exists in the band's CSS, at top level, not behind a breakpoint,
+//          and on exactly the selectors it is supposed to be on
+//   Z10-B  one of those selectors is an ANCESTOR OF THE TRACK IN THE EMITTED MARKUP, so the
+//          track's used width is that element's content width
+//   Z10-C  .mk-band-track declares no width, max-width or min-width of its own, so nothing
+//          downstream re-widens it away from that content box
+//   Z10-D  no second rule anywhere in the sheet re-declares a width on either element
+//
+// THIS IS A WEAKER GUARANTEE THAN A RESOLVED WIDTH, AND IT HAS TO BE: the suite has no DOM,
+// so there is no layout engine here to ask. Named plainly, what it does NOT cover:
+//   - it never runs layout, so it cannot report the px the track actually occupies;
+//   - it does not resolve the cascade. Specificity, !important and source order are handled
+//     here by COUNTING the rules that touch these two selectors (Z10-D), not by resolution;
+//   - it says nothing about ANCESTORS above .mk-band. A width on .prio-markers, .prio or
+//     .app changes what the track fills without touching either selector checked here;
+//   - it cannot see a width applied at runtime by script, or by a stylesheet injected after
+//     load. Measured against the shipped file on 2026-09-19: zero insertRule,
+//     createElement("style") and adoptedStyleSheets sites, and zero style.width /
+//     style.maxWidth writes, against controls of 20 createElement and 29 .style. calls in
+//     the same pass. That is a measurement of today's file, not a property this enforces.
+// The RESOLVED width was measured out of band with a real layout engine on 2026-09-19 and
+// was 420.00px at the cap. This assertion is what stands guard between such measurements.
+// ---------------------------------------------------------------------------------------
+{
+  // Flat rule extraction over the <style> block. Comments come out first, and a rule nested
+  // inside an @media is TAGGED, because a cap that only applies at a breakpoint is a cap that
+  // governs nothing at the width the band is actually read at.
+  const STYLE = RAW.slice(RAW.indexOf("<style>") + 7, RAW.indexOf("</style>"));
+  const cssRules = [];
+  {
+    const src = STYLE.replace(/\/\*[\s\S]*?\*\//g, "");
+    let buf = "", depth = 0, media = 0, head = "";
+    for (const ch of src) {
+      if (ch === "{") {
+        if (depth === 0) {
+          head = buf.trim(); buf = "";
+          if (head.startsWith("@")) { media++; head = ""; continue; }
+          depth = 1; continue;
+        }
+        depth++; buf += ch; continue;
+      }
+      if (ch === "}") {
+        if (depth === 1) { cssRules.push({ sel: head, body: buf, media: media > 0 }); buf = ""; depth = 0; continue; }
+        if (depth === 0) { media = Math.max(0, media - 1); buf = ""; continue; }
+        depth--; buf += ch; continue;
+      }
+      buf += ch;
+    }
+  }
+  const selsOf = (r) => r.sel.split(",").map((x) => x.trim());
+  const setsWidth = (body) => /(^|[;\s])(min-|max-)?width\s*:/.test(body);
+
+  ok("rule-extraction control: the stylesheet parsed into a plausible number of rules",
+    cssRules.length > 500);
+  ok("rule-extraction control: it finds a rule it must find, at top level, with its body",
+    cssRules.some((r) => selsOf(r).includes(".mk-band-track") && !r.media &&
+      /overflow:hidden/.test(r.body)));
+  ok("rule-extraction control: it finds a rule that IS behind a breakpoint, and tags it",
+    cssRules.some((r) => r.media));
+  ok("rule-extraction impossible control: a selector that does not exist is not found",
+    !cssRules.some((r) => /mk-band-nonesuch-zzz/.test(r.sel)));
+  ok("width-matcher control: it fires on a body that sets a width",
+    setsWidth("position:relative;max-width:420px"));
+  ok("width-matcher control: and NOT on a body that only sets a height",
+    !setsWidth("position:relative;height:9px;border-radius:5px"));
+
+  // Z10-A. The SET of band selectors carrying the cap, not merely that one exists. Removing
+  // the cap and moving it to a sibling both turn this red, and the reported "got" value names which
+  // selectors carry it, so the two mutants are told apart by reading the failure.
+  const capped = cssRules
+    .filter((r) => !r.media && /(^|[;\s])max-width:\s*420px/.test(r.body))
+    .flatMap(selsOf).filter((s) => s.startsWith(".mk-band")).sort();
+  eq("Z10-A the 420px cap is carried by exactly these band selectors, at top level",
+    JSON.stringify(capped), JSON.stringify([".mk-band", ".mk-band-dotwrap"]));
+
+  // The track's ancestors AS THE PAGE EMITS THEM, not as the stylesheet hopes. "two" is the
+  // real renderer's output, so this reads the nesting that actually ships.
+  const ancestorsOfTrack = (h) => {
+    const stack = []; const re = /<(\/?)([a-zA-Z][\w-]*)([^>]*)>/g; let m;
+    while ((m = re.exec(h))) {
+      const close = m[1], attrs = m[3];
+      if (close) { stack.pop(); continue; }
+      if (/\/\s*$/.test(attrs)) continue;
+      const cls = ((attrs.match(/class="([^"]*)"/) || ["", ""])[1]).split(/\s+/).filter(Boolean);
+      if (cls.includes("mk-band-track")) return stack.flat();
+      stack.push(cls);
+    }
+    return null;
+  };
+  const anc = ancestorsOfTrack(two);
+  ok("ancestor-walk control: the walker finds the track, and it really does have an ancestor",
+    Array.isArray(anc) && anc.length > 0);
+  ok("ancestor-walk control: and that ancestor is the band wrapper", (anc || []).includes("mk-band"));
+  ok("ancestor-walk impossible control: it reports nothing for markup holding no track",
+    ancestorsOfTrack('<div class="mk-band"><span class="mk-band-dot"></span></div>') === null);
+  ok("ancestor-walk control: a SIBLING of the track is not reported as an ancestor",
+    !(anc || []).includes("mk-band-dotwrap"));
+
+  // Z10-B. THE ONE THAT SEPARATES "capped" FROM "a declaration naming 420px exists somewhere".
+  ok("Z10-B the capped selector is an ANCESTOR of the track in the emitted markup",
+    capped.some((s) => (anc || []).includes(s.replace(/^\./, ""))));
+
+  // Z10-C. The track declares no width of its own, so it fills that content box and cannot
+  // be re-widened by its own rule.
+  const trackRules = cssRules.filter((r) => selsOf(r).includes(".mk-band-track"));
+  eq("Z10-C .mk-band-track is declared exactly once in the sheet", trackRules.length, 1);
+  ok("Z10-C and that rule sets no width, max-width or min-width of its own",
+    !setsWidth(trackRules[0].body));
+
+  // Z10-D. Nothing anywhere else re-declares a width on either element.
+  const widthDecls = cssRules.filter((r) => {
+    const s = selsOf(r);
+    return (s.includes(".mk-band") || s.includes(".mk-band-track")) && setsWidth(r.body);
+  });
+  eq("Z10-D exactly one rule in the whole sheet sets a width on .mk-band or .mk-band-track",
+    widthDecls.length, 1);
+  eq("Z10-D and it is .mk-band's cap, the one Z10-B proved the track inherits from",
+    (widthDecls[0] || { sel: "(no rule sets a width on either)" }).sel.trim(), ".mk-band");
+}
 ok("the dot is 15px, offset by half that, ringed in the card colour and shadowed",
   /\.mk-band-dot\{[^}]*width:15px/.test(RAW) && /\.mk-band-dot\{[^}]*margin-left:-7\.5px/.test(RAW) &&
   /\.mk-band-dot\{[^}]*border:3px solid var\(--white\)/.test(RAW) &&
