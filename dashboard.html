@@ -2696,7 +2696,7 @@ async function testerGate(){
   await renderDashboard(payload, current.id);
   // The reveal deck is gated on this panel's own reveal_seen_at, exactly as before.
   if(current.reveal_seen_at == null){
-    buildDeck(payload, current.id);
+    buildDeck(payload, current.id, await sanaConsentGranted());
     showView("reveal");
   } else {
     showView("dashboard");
@@ -2847,7 +2847,35 @@ $("del-confirm").onclick = async ()=>{
 };
 $("btn-new").onclick = ()=>{ if(pollTimer) clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; /* STALE_TAB_POLL_V1: stop the focus handler resurrecting a poll she navigated away from */ dcStopLatePoll(); /* DAILY_CARD_LATE_POOL_V1: same discipline for the late-pool watcher */ showView("upload"); };
 $("btn-nopanel-upload").onclick = ()=>{ showView("upload"); };
-$("btn-replay").onclick = ()=>{ if(window.__rdPayload){ buildDeck(window.__rdPayload, window.__rdReport); showView("reveal"); } };
+// REPLAY_CONSENT_V1 - async DELIBERATELY. The handler must resolve the face-scan consent before
+// building, and buildDeck is not allowed to resolve it itself. Converting an onclick is safe here
+// and was checked rather than assumed: nothing reads this handler's return value (0 sites) and
+// nothing invokes it programmatically (0 .click() or dispatchEvent on btn-replay, against 2
+// .click() calls elsewhere in the file as a control).
+//
+// THE AWAIT OPENS A GAP, and both things that fall into it are handled.
+// DOUBLE CLICK: on a warm cache sanaConsentGranted returns from SANA_CONSENT_STATE and the gap is
+// a microtask; on a cold one it is a network call. Without replayBuilding a second click inside
+// that window builds the deck twice. The flag is released in a finally so a failed build cannot
+// wedge the button shut.
+// A THROW MUST NOT SILENTLY DO NOTHING: an async onclick that rejects yields an unhandled
+// rejection and the button reads as dead. Ruled: a throw is NOT consented, the deck still builds,
+// item 6 is omitted, and showView('reveal') still runs. She clicks replay, she gets her deck.
+// Today's sanaConsentGranted catches internally and cannot reject, so this catch guards a future
+// change to it rather than a live path; the suite proves it with an injected rejecting stub.
+let replayBuilding = false;
+$("btn-replay").onclick = async ()=>{
+  if(replayBuilding) return;
+  replayBuilding = true;
+  try{
+    if(window.__rdPayload){
+      let consented = false;
+      try{ consented = (await sanaConsentGranted()) === true; }catch(e){ consented = false; }
+      buildDeck(window.__rdPayload, window.__rdReport, consented);
+      showView("reveal");
+    }
+  } finally { replayBuilding = false; }
+};
 // Logo returns the user to their dashboard home. Wired once here, not per render.
 // Mirrors the reveal Skip button (#rd-skip): if the reveal deck is open, stamp it
 // seen before landing on the dashboard so it does not re-fire; otherwise just show
@@ -3855,7 +3883,7 @@ async function pollTick(reportId){
       // its cross-panel series ready. Reuse the payload already fetched.
       await buildPicker(reportId);
       await renderDashboard(data.payload, reportId);
-      buildDeck(data.payload, reportId);
+      buildDeck(data.payload, reportId, await sanaConsentGranted());
       // DRAW_CONTEXT_SUBMIT_V1 (amendment 1): reveal is BUILT but HELD while the About block is mounted
       // and unsubmitted — submit is the only door forward. navigateAfterSubmit reads __drawReady.
       if(window.__drawBlockActive){ drawReadyAck("reveal"); return true; }
@@ -10478,7 +10506,24 @@ function lowestCoverArea(pills){
   return lowest;
 }
 
-function buildDeck(p, reportId){
+// FACE_SCAN_PARAM_V1 - consent arrives RESOLVED, as a parameter. This function never reads
+// SANA_CONSENT_STATE, never calls sanaConsentGranted, and never asks the DOM.
+//
+// WHY, because the obvious shortcut is wrong in the direction that looks right.
+// SANA_CONSENT_STATE is a TRI-STATE whose null means "not asked yet". sanaMountChat fires
+// renderScanEntry() UNAWAITED, and renderDashboard holds no await after that point, so the deck
+// is built before that network read settles. Reading the variable here would yield null, !null
+// is true, and the face-scan item would be omitted from every consented woman -- with every
+// test green, because null is also what a genuinely-unconsented user looks like. The walkthrough
+// beat renders ONLY on a first panel, which is exactly when no earlier page view can have warmed
+// that cache, so the broken case would be the only case.
+//
+// STRICTLY === true, DELIBERATELY. null, undefined, "yes", 1 and an unresolved Promise all read
+// as NOT consented. Unknown must omit the item rather than offer a camera flow to a woman who
+// may have declined; a caller that cannot resolve it must not be able to opt in by accident.
+// Resolving it is the CALL SITES' job, and all three do it by awaiting sanaConsentGranted().
+function buildDeck(p, reportId, faceScanConsented){
+  const faceScanOK = faceScanConsented === true;
   const v = p.vitality || {};
   const showComposite = v.display ? v.display.show_composite !== false : true;
   const composite = (typeof v.composite === 'number') ? v.composite : null;
