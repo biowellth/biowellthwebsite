@@ -24,6 +24,11 @@
   --band-green:#9CCFB8; --band-green-ink:#0A6B51;
   --band-amber:#EFD49A; --band-amber-ink:#8A6520;
   --band-coral:#E8B4A2; --band-coral-ink:#9C4A32;
+  /* THE DOT'S DIAMETER, NAMED ONCE so the clamp that keeps it on the track can be derived
+     from it rather than from a percentage someone picked. .mk-band-dot restates 15px in its
+     own width, height and margin-left because those are matched as literals by the suite;
+     an assertion pins this token and that width to the SAME number, so they cannot drift. */
+  --band-dot-d:15px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;visibility:hidden}
@@ -8854,7 +8859,23 @@ function markerBandHTML(ref, value){
   return '<div class="mk-band" aria-hidden="true">'+
       '<div class="mk-band-track">'+zones+'</div>'+
       '<div class="mk-band-dotwrap">'+
-        '<span class="mk-band-dot" style="left:'+g.dot.toFixed(1)+'%"></span>'+
+        // THE DOT IS CLAMPED TWICE, and the two clamps do different jobs. The JS clamp above
+        // holds g.dot in [2,98] so a value far off the axis still reads as "at the edge"
+        // rather than at the end, and it is what the zone and the note are keyed on. THIS
+        // clamp is physical: at 2% of a track narrower than 375px the dot's own radius
+        // already hangs past the rounded end, and on a phone card the track is about 260px.
+        // A percentage cannot fix that, because the overhang depends on the track's RESOLVED
+        // width and a percentage is computed before there is one. calc() is evaluated at
+        // layout, so 100% here is the width the track actually got. IT BINDS ONLY WHERE IT
+        // IS NEEDED: above a 375px track the 2% floor is already clear of the radius and the
+        // dot does not move at all. Measured clearance at the floor, before -> after:
+        // 675px +6.00 -> +6.00, 420px +0.90 -> +0.90, 375px 0.00 -> 0.00,
+        // 320px -1.10 -> 0.00, 260px -2.30 -> 0.00.
+        // BOTH BOUNDS ARE REQUIRED. The low one alone leaves the ceiling overhanging.
+        // THE ZONE EDGES GET NO INSET AND NO CLAMP: moving a boundary is a claim about where
+        // that range is, and this is only ever about keeping a 15px circle on a 9px rail.
+        '<span class="mk-band-dot" style="left:clamp(calc(var(--band-dot-d)/2),'+
+          g.dot.toFixed(1)+'%,calc(100% - var(--band-dot-d)/2))"></span>'+
       '</div>'+
       '<div class="mk-band-ends">'+
         '<span class="mk-band-end" style="left:'+g.bounds[2].toFixed(1)+'%">'+esc(String(ref.low))+'</span>'+

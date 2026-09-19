@@ -150,6 +150,19 @@ ok("band extraction control: it compiled to a function",
 // implementation, so a wrong implementation cannot make them agree with itself.
 const F = { low: 10, high: 20, conv_low: 5, conv_high: 30 };
 const two = markerBandHTML(F, 15);
+
+// MARKER_BAND_V3 / W2 — THE DOT'S LEFT IS NOW A clamp(), so this is the one parser for it and
+// roughly a dozen assertions read through it. g.dot is emitted UNCHANGED as the MIDDLE
+// argument; the outer two are the dot's own radius in px. The percentage read back here is
+// therefore still exactly the number the geometry computed, and nothing below was loosened to
+// accommodate the new shape.
+//
+// THE MATCHER PINS THE WHOLE EXPRESSION ON PURPOSE. A loosened one that merely scraped the
+// first percentage out of the attribute would keep passing with either bound deleted or
+// hardcoded -- three of the four W2 mutants -- so the strictness is the point, not pedantry.
+const DOT_LEFT_RE =
+  /class="mk-band-dot" style="left:clamp\(calc\(var\(--band-dot-d\)\/2\),([0-9.]+)%,calc\(100% - var\(--band-dot-d\)\/2\)\)"/;
+const dotOf = (h) => (h.match(DOT_LEFT_RE) || [])[1];
 ok("band renders with two functional bounds, two conventional bounds and a numeric value",
   two.includes('class="mk-band"'));
 ok("it draws a track", two.includes('class="mk-band-track"'));
@@ -166,7 +179,7 @@ ok("amber runs from the functional high edge to the conventional high edge",
   two.includes('class="mk-band-zone mk-zone-amber" style="left:55.2%;width:27.6%"'));
 ok("coral runs from the conventional high edge to the axis end",
   two.includes('class="mk-band-zone mk-zone-coral" style="left:82.8%;width:17.2%"'));
-ok("the dot sits at pos(value) = 41.4%", two.includes('class="mk-band-dot" style="left:41.4%"'));
+eq("the dot sits at pos(value) = 41.4%", dotOf(two), "41.4");
 ok("only the GREEN zone's edges carry numbers",
   two.includes('class="mk-band-end" style="left:27.6%">10<') &&
   two.includes('class="mk-band-end" style="left:55.2%">20<'));
@@ -196,11 +209,26 @@ ok("partition control: the summation DOES fail on a deliberately broken chain", 
 const far = markerBandHTML(F, -9999);
 ok("AXIS INDEPENDENCE: a wildly different value leaves every zone exactly where it was",
   JSON.stringify(segsOf(far)) === JSON.stringify(segsOf(two)));
-ok("axis-independence control: the DOT did move", !far.includes('mk-band-dot" style="left:41.4%"'));
+ok("axis-independence control: the DOT did move", dotOf(far) !== "41.4");
 
 // Two different below-range values must NOT collapse onto one position. Under V1 both were 4%.
 const a1 = markerBandHTML(F, 8), a2 = markerBandHTML(F, 6);
-const dotOf = (h) => (h.match(/mk-band-dot" style="left:([0-9.]+)%/) || [])[1];
+// dotOf's OWN CONTROLS. A parser that cannot fail is not a parser, and this one now has to
+// read through a compound expression rather than a bare percentage.
+ok("dotOf control: it reads the position back out of the clamp", dotOf(two) === "41.4");
+ok("dotOf control: a WRONG percentage inside the clamp does not read back as the right one",
+  dotOf(two.replace("41.4%", "77.7%")) !== "41.4");
+eq("dotOf control: and it reads that wrong one as what it is, rather than returning nothing",
+  dotOf(two.replace("41.4%", "77.7%")), "77.7");
+ok("dotOf control: it returns NOTHING for the pre-clamp bare-percentage shape, which is what "
+  + "catches a matcher loosened to accept any left: value",
+  dotOf('<span class="mk-band-dot" style="left:41.4%"></span>') === undefined);
+ok("dotOf control: NOTHING when the upper bound is missing, the W2d shape",
+  dotOf('<span class="mk-band-dot" style="left:clamp(calc(var(--band-dot-d)/2),41.4%)"></span>')
+    === undefined);
+ok("dotOf control: NOTHING when the lower bound is a hardcoded percentage, the W2c shape",
+  dotOf('<span class="mk-band-dot" style="left:clamp(1.8%,41.4%,calc(100% - var(--band-dot-d)/2))">'
+  + '</span>') === undefined);
 ok("two different below-range values take DIFFERENT positions", dotOf(a1) !== dotOf(a2));
 eq("and at the ruled positions, pos(8) = 22.1%", dotOf(a1), "22.1");
 eq("pos(6) = 16.6%", dotOf(a2), "16.6");
@@ -279,7 +307,7 @@ ok("the ZONES are never clamped, even when the dot is",
     neg.includes('class="mk-band-zone mk-zone-amber" style="left:16.7%;width:16.6%"') &&
     neg.includes('class="mk-band-zone mk-zone-green" style="left:33.3%;width:33.4%"'));
   ok("its dot sits at pos(0) = 50.0%, which is only true on an UNfloored axis",
-    neg.includes('class="mk-band-dot" style="left:50.0%"'));
+    dotOf(neg) === "50.0");
   ok("and it still partitions", partitionOK(neg));
   ok("negative-fixture control: the floored fixture does NOT put its green at 33.3%",
     !fe.includes('mk-zone-green" style="left:33.3%'));
@@ -303,7 +331,7 @@ eq("the fallback pad constant is exactly 1.0", BAND_FALLBACK_PAD_K, 1.0);
   eq("no amber anywhere", (t2.match(/mk-zone-amber/g) || []).length, 0);
   eq("no coral anywhere", (t2.match(/mk-zone-coral/g) || []).length, 0);
   ok("its dot is placed on the padded axis, pos(35) = 50.0%",
-    t2.includes('class="mk-band-dot" style="left:50.0%"'));
+    dotOf(t2) === "50.0");
   const noteOfT2 = (h) => { const m = h.match(/<div class="mk-band-note ([^"]*)">([^<]*)<\/div>/); return m ? [m[1], m[2]] : null; };
   eq("and it carries the Tier 2 note", JSON.stringify(noteOfT2(t2)),
     JSON.stringify(["mk-note-plain", "No wider range on file, so only the functional range is shown"]));
@@ -760,7 +788,7 @@ ok("value-source control: chipValByMarker is built from p.systems markers",
   const belowRange = [9, 7, 5, 3, 1, -4, -12, -30];
   const dotAt = (v) => {
     const h = markerBandHTML(G, v);
-    return h ? (h.match(/mk-band-dot" style="left:([0-9.]+)%/) || [])[1] : null;
+    return h ? (dotOf(h) ?? null) : null;
   };
   const v2 = new Set(belowRange.map(dotAt));
   ok("sweep control: every one of those values drew a band", belowRange.every(v => dotAt(v) !== null));
@@ -786,11 +814,9 @@ ok("value-source control: chipValByMarker is built from p.systems markers",
   // Markers with different geometry and the SAME absolute value must also differ.
   const H = { low: 10, high: 20, conv_low: 8, conv_high: 24 };
   ok("two markers with different conventional geometry place the same value differently",
-    markerBandHTML(G, 12).match(/mk-band-dot" style="left:([0-9.]+)%/)[1] !==
-    markerBandHTML(H, 12).match(/mk-band-dot" style="left:([0-9.]+)%/)[1]);
+    dotOf(markerBandHTML(G, 12)) !== dotOf(markerBandHTML(H, 12)));
   ok("geometry control: the SAME geometry places the same value identically",
-    markerBandHTML(G, 12).match(/mk-band-dot" style="left:([0-9.]+)%/)[1] ===
-    markerBandHTML({ ...G }, 12).match(/mk-band-dot" style="left:([0-9.]+)%/)[1]);
+    dotOf(markerBandHTML(G, 12)) === dotOf(markerBandHTML({ ...G }, 12)));
 }
 
 // ===========================================================================
@@ -1051,6 +1077,73 @@ ok("the dot is 15px, offset by half that, ringed in the card colour and shadowed
   /\.mk-band-dot\{[^}]*box-shadow:0 0 0 1px rgba\(71,55,43,\.28\)/.test(RAW));
 ok("css-matcher control: the same matcher does NOT find a size the dot is not",
   !/\.mk-band-dot\{[^}]*width:9px/.test(RAW));
+
+// ---------------------------------------------------------------------------------------
+// W2 — THE CLAMPED DOT NO LONGER OVERHANGS THE TRACK.
+//
+// THERE ARE TWO CLAMPS AND THEY DO DIFFERENT JOBS. The JS clamp in markerBandGeometry holds
+// g.dot in [2,98] and is UNCHANGED by this work; it is what g.zone, the note and the
+// consistency rule are all keyed on, and moving it would move a verdict. The new one is
+// physical and lives in the emitted style.
+//
+// WHY IT CANNOT BE A PERCENTAGE. The dot is 15px on a track whose width is capped at 420px
+// but not fixed at it: a phone card renders it at about 260px. At the 2% floor the dot's
+// centre sits 2% along, so its 7.5px radius hangs past the rounded end whenever the track is
+// narrower than 375px. A percentage inset is computed before the track has a width, so it is
+// right at one width and wrong at every other. calc() is evaluated at layout, so 100% inside
+// it is the width the track actually got.
+//
+// IT BINDS ONLY WHERE IT IS NEEDED. Above a 375px track the 2% floor already clears the
+// radius, so the dot does not move and the clamp costs nothing.
+//
+// MEASURED with a layout engine on 2026-09-19, clearance at the floor and at the ceiling,
+// before -> after, symmetric at both ends:
+//     675px  +6.00 -> +6.00       420px  +0.90 -> +0.90       375px   0.00 ->  0.00
+//     320px  -1.10 ->  0.00       260px  -2.30 ->  0.00
+// No negative clearance at any width. The two left columns are unchanged BY DESIGN: a
+// clamp that moved the dot where it was already on the track would be moving a position
+// the geometry chose.
+//
+// THESE ASSERTIONS ARE TEXT ON AN EMITTED ATTRIBUTE, NOT A RESOLVED POSITION. The suite has
+// no DOM. They pin the expression that produces that clearance; they do not observe it.
+ok("W2 the dot's low bound is its own radius, derived from the named constant",
+  /style="left:clamp\(calc\(var\(--band-dot-d\)\/2\),/.test(two));
+ok("W2 the dot's high bound is that same radius in from the far end",
+  /,calc\(100% - var\(--band-dot-d\)\/2\)\)"/.test(two));
+ok("W2 control: the pre-clamp bare-percentage form is gone from the emitted dot",
+  !/class="mk-band-dot" style="left:[0-9.]+%"/.test(two));
+eq("W2 the position inside the clamp is still g.dot, unmoved", dotOf(two), "41.4");
+eq("W2 the JS clamp is UNCHANGED at the floor", dotOf(markerBandHTML(F, -1e6)), "2.0");
+eq("W2 and UNCHANGED at the ceiling", dotOf(markerBandHTML(F, 1e6)), "98.0");
+
+// THE TOKEN AND THE DOT'S OWN WIDTH ARE ONE NUMBER, or the clamp insets by a radius the dot
+// does not have. They are declared separately -- the rule restates 15px because the suite
+// matches those literals -- so this is the assertion that stops them drifting.
+{
+  const tok = RAW.match(/--band-dot-d:\s*([0-9.]+)px/);
+  const wid = RAW.match(/\.mk-band-dot\{[^}]*width:\s*([0-9.]+)px/);
+  const half = RAW.match(/\.mk-band-dot\{[^}]*margin-left:-([0-9.]+)px/);
+  ok("W2 --band-dot-d is declared", !!tok);
+  ok("W2 and it equals the dot's own width, so the clamp insets by a real radius",
+    !!tok && !!wid && tok[1] === wid[1]);
+  ok("W2 drift control: those are two different declarations, not one matched twice",
+    !!tok && !!wid && RAW.indexOf(tok[0]) !== RAW.indexOf(wid[0]));
+  ok("W2 and the dot's centring offset is half that diameter, so left: is its CENTRE",
+    !!half && !!tok && Number(half[1]) === Number(tok[1]) / 2);
+}
+
+// THE ZONE EDGES GET NO CLAMP AND NO INSET. Moving a boundary is a claim about where a range
+// is; this is only ever about keeping a 15px circle on a 9px rail.
+eq("W2 no zone carries a clamp", (two.match(/mk-band-zone[^>]*clamp\(/g) || []).length, 0);
+eq("W2 no numbered end carries a clamp", (two.match(/mk-band-end"[^>]*clamp\(/g) || []).length, 0);
+eq("W2 exactly one element in the whole band carries a clamp",
+  (two.match(/clamp\(/g) || []).length, 1);
+ok("W2 clamp control: and that one element is the dot",
+  /mk-band-dot[^>]*clamp\(/.test(two));
+eq("W2 the zone edges are still at the unmoved boundaries",
+  JSON.stringify(segsOf(two).map((z) => z.left)), JSON.stringify([0, 13.8, 27.6, 55.2, 82.8]));
+ok("W2 zone control: a clamped dot still leaves every zone exactly where it was",
+  JSON.stringify(segsOf(markerBandHTML(F, -1e6))) === JSON.stringify(segsOf(two)));
 
 // THE PALETTE, EXACT. Two of the eight already existed as tokens and are reused rather than
 // duplicated: --brown is the dot's ink and --white is the ring.
