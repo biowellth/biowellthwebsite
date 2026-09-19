@@ -1,5 +1,0 @@
-HOLDER: claude-code session b7af8dbe
-TAKEN : 2026-09-19 22:46Z
-BRIEF : Render narrative_headline.confounder_note at panel level, before the
-        priority cards. Renderer only; no copy change, no supa change.
-SCOPE : dashboard.html, scripts/test-confounder-note.mjs
