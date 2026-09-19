@@ -1869,6 +1869,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 
     <div id="prios-wrap" class="hidden">
       <div class="section-label acc-coral">What needs a closer look</div>
+      <!-- CONFOUNDER_NOTE_V1 — Call B's panel-level caveat. Sits between the section label and
+           the cards because it governs how to read them: it is the sentence that says which
+           systems could not be scored and why. Reuses .report-note, the page's existing
+           panel-level note box, rather than introducing a component. -->
+      <div id="confounder-note" class="report-note hidden"></div>
       <div id="prios"></div>
     </div>
 
@@ -6385,6 +6390,43 @@ async function renderDashboard(p, reportId){
       chipSysByMarker[m.marker_id] = s.system_id;
       if(m.value !== null && m.value !== undefined && m.value !== "") chipValByMarker[m.marker_id] = m.value;
     }
+  /* CONFOUNDER_NOTE_V1 — payload.narrative_headline.confounder_note, rendered at PANEL level.
+   *
+   * It was written on every panel and read NOWHERE: 0 references in this file against a control
+   * of 55 for "priorities". Twenty of the 21 non-keeper payloads carry a non-empty one, and on
+   * most of them it is the sentence telling her the hormone markers could not be scored because
+   * her cycle day at the draw is unknown. Every one of those women was shown nothing at all, not
+   * even the honest gap.
+   *
+   * PANEL LEVEL, not per marker, and that is what the copy is. All 20 distinct strings are one
+   * prose paragraph about the DRAW — cycle day not recorded, fasting not confirmed, acute stress
+   * within two weeks — and every one of them names a SYSTEM ("your reproductive hormones", "your
+   * cholesterol, insulin") rather than making a claim about one marker's value. The structure
+   * agrees: the field is a sibling of verdict/lead/closing inside narrative_headline, one string
+   * per panel, and the priorities[] schema has no field that could carry it per card.
+   *
+   * BEFORE the cards, because it governs how to read them. A woman who reads "What needs a closer
+   * look" and then seven cards with no hormones in them has been told nothing about the absence.
+   *
+   * esc() is the page's escaper and is applied to model-authored prose here exactly as it is on
+   * nh.lead. The copy is passed through untouched otherwise — Call B owns the wording.
+   *
+   * KNOWN COUPLING, measured: this lives inside #prios-wrap, which hides when there are zero
+   * priorities, so a panel with a note and no cards would not show it. No such payload exists —
+   * every non-keeper panel carries 5, 6 or 7 priorities — so that path is unreachable on today's
+   * data and is therefore UNTESTED rather than proven safe. */
+  const cfNote = $("confounder-note");
+  if(cfNote){
+    const cfNh = p.narrative_headline;
+    const cfText = (cfNh && typeof cfNh.confounder_note === "string") ? cfNh.confounder_note.trim() : "";
+    if(cfText){
+      cfNote.innerHTML = esc(cfText);
+      cfNote.classList.remove("hidden");
+    } else {
+      cfNote.innerHTML = "";
+      cfNote.classList.add("hidden");
+    }
+  }
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
