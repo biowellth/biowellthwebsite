@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 20:10Z
+BRIEF : Redraw the thyroid and liver marks for legibility at 62px, then audit the
+        other 17 against the same rules and report before changing them.
+SCOPE : dashboard.html, scripts/test-prio-art.mjs
