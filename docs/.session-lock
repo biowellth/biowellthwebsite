@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 17:05Z
+BRIEF : One character. A same-day draw is fresh, so the unknown-age test becomes
+        strictly negative rather than non-positive.
+SCOPE : dashboard.html, scripts/test-hero-time-claims.mjs
