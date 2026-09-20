@@ -1,0 +1,6 @@
+session: b7af8dbe-becf-4811-99e6-7064619c03eb
+taken:   2026-09-20T21:02Z
+scope:   STEP 3b. The confirm-the-draw-date beat in dashboard.html.
+         Website only. No push.
+repos:   biowellth-website
+writes:  dashboard.html + scripts/test-draw-date-confirm.mjs
