@@ -157,6 +157,14 @@ async function run(payload, width, shotName) {
     // Let the staggered draw-in finish. Without this the shot catches the second card mid-animation
     // and its circle looks empty, which reads as a missing drawing rather than a running one.
     await sleep(2200);
+    // Back to the top before a full-page capture. Anything that scrolled the page leaves the sticky
+    // header painted a second time partway down the shot. The scroll that caused it at 65f0cea was
+    // the theme hit-test, which no longer exists, so this is now insurance rather than a fix, and
+    // the assertion below proves the page really is at the top when the shutter opens.
+    await send("Runtime.evaluate", { expression: "window.scrollTo(0,0)" }, sessionId);
+    await sleep(250);
+    const atTop = await send("Runtime.evaluate", { expression: "window.scrollY", returnByValue: true }, sessionId);
+    console.log("       scrollY at capture: " + atTop.result.value + (atTop.result.value === 0 ? "  (top, so the header paints once)" : "  <-- NOT at the top"));
     const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }, sessionId);
     writeFileSync("/tmp/" + shotName + ".png", Buffer.from(shot.data, "base64"));
     console.log("       screenshot /tmp/" + shotName + ".png");
