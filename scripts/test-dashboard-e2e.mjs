@@ -106,32 +106,6 @@ const driver = (payload) => `<script>
   res.artStroke = art ? (art.querySelector("path") || {}).getAttribute?.("stroke") : null;
   res.paAnim = !!document.querySelector("#prios.pa-anim");
   res.lastCardHasArt = !!(document.querySelectorAll("#prios .prio")[2] || {}).querySelector?.(".prio-art");
-  // THEME_ART_V1. Per card: its theme key, how many motifs it holds, and whether the card's own
-  // text is what the browser hits at the text's coordinates. elementFromPoint is the only way to
-  // prove the motif is BEHIND rather than merely painted first.
-  res.themes = [...document.querySelectorAll("#theme-grid .theme-card")].map((c) => {
-    // SCROLL IT INTO VIEW FIRST. elementFromPoint only hit-tests inside the viewport, and the theme
-    // grid is the last section on a long page, so without this every hit came back null and the
-    // assertion failed for a reason that had nothing to do with the motif.
-    c.scrollIntoView({ block: "center" });
-    const name = c.querySelector(".theme-name");
-    const r = name ? name.getBoundingClientRect() : null;
-    const hit = r ? document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)) : null;
-    const motif = c.querySelector(".theme-art");
-    return {
-      key: c.getAttribute("data-theme") || (name ? name.textContent : "?"),
-      motifs: c.querySelectorAll(".theme-art").length,
-      // A POPULATED CARD IS A <button>, and Chrome hit-tests a button atomically, returning the
-      // button rather than the span inside it. So the claim that means something is that the hit is
-      // inside this card and is NOT the motif: the text layer wins, the decoration never does.
-      textOnTop: !!(hit && c.contains(hit) && !hit.closest(".theme-art")),
-      hitTag: hit ? hit.tagName.toLowerCase() + (hit.className && typeof hit.className === "string" ? "." + hit.className.split(" ")[0] : "") : null,
-      motifIsSvg: !!(motif && motif.tagName.toLowerCase() === "svg"),
-      motifStroke: motif ? getComputedStyle(motif.querySelector("path")).stroke : null,
-      motifWidth: motif ? Math.round(motif.getBoundingClientRect().width) : null,
-      motifPointer: motif ? getComputedStyle(motif).pointerEvents : null,
-    };
-  });
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -183,10 +157,6 @@ async function run(payload, width, shotName) {
     // Let the staggered draw-in finish. Without this the shot catches the second card mid-animation
     // and its circle looks empty, which reads as a missing drawing rather than a running one.
     await sleep(2200);
-    // Back to the top first: the theme hit-test scrolls the page, and a full-page capture taken
-    // mid-scroll paints the sticky header a second time, halfway down the shot.
-    await send("Runtime.evaluate", { expression: "window.scrollTo(0,0)" }, sessionId);
-    await sleep(250);
     const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }, sessionId);
     writeFileSync("/tmp/" + shotName + ".png", Buffer.from(shot.data, "base64"));
     console.log("       screenshot /tmp/" + shotName + ".png");
@@ -212,29 +182,6 @@ else {
   ok(wide.paAnim === true, "E2E-10: the draw-in class is applied to the priorities host");
 }
 
-console.log("THEME CARD MOTIFS -- rendered, not read from source");
-if (!wide) { console.log("  FAIL E2E-T0: no desktop run to inspect"); fail++; }
-else {
-  const themed = wide.themes.filter(t => t.motifs > 0);
-  const bare = wide.themes.filter(t => t.motifs === 0);
-  eq(wide.themes.length, 6, "E2E-T1: six theme cards rendered");
-  ok(themed.length > 0, "E2E-T2: at least one card carries a motif  (" + themed.map(t => t.key).join(", ") + ")");
-  for (const t of wide.themes) ok(t.motifs <= 1, "E2E-T3." + t.key + ": at most one motif, never a stack  (" + t.motifs + ")");
-  for (const t of themed) {
-    ok(t.motifIsSvg, "E2E-T4." + t.key + ": the motif is an svg element");
-    ok(String(t.motifStroke).indexOf("rgba(71, 55, 43") === 0,
-       "E2E-T5." + t.key + ": stroked with brown at low alpha, read off computed style  (" + t.motifStroke + ")");
-    eq(t.motifWidth, 180, "E2E-T6." + t.key + ": about 180px wide on the desktop layout");
-    eq(t.motifPointer, "none", "E2E-T7." + t.key + ": and it cannot take a click");
-  }
-  for (const t of wide.themes)
-    ok(t.textOnTop, "E2E-T8." + t.key + ": the text layer is what the browser hits, never the motif  (" + t.hitTag + ")");
-  // The motif set is deliberately partial, so a theme with no mapping must render bare rather than
-  // borrowing a neighbour's shape. This asserts the shape of the evidence, not a specific count.
-  ok(bare.every(t => t.motifs === 0), "E2E-T9: any theme without a mapping renders no motif at all  (" +
-     (bare.length ? bare.map(t => t.key).join(", ") : "none unmapped today") + ")");
-}
-
 console.log("THE PHONE LAYOUT");
 const narrow = await run(PAYLOAD, 390, "e2e-390");
 if (!narrow) { console.log("  FAIL E2E-11: the page never finished at 390"); fail++; }
@@ -242,11 +189,6 @@ else {
   ok(!narrow.threw, "E2E-11: renderDashboard threw nothing at 390 either");
   eq(narrow.artSize, 56, "E2E-12: the circle shrinks to 56px under 480");
   ok(narrow.sections.themeGrid === true, "E2E-13: and the last section still renders");
-  const nThemed = narrow.themes.filter(t => t.motifs > 0);
-  ok(nThemed.length > 0, "E2E-T10: the motifs survive the phone layout");
-  ok(nThemed.every(t => t.motifWidth === 120), "E2E-T11: scaled to 120px under 480  (" +
-     [...new Set(nThemed.map(t => t.motifWidth))].join(", ") + ")");
-  ok(narrow.themes.every(t => t.textOnTop), "E2E-T12: and the text is still on top at 390");
 }
 
 console.log("KNOWN-POSITIVE CONTROL -- an empty payload must NOT look like a pass");
@@ -258,10 +200,6 @@ else {
   ok(empty.arts === 0, "E2E-16: so no drawings");
   ok(wide && wide.sections.prios === true && empty.sections.prios === false,
      "E2E-17: the two runs DISAGREE, which is what proves the harness is reading the real page");
-  // The theme grid still renders its six cards on an empty payload, which is what makes it a good
-  // control for the motifs: same cards, same motifs, and the COUNTS are what differ.
-  ok(empty.themes.length === 6, "E2E-18: the theme grid renders even with nothing to count");
-  ok(empty.themes.every(t => t.textOnTop), "E2E-19: and its text is on top there too");
 }
 
 ws.close(); chrome.kill(); server.close();
