@@ -1,5 +1,0 @@
-HOLDER: claude-code session 5b252252
-TAKEN : 2026-09-20 16:20Z
-BRIEF : Treat a non-positive panel age as unknown, so a future draw date or a
-        skewed clock cannot produce a present-tense claim.
-SCOPE : dashboard.html, scripts/test-hero-time-claims.mjs
