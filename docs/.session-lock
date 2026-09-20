@@ -1,0 +1,6 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 07:05Z
+BRIEF : Hero trajectory real-payload fixes. Draw-in arming on a measured width,
+        one marker per priority, the first-panel well from the approved mock, and
+        a guard that hides the strip when the panel count and the mode disagree.
+SCOPE : dashboard.html, scripts/test-hero-trajectory.mjs
