@@ -1,0 +1,6 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 15:40Z
+BRIEF : Hero time claims. The single-panel tick names the draw month instead of
+        saying today, the hero sentence stops saying Right now about an old
+        panel, and a first panel opens with Overall rather than holding steady.
+SCOPE : dashboard.html, scripts/test-hero-time-claims.mjs
