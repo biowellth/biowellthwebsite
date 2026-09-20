@@ -14,7 +14,7 @@
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
   --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
   --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
-  --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30;
+  --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30; --amber-deep:#B8812E;
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
   --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
   --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
@@ -1032,6 +1032,11 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 @media(prefers-reduced-motion:reduce){
   #view-reveal .card,#view-reveal .seg i,#view-reveal .card.active .stag,#view-reveal .card--hero::before,#view-reveal .card[data-beat-kind="ring"]::before{transition:none!important;animation:none!important}
   #view-reveal .ring .fg{transition:none!important}
+  /* HERO_TRAJ_V1. STATIC AND COMPLETE, not static and half-drawn: the dasharray has
+     to be cleared too, or the reduced-motion reader gets the lines frozen at their
+     start offset, which is an empty plot rather than a still one. */
+  .hero-traj .ht-faint,.hero-traj .ht-hi{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
+  .hero-traj .ht-end{animation:none!important}
 }
 /* Report vault ("Your reports") — approved mock tokens */
 /* Report vault now lives INSIDE #account-modal (between the privacy row and the delete zone). It is a
@@ -1117,6 +1122,37 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .hs-lbl{font-size:11px;color:rgba(250,248,244,.6);margin-top:5px;line-height:1.3}
 .hero-trend{margin-top:16px;font-size:13px;font-style:italic;color:var(--teal-mid)}
 .hero-trend.hidden{display:none}
+/* ── HERO_TRAJ_V1 — the trajectory strip, full width under the hero stats.
+   THE WELL IS BEIGE ON A DARK HERO, DELIBERATELY. .reveal-head is var(--brown)
+   from line 1077 on, with no dark-mode query anywhere in this file, so the hero
+   is dark in the only mode there is. The plot reads as a light inset card, and
+   every line colour below is chosen for contrast against the WELL, not the hero.
+   --amber-deep #B8812E exists for exactly this: plain --amber is 1.97:1 on
+   --brown-soft, under the 3:1 floor, while --amber-deep is 3.03:1. The caption
+   sits outside the well, on the brown, so it takes the cream that .hs-lbl uses. */
+/* z-index 2 for the same reason line 1085 gives the ring and the text z-index 2: the
+   hero's ::before blooms are positioned at z-index 0, so an unpositioned child under
+   them gets the teal and coral wash painted OVER its background. The well has to be a
+   flat beige surface or the line colours are no longer on the surface they were
+   contrast-checked against. */
+.hero-traj{flex:0 0 100%;order:4;margin-top:18px;position:relative;z-index:2}
+.hero-traj.hidden{display:none}
+.hero-traj-well{background:var(--brown-soft);border-radius:16px;padding:12px 14px 8px}
+.hero-traj-well svg{display:block;width:100%;height:auto}
+.ht-axis{stroke:rgba(71,55,43,.20);stroke-width:1}
+.ht-next{fill:none;stroke:rgba(71,55,43,.32);stroke-width:1.2;stroke-dasharray:4 4}
+.ht-faint{fill:none;stroke:rgba(71,55,43,.18);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.ht-hi{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ht-nextlink{stroke:rgba(71,55,43,.28);stroke-width:1;stroke-dasharray:3 3}
+.ht-label{font-family:'Instrument Sans',sans-serif;font-size:11px;font-weight:600}
+.ht-tick{font-family:'JetBrains Mono',monospace;font-size:9px;fill:rgba(71,55,43,.55)}
+@keyframes htDraw{from{stroke-dashoffset:var(--ht-len,700)}to{stroke-dashoffset:0}}
+@keyframes htPulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* FIRST RENDER ONLY. .ht-anim is added once per page life by renderHeroTrajectory,
+   so a panel switch redraws the same plot without replaying the draw-in. */
+.ht-anim .ht-faint,.ht-anim .ht-hi{stroke-dasharray:var(--ht-len,700);stroke-dashoffset:var(--ht-len,700);animation:htDraw 3s cubic-bezier(.25,.8,.3,1) forwards}
+.ht-anim .ht-hi{animation-delay:.3s}
+.ht-end{animation:htPulse 3.2s ease-in-out infinite}
 @media(max-width:600px){.reveal-head{flex-direction:column;align-items:center;text-align:center}.reveal-head-left{max-width:none}.hero-stats{justify-content:center}}
 
 /* ── STAGE 2: companion slot (lighter card, distinct from the dark hero above) */
@@ -1817,6 +1853,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="hero-trend hidden" id="hero-trend"></div>
       </div>
         <div class="hero-stats" id="hero-stats"></div>
+      <!-- HERO_TRAJ_V1 host. Empty and hidden in markup; renderHeroTrajectory fills it
+           after the stats render, and hides it again when there is nothing to draw. -->
+      <div class="hero-traj hidden" id="hero-traj"></div>
       <div class="score-info-pop hidden" id="score-info-pop"></div>
     </div>
 
@@ -6321,6 +6360,9 @@ async function renderDashboard(p, reportId){
       stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
+  // HERO_TRAJ_V1 — the trajectory strip, directly after the stats it sits under.
+  renderHeroTrajectory(p);
+
   // Standalone trajectory line. Rendered ONLY when the hero summary did not absorb it into #headline
   // (heroSummaryShown). trajectoryFragment owns the four-branch two-count logic; here we only
   // capitalise and show/hide. Byte-identical to the pre-refactor line: capitalise(fragment.text) + ".".
@@ -9688,6 +9730,285 @@ function markerHistory(mk){
   if(info.points.length) return info.points.map(p=>({value:p.value, date:p.date, status:p.status, band:p.band}));
   const v = (mk.value==='' || mk.value==null) ? null : +mk.value;
   return (v==null || isNaN(v)) ? [] : [{value:v, date: mk.date||null, status: mk.status||null, band: mk.band||null}];
+}
+
+// ── HERO_TRAJ_V1 ──────────────────────────────────────────────────────────────
+// The hero trajectory strip. One line per marker, height = percent change from
+// THAT MARKER'S OWN earliest point, centre line = no change.
+//
+// Y IS DISTANCE MOVED, NEVER A VERDICT. Nothing here reads band or status, and
+// nothing maps either to a position or a colour. That is invariant 6 at the
+// display layer: the engine decides whether a value is good, and this strip is
+// not a second opinion about it. A marker that moved 40% toward its range and one
+// that moved 40% away sit at the same height, which is the honest rendering of
+// "how far it moved" and the reason the caption says so in words.
+//
+// THE SAFETY GATE IS FIRST AND IT IS BOTH LEVELS. A heavy-metals, autoimmune or
+// tumour-marker line is excluded before a single number is computed, by marker id
+// AND by system id, so there is no path on which one is drawn even faintly. The
+// two sets are the shipped ones; this file already carries three copies of that
+// list (MIRROR_GATE_V1 at SAFETY_CLASS) and a fourth would be the one that drifts.
+//
+// A cycle-gated point is dropped rather than plotted: an estradiol read on day 3
+// and one on day 21 are not the same measurement, so a line between them would
+// invent a trend out of the calendar. Same reasoning for a canonical_unit that
+// changes across panels -- the marker is skipped whole, because the percent change
+// between two units is arithmetic on nothing.
+//
+// PURE, and deliberately free of the DOM so the suite can exercise it against the
+// shipped source. Its only outside references are the two SENSITIVE_* sets, which
+// is why it FAILS CLOSED: if either is missing the function throws rather than
+// quietly drawing a safety-class marker.
+function heroTrajectoryModel(series, priorityIds){
+  const CLAMP = 50, HI_MAX = 3, FAINT_MAX = 12;
+  const COLORS = ["var(--coral-dark)", "var(--amber-deep)", "var(--teal-dark)"];
+  const MONTHS = ["January","February","March","April","May","June","July",
+                  "August","September","October","November","December"];
+  const out = { mode:"none", dates:[], firstDate:null, firstMonth:"", highlights:[], faint:[], caption:"" };
+  if(!series || typeof series !== "object") return out;
+
+  const pool = [];
+  for(const id of Object.keys(series)){
+    const e = series[id] || {};
+    if(SENSITIVE_MARKER_IDS.has(id)) continue;                       // SAFETY GATE, marker level
+    if(e.system_id && SENSITIVE_SYSTEMS.has(e.system_id)) continue;  // SAFETY GATE, system level
+    const kept = (Array.isArray(e.points) ? e.points : []).filter(pt =>
+      pt && pt.cycleGated !== true && pt.value !== null && pt.value !== undefined &&
+      pt.value !== "" && !isNaN(+pt.value));
+    if(!kept.length) continue;
+    const units = [];
+    for(const pt of kept){
+      const u = (pt.unit == null ? "" : String(pt.unit));
+      if(units.indexOf(u) < 0) units.push(u);
+    }
+    if(units.length > 1) continue;   // unit changed across panels -> not comparable, skip whole marker
+    const dated = kept.filter(pt => pt.date).sort((a,b) => new Date(a.date) - new Date(b.date));
+    const ordered = dated.length ? dated : kept;
+    const base = +ordered[0].value;
+    if(!base) continue;              // a zero baseline has no percent change, only a divide
+    pool.push({
+      id: id,
+      name: e.display_name || id,
+      dated: dated.length,
+      points: ordered.map(pt => ({
+        date: pt.date || null,
+        // CLAMPED, not dropped. A 300% move still reads as "went a long way" at the
+        // rail; letting it set the scale would flatten every other line to nothing.
+        pct: Math.max(-CLAMP, Math.min(CLAMP, ((+pt.value - base) / Math.abs(base)) * 100))
+      }))
+    });
+  }
+  if(!pool.length) return out;
+
+  // SINGLE-PANEL IS A STATE, NOT AN EMPTY PLOT. One panel means no marker has two
+  // dated points, so there is nothing to draw a line between and the strip says so
+  // rather than rendering a blank well.
+  const multi = pool.some(m => m.dated >= 2);
+  const live = multi ? pool.filter(m => m.dated >= 2) : pool;
+  if(!live.length) return out;
+  out.mode = multi ? "multi" : "single";
+
+  const lastPct = (m) => m.points.length ? m.points[m.points.length - 1].pct : 0;
+  const dirOf = (m) => { const v = lastPct(m); return v > 1 ? "up" : (v < -1 ? "down" : "level"); };
+
+  const byId = {};
+  for(const m of live) if(!(m.id in byId)) byId[m.id] = m;
+  const taken = {};
+  for(const pid of (Array.isArray(priorityIds) ? priorityIds : [])){
+    if(out.highlights.length >= HI_MAX) break;
+    const m = byId[pid];
+    if(!m || taken[pid]) continue;
+    taken[pid] = true;
+    out.highlights.push({ id:m.id, name:m.name, points:m.points, dated:m.dated,
+                          color: COLORS[out.highlights.length], dir: dirOf(m), lastPct: lastPct(m) });
+  }
+  // The rest, biggest movers first. Sorting by absolute percent is the only ranking
+  // available that does not consult band or status.
+  out.faint = live
+    .filter(m => !taken[m.id])
+    .map(m => ({ id:m.id, name:m.name, points:m.points, dated:m.dated, lastPct: lastPct(m) }))
+    .sort((a,b) => Math.abs(b.lastPct) - Math.abs(a.lastPct))
+    .slice(0, FAINT_MAX);
+
+  const seen = {}, dates = [];
+  for(const m of live) for(const pt of m.points){
+    if(pt.date && !seen[pt.date]){ seen[pt.date] = true; dates.push(pt.date); }
+  }
+  dates.sort((a,b) => new Date(a) - new Date(b));
+  out.dates = dates;
+  out.firstDate = dates[0] || null;
+  const d0 = out.firstDate ? new Date(out.firstDate) : null;
+  out.firstMonth = (d0 && !isNaN(d0)) ? MONTHS[d0.getUTCMonth()] : "";
+  out.caption = multi
+    ? ("Each line is one marker. Height shows how far it moved since " + out.firstMonth +
+       ", not whether that is good.")
+    : "One panel is a snapshot. Your next one turns every dot into a line.";
+  return out;
+}
+
+// HERO_TRAJ_V1 drawing. Inline SVG, string-built like every other chart here
+// (miniSparkSVG, the system chart) so there is no second rendering technique to
+// maintain. Geometry only; every exclusion already happened in the model.
+function heroTrajectorySVG(m){
+  const W = 680, H = 136, padT = 16, padB = 22, padL = 12;
+  // xToday sits mid-well rather than at xEnd. With one panel there is nothing to the left
+  // of it, and parking the dots hard against the next-panel column leaves two thirds of the
+  // well empty, which reads as a chart that failed to load rather than a first panel.
+  const xFirst = 32, xEnd = 470, xNext = 516, labelX = 546, xToday = 300;
+  const plotH = H - padT - padB, mid = padT + plotH / 2;
+  const single = m.mode === "single";
+  const MON3 = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const yOf = (pct) => mid - (Math.max(-50, Math.min(50, pct)) / 50) * (plotH / 2);
+  const xOf = (d) => {
+    if(m.dates.length < 2) return xEnd;
+    const i = m.dates.indexOf(d);
+    return xFirst + (i < 0 ? 0 : i) * ((xEnd - xFirst) / (m.dates.length - 1));
+  };
+  const len = (pts) => {
+    let t = 0;
+    for(let i = 1; i < pts.length; i++){
+      const dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y;
+      t += Math.sqrt(dx*dx + dy*dy);
+    }
+    return Math.ceil(t) + 2;
+  };
+  const r1 = (n) => Math.round(n * 10) / 10;
+
+  const rows = single ? m.highlights.concat(m.faint) : [];
+  const rowY = (i) => padT + 8 + i * ((plotH - 16) / Math.max(1, rows.length - 1));
+
+  let svg = '';
+  // The next-panel column. Dashed and rounded because it is a promise, not a reading.
+  svg += '<rect class="ht-next" x="' + (xNext - 16) + '" y="' + padT + '" width="32" height="' + plotH + '" rx="12"/>';
+  if(!single) svg += '<line class="ht-axis" x1="' + padL + '" y1="' + mid + '" x2="' + xEnd + '" y2="' + mid + '"/>';
+
+  if(single){
+    // Y CARRIES NO MEANING HERE and the caption says as much. With one panel every
+    // marker is 0% from itself, so stacking them on the centre line would draw one
+    // dot on top of twelve. A row per marker keeps them readable without implying
+    // an order that the data does not contain.
+    rows.forEach((mk, i) => {
+      const y = rowY(i), hi = i < m.highlights.length;
+      svg += '<line class="ht-nextlink" x1="' + (xToday + 6) + '" y1="' + r1(y) + '" x2="' + (xNext - 18) + '" y2="' + r1(y) + '"/>';
+      svg += '<circle cx="' + xToday + '" cy="' + r1(y) + '" r="' + (hi ? 3.6 : 2.4) + '" ' +
+             (hi ? 'class="ht-end" fill="' + mk.color + '"' : 'fill="rgba(71,55,43,.28)"') + '/>';
+    });
+  } else {
+    m.faint.forEach(mk => {
+      const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
+      if(pts.length < 2) return;
+      svg += '<polyline class="ht-faint" style="--ht-len:' + len(pts) + '" points="' +
+             pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
+    });
+    m.highlights.forEach(mk => {
+      const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
+      if(pts.length < 2) return;
+      const last = pts[pts.length - 1];
+      svg += '<polyline class="ht-hi" stroke="' + mk.color + '" style="--ht-len:' + len(pts) + '" points="' +
+             pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
+      svg += '<circle class="ht-end" cx="' + r1(last.x) + '" cy="' + r1(last.y) + '" r="3.4" fill="' + mk.color + '"/>';
+    });
+  }
+
+  // Labels last so they sit above the lines. SORTED BY HEIGHT BEFORE SPACING, not left
+  // in priority order: spacing a label downward only makes sense against the label above
+  // it, and priority order is unrelated to where a line ended. Ordered by priority, a
+  // third priority that finished at the top of the plot gets pushed below a second that
+  // finished at the bottom, and its label then points at another marker's line.
+  const labels = m.highlights.map((mk, i) => ({
+    y: single ? rowY(i) : yOf(mk.points[mk.points.length - 1].pct),
+    name: mk.name,
+    color: mk.color
+  })).sort((a, b) => a.y - b.y);
+  let prev = -99;
+  labels.forEach(l => {
+    l.y = Math.min(H - padB, Math.max(l.y, prev + 16));
+    prev = l.y;
+    svg += '<text class="ht-label" x="' + labelX + '" y="' + r1(l.y + 3.5) + '" fill="' + l.color + '">' +
+           esc(l.name) + '</text>';
+  });
+
+  if(single){
+    svg += '<text class="ht-tick" x="' + xToday + '" y="' + (H - 6) + '" text-anchor="middle">today</text>';
+  } else {
+    m.dates.forEach(d => {
+      const dt = new Date(d);
+      if(isNaN(dt)) return;
+      svg += '<text class="ht-tick" x="' + r1(xOf(d)) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+             MON3[dt.getUTCMonth()] + '</text>';
+    });
+  }
+  svg += '<text class="ht-tick" x="' + xNext + '" y="' + (H - 6) + '" text-anchor="middle">next</text>';
+
+  const said = m.highlights.map(mk => mk.dir === "level"
+    ? (mk.name + " roughly level")
+    : (mk.name + " " + mk.dir + " " + Math.round(Math.abs(mk.lastPct)) + " percent"));
+  const label = single
+    ? ("One panel so far. " + (said.length ? m.highlights.map(mk => mk.name).join(", ") + " marked." : "No markers highlighted."))
+    : ("Marker trajectory since " + m.firstMonth + ". " + (said.length ? said.join(", ") + "." : "No markers highlighted."));
+
+  return '<div class="hero-traj-well"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+         esc(label) + '">' + svg + '</svg></div>';
+}
+
+// HERO_TRAJ_V1 mount. Reads markerHistory and nothing else for values and dates,
+// so the strip and the expanded marker card cannot disagree about what a marker did.
+// canonical_unit and is_cycle_gated are not on markerHistory's return, so they are
+// read from the same window.__rdSeries entry that markerHistory derives from, matched
+// by date, and fall back to the marker's own fields for the single-panel case.
+let HERO_TRAJ_DRAWN = false;
+function renderHeroTrajectory(p){
+  const host = $("hero-traj");
+  if(!host) return;
+  const raw = (typeof window !== "undefined" && window.__rdSeries && typeof window.__rdSeries === "object")
+    ? window.__rdSeries : {};
+  const series = {};
+  for(const s of (Array.isArray(p && p.systems) ? p.systems : [])){
+    for(const mk of (Array.isArray(s.markers) ? s.markers : [])){
+      const id = mk && mk.marker_id;
+      if(!id || series[id]) continue;
+      const hist = markerHistory(mk);
+      if(!hist.length) continue;
+      const flags = {};
+      for(const e of (Array.isArray(raw[id]) ? raw[id] : [])) if(e && e.collected_on) flags[e.collected_on] = e;
+      series[id] = {
+        system_id: s.system_id,
+        display_name: markerName(mk),
+        points: hist.map(h => {
+          const e = (h.date && flags[h.date]) || null;
+          return {
+            value: h.value,
+            date: h.date,
+            unit: e ? e.canonical_unit : (mk.canonical_unit == null ? null : mk.canonical_unit),
+            cycleGated: e ? !!e.is_cycle_gated : !!mk.is_cycle_gated
+          };
+        })
+      };
+    }
+  }
+  // Priority order is the payload's own order, flattened across primary_markers so a
+  // priority whose first marker was excluded can still contribute its second.
+  const prio = [];
+  for(const x of (Array.isArray(p && p.priorities) ? p.priorities : []))
+    for(const pm of (Array.isArray(x && x.primary_markers) ? x.primary_markers : []))
+      if(pm && pm.marker_id) prio.push(pm.marker_id);
+
+  const model = heroTrajectoryModel(series, prio);
+  if(model.mode === "none" || (!model.highlights.length && !model.faint.length)){
+    host.innerHTML = "";
+    host.classList.add("hidden");
+    return;
+  }
+  host.innerHTML = heroTrajectorySVG(model) +
+    '<p class="hero-traj-cap">' + esc(model.caption) + '</p>';
+  host.classList.remove("hidden");
+  // FIRST RENDER ONLY. Switching panels re-renders this strip, and replaying a 3s
+  // draw-in on every switch would make the hero feel like it is loading each time.
+  if(!HERO_TRAJ_DRAWN){
+    HERO_TRAJ_DRAWN = true;
+    const well = host.querySelector(".hero-traj-well");
+    if(well) well.classList.add("ht-anim");
+  }
 }
 // A qualitative marker is reported as a category (ABSENT, Negative, Nil) rather
 // than a number. The categorical text is not captured upstream, so these arrive

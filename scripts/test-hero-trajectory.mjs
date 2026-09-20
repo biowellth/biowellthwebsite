@@ -1,0 +1,231 @@
+#!/usr/bin/env node
+// HERO_TRAJ_V1 -- heroTrajectoryModel, extracted from dashboard.html so the suite exercises
+// shipped source rather than a copy that can drift. Same technique as test-dob-gate.mjs.
+//
+// THE LOAD-BEARING PROPERTY is the safety gate. A heavy-metals, autoimmune or tumour-marker
+// line must never reach the plot, by marker id OR by system id, and a faint grey line is still
+// a rendered line. The second is the cycle gate: an estradiol read on day 3 and one on day 21
+// are not the same measurement, so a line between them would invent a trend out of the calendar.
+//
+// The SENSITIVE_* sets are extracted from dashboard.html too, never retyped here. A copy in this
+// file would pass while the shipped set was wrong, which is the one failure this test exists to
+// catch. They are also why the model fails closed: it throws if they are missing.
+//
+//   node scripts/test-hero-trajectory.mjs        (or DASH=path/to/dashboard.html)
+import { readFileSync } from "node:fs";
+
+const FILE = process.env.DASH || "dashboard.html";
+const HTML = readFileSync(FILE, "utf8");
+
+function extract(name) {
+  const re = new RegExp("(?:async\\s+)?function\\s+" + name + "\\s*\\(", "g");
+  const m = re.exec(HTML);
+  if (!m) throw new Error("not found in " + FILE + ": " + name);
+  let i = HTML.indexOf("{", m.index), depth = 0, end = -1;
+  for (let j = i; j < HTML.length; j++) {
+    if (HTML[j] === "{") depth++;
+    else if (HTML[j] === "}") { depth--; if (depth === 0) { end = j + 1; break; } }
+  }
+  if (end < 0) throw new Error("unbalanced braces: " + name);
+  return HTML.slice(m.index, end);
+}
+
+// Single-line `const NAME = ...;` declarations. Both sets are written on one line today and the
+// regex asserts that rather than assuming it: a multi-line rewrite fails here instead of silently
+// loading half a set.
+function extractConst(name) {
+  const re = new RegExp("^const\\s+" + name + "\\s*=.*;\\s*$", "m");
+  const m = re.exec(HTML);
+  if (!m) throw new Error("not found as a one-line const in " + FILE + ": " + name);
+  return m[0];
+}
+
+const src = extractConst("SENSITIVE_MARKER_IDS") + "\n" +
+            extractConst("SENSITIVE_SYSTEMS") + "\n" +
+            extract("heroTrajectoryModel") +
+            "\n;globalThis.__model = heroTrajectoryModel;" +
+            "\n;globalThis.__SENS_MK = SENSITIVE_MARKER_IDS;" +
+            "\n;globalThis.__SENS_SYS = SENSITIVE_SYSTEMS;";
+new Function(src)();
+const model = globalThis.__model, SENS_MK = globalThis.__SENS_MK, SENS_SYS = globalThis.__SENS_SYS;
+
+let pass = 0, fail = 0;
+const ok = (c, m) => c ? (pass++, console.log("  ok   " + m))
+                       : (fail++, console.log("  FAIL " + m));
+const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", want " + JSON.stringify(b) + ")");
+
+const D1 = "2026-03-05", D2 = "2026-06-05", D3 = "2026-08-05";
+// One marker, values in panel order. unit and cycleGated default to comparable and ungated.
+const mk = (sys, vals, dates, opt) => {
+  const o = opt || {};
+  return {
+    system_id: sys,
+    display_name: o.name || null,
+    points: vals.map((v, i) => ({
+      value: v,
+      date: (dates || [D1, D3])[i],
+      unit: Array.isArray(o.unit) ? o.unit[i] : (o.unit === undefined ? "ng/mL" : o.unit),
+      cycleGated: Array.isArray(o.gated) ? o.gated[i] : !!o.gated
+    }))
+  };
+};
+const ids = (r) => r.highlights.map(h => h.id).concat(r.faint.map(f => f.id));
+
+console.log("SAFETY GATE -- marker id, system id, and both at once");
+{
+  const r = model({
+    ferritin:  mk("iron", [10, 12]),
+    lead:      mk("heavy_metals", [1, 4]),          // both gates
+    ana:       mk("immune", [1, 3]),                // marker-id gate only
+    cea:       mk(null, [2, 6]),                    // marker-id gate, no system given
+    innocuous: mk("tumor_markers", [5, 9]),         // system gate only, id is not listed
+  }, []);
+  ok(ids(r).includes("ferritin"), "SENS-1: an ordinary marker IS drawn, so the gate is not eating everything");
+  ok(!ids(r).includes("lead"), "SENS-2: lead is excluded (marker id and heavy_metals system)");
+  ok(!ids(r).includes("ana"), "SENS-3: ana is excluded by marker id even under a benign system_id");
+  ok(!ids(r).includes("cea"), "SENS-4: cea is excluded by marker id with no system_id at all");
+  ok(!ids(r).includes("innocuous"), "SENS-5: an unlisted id under tumor_markers is excluded by system");
+  eq(ids(r).length, 1, "SENS-6: exactly one of the five survives");
+}
+{
+  // Faint is still rendered, so a sensitive marker must not reach it either.
+  const r = model({ lead: mk("heavy_metals", [1, 9]), ferritin: mk("iron", [10, 11]) }, ["ferritin"]);
+  ok(r.faint.every(f => !SENS_MK.has(f.id)), "SENS-7: no safety-class marker in the faint set");
+  ok(r.highlights.every(h => !SENS_MK.has(h.id)), "SENS-8: nor in the highlights");
+}
+ok(SENS_MK.has("lead") && SENS_MK.has("ana") && SENS_MK.has("cea"),
+   "SENS-9: the extracted marker set is the real one, not an empty stand-in");
+ok(SENS_SYS.has("heavy_metals") && SENS_SYS.has("autoimmune") && SENS_SYS.has("tumor_markers"),
+   "SENS-10: and the extracted system set carries all three classes");
+
+console.log("CYCLE GATE -- a gated point is dropped, not plotted");
+{
+  // Three panels, the middle one gated: two plottable points remain, so the line is still
+  // drawn and the gated panel is simply not on it.
+  const r = model({
+    estradiol: mk("sex_hormones", [40, 90, 60], [D1, D2, D3], { gated: [false, true, false] }),
+    ferritin:  mk("iron", [10, 12]),
+  }, []);
+  const e = r.faint.find(f => f.id === "estradiol");
+  ok(!!e, "CYCLE-1: the marker survives when a middle point is gated");
+  eq(e.points.length, 2, "CYCLE-2: and the gated point is gone from the line");
+  ok(e.points.every(pt => pt.date !== D2), "CYCLE-3: specifically the gated panel's date");
+  eq(r.mode, "multi", "CYCLE-4: two dated points left, so the strip stays multi-panel");
+}
+{
+  // Two panels with one gated leaves a single point, which is not a line. It drops out of a
+  // multi-panel plot rather than being drawn as a lone dot pretending to be a trend.
+  const r = model({
+    estradiol: mk("sex_hormones", [40, 90], [D1, D3], { gated: [false, true] }),
+    ferritin:  mk("iron", [10, 12]),
+  }, []);
+  ok(!ids(r).includes("estradiol"), "CYCLE-5: gated down to one point, the marker is not plotted");
+  ok(ids(r).includes("ferritin"), "CYCLE-6: and the marker beside it still is");
+}
+{
+  const r = model({ estradiol: mk("sex_hormones", [40, 90], [D1, D3], { gated: true }) }, []);
+  eq(r.mode, "none", "CYCLE-7: a marker whose every point is gated leaves nothing to draw");
+  eq(ids(r).length, 0, "CYCLE-8: and it appears nowhere");
+}
+
+console.log("UNIT MISMATCH -- the whole marker is skipped");
+{
+  const r = model({
+    b12:      mk("vitamins", [300, 600], [D1, D3], { unit: ["pg/mL", "pmol/L"] }),
+    ferritin: mk("iron", [10, 12]),
+  }, []);
+  ok(!ids(r).includes("b12"), "UNIT-1: a canonical_unit change skips the marker entirely");
+  ok(ids(r).includes("ferritin"), "UNIT-2: the comparable marker beside it is unaffected");
+}
+{
+  const r = model({ b12: mk("vitamins", [300, 600], [D1, D3], { unit: ["pg/mL", "pg/mL"] }) }, []);
+  ok(ids(r).includes("b12"), "UNIT-3: the same marker IS drawn when the unit holds, so UNIT-1 is not vacuous");
+}
+
+console.log("PERCENT -- from each marker's own earliest point, clamped to plus or minus 50");
+{
+  const r = model({
+    rocket: mk("iron", [10, 100]),      // +900
+    sink:   mk("iron", [100, 5]),       // -95
+    small:  mk("iron", [100, 110]),     // +10
+    flat:   mk("iron", [50, 50]),       // 0
+  }, ["rocket", "sink", "small"]);
+  const by = {};
+  r.highlights.concat(r.faint).forEach(m => { by[m.id] = m.points[m.points.length - 1].pct; });
+  eq(by.rocket, 50, "CLAMP-1: +900 percent clamps to +50");
+  eq(by.sink, -50, "CLAMP-2: -95 percent clamps to -50");
+  eq(by.small, 10, "CLAMP-3: a small move is untouched, so the clamp is not flattening everything");
+  eq(by.flat, 0, "CLAMP-4: no change is zero, the centre line");
+  eq(r.highlights[0].points[0].pct, 0, "CLAMP-5: every marker starts at zero, its own baseline");
+}
+{
+  const r = model({ zero: mk("iron", [0, 5]) }, []);
+  eq(r.mode, "none", "CLAMP-6: a zero baseline has no percent change and is skipped, never Infinity");
+}
+
+console.log("SINGLE PANEL -- detection and caption");
+{
+  const one = { points: [{ value: 10, date: D1, unit: "ng/mL", cycleGated: false }], system_id: "iron" };
+  const r = model({ ferritin: one, vitamin_d: { system_id: "vitamins", points: one.points.slice() } }, ["ferritin"]);
+  eq(r.mode, "single", "SINGLE-1: no marker with two dated points is the single-panel state");
+  eq(r.caption, "One panel is a snapshot. Your next one turns every dot into a line.",
+     "SINGLE-2: single-panel caption is exact");
+  eq(r.highlights.length, 1, "SINGLE-3: priorities are still highlighted");
+  ok(!r.caption.includes(":"), "SINGLE-4: no colon in the caption");
+}
+{
+  const r = model({ ferritin: mk("iron", [10, 12]) }, []);
+  eq(r.mode, "multi", "MULTI-1: two dated points is the multi-panel state");
+  eq(r.caption, "Each line is one marker. Height shows how far it moved since March, not whether that is good.",
+     "MULTI-2: multi-panel caption is exact, naming the first panel month");
+  ok(!r.caption.includes(":"), "MULTI-3: no colon in the caption");
+  ok(!r.caption.includes("—"), "MULTI-4: and no em dash");
+}
+
+console.log("CAPS -- 3 highlighted, 12 faint, priority order");
+{
+  const s = {}, prio = [];
+  for (let i = 0; i < 20; i++) {
+    const id = "m" + i;
+    s[id] = mk("iron", [100, 100 + i + 1]);   // each one moves a little more than the last
+    if (i < 5) prio.push(id);
+  }
+  const r = model(s, prio);
+  eq(r.highlights.length, 3, "CAP-1: at most 3 highlighted");
+  eq(r.faint.length, 12, "CAP-2: at most 12 faint");
+  eq(r.highlights.map(h => h.id).join(","), "m0,m1,m2", "CAP-3: highlights follow priority order");
+  eq(r.highlights[0].color, "var(--coral-dark)", "CAP-4: first priority is coral-dark");
+  eq(r.highlights[1].color, "var(--amber-deep)", "CAP-5: second is amber-deep, the 3:1 token");
+  eq(r.highlights[2].color, "var(--teal-dark)", "CAP-6: third is teal-dark");
+  ok(r.faint.every(f => !r.highlights.some(h => h.id === f.id)), "CAP-7: no marker is both");
+  eq(r.faint[0].id, "m19", "CAP-8: faint is ranked by largest absolute percent change");
+  ok(Math.abs(r.faint[0].lastPct) >= Math.abs(r.faint[11].lastPct), "CAP-9: and ordered descending");
+}
+{
+  const r = model({ a: mk("iron", [10, 12]) }, ["nope", "a"]);
+  eq(r.highlights.length, 1, "CAP-10: a priority id with no drawable marker is skipped, not rendered empty");
+  eq(r.highlights[0].id, "a", "CAP-11: and the next priority still gets highlighted");
+}
+
+console.log("Y IS DISTANCE, NEVER A VERDICT");
+{
+  const r = model({ ferritin: mk("iron", [10, 12]) }, ["ferritin"]);
+  const keys = Object.keys(r.highlights[0].points[0]).sort().join(",");
+  eq(keys, "date,pct", "AXIS-1: a plotted point carries only a date and a percent, no band or status");
+}
+
+console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");
+{
+  let threw = false;
+  try { extract("thisFunctionDoesNotExist"); } catch (_) { threw = true; }
+  ok(threw, "CTRL-1: extract() throws on a missing function, so a silent no-op is impossible");
+  let threw2 = false;
+  try { extractConst("NOT_A_REAL_CONST"); } catch (_) { threw2 = true; }
+  ok(threw2, "CTRL-2: extractConst() throws too, so an empty safety set cannot pass as green");
+  const empty = model({}, []);
+  eq(empty.mode, "none", "CTRL-3: an empty series is the none state, not a drawn plot");
+  eq(model(null, []).mode, "none", "CTRL-4: and a null series does not throw");
+}
+
+console.log("\n  " + pass + " passed, " + fail + " failed");
+process.exit(fail ? 1 : 0);
