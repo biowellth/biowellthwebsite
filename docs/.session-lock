@@ -1,0 +1,6 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 05:05Z
+BRIEF : Hero trajectory fix pass. Label and tick contrast, a caption rule, width
+        derived geometry with a mobile faint cap, and the draw-in moved onto
+        first intersection with the viewport.
+SCOPE : dashboard.html, scripts/test-hero-trajectory.mjs
