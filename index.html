@@ -1187,11 +1187,17 @@ route();
         crossorigin="anonymous"></script>
 <script>
 (function () {
-  // THE DSN IS NOT SET YET. Until a real value lands here, init is SKIPPED and this page
-  // behaves in every respect exactly as it did before the tag existed: no requests, no
-  // handlers installed, nothing sent. A placeholder that merely LOOKS like a DSN would
-  // point at someone else's project, so there is deliberately not one.
-  var SENTRY_DSN = "";   // <-- PASTE DSN HERE
+  // THE DSN IS SET, 2026-09-20. This paragraph read "THE DSN IS NOT SET YET" until then.
+  // The empty-string guard below is KEPT rather than removed: it is what makes an
+  // accidental blanking of this value fail closed, with init SKIPPED and the page
+  // behaving in every respect exactly as it did before the tag existed — no requests, no
+  // handlers installed, nothing sent.
+  //
+  // PLAIN TEXT IN PAGE SOURCE IS CORRECT, AND THIS IS NOT A LEAKED SECRET. A Sentry
+  // browser DSN is a write-only ingest key: it can post an event to this project and it
+  // can read nothing back. There is no build step in this repo, so there is no variable
+  // to hide it in that would not land in the served bytes anyway.
+  var SENTRY_DSN = "https://d3a68d55f967668065811697ff1b5e27@o4512120677859328.ingest.de.sentry.io/4512120684413008";
 
   try {
     if (!SENTRY_DSN) return;
@@ -1238,12 +1244,22 @@ route();
     // Returning null made suppressed events invisible and indistinguishable from a quiet
     // system — the same false-negative shape as a log grep with no control line. So a
     // suppressed event becomes a COUNTABLE STUB instead: the exception TYPE, the level,
-    // and a fixed message. Never the exception value, no breadcrumbs, no request, no
-    // extra, no contexts, and no user — the object below is built fresh rather than
-    // edited, so nothing can survive by being forgotten.
+    // a fixed message, and the pseudonymous browser id. Never the exception value, no
+    // breadcrumbs, no request, no extra, no contexts — the object below is built fresh
+    // rather than edited, so nothing can survive by being forgotten.
     //
-    // The cost, stated: these stubs are not attributable to a browser id, so they can be
-    // counted and filtered on suppressed:true but not grouped by who hit them.
+    // AMENDMENT E, 2026-09-20: THE BROWSER ID IS NOW CARRIED. This paragraph used to read
+    // "and no user", and stated the cost as: these stubs are not attributable to a browser
+    // id, so they can be counted and filtered on suppressed:true but not grouped by who
+    // hit them. That cost is exactly why it changed. A suppression that cannot be grouped
+    // cannot answer the only question a suppressed event raises — whether ONE browser is
+    // tripping the guard a hundred times or a hundred browsers are tripping it once — and
+    // those two have opposite fixes. The id is the same non-joinable 16-hex value the
+    // clean path sets, read back through browserId() rather than recomputed, so the two
+    // paths cannot drift. It is deliberately NOT uuid-shaped, so carrying it here cannot
+    // itself re-trip REPORT_ID and turn every event into a stub. A null id omits the user
+    // key ENTIRELY rather than sending user:{id:null}, which would be a value that looks
+    // like an answer.
     function suppressed(event) {
       var type = null;
       try {
@@ -1259,6 +1275,8 @@ route();
         tags: { suppressed: "true" }
       };
       if (type) stub.exception = { values: [{ type: type }] };
+      var uid = browserId();
+      if (uid) stub.user = { id: uid };
       return stub;
     }
 
