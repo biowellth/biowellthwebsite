@@ -1,0 +1,6 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 18:30Z
+BRIEF : A line drawing per priority card, keyed on the driver marker's system via
+        chipSysByMarker. No drawing for an unmapped or safety-class system. The
+        coral left border goes.
+SCOPE : dashboard.html, scripts/test-prio-art.mjs
