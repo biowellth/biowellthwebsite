@@ -306,6 +306,9 @@ console.log("LABELS -- 16px apart at the narrowest width");
 
 // ── FIRST-PANEL WELL, the approved mock. Rows, not a plot: no axis, no faint marks, and a
 // label that belongs to exactly one row.
+// DORMANT as of SINGLE_PANEL_HIDDEN_V1: renderHeroTrajectory hides the strip on a single panel, so
+// nothing reaches this drawing today. These assertions pin the drawing that is still in the file,
+// not a screen a reader can currently see. GUARD-5 to GUARD-9 pin the hiding.
 console.log("FIRST-PANEL WELL -- rows, no faint marks, label on its row");
 const slabels = (svg) =>
   [...svg.matchAll(/<text class="ht-slabel"[^>]*\bx="([\d.]+)"[^>]*\by="([\d.]+)"/g)]
@@ -453,30 +456,47 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   setUp([], []);
   eq(globalThis.__count(), 0, "GUARD-4: no reports is zero, not a crash");
 
-  // A payload whose series carries no dated points resolves to single. With ONE panel that is
-  // the truth and the well renders; with TWO it is false and the strip hides itself.
+  // SINGLE_PANEL_HIDDEN_V1. A payload whose series carries no dated points resolves to single, and
+  // a single-panel model now hides the strip whatever the panel count says. The count guard these
+  // assertions were written for is subsumed by that, so what they pin now is that hiding happens on
+  // EVERY single-panel road, and the control below proves hiding is not simply unconditional.
   const PAY = { systems: [{ system_id: "iron", markers: [
       { marker_id: "ferritin", display_name: "Ferritin", value: 17, canonical_unit: "ng/mL" },
       { marker_id: "tsh", display_name: "TSH", value: 2.6, canonical_unit: "uIU/mL" }] }],
     priorities: [{ primary_markers: [{ marker_id: "ferritin" }] }] };
-  const render = (reports, doneIds) => {
+  const render = (reports, doneIds, series) => {
     setUp(reports, doneIds);
-    globalThis.window.__rdSeries = {};   // undated series: nothing to plot across panels
+    globalThis.window.__rdSeries = series || {};   // {} is an undated series: nothing plots across panels
     host.innerHTML = ""; host.classes = new Set(["hidden"]);
     globalThis.__render(PAY);
     return { hidden: host.classes.has("hidden"), html: host.innerHTML };
   };
   const onePanel = render([{ id: "r1", collected_on: null }], ["r1"]);
-  ok(!onePanel.hidden && onePanel.html.length > 0,
-     "GUARD-5: ONE panel renders the first-panel well, so the guard is not hiding everything");
-  // Identified by the empty next-panel ring, which only the first-panel well draws. It used to be
-  // the word "today", which HERO_TIME_V1 removed because it was false on 19 of 21 stored panels.
-  ok(onePanel.html.includes('class="ht-ring"'), "GUARD-6: and it really is the first-panel well");
+  ok(onePanel.hidden, "GUARD-5: ONE panel hides the strip, because one panel has no movement to show");
+  eq(onePanel.html, "", "GUARD-6: and the host is cleared, not left holding a well");
   const twoPanels = render([{ id: "r1", collected_on: null }, { id: "r2", collected_on: null }], ["r1", "r2"]);
   ok(twoPanels.hidden, "GUARD-7: TWO undated panels resolving to single hides the strip");
   eq(twoPanels.html, "", "GUARD-8: and the host is cleared, not left showing a stale plot");
   const twoDated = render([{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-03-05" }], ["r1", "r2"]);
-  ok(!twoDated.hidden, "GUARD-9: two reprocesses of ONE date are one panel, so that still renders");
+  ok(twoDated.hidden, "GUARD-9: two reprocesses of ONE date are still one panel, so it hides too");
+
+  // THE LIVE CONTROL. Two dated points for one marker is a MULTI-panel model, which still renders.
+  // Without this every assertion above would pass against a render path that hid everything.
+  const MULTI = { systems: [{ system_id: "iron", markers: [
+      { marker_id: "ferritin", display_name: "Ferritin", value: 17, canonical_unit: "ng/mL",
+        normalized_value: 17 }] }],
+    panel_date: "2026-08-05",
+    priorities: [{ primary_markers: [{ marker_id: "ferritin" }] }] };
+  setUp([{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-08-05" }], ["r1", "r2"]);
+  globalThis.window.__rdSeries = { ferritin: [
+    { collected_on: "2026-03-05", normalized_value: 12, canonical_unit: "ng/mL", is_cycle_gated: false },
+    { collected_on: "2026-08-05", normalized_value: 17, canonical_unit: "ng/mL", is_cycle_gated: false } ] };
+  globalThis.window.__rdPayload = MULTI;
+  host.innerHTML = ""; host.classes = new Set(["hidden"]);
+  globalThis.__render(MULTI);
+  ok(!host.classes.has("hidden"), "GUARD-10: a MULTI-panel payload still renders, so hiding is not unconditional");
+  ok(host.innerHTML.includes('class="ht-hi"'), "GUARD-11: and it draws the multi-panel lines");
+  ok(!host.innerHTML.includes('class="ht-ring"'), "GUARD-12: never the dormant first-panel ring");
 }
 
 console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");

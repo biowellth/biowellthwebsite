@@ -89,6 +89,8 @@ const tickOf = (svg) => {
   return m;
 };
 
+// DORMANT as of SINGLE_PANEL_HIDDEN_V1: the single-panel well is no longer rendered, so these pin
+// the drawing still in the file rather than a live screen. The sentence assertions below ARE live.
 console.log("TICK -- the dot names the draw month, never today");
 {
   const svg = draw(singleModel("2025-03-01"), 630, null);

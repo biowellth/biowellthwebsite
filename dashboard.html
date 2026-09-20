@@ -9996,6 +9996,8 @@ function heroTrajectorySVG(m, width, panelDate){
   const r1 = (n) => Math.round(n * 10) / 10;
   const SWATCH = 12, SWGAP = 5, x0 = 10;
 
+  // DORMANT as of SINGLE_PANEL_HIDDEN_V1: renderHeroTrajectory hides the strip on a single panel, so
+  // nothing reaches this branch today. Kept intact pending a decision on what occupies that space.
   // ── FIRST-PANEL WELL. Approved mock, and a different drawing from the multi-panel plot
   // rather than the same one with the lines removed. There is no y axis here because there
   // is nothing to measure against yet: one panel means every marker is 0% from itself, so a
@@ -10228,17 +10230,16 @@ function renderHeroTrajectory(p){
 
   const model = heroTrajectoryModel(series, prio);
   const nothing = model.mode === "none" || (!model.highlights.length && !model.faint.length);
-  // THE SINGLE-PANEL WELL IS ONLY HONEST FOR ONE PANEL. If she has two or more completed
-  // panels and the model still resolves to single, the series did not carry two dated points
-  // for any marker, which today happens when collected_on is null on a report (:2352 writes
-  // it through as null and :9732 drops undated points). Saying "One panel is a snapshot" to a
-  // woman looking at two panels in her own switcher is false, so the strip says nothing at
-  // all. Hiding is the honest failure here, and it is deliberately not a silent downgrade to
-  // the multi-panel drawing, which would have no second point to plot either.
-  const disagrees = model.mode === "single" && heroTrajPanelCount() >= 2;
-  // A single-panel well with no priorities is an empty box: it draws rows, and there are none.
-  const emptySingle = model.mode === "single" && !model.highlights.length;
-  if(nothing || disagrees || emptySingle){
+  // SINGLE_PANEL_HIDDEN_V1. A SINGLE PANEL SHOWS NO STRIP AT ALL. The strip exists to show
+  // movement, and one panel has none: the first-panel well drew a row of dots waiting on a
+  // second panel, which is a promise rather than a reading. Hiding subsumes the two narrower
+  // guards this replaces, both of which were single-panel cases as well: a panel count of two
+  // or more disagreeing with a single-panel model (the null collected_on case, :2352 writes it
+  // through and :9732 drops undated points), and a single-panel model with no priorities to
+  // draw. The MULTI-PANEL path is untouched. heroTrajPanelCount is left in place because the
+  // suite still pins the dedup rule it mirrors.
+  const singlePanel = model.mode === "single";
+  if(nothing || singlePanel){
     host.innerHTML = "";
     host.classList.add("hidden");
     // STILL WATCH IT. Hiding is a verdict on the data available RIGHT NOW, and the data can
