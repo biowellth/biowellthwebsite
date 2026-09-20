@@ -1163,8 +1163,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .hero-traj-cap{font-family:'Instrument Sans',sans-serif;font-size:12px;color:rgba(250,248,244,.75);margin:8px 0 0;line-height:1.5}
 @keyframes htDraw{from{stroke-dashoffset:var(--ht-len,700)}to{stroke-dashoffset:0}}
 @keyframes htPulse{0%,100%{opacity:1}50%{opacity:.4}}
-/* FIRST RENDER ONLY. .ht-anim is added once per page life by renderHeroTrajectory,
-   so a panel switch redraws the same plot without replaying the draw-in. */
+/* ONCE PER PAGE LIFE, ON FIRST SIGHT. .ht-anim is added by heroTrajWatch from an
+   IntersectionObserver when the well first enters the viewport, never at render time:
+   the strip is below the fold on a phone and the first render happens while the view
+   is still hidden, so a render-time draw-in played to nobody. A panel switch or a
+   resize rebuilds the well without the class, which is what keeps it from replaying.
+   CORRECTED 2026-09-20; this said "FIRST RENDER ONLY ... added by renderHeroTrajectory"
+   and was true only of the first version. */
 .ht-anim .ht-faint,.ht-anim .ht-hi{stroke-dasharray:var(--ht-len,700);stroke-dashoffset:var(--ht-len,700);animation:htDraw 3s cubic-bezier(.25,.8,.3,1) forwards}
 .ht-anim .ht-hi{animation-delay:.3s}
 .ht-end{animation:htPulse 3.2s ease-in-out infinite}
