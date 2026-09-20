@@ -1157,6 +1157,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .ht-label{font-family:'Instrument Sans',sans-serif;font-size:11px;font-weight:600;fill:var(--brown)}
 .ht-swatch{stroke-width:2.6;stroke-linecap:round}
 .ht-tick{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--brown-mid)}
+/* FIRST-PANEL WELL. The name is bigger here than in the multi-panel plot because it has a
+   row to itself rather than a label column, and nothing is truncated at 630 wide. The wait
+   line and the empty ring take the marker's colour at graphic-object weight; the ring is
+   deliberately unfilled, since it stands for the panel she has not taken yet. */
+.ht-slabel{font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;fill:var(--brown)}
+.ht-wait{stroke-width:1.4;stroke-dasharray:4 4;opacity:.55}
+.ht-ring{fill:none;stroke-width:1.6;stroke-dasharray:2.5 2.5}
 /* The caption sits OUTSIDE the well, on the brown hero, so it is cream on brown and
    not brown on beige. It had no rule at all until now and was inheriting the hero's
    --cream at a browser default size. */
@@ -9834,14 +9841,33 @@ function heroTrajectoryModel(series, priorityIds){
   const byId = {};
   for(const m of live) if(!(m.id in byId)) byId[m.id] = m;
   const taken = {};
-  for(const pid of (Array.isArray(priorityIds) ? priorityIds : [])){
-    if(out.highlights.length >= HI_MAX) break;
-    const m = byId[pid];
-    if(!m || taken[pid]) continue;
-    taken[pid] = true;
+  const pick = (id) => {
+    if(out.highlights.length >= HI_MAX) return false;
+    const m = byId[id];
+    if(!m || taken[id]) return false;
+    taken[id] = true;
     out.highlights.push({ id:m.id, name:m.name, points:m.points, dated:m.dated,
                           color: COLORS[out.highlights.length], dir: dirOf(m), lastPct: lastPct(m) });
+    return true;
+  };
+
+  // ONE MARKER PER PRIORITY, IN PAYLOAD ORDER. priorityIds may be a flat list of ids or a list
+  // of GROUPS, one group per priority holding that priority's primary_markers in order. A group
+  // contributes its FIRST surviving marker and nothing else, so a priority carrying three markers
+  // cannot take all three highlight slots and silence the priorities ranked below it. Only when
+  // fewer than three priorities yield a marker do the leftovers fill the remaining slots, in the
+  // order the payload listed them.
+  const rest = [];
+  for(const g of (Array.isArray(priorityIds) ? priorityIds : [])){
+    const list = Array.isArray(g) ? g : [g];
+    let got = false;
+    for(const id of list){
+      if(!got && pick(id)){ got = true; continue; }
+      rest.push(id);
+    }
   }
+  for(const id of rest) pick(id);
+
   // The rest, biggest movers first. Sorting by absolute percent is the only ranking
   // available that does not consult band or status.
   out.faint = live
@@ -9875,6 +9901,7 @@ function heroTrajectorySVG(m, width){
   // label rendered at about 5.7px inside a 350px phone well and the ticks were smaller
   // still. Deriving every x from the real width means 11px text is 11px everywhere and
   // the contrast numbers measured on the well are the numbers a reader actually gets.
+  //
   // THE FLOOR IS 200, NOT 300, AND THE REASON IS MEASURED. At a 390px viewport the well's
   // inner width is 218px: .app pads 40px 32px (line 111) and .reveal-head pads 30px 40px
   // (line 356), neither overridden on mobile, so 390 - 64 - 80 - 28 = 218. A 300 floor
@@ -9882,8 +9909,53 @@ function heroTrajectorySVG(m, width){
   // render the 11px label at 8px, which is the exact defect this width pass exists to fix.
   // The floor is only here to stop a degenerate viewBox, and 200 does that.
   const W = Math.max(200, Math.round(width || 680));
-  const H = 136, padT = 16, padB = 22, x0 = 10;
   const narrow = W < 480;
+  const MON3 = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const SWATCH = 12, SWGAP = 5, x0 = 10;
+
+  // ── FIRST-PANEL WELL. Approved mock, and a different drawing from the multi-panel plot
+  // rather than the same one with the lines removed. There is no y axis here because there
+  // is nothing to measure against yet: one panel means every marker is 0% from itself, so a
+  // height would encode nothing. Rows carry the markers, the dashed run carries the wait, and
+  // the empty ring is the reading she has not taken. NO FAINT MARKS AT ALL: with no line to
+  // anchor them a dozen grey dots are noise, and the three that matter are the priorities.
+  if(m.mode === "single"){
+    const ROW = 34, padT = narrow ? 28 : 20, tickBand = 30;
+    const n = m.highlights.length;
+    const H = padT + (n - 1) * ROW + tickBand;
+    const xDot = narrow ? 26 : Math.round(W * 0.42);
+    const colCx = W - 30, colHalf = 15;
+    const rowY = (i) => padT + i * ROW;
+    const textX = x0 + SWATCH + SWGAP;
+    let svg = '';
+    // The column encloses every ring, so it grows with the rows like everything else here.
+    svg += '<rect class="ht-next" x="' + r1(colCx - colHalf) + '" y="' + r1(padT - 13) +
+           '" width="' + (colHalf * 2) + '" height="' + r1((n - 1) * ROW + 26) + '" rx="12"/>';
+    m.highlights.forEach((mk, i) => {
+      const y = rowY(i), ly = narrow ? y - 12 : y;
+      // Swatch and name. On a phone the name takes its own line above the row, because a
+      // name plus a dot plus a dashed run does not fit across 216px without truncating the
+      // one part a reader needs whole.
+      svg += '<line class="ht-swatch" x1="' + x0 + '" y1="' + r1(ly) + '" x2="' + (x0 + SWATCH) +
+             '" y2="' + r1(ly) + '" stroke="' + mk.color + '"/>';
+      svg += '<text class="ht-slabel" x="' + textX + '" y="' + r1(ly + 4) + '">' + esc(mk.name) + '</text>';
+      svg += '<line class="ht-wait" x1="' + r1(xDot + 7) + '" y1="' + r1(y) + '" x2="' + r1(colCx - colHalf - 4) +
+             '" y2="' + r1(y) + '" stroke="' + mk.color + '"/>';
+      svg += '<circle class="ht-end" cx="' + r1(xDot) + '" cy="' + r1(y) + '" r="4" fill="' + mk.color + '"/>';
+      // Empty by design. The ring is the panel she has not given us yet.
+      svg += '<circle class="ht-ring" cx="' + r1(colCx) + '" cy="' + r1(y) + '" r="5" stroke="' + mk.color + '"/>';
+    });
+    svg += '<text class="ht-tick" x="' + r1(xDot) + '" y="' + (H - 8) + '" text-anchor="middle">today</text>';
+    svg += '<text class="ht-tick" x="' + r1(colCx) + '" y="' + (H - 8) + '" text-anchor="middle">next</text>';
+    const names = m.highlights.map(mk => mk.name);
+    const label = "One panel so far. " + (names.length ? names.join(", ") + " marked." : "No markers highlighted.");
+    return '<div class="hero-traj-well"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+           esc(label) + '">' + svg + '</svg></div>';
+  }
+
+  // ── MULTI-PANEL PLOT, unchanged.
+  const H = 136, padT = 16, padB = 22;
   // The label column scales with the plot but never collapses below a readable name and
   // never eats more than a fifth of a wide well.
   const labelW = Math.max(narrow ? 76 : 96, Math.min(150, Math.round(W * 0.28)));
@@ -9891,14 +9963,8 @@ function heroTrajectorySVG(m, width){
   const xNext = labelX - 24;
   const xEnd = xNext - 24;
   const xFirst = x0 + 22;
-  // xToday sits mid-plot rather than at xEnd. With one panel there is nothing to the left
-  // of it, and parking the dots hard against the next-panel column leaves most of the
-  // well empty, which reads as a chart that failed to load rather than a first panel.
-  const xToday = Math.round(x0 + (xEnd - x0) * 0.62);
   const plotH = H - padT - padB, mid = padT + plotH / 2;
-  const single = m.mode === "single";
-  const MON3 = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const SWATCH = 12, SWGAP = 5, textX = labelX + SWATCH + SWGAP;
+  const textX = labelX + SWATCH + SWGAP;
   // 6.3px per character is Instrument Sans semibold at 11px, measured wide rather than
   // average so a long name is trimmed early instead of running off the well.
   const maxChars = Math.max(4, Math.floor((W - textX - 4) / 6.3));
@@ -9924,43 +9990,26 @@ function heroTrajectorySVG(m, width){
     }
     return Math.ceil(t) + 2;
   };
-  const r1 = (n) => Math.round(n * 10) / 10;
-
-  const rows = single ? m.highlights.concat(faint) : [];
-  const rowY = (i) => padT + 8 + i * ((plotH - 16) / Math.max(1, rows.length - 1));
 
   let svg = '';
   // The next-panel column. Dashed and rounded because it is a promise, not a reading.
   svg += '<rect class="ht-next" x="' + r1(xNext - 15) + '" y="' + padT + '" width="30" height="' + plotH + '" rx="12"/>';
-  if(!single) svg += '<line class="ht-axis" x1="' + x0 + '" y1="' + mid + '" x2="' + r1(xEnd) + '" y2="' + mid + '"/>';
+  svg += '<line class="ht-axis" x1="' + x0 + '" y1="' + mid + '" x2="' + r1(xEnd) + '" y2="' + mid + '"/>';
 
-  if(single){
-    // Y CARRIES NO MEANING HERE and the caption says as much. With one panel every
-    // marker is 0% from itself, so stacking them on the centre line would draw one
-    // dot on top of twelve. A row per marker keeps them readable without implying
-    // an order that the data does not contain.
-    rows.forEach((mk, i) => {
-      const y = rowY(i), hi = i < m.highlights.length;
-      svg += '<line class="ht-nextlink" x1="' + r1(xToday + 6) + '" y1="' + r1(y) + '" x2="' + r1(xNext - 17) + '" y2="' + r1(y) + '"/>';
-      svg += '<circle cx="' + r1(xToday) + '" cy="' + r1(y) + '" r="' + (hi ? 3.6 : 2.4) + '" ' +
-             (hi ? 'class="ht-end" fill="' + mk.color + '"' : 'fill="rgba(71,55,43,.28)"') + '/>';
-    });
-  } else {
-    faint.forEach(mk => {
-      const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
-      if(pts.length < 2) return;
-      svg += '<polyline class="ht-faint" style="--ht-len:' + len(pts) + '" points="' +
-             pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
-    });
-    m.highlights.forEach(mk => {
-      const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
-      if(pts.length < 2) return;
-      const last = pts[pts.length - 1];
-      svg += '<polyline class="ht-hi" stroke="' + mk.color + '" style="--ht-len:' + len(pts) + '" points="' +
-             pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
-      svg += '<circle class="ht-end" cx="' + r1(last.x) + '" cy="' + r1(last.y) + '" r="3.4" fill="' + mk.color + '"/>';
-    });
-  }
+  faint.forEach(mk => {
+    const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
+    if(pts.length < 2) return;
+    svg += '<polyline class="ht-faint" style="--ht-len:' + len(pts) + '" points="' +
+           pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
+  });
+  m.highlights.forEach(mk => {
+    const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
+    if(pts.length < 2) return;
+    const last = pts[pts.length - 1];
+    svg += '<polyline class="ht-hi" stroke="' + mk.color + '" style="--ht-len:' + len(pts) + '" points="' +
+           pts.map(p => r1(p.x) + ',' + r1(p.y)).join(' ') + '"/>';
+    svg += '<circle class="ht-end" cx="' + r1(last.x) + '" cy="' + r1(last.y) + '" r="3.4" fill="' + mk.color + '"/>';
+  });
 
   // Labels last so they sit above the lines. SORTED BY HEIGHT BEFORE SPACING, not left
   // in priority order: spacing a label downward only makes sense against the label above
@@ -9971,8 +10020,8 @@ function heroTrajectorySVG(m, width){
   // THE SWATCH CARRIES THE COLOUR, THE WORD DOES NOT. Coloured names cost contrast that
   // text has to meet; a 2.6px stroke is a graphical object at a 3:1 floor, which every
   // line colour already clears, while the name is text at 4.5:1 and is therefore brown.
-  const labels = m.highlights.map((mk, i) => ({
-    y: single ? rowY(i) : yOf(mk.points[mk.points.length - 1].pct),
+  const labels = m.highlights.map(mk => ({
+    y: yOf(mk.points[mk.points.length - 1].pct),
     name: mk.name,
     color: mk.color
   })).sort((a, b) => a.y - b.y);
@@ -9985,16 +10034,12 @@ function heroTrajectorySVG(m, width){
     svg += '<text class="ht-label" x="' + r1(textX) + '" y="' + r1(l.y + 3.8) + '">' + esc(trim(l.name)) + '</text>';
   });
 
-  if(single){
-    svg += '<text class="ht-tick" x="' + r1(xToday) + '" y="' + (H - 6) + '" text-anchor="middle">today</text>';
-  } else {
-    m.dates.forEach(d => {
-      const dt = new Date(d);
-      if(isNaN(dt)) return;
-      svg += '<text class="ht-tick" x="' + r1(xOf(d)) + '" y="' + (H - 6) + '" text-anchor="middle">' +
-             MON3[dt.getUTCMonth()] + '</text>';
-    });
-  }
+  m.dates.forEach(d => {
+    const dt = new Date(d);
+    if(isNaN(dt)) return;
+    svg += '<text class="ht-tick" x="' + r1(xOf(d)) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+           MON3[dt.getUTCMonth()] + '</text>';
+  });
   // The word is dropped when the columns are too close to carry two labels, which on a
   // 216px phone well they are: "Aug" and "next" overlap by a pixel at 390. The dashed
   // rounded column is the element the reader needs; the word was only ever its caption.
@@ -10003,9 +10048,8 @@ function heroTrajectorySVG(m, width){
   const said = m.highlights.map(mk => mk.dir === "level"
     ? (mk.name + " roughly level")
     : (mk.name + " " + mk.dir + " " + Math.round(Math.abs(mk.lastPct)) + " percent"));
-  const label = single
-    ? ("One panel so far. " + (said.length ? m.highlights.map(mk => mk.name).join(", ") + " marked." : "No markers highlighted."))
-    : ("Marker trajectory since " + m.firstMonth + ". " + (said.length ? said.join(", ") + "." : "No markers highlighted."));
+  const label = "Marker trajectory since " + m.firstMonth + ". " +
+                (said.length ? said.join(", ") + "." : "No markers highlighted.");
 
   return '<div class="hero-traj-well"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
          esc(label) + '">' + svg + '</svg></div>';
@@ -10017,6 +10061,7 @@ function heroTrajectorySVG(m, width){
 // read from the same window.__rdSeries entry that markerHistory derives from, matched
 // by date, and fall back to the marker's own fields for the single-panel case.
 let HERO_TRAJ_DRAWN = false;   // the draw-in is once per page life, not once per render
+let HERO_TRAJ_ARMED = false;   // an observer has been armed on a well drawn at a MEASURED width
 let HERO_TRAJ_P = null;        // last payload, so a resize can redraw without a refetch
 let HERO_TRAJ_W = 0;           // last width drawn, so a resize that changes nothing is free
 let HERO_TRAJ_IO = null;       // IntersectionObserver, disconnected the moment it fires
@@ -10027,11 +10072,29 @@ let HERO_TRAJ_T = null;        // resize debounce
 // renders inside that padding; passing the outer width would scale the viewBox down by
 // those 28px and shrink the text again, which is the bug this pass exists to fix.
 // clientWidth is 0 while #view-dashboard is still display:none, and it IS still hidden at
-// the first render (renderDashboard runs before showView at dashboard.html:2740), so 680
+// the first render (renderDashboard runs before showView at dashboard.html:2760), so 680
 // is the default and the ResizeObserver redraws at the real width once the view is shown.
 function heroTrajWidth(host){
   const c = (host && host.clientWidth) || 0;
   return c ? Math.max(200, c - 28) : 680;   // 200 floor, same reasoning as heroTrajectorySVG
+}
+
+// HOW MANY PANELS SHE ACTUALLY HAS, by the same rule buildPicker's switcher uses. This
+// MIRRORS dashboard.html:2318-2322 over the same two globals buildPicker writes,
+// window.__allReports (:2298) and window.__doneReportIds (:2310): a completed report is one
+// with a results row, several reprocesses of one collection date count once, and an UNDATED
+// panel stays distinct because :2319 returns true for it. If that dedup rule ever changes,
+// this has to change with it; the suite pins both halves.
+function heroTrajPanelCount(){
+  const all = (typeof window !== "undefined" && Array.isArray(window.__allReports)) ? window.__allReports : [];
+  const done = (typeof window !== "undefined" && window.__doneReportIds) ? window.__doneReportIds : null;
+  if(!all.length || !done || typeof done.has !== "function") return 0;
+  const seenDates = new Set();
+  return all.filter(r => r && done.has(r.id)).filter(r => {
+    if(!r.collected_on) return true;
+    if(seenDates.has(r.collected_on)) return false;
+    seenDates.add(r.collected_on); return true;
+  }).length;
 }
 
 function renderHeroTrajectory(p){
@@ -10065,17 +10128,40 @@ function renderHeroTrajectory(p){
       };
     }
   }
-  // Priority order is the payload's own order, flattened across primary_markers so a
-  // priority whose first marker was excluded can still contribute its second.
+  // ONE GROUP PER PRIORITY, in the payload's own order, so the model can take the first
+  // surviving marker from each rather than letting one priority's three markers fill every
+  // highlight slot.
   const prio = [];
-  for(const x of (Array.isArray(p && p.priorities) ? p.priorities : []))
+  for(const x of (Array.isArray(p && p.priorities) ? p.priorities : [])){
+    const g = [];
     for(const pm of (Array.isArray(x && x.primary_markers) ? x.primary_markers : []))
-      if(pm && pm.marker_id) prio.push(pm.marker_id);
+      if(pm && pm.marker_id) g.push(pm.marker_id);
+    if(g.length) prio.push(g);
+  }
 
   const model = heroTrajectoryModel(series, prio);
-  if(model.mode === "none" || (!model.highlights.length && !model.faint.length)){
+  const nothing = model.mode === "none" || (!model.highlights.length && !model.faint.length);
+  // THE SINGLE-PANEL WELL IS ONLY HONEST FOR ONE PANEL. If she has two or more completed
+  // panels and the model still resolves to single, the series did not carry two dated points
+  // for any marker, which today happens when collected_on is null on a report (:2352 writes
+  // it through as null and :9732 drops undated points). Saying "One panel is a snapshot" to a
+  // woman looking at two panels in her own switcher is false, so the strip says nothing at
+  // all. Hiding is the honest failure here, and it is deliberately not a silent downgrade to
+  // the multi-panel drawing, which would have no second point to plot either.
+  const disagrees = model.mode === "single" && heroTrajPanelCount() >= 2;
+  // A single-panel well with no priorities is an empty box: it draws rows, and there are none.
+  const emptySingle = model.mode === "single" && !model.highlights.length;
+  if(nothing || disagrees || emptySingle){
     host.innerHTML = "";
     host.classList.add("hidden");
+    // STILL WATCH IT. Hiding is a verdict on the data available RIGHT NOW, and the data can
+    // arrive later: a render that runs before window.__rdSeries is populated sees one point per
+    // marker, resolves to single, and is hidden by the guard above. Returning without a watcher
+    // made that permanent, because nothing was left to notice the view being shown. Measured in
+    // the /tmp cold-load harness: every case ended hidden with no well at all.
+    // -1 rather than the real width, so ANY later measurement counts as a change and re-renders.
+    HERO_TRAJ_W = -1;
+    heroTrajWatch(host, false);
     return;
   }
   // UNHIDE BEFORE MEASURING. The host ships carrying .hidden, which is display:none, so
@@ -10084,10 +10170,11 @@ function renderHeroTrajectory(p){
   // first paint is the one the reader sees. Measured in a browser, not reasoned about: the
   // probe returned passedW 680 against a live host of 658 until this order was swapped.
   host.classList.remove("hidden");
+  const measured = (host.clientWidth || 0) > 0;
   HERO_TRAJ_W = heroTrajWidth(host);
   host.innerHTML = heroTrajectorySVG(model, HERO_TRAJ_W) +
     '<p class="hero-traj-cap">' + esc(model.caption) + '</p>';
-  heroTrajWatch(host);
+  heroTrajWatch(host, measured);
 }
 
 // THE DRAW-IN FIRES ON FIRST SIGHT, NOT ON FIRST RENDER. The strip is below the fold on a
@@ -10096,8 +10183,15 @@ function renderHeroTrajectory(p){
 // Once it has run it never runs again: the observer disconnects and the flag is page-life.
 // WITHOUT IntersectionObserver NOTHING IS ADDED, and the CSS then renders the lines
 // complete. Static is the correct degradation; a plot frozen at its start offset is empty.
-function heroTrajWatch(host){
-  if(!HERO_TRAJ_DRAWN && typeof IntersectionObserver !== "undefined"){
+//
+// ARMED ONLY ON A MEASURED WIDTH. A render at the 680 default happened inside a hidden view,
+// so that well is provisional and the ResizeObserver is about to replace it. Arming there
+// spent the one draw-in on a node that gets detached mid-animation, which is exactly what a
+// cold load did: ht-anim ended up on a well that was no longer in the document, and the well
+// the reader was looking at sat static. Measured in the /tmp cold-load harness, not reasoned
+// about.
+function heroTrajWatch(host, measured){
+  if(!HERO_TRAJ_DRAWN && measured && typeof IntersectionObserver !== "undefined"){
     const well = host.querySelector(".hero-traj-well");
     if(well){
       if(HERO_TRAJ_IO) HERO_TRAJ_IO.disconnect();
@@ -10111,6 +10205,7 @@ function heroTrajWatch(host){
         }
       }, { threshold: 0.25 });
       HERO_TRAJ_IO.observe(well);
+      HERO_TRAJ_ARMED = true;
     }
   }
   if(HERO_TRAJ_RO) return;
@@ -10118,8 +10213,13 @@ function heroTrajWatch(host){
   // changes without the window changing: the first render happens inside a hidden view,
   // and the strip has to redraw at its real width the moment that view is shown.
   if(typeof ResizeObserver !== "undefined"){
+    // OBSERVE THE PARENT, NOT THE HOST. A hidden host has no box at all, so a ResizeObserver on
+    // it can never fire and can never notice the moment it becomes showable. That is not
+    // hypothetical: the guard above hides the host, and with the host observed every cold-load
+    // case in the /tmp harness stayed hidden forever after a late __rdSeries. The parent is laid
+    // out whenever the dashboard view is, and its width is what decides the host's width anyway.
     HERO_TRAJ_RO = new ResizeObserver(function(){ heroTrajResize(); });
-    HERO_TRAJ_RO.observe(host);
+    HERO_TRAJ_RO.observe(host.parentElement || host);
   } else if(typeof window !== "undefined" && window.addEventListener){
     HERO_TRAJ_RO = true;
     window.addEventListener("resize", heroTrajResize);
@@ -10134,11 +10234,21 @@ function heroTrajResize(){
   HERO_TRAJ_T = setTimeout(function(){
     HERO_TRAJ_T = null;
     const host = $("hero-traj");
-    if(!host || !HERO_TRAJ_P || host.classList.contains("hidden")) return;
-    if(heroTrajWidth(host) === HERO_TRAJ_W) return;
-    // Re-render drops .ht-anim with the old well. That is deliberate: the draw-in is not
-    // replayed on a resize, and HERO_TRAJ_DRAWN keeps heroTrajWatch from re-arming it.
-    renderHeroTrajectory(null);
+    // NOT gated on the host being visible. renderHeroTrajectory owns that decision and re-takes
+    // it every time; skipping hidden hosts here is what stranded a strip the guard had hidden.
+    if(!host || !HERO_TRAJ_P) return;
+    const measured = (host.clientWidth || 0) > 0;
+    if(heroTrajWidth(host) !== HERO_TRAJ_W){
+      // Re-render drops .ht-anim with the old well. That is deliberate: the draw-in is not
+      // replayed on a resize, and HERO_TRAJ_DRAWN keeps heroTrajWatch from re-arming it.
+      renderHeroTrajectory(null);
+      return;
+    }
+    // SAME WIDTH, STILL UNARMED. A well whose real measured width happens to equal the 680
+    // default never triggers a re-render, so without this it would sit unobserved forever and
+    // the draw-in would never play. Arming on the CURRENT well costs nothing when it is
+    // already armed, because the guards below return early.
+    if(measured && !HERO_TRAJ_ARMED && !HERO_TRAJ_DRAWN) heroTrajWatch(host, true);
   }, 200);
 }
 // A qualitative marker is reported as a category (ABSENT, Negative, Nil) rather

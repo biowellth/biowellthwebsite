@@ -289,18 +289,112 @@ console.log("LABELS -- 16px apart at the narrowest width");
   ok(ys.join(",") === sorted.join(","), "LBL-3: labels are emitted top to bottom, so spacing pushes against the one above");
 }
 {
-  // Single-panel rows are tighter than 16px by construction, which is exactly the case
-  // the spacing pass has to fix rather than inherit.
+  // The spacing pass is MULTI-PANEL ONLY. In the first-panel well every label shares its own
+  // row's y, so a pass that pushed labels apart would drag a name off the row it names.
   const one = (n) => ({ system_id: "iron", display_name: n,
                         points: [{ value: 10, date: D1, unit: "ng/mL", cycleGated: false }] });
   const s = {}; const prio = [];
   for (let i = 0; i < 9; i++) { s["s" + i] = one("Marker " + i); if (i < 3) prio.push("s" + i); }
   const r = model(s, prio);
   eq(r.mode, "single", "LBL-4: nine single-point markers is the single-panel state");
-  const ys = labelYs(draw(r, 300)).slice().sort((a, b) => a - b);
-  let minGap = Infinity;
-  for (let i = 1; i < ys.length; i++) minGap = Math.min(minGap, ys[i] - ys[i - 1]);
-  ok(minGap >= 15.99, "LBL-5: single-panel labels are spaced too  (got " + minGap + ")");
+  const svg = draw(r, 630);
+  eq(labelYs(svg).length, 0, "LBL-5: the multi-panel .ht-label is not used in the first-panel well");
+}
+
+// ── FIRST-PANEL WELL, the approved mock. Rows, not a plot: no axis, no faint marks, and a
+// label that belongs to exactly one row.
+console.log("FIRST-PANEL WELL -- rows, no faint marks, label on its row");
+const slabels = (svg) =>
+  [...svg.matchAll(/<text class="ht-slabel"[^>]*\bx="([\d.]+)"[^>]*\by="([\d.]+)"/g)]
+    .map(m => ({ x: parseFloat(m[1]), y: parseFloat(m[2]) }));
+const dots = (svg) =>
+  [...svg.matchAll(/<circle class="ht-end"[^>]*\bcx="([\d.]+)"[^>]*\bcy="([\d.]+)"/g)]
+    .map(m => ({ x: parseFloat(m[1]), y: parseFloat(m[2]) }));
+const vbH = (svg) => parseFloat(/viewBox="0 0 [\d.]+ ([\d.]+)"/.exec(svg)[1]);
+const singleSeries = (names) => {
+  const s = {}, prio = [];
+  names.forEach((n, i) => {
+    s["m" + i] = { system_id: "iron", display_name: n,
+                   points: [{ value: 10 + i, date: D1, unit: "ng/mL", cycleGated: false }] };
+    prio.push("m" + i);
+  });
+  // Extra unhighlighted markers, which in the old drawing became faint dots.
+  for (let i = 0; i < 9; i++)
+    s["x" + i] = { system_id: "iron", display_name: "Other " + i,
+                   points: [{ value: 5 + i, date: D1, unit: "ng/mL", cycleGated: false }] };
+  return { series: s, prio };
+};
+{
+  const { series, prio } = singleSeries(["Ferritin", "Vitamin D", "TSH"]);
+  const r = model(series, prio);
+  eq(r.mode, "single", "FPW-1: the fixture is the single-panel state");
+  ok(r.faint.length > 0, "FPW-2: and the model still offers faint markers, so the drawing is what drops them");
+  const svg = draw(r, 630);
+  eq((svg.match(/class="ht-faint"/g) || []).length, 0, "FPW-3: no faint lines are drawn");
+  eq((svg.match(/fill="rgba\(71,55,43,\.28\)"/g) || []).length, 0, "FPW-4: and no faint dots either");
+  eq(dots(svg).length, 3, "FPW-5: exactly one dot per highlight");
+  eq(slabels(svg).length, 3, "FPW-6: exactly one label per highlight");
+  eq((svg.match(/class="ht-ring"/g) || []).length, 3, "FPW-7: one empty next-panel ring per row");
+  eq((svg.match(/class="ht-wait"/g) || []).length, 3, "FPW-8: one dashed wait line per row");
+  eq((svg.match(/class="ht-axis"/g) || []).length, 0, "FPW-9: no centre line, because there is no change to measure");
+  const ls = slabels(svg), ds = dots(svg);
+  ls.forEach((l, i) => eq(l.y - 4, ds[i].y, "FPW-10." + i + ": label " + i + " shares its dot's row (baseline is +4)"));
+  ok(ds.every(d => Math.abs(d.x - Math.round(630 * 0.42)) < 1), "FPW-11: dots sit at about 42 percent of the width");
+  ok(svg.includes(">today<") && svg.includes(">next<"), "FPW-12: both ticks are present");
+  ok(!/…/.test(svg), "FPW-13: no name is truncated at 630 wide");
+}
+{
+  // Under 480 the name takes its own line 12px above the row, and the dot moves to x 26.
+  const { series, prio } = singleSeries(["Ferritin", "Vitamin D", "TSH"]);
+  const svg = draw(model(series, prio), 390);
+  const ls = slabels(svg), ds = dots(svg);
+  eq(ls.length, 3, "FPW-14: three labels at 390 too");
+  ls.forEach((l, i) => eq(l.y - 4, ds[i].y - 12, "FPW-15." + i + ": label " + i + " sits 12px above its row"));
+  ok(ds.every(d => d.x === 26), "FPW-16: the dot moves to x 26 on a phone");
+  ok(!/…/.test(svg), "FPW-17: and still nothing is truncated");
+}
+{
+  // Height follows the rows rather than the old fixed 136.
+  const h1 = vbH(draw(model(singleSeries(["Ferritin"]).series, ["m0"]), 630));
+  const h2 = vbH(draw(model(singleSeries(["Ferritin", "Vitamin D"]).series, ["m0", "m1"]), 630));
+  const h3 = vbH(draw(model(singleSeries(["Ferritin", "Vitamin D", "TSH"]).series, ["m0", "m1", "m2"]), 630));
+  eq(h2 - h1, 34, "FPW-18: a second row adds exactly one 34px row");
+  eq(h3 - h2, 34, "FPW-19: and so does a third");
+  ok(h3 !== 136, "FPW-20: the well is no longer the fixed 136 of the multi-panel plot  (got " + h3 + ")");
+  const m3 = draw(model(singleSeries(["Ferritin", "Vitamin D", "TSH"]).series, ["m0", "m1", "m2"]), 390);
+  ok(vbH(m3) > h3, "FPW-21: the phone well is taller, because the labels take their own lines");
+}
+
+console.log("HIGHLIGHTS -- one marker per priority, in payload order");
+{
+  // Three priorities, the first carrying three primary markers. Flat-listing them let the
+  // first priority take all three highlight slots and silenced priorities two and three.
+  const s = {};
+  for (const id of ["a1", "a2", "a3", "b1", "c1"])
+    s[id] = mk("iron", [100, 120], [D1, D3], { name: id.toUpperCase() });
+  const r = model(s, [["a1", "a2", "a3"], ["b1"], ["c1"]]);
+  eq(r.highlights.map(h => h.id).join(","), "a1,b1,c1",
+     "PRIO-1: one marker from each priority, in payload order");
+  ok(r.faint.some(f => f.id === "a2") && r.faint.some(f => f.id === "a3"),
+     "PRIO-2: the priority's other markers fall to the faint set rather than vanishing");
+}
+{
+  // Only when a priority yields nothing do the leftovers fill the remaining slots.
+  const s = { a2: mk("iron", [100, 120], [D1, D3]), b1: mk("iron", [100, 90], [D1, D3]) };
+  const r = model(s, [["missing", "a2"], ["b1"]]);
+  eq(r.highlights.map(h => h.id).join(","), "a2,b1",
+     "PRIO-3: a priority whose first marker was excluded contributes its second");
+}
+{
+  const s = { a1: mk("iron", [100, 120], [D1, D3]), a2: mk("iron", [100, 130], [D1, D3]),
+              a3: mk("iron", [100, 140], [D1, D3]) };
+  const r = model(s, [["a1", "a2", "a3"]]);
+  eq(r.highlights.map(h => h.id).join(","), "a1,a2,a3",
+     "PRIO-4: with one priority and slots to spare, its leftovers DO fill them");
+}
+{
+  const r = model({ a1: mk("iron", [100, 120], [D1, D3]) }, ["a1"]);
+  eq(r.highlights.length, 1, "PRIO-5: a flat list of ids still works, so the old shape is not broken");
 }
 
 console.log("SWATCH -- colour lives on the stroke, the name is brown");
@@ -310,6 +404,70 @@ console.log("SWATCH -- colour lives on the stroke, the name is brown");
   eq((svg.match(/class="ht-swatch"/g) || []).length, 3, "SWATCH-1: one swatch per highlighted marker");
   ok(/class="ht-swatch"[^>]*stroke="var\(--coral-dark\)"/.test(svg), "SWATCH-2: the first swatch carries the first colour");
   ok(!/<text class="ht-label"[^>]*fill="var\(--/.test(svg), "SWATCH-3: no label text carries a colour fill, so CSS keeps it brown");
+}
+
+// ── THE PANEL-COUNT GUARD. renderHeroTrajectory needs a DOM, so it is loaded separately with
+// a stub host. The guard exists because the single-panel caption is a factual claim about how
+// many panels she has, and the model infers that from DATED POINTS, not from panels.
+console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel caption");
+{
+  const lets = (HTML.match(/^let HERO_TRAJ_\w+ = [^\n]*$/gm) || []).join("\n");
+  ok(lets.includes("HERO_TRAJ_DRAWN"), "GUARD-0: the module state was extracted, not assumed");
+  const host = {
+    innerHTML: "", classes: new Set(["hidden"]), clientWidth: 630,
+    classList: { add: (c) => host.classes.add(c), remove: (c) => host.classes.delete(c),
+                 contains: (c) => host.classes.has(c) },
+    querySelector: () => null
+  };
+  globalThis.$ = (id) => (id === "hero-traj" ? host : null);
+  globalThis.markerName = (mk) => mk.display_name || mk.marker_id;
+  globalThis.window = {};
+  new Function([extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
+                extract("esc"), extract("markerSeriesInfo"), extract("markerHistory"),
+                extract("heroTrajectoryModel"), extract("heroTrajectorySVG"), lets,
+                extract("heroTrajWidth"), extract("heroTrajPanelCount"),
+                extract("renderHeroTrajectory"), extract("heroTrajWatch"), extract("heroTrajResize"),
+                "globalThis.__render = renderHeroTrajectory; globalThis.__count = heroTrajPanelCount;"
+               ].join("\n"))();
+
+  // The dedup rule this mirrors is dashboard.html:2318-2322, over window.__allReports (:2298)
+  // and window.__doneReportIds (:2310). Two reprocesses of one date count once; undated panels
+  // stay distinct, which is :2319.
+  const setUp = (reports, doneIds) => {
+    globalThis.window.__allReports = reports;
+    globalThis.window.__doneReportIds = new Set(doneIds);
+  };
+  setUp([{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-03-05" }], ["r1", "r2"]);
+  eq(globalThis.__count(), 1, "GUARD-1: two reprocesses of one collection date are one panel");
+  setUp([{ id: "r1", collected_on: null }, { id: "r2", collected_on: null }], ["r1", "r2"]);
+  eq(globalThis.__count(), 2, "GUARD-2: two UNDATED panels stay distinct, per :2319");
+  setUp([{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-08-05" }], ["r1"]);
+  eq(globalThis.__count(), 1, "GUARD-3: a report with no results row is not a completed panel");
+  setUp([], []);
+  eq(globalThis.__count(), 0, "GUARD-4: no reports is zero, not a crash");
+
+  // A payload whose series carries no dated points resolves to single. With ONE panel that is
+  // the truth and the well renders; with TWO it is false and the strip hides itself.
+  const PAY = { systems: [{ system_id: "iron", markers: [
+      { marker_id: "ferritin", display_name: "Ferritin", value: 17, canonical_unit: "ng/mL" },
+      { marker_id: "tsh", display_name: "TSH", value: 2.6, canonical_unit: "uIU/mL" }] }],
+    priorities: [{ primary_markers: [{ marker_id: "ferritin" }] }] };
+  const render = (reports, doneIds) => {
+    setUp(reports, doneIds);
+    globalThis.window.__rdSeries = {};   // undated series: nothing to plot across panels
+    host.innerHTML = ""; host.classes = new Set(["hidden"]);
+    globalThis.__render(PAY);
+    return { hidden: host.classes.has("hidden"), html: host.innerHTML };
+  };
+  const onePanel = render([{ id: "r1", collected_on: null }], ["r1"]);
+  ok(!onePanel.hidden && onePanel.html.length > 0,
+     "GUARD-5: ONE panel renders the first-panel well, so the guard is not hiding everything");
+  ok(onePanel.html.includes(">today<"), "GUARD-6: and it really is the first-panel well");
+  const twoPanels = render([{ id: "r1", collected_on: null }, { id: "r2", collected_on: null }], ["r1", "r2"]);
+  ok(twoPanels.hidden, "GUARD-7: TWO undated panels resolving to single hides the strip");
+  eq(twoPanels.html, "", "GUARD-8: and the host is cleared, not left showing a stale plot");
+  const twoDated = render([{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-03-05" }], ["r1", "r2"]);
+  ok(!twoDated.hidden, "GUARD-9: two reprocesses of ONE date are one panel, so that still renders");
 }
 
 console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");
