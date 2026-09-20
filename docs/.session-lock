@@ -1,0 +1,4 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 06:10Z
+BRIEF : Correct the stale .ht-anim comment before deploying. Comment only.
+SCOPE : dashboard.html
