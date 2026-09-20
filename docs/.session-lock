@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-21 00:50Z
+BRIEF : Restore one line to the e2e screenshot path, the scroll back to the top
+        before a full-page capture. Nothing else.
+SCOPE : scripts/test-dashboard-e2e.mjs
