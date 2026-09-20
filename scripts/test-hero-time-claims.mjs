@@ -133,6 +133,17 @@ console.log("AGE -- the 90 day boundary, both sides");
   eq(lead(null, NOW), ". In this panel, ", "AGE-8: no panel_date makes no claim about when");
   eq(lead("", NOW), ". In this panel, ", "AGE-9: an empty panel_date is the same");
   eq(lead("not-a-date", NOW), ". In this panel, ", "AGE-10: and so is an unreadable one");
+  // A FUTURE DRAW DATE IS UNKNOWN, NOT FRESH. Either the device clock or the typed date is wrong and
+  // nothing here can tell which, so the sentence claims nothing about when.
+  eq(age("2026-10-20", NOW), -30, "AGE-13: a draw 30 days ahead of the clock is a negative age");
+  eq(lead("2026-10-20", NOW), ". In this panel, ", "AGE-14: and it does NOT say Right now");
+  eq(lead("2027-09-20", NOW), ". In this panel, ", "AGE-15: a draw a year ahead is the same");
+  // The mirror case: the panel is real and the VIEWER's clock is a year behind.
+  const BEHIND = "2025-09-20T12:00:00";
+  eq(age("2026-06-22", BEHIND), -275, "AGE-16: a clock a year behind makes a real panel read negative");
+  eq(lead("2026-06-22", BEHIND), ". In this panel, ", "AGE-17: and that claims nothing about when either");
+  eq(lead("2026-09-20", NOW), ". In this panel, ", "AGE-18: a same-day draw is non-positive, so it claims nothing too");
+  eq(lead("2026-09-19", NOW), ". Right now ", "AGE-19: one day old IS fresh, so the guard is not eating the present tense");
   ok(!lead("2026-06-21", NOW).includes(":"), "AGE-11: no colon in the lead clause");
   ok(!lead("2026-06-21", NOW).includes("—"), "AGE-12: and no em dash");
 }

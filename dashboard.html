@@ -5634,6 +5634,12 @@ function heroLeadClause(panelDate, now){
   const parts = heroDateParts(panelDate);
   // No readable draw date, so no claim about when. "In this panel" is true whatever the date was.
   if(age === null || parts === null) return ". In this panel, ";
+  // A NON-POSITIVE AGE IS UNKNOWN, NOT FRESH. A draw date ahead of the viewer's clock means one of
+  // the two is wrong, from a skewed device or a date typed ahead, and there is no way to tell which.
+  // Before this, a negative age passed the freshness test and the hero said "Right now" about a
+  // panel dated next month, which is the one direction that cannot be true. "In this panel" claims
+  // nothing about when, so it is right whichever clock is wrong. This also covers a same-day draw.
+  if(age <= 0) return ". In this panel, ";
   if(age <= HERO_FRESH_DAYS) return ". Right now ";
   return ". As of your " + parts.long + " panel, ";
 }
