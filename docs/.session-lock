@@ -1,6 +1,0 @@
-HOLDER: claude-code session 5b252252
-TAKEN : 2026-09-20 03:30Z
-BRIEF : Phase 1 of the dashboard visual refresh. Hero trajectory strip inside
-        .reveal-head, below the hero stats. Percent change from each marker's
-        own earliest point, never band or status. Light mode only.
-SCOPE : dashboard.html, scripts/test-hero-trajectory.mjs
