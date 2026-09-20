@@ -1,5 +1,0 @@
-HOLDER: claude-code session 5b252252
-TAKEN : 2026-09-20 17:45Z
-BRIEF : Hide the hero trajectory strip on a single panel. The first-panel drawing
-        stays in the file, dormant, pending a decision on that space.
-SCOPE : dashboard.html, scripts/test-hero-trajectory.mjs
