@@ -134,53 +134,171 @@ const reads = (field) => readsIn(CODE, leafOf(field));
 // THE LEDGER. Membership is established by MEASUREMENT: anything with a real code read is RENDERED
 // and is not listed. Everything else must appear below with a reason, or the guard fails.
 //
-// INTERNAL — diagnostics and plumbing. These must NEVER reach her screen.
+// THE LEDGER. Membership starts from MEASUREMENT: anything with a real code read is RENDERED and
+// is not listed. Everything else must appear below, and every entry carries a `note` saying why in
+// one line plus a `basis` saying what kind of claim that note is:
+//
+//   measured-in-repo  the note is re-derived by an assertion below, from a file this guard reads
+//   measured-offline  it was measured against stored payloads on a stated date; this guard has no
+//                     payload or database access, so it CANNOT re-derive it and pins nothing
+//   judged            a reading of the copy, not a measurement; no assertion pretends otherwise
+//
+// The three are kept apart on purpose. A judgement dressed as an assertion is the failure this
+// whole guard exists to prevent, one level up.
+
+// INTERNAL — diagnostics, plumbing, and fields ruled never-to-render. These must not reach her screen.
 const INTERNAL = {
-  "user_id": "identity, joined on; never displayed",
-  "generated_at": "diagnostic timestamp for the interpretation run",
-  "model_used": "diagnostic — which model produced this payload",
-  "prompt_version": "diagnostic — which prompt pair produced this payload",
-  "engine_input_snapshot": "audit record so a rescore can be paired with its inputs",
-  "internal_metadata": "named internal; the whole block is an audit trail",
-  "internal_metadata.compression_ratio": "audit trail",
-  "internal_metadata.confounders_active": "audit trail; the user-facing version is the confounder note",
-  "internal_metadata.cycle_day_at_interpretation": "audit trail",
-  "internal_metadata.missing_data_notes": "audit trail",
-  "internal_metadata.priorities_generated": "audit trail",
-  "internal_metadata.total_markers_analysed": "audit trail; marker_counts is the rendered version",
-  "internal_metadata.warnings_triggered": "audit trail",
-  "foundations.framing_mode": "an authoring-mode switch for the model, not copy",
-  "cluster_patterns[].pattern_id": "internal Doc B identifier",
-  "cluster_patterns[].priority_ids": "internal linkage between a pattern and its priorities",
+  "user_id":                      { note: "identity, joined on; never displayed", basis: "judged" },
+  "generated_at":                 { note: "diagnostic timestamp for the interpretation run", basis: "judged" },
+  "model_used":                   { note: "diagnostic - which model produced this payload", basis: "judged" },
+  "prompt_version":               { note: "diagnostic - which prompt pair produced this payload", basis: "judged" },
+  "engine_input_snapshot":        { note: "audit record so a rescore can be paired with its inputs", basis: "judged" },
+  "internal_metadata":            { note: "named internal; the whole block is an audit trail", basis: "judged" },
+  "internal_metadata.compression_ratio":            { note: "audit trail", basis: "judged" },
+  "internal_metadata.confounders_active":           { note: "audit trail; the user-facing version is the confounder note", basis: "judged" },
+  "internal_metadata.cycle_day_at_interpretation":  { note: "audit trail", basis: "judged" },
+  "internal_metadata.missing_data_notes":           { note: "audit trail", basis: "judged" },
+  "internal_metadata.priorities_generated":         { note: "audit trail", basis: "judged" },
+  "internal_metadata.total_markers_analysed":       { note: "audit trail; marker_counts is the rendered version", basis: "judged" },
+  "internal_metadata.warnings_triggered":           { note: "audit trail", basis: "judged" },
+  "foundations.framing_mode":     { note: "an authoring-mode switch for the model, not copy", basis: "judged" },
+  "cluster_patterns[].pattern_id":  { note: "internal Doc B identifier", basis: "judged" },
+  "cluster_patterns[].priority_ids":{ note: "internal linkage between a pattern and its priorities", basis: "judged" },
+
+  // RECLASSIFIED 2026-09-20 from unrendered-known, after the copy was retrieved and read.
+  "narrative_headline.verdict": {
+    note: "a compression of narrative_headline.lead, which renders: same drivers in the same order, 202 chars against 700 on the report carrying both; deriveVerdict replaced it deliberately and says so",
+    basis: "judged",
+  },
+  "systems[].display_group": {
+    note: "free text the model invents per run - 50 distinct values across 22 systems, six names for the cardiovascular pill and eight for immune - so it is unusable as a key, and the dashboard already groups by vitality.pills and keys on system_id",
+    basis: "measured-in-repo",
+  },
+  "foundations.levers[].measured_signal": {
+    note: "Call B emits the key on every lever element and never populates it - JSON null on all 72 elements across 21 payloads, measured 2026-09-20 - so it is a dead field, not a rendering gap",
+    basis: "measured-offline",
+  },
+  "priorities[].technical_layer": {
+    note: "an audit trail written for an engineer or advisor, not for her",
+    basis: "judged",
+  },
+  "priorities[].technical_layer.reasoning": {
+    note: "names marker_id, USER_CONTEXT and the upstream transcription call in its own prose",
+    basis: "judged",
+  },
+  "priorities[].technical_layer.confidence":                { note: "advisor-facing audit field", basis: "judged" },
+  "priorities[].technical_layer.confounders_considered":    { note: "advisor-facing audit field", basis: "judged" },
+  "priorities[].technical_layer.doc_b_patterns_active":     { note: "internal Doc B pattern ids", basis: "judged" },
+  "priorities[].technical_layer.alternative_differentials": { note: "advisor-facing audit field", basis: "judged" },
 };
 
-// UNRENDERED-KNOWN — written, invisible, and arguably should be visible. This is the backlog, in
+// UNRENDERED-KNOWN — written, invisible, and ruled worth making visible. This is the backlog, in
 // the repo rather than in a chat, so shipping a renderer for one is a ledger edit that reads as
 // progress. Nothing here is fixed by this pass.
 const UNRENDERED_KNOWN = {
-  "narrative_headline.verdict": "her one-line personalised band verdict; two comments say it is no longer read",
-  "confounder_summary": "the whole block is invisible",
-  "confounder_summary.active_confounders": "what was working against this draw",
-  "confounder_summary.patterns_deferred": "which patterns were held back and why",
-  "confounder_summary.retest_recommendation": "the earliest valid retest with rationale, shown nowhere",
-  "provider_discussion_points": "the whole block is invisible",
-  "provider_discussion_points[].point": "what to raise with her doctor; 217 raw hits, zero readers",
-  "provider_discussion_points[].urgency": "how soon to raise it",
-  "provider_discussion_points[].supporting_markers": "which markers back the point",
-  "cluster_patterns": "the whole block is invisible",
-  "cluster_patterns[].pattern_name": "the human name of a cross-system pattern",
-  "cluster_patterns[].explanation": "why those findings belong together",
-  "cluster_patterns[].sequencing_advice": "what to address first",
-  "priorities[].technical_layer": "the advisor-facing audit narrative; found in this state a pass ago",
-  "priorities[].technical_layer.reasoning": "the clinical audit trail for a medical advisor",
-  "priorities[].technical_layer.confidence": "how certain the read is",
-  "priorities[].technical_layer.confounders_considered": "what was weighed and discarded",
-  "priorities[].technical_layer.doc_b_patterns_active": "which Doc B patterns fired",
-  "priorities[].technical_layer.alternative_differentials": "what else it could be and why less likely",
-  "priorities[].provider_followup_flag": "whether this warrants seeing a doctor, and it is invisible",
-  "systems[].display_group": "which pill a system rolls up into",
-  "foundations.levers[].measured_signal": "the marker a lever is anchored to",
+  "confounder_summary": {
+    note: "the parent block of three backlog fields; invisible in full",
+    basis: "judged",
+  },
+  "confounder_summary.active_confounders": {
+    note: "BLOCKED: raw enum keys such as acute_stress_within_2_weeks and not_fasting; needs mapping to prose before it could render",
+    basis: "judged",
+  },
+  "confounder_summary.patterns_deferred": {
+    note: "prose saying which systems were held back and what would let them be read; nothing on screen says this",
+    basis: "judged",
+  },
+  "confounder_summary.retest_recommendation": {
+    note: "the earliest valid retest with its rationale, shown nowhere",
+    basis: "judged",
+  },
+  "provider_discussion_points": {
+    note: "BLOCKED: written in the third person for a clinician (\"symptoms she has noticed\"), so it needs a Call B copy change before it can render to her",
+    basis: "judged",
+  },
+  "provider_discussion_points[].point":              { note: "what to raise with her doctor; blocked with its parent on third-person copy", basis: "judged" },
+  "provider_discussion_points[].urgency":            { note: "prompt or routine; blocked with its parent", basis: "judged" },
+  "provider_discussion_points[].supporting_markers": { note: "which markers back the point; blocked with its parent", basis: "judged" },
+  "cluster_patterns": {
+    note: "the cross-system story; the parent of three backlog fields",
+    basis: "judged",
+  },
+  "cluster_patterns[].pattern_name":      { note: "the human name of a cross-system pattern", basis: "judged" },
+  "cluster_patterns[].explanation":       { note: "why those findings belong together; overlaps priorities[].the_connection, which renders, but spans several priorities where that one is pairwise", basis: "judged" },
+  "cluster_patterns[].sequencing_advice": { note: "what order to work in, and nothing on screen tells her that", basis: "judged" },
+
+  // NOT RULED ON. This was in the unrendered-known list before this pass and the reclassification
+  // did not name it either way, so it stays where it was rather than being moved by default.
+  "priorities[].provider_followup_flag": {
+    note: "whether a finding warrants seeing a doctor, and it is invisible; awaiting a ruling",
+    basis: "judged",
+  },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// THE RECLASSIFICATION, RE-DERIVED WHERE IT CAN BE.
+//
+// Four fields moved to INTERNAL this pass. Only ONE of the four reasons is re-derivable here, and
+// the other three say so rather than pinning a claim the guard cannot check.
+//
+//   display_group      measurable in this repo, and asserted below
+//   measured_signal    NOT measurable: the claim is that its value is JSON null on every lever
+//                      element, which lives in stored payloads. This guard reads three files -
+//                      supa's index.ts, the snapshot, and dashboard.html - and has no payload or
+//                      database access. The measurement is dated in the note and must be re-run
+//                      against the database, not here.
+//   verdict            a reading of two pieces of copy side by side. A judgement.
+//   technical_layer    a reading of who the prose addresses. A judgement.
+//
+// The two judgements deliberately carry NO assertion. An assertion over a string the author also
+// wrote proves the author wrote it, and that is evidence-shaped noise.
+ok("RECLASS-1: display_group is not read, and the dashboard groups by the engine's pills instead",
+  readsIn(CODE, "display_group") === 0 && readsIn(CODE, "pills") > 0 && readsIn(CODE, "system_id") > 0,
+  "display_group=" + readsIn(CODE, "display_group") + " pills=" + readsIn(CODE, "pills") +
+  " system_id=" + readsIn(CODE, "system_id"));
+
+// A note whose basis says "measured-in-repo" is a PROMISE that an assertion re-derives it. Nothing
+// enforced that, so deleting the assertion left the claim standing with nothing behind it - the
+// exact shape this guard exists to catch, one level up. This reads the guard's own source and
+// requires an ok(...) naming each such field.
+const SELF = readFileSync(fileURLToPath(import.meta.url), "utf8");
+const promised = [...Object.entries(INTERNAL), ...Object.entries(UNRENDERED_KNOWN)]
+  .filter(([, r]) => r.basis === "measured-in-repo").map(([f]) => f);
+// The check must name the FIELD, not merely find some assertion. A first version accepted any line
+// containing "RECLASS", which meant deleting the one assertion that mattered left the suite green
+// - proven by deleting it and watching 23 pass. This requires the field's own leaf to appear inside
+// an ok(...) that also calls readsIn, which is what re-deriving it looks like.
+const okLines = SELF.split("\n").filter((l) => l.trimStart().startsWith("ok(") || l.includes("readsIn(CODE"));
+const unbacked = promised.filter((f) => {
+  const leaf = leafOf(f);
+  return !okLines.some((l) => l.includes(leaf) && l.includes("readsIn"));
+});
+ok("RECLASS-0: every measured-in-repo claim has an assertion behind it", unbacked.length === 0,
+  unbacked.join(", "));
+ok("RECLASS-0b: and there is at least one such claim, so the check above is not vacuous",
+  promised.length > 0, "promised: " + promised.length);
+
+ok("RECLASS-2: the four reclassified fields are all INTERNAL now, none left in the backlog",
+  ["narrative_headline.verdict", "systems[].display_group", "foundations.levers[].measured_signal",
+   "priorities[].technical_layer"].every((f) => f in INTERNAL && !(f in UNRENDERED_KNOWN)));
+
+// Read through a helper rather than indexing directly. A direct INTERNAL["x"].basis THROWS when a
+// field is moved out of the class, and a thrown assertion is not a failed one: the runner records
+// no failure, it records one fewer test. That is the quiet direction, so these resolve to
+// undefined and go red instead.
+const decl = (f) => INTERNAL[f] || UNRENDERED_KNOWN[f] || {};
+const declIn = (f, obj) => (obj[f] || {});
+
+ok("RECLASS-3: the measured-offline claim is LABELLED as unverifiable here, not pinned",
+  declIn("foundations.levers[].measured_signal", INTERNAL).basis === "measured-offline" &&
+  String(declIn("foundations.levers[].measured_signal", INTERNAL).note || "").includes("2026-09-20"),
+  "a claim this guard cannot check must carry its measurement date");
+
+ok("RECLASS-4: neither judgement pretends to be measured",
+  declIn("narrative_headline.verdict", INTERNAL).basis === "judged" &&
+  declIn("priorities[].technical_layer", INTERNAL).basis === "judged",
+  "verdict basis=" + decl("narrative_headline.verdict").basis +
+  " technical_layer basis=" + decl("priorities[].technical_layer").basis);
 
 // Leaf-name collisions. Reads are measured by LEAF because that is what a property access looks
 // like, and `nh.lead` cannot be attributed to narrative_headline by grep without alias tracking.
@@ -243,9 +361,15 @@ const both = Object.keys(INTERNAL).filter((f) => f in UNRENDERED_KNOWN);
 ok("LEDGER-4: no field is declared twice", both.length === 0, both.join(", "));
 
 // Every declaration carries a reason. An empty string is a declaration nobody has thought about.
+const BASES = ["measured-in-repo", "measured-offline", "judged"];
 const reasonless = [...Object.entries(INTERNAL), ...Object.entries(UNRENDERED_KNOWN)]
-  .filter(([, r]) => !r || r.trim().length < 10).map(([f]) => f);
-ok("LEDGER-5: every declaration carries a reason", reasonless.length === 0, reasonless.join(", "));
+  .filter(([, r]) => !r || typeof r.note !== "string" || r.note.trim().length < 10).map(([f]) => f);
+ok("LEDGER-5: every declaration carries a note", reasonless.length === 0, reasonless.join(", "));
+
+const badBasis = [...Object.entries(INTERNAL), ...Object.entries(UNRENDERED_KNOWN)]
+  .filter(([, r]) => !r || !BASES.includes(r.basis)).map(([f]) => f);
+ok("LEDGER-5b: every declaration states what KIND of claim its note is", badBasis.length === 0,
+  badBasis.join(", "));
 
 // Declared-invisible must actually BE invisible. If a renderer ships for one of these and the
 // ledger is not edited, this goes red and the entry gets moved rather than quietly lying.
@@ -279,14 +403,20 @@ const RAWCODE = DASH_SRC;
 eq("R3-3a: verdict has zero reads in the STRIPPED source", readsIn(CODE, "verdict"), 0);
 ok("R3-3b: and non-zero in the UNSTRIPPED source, so stripping is load-bearing",
   readsIn(RAWCODE, "verdict") > 0, "raw reads: " + readsIn(RAWCODE, "verdict"));
+// Across BOTH declared-invisible classes, not just the backlog. The field that demonstrates this
+// (the verdict, 42 raw hits in two comments) moved to INTERNAL on 2026-09-20, and an assertion
+// pinned to one class would have gone red for a reclassification rather than for a defect.
+const DECLARED_INVISIBLE = [...Object.keys(INTERNAL), ...Object.keys(UNRENDERED_KNOWN)];
 ok("R3-3c: dropping the stripping would silently mark a declared-invisible field as rendered",
-  [...Object.keys(UNRENDERED_KNOWN)].some((f) => readsIn(RAWCODE, leafOf(f)) > 0 && readsIn(CODE, leafOf(f)) === 0));
+  DECLARED_INVISIBLE.some((f) => readsIn(RAWCODE, leafOf(f)) > 0 && readsIn(CODE, leafOf(f)) === 0));
 
 // R3-4: a nested field rendered nowhere is caught even though its PARENT is read. This is the
 // shape that hid confounder_note for months.
+// The class it is declared in is not the point; being DECLARED at all, while its parent renders,
+// is. This is the shape that hid confounder_note for months.
 ok("R3-4: a nested field is caught even when its parent IS read",
   reads("narrative_headline") > 0 && reads("narrative_headline.verdict") === 0 &&
-  "narrative_headline.verdict" in UNRENDERED_KNOWN);
+  DECLARED_INVISIBLE.includes("narrative_headline.verdict"));
 
 // R3-5: top-level-only checking would MISS it, which is why nesting is not optional.
 ok("R3-5: a top-level-only guard would have missed confounder_note's whole class",
