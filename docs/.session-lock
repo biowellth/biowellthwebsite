@@ -1,5 +1,0 @@
-HOLDER: claude-code session 5b252252
-TAKEN : 2026-09-20 22:20Z
-BRIEF : Reapply the priority card drawings with the declarations at top level,
-        and add an end-to-end test that runs renderDashboard in a real browser.
-SCOPE : dashboard.html, scripts/test-prio-art.mjs, scripts/test-dashboard-e2e.mjs
