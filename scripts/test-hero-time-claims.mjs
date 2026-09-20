@@ -142,7 +142,7 @@ console.log("AGE -- the 90 day boundary, both sides");
   const BEHIND = "2025-09-20T12:00:00";
   eq(age("2026-06-22", BEHIND), -275, "AGE-16: a clock a year behind makes a real panel read negative");
   eq(lead("2026-06-22", BEHIND), ". In this panel, ", "AGE-17: and that claims nothing about when either");
-  eq(lead("2026-09-20", NOW), ". In this panel, ", "AGE-18: a same-day draw is non-positive, so it claims nothing too");
+  eq(lead("2026-09-20", NOW), ". Right now ", "AGE-18: a same-day draw IS fresh, the freshest a panel can be");
   eq(lead("2026-09-19", NOW), ". Right now ", "AGE-19: one day old IS fresh, so the guard is not eating the present tense");
   ok(!lead("2026-06-21", NOW).includes(":"), "AGE-11: no colon in the lead clause");
   ok(!lead("2026-06-21", NOW).includes("—"), "AGE-12: and no em dash");
