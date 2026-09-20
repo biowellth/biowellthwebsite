@@ -1,0 +1,5 @@
+HOLDER: claude-code session b7af8dbe
+TAKEN : 2026-09-20 01:15Z
+BRIEF : Payload field ledger + guard. scripts/ only; renders nothing,
+        changes no copy, does not touch dashboard.html.
+SCOPE : scripts/test-payload-field-ledger.mjs, scripts/payload-fields.snapshot.json
