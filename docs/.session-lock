@@ -1,0 +1,4 @@
+HOLDER: claude-code session b7af8dbe
+TAKEN : 2026-09-20 01:31Z
+BRIEF : Ledger reclassification only. No render, no dashboard.html change.
+SCOPE : scripts/test-payload-field-ledger.mjs
