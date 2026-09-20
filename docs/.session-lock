@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-21 00:15Z
+BRIEF : Revert the theme card motifs. dashboard.html back to 75098f0, the theme
+        art test deleted, the e2e test's theme sections removed.
+SCOPE : dashboard.html, scripts/test-theme-art.mjs, scripts/test-dashboard-e2e.mjs
