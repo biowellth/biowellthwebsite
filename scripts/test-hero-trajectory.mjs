@@ -42,6 +42,9 @@ function extractConst(name) {
 
 const src = extractConst("SENSITIVE_MARKER_IDS") + "\n" +
             extractConst("SENSITIVE_SYSTEMS") + "\n" +
+            // HERO_TIME_V1: the drawing names the draw month on the tick, so it needs the date helper.
+            extractConst("HT_MON_SHORT") + "\n" + extractConst("HT_MON_LONG") + "\n" +
+            extract("heroDateParts") + "\n" +
             extract("esc") + "\n" +
             extract("heroTrajectoryModel") + "\n" +
             extract("heroTrajectorySVG") +
@@ -340,7 +343,10 @@ const singleSeries = (names) => {
   const ls = slabels(svg), ds = dots(svg);
   ls.forEach((l, i) => eq(l.y - 4, ds[i].y, "FPW-10." + i + ": label " + i + " shares its dot's row (baseline is +4)"));
   ok(ds.every(d => Math.abs(d.x - Math.round(630 * 0.42)) < 1), "FPW-11: dots sit at about 42 percent of the width");
-  ok(svg.includes(">today<") && svg.includes(">next<"), "FPW-12: both ticks are present");
+  // HERO_TIME_V1: the left tick names the DRAW MONTH now. "today" was false on 19 of 21 stored
+  // panels, which were over a year old at upload.
+  ok(svg.includes(">next<"), "FPW-12: the next-panel tick is present");
+  ok(!svg.includes(">today<"), "FPW-12b: and the left tick never claims today");
   ok(!/…/.test(svg), "FPW-13: no name is truncated at 630 wide");
 }
 {
@@ -423,6 +429,7 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   globalThis.markerName = (mk) => mk.display_name || mk.marker_id;
   globalThis.window = {};
   new Function([extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
+                extractConst("HT_MON_SHORT"), extractConst("HT_MON_LONG"), extract("heroDateParts"),
                 extract("esc"), extract("markerSeriesInfo"), extract("markerHistory"),
                 extract("heroTrajectoryModel"), extract("heroTrajectorySVG"), lets,
                 extract("heroTrajWidth"), extract("heroTrajPanelCount"),
@@ -462,7 +469,9 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   const onePanel = render([{ id: "r1", collected_on: null }], ["r1"]);
   ok(!onePanel.hidden && onePanel.html.length > 0,
      "GUARD-5: ONE panel renders the first-panel well, so the guard is not hiding everything");
-  ok(onePanel.html.includes(">today<"), "GUARD-6: and it really is the first-panel well");
+  // Identified by the empty next-panel ring, which only the first-panel well draws. It used to be
+  // the word "today", which HERO_TIME_V1 removed because it was false on 19 of 21 stored panels.
+  ok(onePanel.html.includes('class="ht-ring"'), "GUARD-6: and it really is the first-panel well");
   const twoPanels = render([{ id: "r1", collected_on: null }, { id: "r2", collected_on: null }], ["r1", "r2"]);
   ok(twoPanels.hidden, "GUARD-7: TWO undated panels resolving to single hides the strip");
   eq(twoPanels.html, "", "GUARD-8: and the host is cleared, not left showing a stale plot");
