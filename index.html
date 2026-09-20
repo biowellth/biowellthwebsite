@@ -936,7 +936,10 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
          Absent keys pass empty, never a default: /waitlist sets direct upstream. Note
          embed.js omits empty values from the popup URL, which lands identically, a blank
          hidden field. fbclid and every other param are never read here.
-         No analytics, pixel or extra request.
+         THIS BLOCK reads the params and sets attributes the embed already reads. It
+         issues no request of its own and sends nothing anywhere. Scoped to this block
+         on purpose: it is not a claim about the page, which does load third-party
+         script (the Typeform embed below, and error monitoring at the end of body).
          TYPEFORM_UTM_HIDDEN_V2: the form loading is non-negotiable, the tags are best
          effort. V1 read the params first and returned on a throw, which left the
          desktop iframe with no src at all and no signup path. Now src is assigned
@@ -1145,5 +1148,231 @@ document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
 route();
 </script>
 <script src="https://embed.typeform.com/next/embed.js"></script>
+
+<!-- ERROR_MONITORING_V1 — Sentry browser SDK, ERRORS ONLY.
+     Added 2026-09-20. There was no client-side error capture of any kind before this:
+     measured against the served bytes, sentry/posthog/gtag/googletagmanager/mixpanel/
+     amplitude/logrocket/datadog/bugsnag were all 0, and so were window.onerror and
+     unhandledrejection.
+
+     THE BUNDLE IS THE ERRORS-ONLY ONE, AND THAT IS A STRUCTURAL GUARANTEE rather than a
+     configuration one. bundle.min.js is 90,620 bytes; bundle.replay.min.js is 216,753 and
+     bundle.tracing.min.js is 147,894. The recorder and the tracing code are not in this
+     file, and the bundle says so itself — it carries the string "You are using
+     replayIntegration() even though this bundle does not include replay". The
+     replaysSessionSampleRate and replaysOnErrorSampleRate zeros below are therefore a
+     second layer over a bundle that physically cannot record a session.
+
+     PINNED WITH SRI, NO LOADER. A loader script is itself mutable, so pinning its version
+     pins nothing. The integrity hash was computed from the fetched bytes and confirmed
+     identical across two independent fetches.
+
+     NO SOURCEMAPS AND NO BUILD STEP, deliberately. This file is served unminified as
+     authored (65 bytes per line average, 641 indented lines), so stack frames already
+     carry real line numbers.
+
+     POSITION: END OF BODY, AND IT DIFFERS FROM dashboard.html ON PURPOSE. This page is
+     public, its scripts are small, and nothing here reads health data, so the cost of
+     loading last — parse-time errors in earlier inline script are missed — is worth
+     paying to keep a third-party script behind the page's own. The dashboard makes the
+     opposite trade and loads Sentry in <head>, because that page is almost entirely ONE
+     inline application script and loading last would miss exactly the code most worth
+     watching.
+
+     THE "BYTE-IDENTICAL CONFIG" CLAIM IS ABOUT THE INIT BLOCK, NOT THE PLACEMENT. The
+     (function(){...})() below is byte-identical to the dashboard's and is verified by md5
+     on every change; where the tag sits in the document is a per-page decision. -->
+<script src="https://browser.sentry-cdn.com/10.74.0/bundle.min.js"
+        integrity="sha384-ekhFYbUiD5vrs1pT5Kty50wAgPsq9eoEDo+hUVl7VahsXkikMcPAq0W0HCoTjGTY"
+        crossorigin="anonymous"></script>
+<script>
+(function () {
+  // THE DSN IS NOT SET YET. Until a real value lands here, init is SKIPPED and this page
+  // behaves in every respect exactly as it did before the tag existed: no requests, no
+  // handlers installed, nothing sent. A placeholder that merely LOOKS like a DSN would
+  // point at someone else's project, so there is deliberately not one.
+  var SENTRY_DSN = "";   // <-- PASTE DSN HERE
+
+  try {
+    if (!SENTRY_DSN) return;
+    if (!window.Sentry || typeof window.Sentry.init !== "function") return;
+
+    // A Supabase report id is a uuid. An event carrying one anywhere is DROPPED whole
+    // rather than scrubbed, because a report id is the join key to a person's panel.
+    var REPORT_ID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+    // Any standalone number carrying a decimal point is treated as a possible biomarker
+    // value. This OVER-redacts on purpose: it also eats version strings and durations.
+    // Over-redaction costs a little debuggability; under-redaction ships a lab result.
+    var DECIMAL  = /\d+\.\d+/g;
+    var PDF_NAME = /[^\s"'\/\\]+\.pdf/gi;
+    var SCOPED   = /reports|results|markers|profiles/i;
+
+    // PSEUDONYMOUS AND NON-JOINABLE. 16 hex characters from crypto.getRandomValues,
+    // minted once per browser and kept in localStorage. It is NOT the Supabase user id,
+    // NOT an email, and DELIBERATELY NOT UUID-SHAPED — a uuid-shaped id would match
+    // REPORT_ID above and trip the suppression path on every single event, which would
+    // turn the whole instrument into a stub generator. The regex below is the guard that
+    // a stored value still has the right shape before it is reused.
+    //
+    // Nothing here can be joined back to a person by us or by Sentry: it is random, it
+    // never leaves the browser except as this id, and clearing site data rotates it.
+    var BROWSER_ID_KEY = "biowellth_sentry_browser_id";
+    function browserId() {
+      try {
+        var v = window.localStorage.getItem(BROWSER_ID_KEY);
+        if (v && /^[0-9a-f]{16}$/.test(v)) return v;
+        var b = new Uint8Array(8);
+        window.crypto.getRandomValues(b);
+        var s = "";
+        for (var i = 0; i < b.length; i++) s += ("0" + b[i].toString(16)).slice(-2);
+        window.localStorage.setItem(BROWSER_ID_KEY, s);
+        return s;
+      } catch (e) {
+        // Private mode, blocked storage, or no crypto. Degrade to no user context rather
+        // than throwing: an absent id costs grouping, a throw costs the page.
+        return null;
+      }
+    }
+
+    // A DROP THAT LEAVES NO TRACE READS AS "NO ERRORS", WHICH IS THE WRONG ANSWER.
+    // Returning null made suppressed events invisible and indistinguishable from a quiet
+    // system — the same false-negative shape as a log grep with no control line. So a
+    // suppressed event becomes a COUNTABLE STUB instead: the exception TYPE, the level,
+    // and a fixed message. Never the exception value, no breadcrumbs, no request, no
+    // extra, no contexts, and no user — the object below is built fresh rather than
+    // edited, so nothing can survive by being forgotten.
+    //
+    // The cost, stated: these stubs are not attributable to a browser id, so they can be
+    // counted and filtered on suppressed:true but not grouped by who hit them.
+    function suppressed(event) {
+      var type = null;
+      try {
+        var v = event.exception && event.exception.values;
+        if (v && v.length) type = v[v.length - 1].type || null;
+      } catch (e) { type = null; }
+      var stub = {
+        event_id: event.event_id,
+        timestamp: event.timestamp,
+        platform: event.platform,
+        level: event.level,
+        message: "suppressed: event contained an identifier",
+        tags: { suppressed: "true" }
+      };
+      if (type) stub.exception = { values: [{ type: type }] };
+      return stub;
+    }
+
+    function scrub(s) {
+      if (typeof s !== "string") return s;
+      return s.replace(PDF_NAME, "[pdf]").replace(DECIMAL, "[num]");
+    }
+    function stripQuery(u) {
+      if (typeof u !== "string") return u;
+      var i = u.indexOf("?"); if (i !== -1) u = u.slice(0, i);
+      var h = u.indexOf("#"); if (h !== -1) u = u.slice(0, h);
+      return u;
+    }
+    function scrubData(d) {
+      if (!d) return d;
+      for (var k in d) { if (typeof d[k] === "string") d[k] = scrub(d[k]); }
+      if (typeof d.url === "string") d.url = stripQuery(d.url);
+      return d;
+    }
+    // Everything the drop test looks at, in one string.
+    function eventText(ev) {
+      var parts = [];
+      if (ev.message) parts.push(String(ev.message));
+      if (ev.request && ev.request.url) parts.push(String(ev.request.url));
+      var vals = ev.exception && ev.exception.values;
+      if (vals) for (var i = 0; i < vals.length; i++) {
+        if (vals[i].value) parts.push(String(vals[i].value));
+        if (vals[i].type) parts.push(String(vals[i].type));
+      }
+      var bcs = ev.breadcrumbs;
+      if (bcs) for (var j = 0; j < bcs.length; j++) {
+        if (bcs[j].message) parts.push(String(bcs[j].message));
+        if (bcs[j].data && bcs[j].data.url) parts.push(String(bcs[j].data.url));
+      }
+      return parts.join(" ");
+    }
+
+    window.Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: (location.hostname === "biowellth.ai") ? "production" : "dev",
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+      // ERRORS ONLY. Release health would send a session envelope per page view, which is
+      // a request about a person's visit rather than about a fault.
+      autoSessionTracking: false,
+      // Their embed's exceptions are not ours to carry, and they would fill the quota.
+      denyUrls: [/embed\.typeform\.com/i, /form\.typeform\.com/i],
+
+      beforeSend: function (event) {
+        try {
+          // COUNTABLE, NOT INVISIBLE. See suppressed() above.
+          if (REPORT_ID.test(eventText(event))) return suppressed(event);
+          if (event.request) {
+            if (event.request.url) event.request.url = stripQuery(String(event.request.url));
+            delete event.request.query_string;
+          }
+          if (event.message) event.message = scrub(event.message);
+          var vals = event.exception && event.exception.values;
+          if (vals) for (var i = 0; i < vals.length; i++) {
+            if (vals[i].value) vals[i].value = scrub(vals[i].value);
+          }
+          var bcs = event.breadcrumbs;
+          if (bcs) for (var j = 0; j < bcs.length; j++) {
+            if (bcs[j].message) bcs[j].message = scrub(bcs[j].message);
+            bcs[j].data = scrubData(bcs[j].data);
+          }
+          return event;
+        } catch (e) {
+          // FAIL CLOSED. If scrubbing threw, the event is not known to be clean, so it is
+          // not sent. A lost error report is cheaper than a leaked lab value.
+          return null;
+        }
+      },
+
+      beforeBreadcrumb: function (crumb) {
+        try {
+          if (!crumb) return null;
+          if (crumb.category === "xhr" || crumb.category === "fetch") {
+            var url = (crumb.data && crumb.data.url) ? String(crumb.data.url) : "";
+            if (SCOPED.test(url)) {
+              // Replaced wholesale with a synthetic crumb carrying the STATUS CODE ONLY.
+              // No url, no method, no body, so the path and its ids never enter the trail.
+              var st = crumb.data && (crumb.data.status_code || crumb.data.statusCode);
+              return {
+                type: "default",
+                category: "http.scrubbed",
+                level: crumb.level,
+                timestamp: crumb.timestamp,
+                message: "request to a health endpoint",
+                data: (st === undefined || st === null) ? {} : { status_code: st }
+              };
+            }
+            if (crumb.data && crumb.data.url) crumb.data.url = stripQuery(String(crumb.data.url));
+          }
+          if (crumb.message) crumb.message = scrub(crumb.message);
+          crumb.data = scrubData(crumb.data);
+          return crumb;
+        } catch (e) {
+          return null;
+        }
+      }
+    });
+
+    // Set AFTER init, and only if we actually have one. A null id sets no user context
+    // at all rather than an empty one, so "unknown browser" is absent rather than a
+    // value that looks like an answer.
+    var bid = browserId();
+    if (bid) { try { window.Sentry.setUser({ id: bid }); } catch (e) {} }
+  } catch (e) {
+    // A monitoring failure must never be why the page breaks.
+  }
+})();
+</script>
 </body>
 </html>
