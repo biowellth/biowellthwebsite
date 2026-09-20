@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 21:30Z
+BRIEF : Live dashboard is blank below the hero. Revert dashboard.html to fa7c477,
+        the last known-good state, then diagnose without fixing.
+SCOPE : dashboard.html, scripts/test-prio-art.mjs
