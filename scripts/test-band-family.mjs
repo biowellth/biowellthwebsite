@@ -185,6 +185,10 @@ const PRIO_TOGGLE_LABEL = new Function("return " +
 const markerName = (m) => (m && (m.display_name || m.marker_id)) || "";
 const sysStatus = () => ({ cls: "s-good", label: "Looks good" });
 const toneFor = () => "t-coral";
+// PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
+// toneFor is, because the drawing is not what this file asserts: scripts/test-prio-art.mjs
+// executes the real one and scripts/test-dashboard-e2e.mjs renders it in a browser.
+const prioArtSVG = () => "";
 const SENSITIVE_SYSTEMS = new Set(["heavy_metals", "autoimmune", "tumor_markers"]);
 const healthyRangeText = () => "";
 const lookupRange = () => REF;
@@ -204,12 +208,12 @@ function renderWith(lookupObj, band, value) {
   const prioFn = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
     "markerBandGeometry", "BAND_LEGEND_HTML",
     "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
     markerBandGeometry, BAND_LEGEND_HTML);
   const card = prioFn({
     rank: 1, headline: "H", system_id: "metabolic",

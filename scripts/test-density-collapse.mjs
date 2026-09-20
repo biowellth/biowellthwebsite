@@ -143,6 +143,10 @@ const shipped = (name) => {
   return new Function("return " + m[0].replace("const " + name + " = ", "") + ";")();
 };
 const PRIO_TOGGLE_LABEL = shipped("PRIO_TOGGLE_LABEL");
+// PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
+// toneFor is, because the drawing is not what this file asserts: scripts/test-prio-art.mjs
+// executes the real one and scripts/test-dashboard-e2e.mjs renders it in a browser.
+const prioArtSVG = () => "";
 // MARKER_BAND_V3 — the legend markup is read out of the page, not restated here.
 const BAND_LEGEND_HTML = new Function(
   "return " + (CODE.match(/const BAND_LEGEND_HTML = ([\s\S]*?);\n/) || [])[1] + ";")();
@@ -213,12 +217,12 @@ const prioArrow = prioSrc.slice(prioSrc.indexOf("(x,i)=>"));
 const prioFn = new Function(
   "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
   "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-  "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+  "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
   "markerBandGeometry", "BAND_LEGEND_HTML",
   "return " + prioArrow + ";"
 )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
   chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-  markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+  markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
   markerBandGeometry, BAND_LEGEND_HTML);
 
 const card = prioFn(priority, 0);

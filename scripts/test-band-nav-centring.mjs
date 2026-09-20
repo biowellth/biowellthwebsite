@@ -681,6 +681,10 @@ const SENSITIVE_SYSTEMS = new Set(["heavy_metals", "autoimmune", "tumor_markers"
 const markerName = (m) => (m && (m.display_name || m.marker_id)) || "";
 const sysStatus = () => ({ cls: "s-good", label: "Looks good" });
 const toneFor = () => "t-coral";
+// PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
+// toneFor is, because the drawing is not what this file asserts: scripts/test-prio-art.mjs
+// executes the real one and scripts/test-dashboard-e2e.mjs renders it in a browser.
+const prioArtSVG = () => "";
 const healthyRangeText = (ref) => (ref && ref.low != null && ref.high != null)
   ? ("Healthy " + ref.low + " to " + ref.high) : "";
 const PRIO_TOGGLE_LABEL = { closed: "See more details", open: "Hide details" };
@@ -695,11 +699,11 @@ function renderPriority({ sysId, ref, value, band }) {
   const fn = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
     "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
     markerBandGeometry, BAND_LEGEND_HTML);
   return fn({
     rank: 1, headline: "SENTINEL_HEADLINE",
@@ -757,11 +761,11 @@ ok("WIRING: with the map empty, no band draws even if a value is set on pm", (()
   const fn = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
     "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, () => F, healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
     markerBandGeometry, BAND_LEGEND_HTML);
   const html = fn({ rank: 1, headline: "H",
     primary_markers: [{ marker_id: "m1", display_name: "M", band: "optimal", value: 15 }] }, 0);
@@ -1225,11 +1229,11 @@ eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || [])
   const many = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
     "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     { m1: "metabolic", m2: "metabolic", m3: "metabolic" }, { m1: 7, m2: 25, m3: 2 },
-    () => F, healthyRangeText, markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL,
+    () => F, healthyRangeText, markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
     markerBandGeometry, BAND_LEGEND_HTML);
   const card = many({ rank: 1, headline: "H", why_this_matters: "W", primary_markers: [
     { marker_id: "m1", display_name: "One", band: "low" },
@@ -1245,11 +1249,11 @@ eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || [])
   const none = new Function(
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
-    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL",
+    "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
     "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     { m1: "metabolic" }, { m1: 7 }, () => ({ low: 10, high: null }), healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, markerBandGeometry, BAND_LEGEND_HTML)(
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG, markerBandGeometry, BAND_LEGEND_HTML)(
     { rank: 1, headline: "H", why_this_matters: "W",
       primary_markers: [{ marker_id: "m1", display_name: "One", band: "low" }] }, 0);
   eq("no-band control: that card drew no band at all", (none.match(/class="mk-band"/g) || []).length, 0);
