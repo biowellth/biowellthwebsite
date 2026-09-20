@@ -460,28 +460,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .sm-chart .dlabel{font-family:'JetBrains Mono',monospace;font-size:7px;fill:var(--brown-mid)}
 .sm-trend-note{font-size:12.5px;line-height:1.55;color:var(--brown-mid);margin-top:11px}
 .sm-empty{font-size:13.5px;line-height:1.6;color:var(--brown-mid);margin-top:18px;font-style:italic}
-.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:26px 30px;margin-bottom:14px;display:flex;gap:22px;align-items:flex-start}
-/* PRIO_ART_V1 — the two tone rules that coloured the left border are GONE with the border. The
-   tone class still ships on the card, so nothing that reads it breaks; it simply paints nothing.
-   A sensitive priority is now marked by the ABSENCE of a drawing, which is a stronger signal than
-   a neutral border was: the card carries no decorative mark at all. */
-/* PRIO_ART_V1 — one line drawing per priority card, keyed on the DRIVER MARKER'S system.
-   Never on priority.system_id, which line 5649 records as model-chosen and unstable; the
-   drawing uses chipSysByMarker, the engine-produced map the card already trusts for its chips.
-   NO DRAWING for an unmapped system and NO DRAWING for a safety class, mirroring the guard at
-   the chips: a heavy-metals, autoimmune or tumour-marker priority is not a place for decoration.
-   There was no per-system colour token in this file, so each system takes the accent of its
-   THEME_DEFS cluster, from tokens that already exist. */
-.prio-body{flex:1;min-width:0}
-.prio-art{flex:none;width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.prio-art svg{width:62px;height:52px;display:block}
-.prio-art path{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
-@keyframes paDraw{from{stroke-dashoffset:var(--pa-len,300)}to{stroke-dashoffset:0}}
-/* ONCE PER PAGE LIFE. .pa-anim is added to #prios a single time by renderDashboard, so a panel
-   switch redraws the same cards without replaying the draw-in. The stagger is per CARD, from an
-   inline --pa-i index, so the drawings arrive in the order the priorities are ranked. */
-.pa-anim .prio-art path{stroke-dasharray:var(--pa-len,300);stroke-dashoffset:var(--pa-len,300);animation:paDraw 1.1s cubic-bezier(.25,.8,.3,1) forwards;animation-delay:calc(var(--pa-i,0) * .3s)}
-@media(max-width:480px){.prio-art{width:56px;height:56px}.prio-art svg{width:46px;height:38px}}
+.prio{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:26px 30px;margin-bottom:14px;border-left:4px solid var(--coral)}
+.prio.t-amber{border-left-color:var(--amber)}
+.prio.t-neutral{border-left-color:var(--brown-light)}
 .prio-bridge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:6px 0;margin-top:2px}
 .prio-bridge:hover{color:var(--brown)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
@@ -1056,9 +1037,6 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
      start offset, which is an empty plot rather than a still one. */
   .hero-traj .ht-faint,.hero-traj .ht-hi{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
   .hero-traj .ht-end{animation:none!important}
-  /* PRIO_ART_V1. Static and COMPLETE: clearing the dasharray too, or the drawing freezes at its
-     start offset, which is an empty circle rather than a still one. */
-  .prio-art path{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
 }
 /* Report vault ("Your reports") — approved mock tokens */
 /* Report vault now lives INSIDE #account-modal (between the privacy row and the delete zone). It is a
@@ -6616,68 +6594,7 @@ async function renderDashboard(p, reportId){
     // (the value lives in the chip on the card face), so the range keeps its unit. Guard: no detail
     // blocks -> no toggle.
     const mkList = Array.isArray(x.primary_markers) ? x.primary_markers : [];
-    // ── PRIO_ART_V1 ───────────────────────────────────────────────────────────────
-// One drawing per system, 124 by 104, single weight, stroke only. Keyed by SYSTEM ID, and the
-// system comes from the DRIVER MARKER via chipSysByMarker, never from priority.system_id, which
-// the note at the verdict builder records as model-chosen and unstable.
-//
-// A SYSTEM WITHOUT A DRAWING GETS NONE. There is deliberately no generic fallback mark: a shape
-// that stands for nothing in particular is decoration pretending to be information.
-//
-// SAFETY CLASSES ARE EXCLUDED INSIDE THE RENDERER, not at the call site, so a future caller
-// cannot forget the rule. It mirrors the chip guard on the same card.
-//
-// COLOUR FOLLOWS TONE, NOT SYSTEM. The shape says which system; the colour says how the card
-// reads, from the same toneFor the card already computes. Removing the coral left border left the
-// tone class painting NOTHING on this card (every surviving t- rule is #view-reveal scoped, at
-// :993-995 and :1033-1035), so the drawing carries it instead and the signal comes back. The three
-// pairs below are the reveal deck's own tone palette, not a new choice.
-let PRIO_ART_DRAWN = false;
-const PRIO_ART = {
-  // energy
-  iron_status:   ["M62 24 C50 42 44 54 44 64 a18 18 0 0 0 36 0 c0 -10 -6 -22 -18 -40 Z","M48 66 q14 8 28 0"],
-  hematology:    ["M32 56 c10 -16 50 -16 60 0 c-10 16 -50 16 -60 0 Z","M52 56 h20"],
-  thyroid:       ["M54 38 c-12 -6 -24 2 -24 16 c0 14 10 24 20 22 c8 -2 10 -12 10 -22 c0 -8 -2 -13 -6 -16 Z","M70 38 c12 -6 24 2 24 16 c0 14 -10 24 -20 22 c-8 -2 -10 -12 -10 -22 c0 -8 2 -13 6 -16 Z","M54 58 h16"],
-  // inflammation and immunity
-  inflammation:  ["M62 56 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0","M62 56 m-18 0 a18 18 0 1 0 36 0 a18 18 0 1 0 -36 0","M62 56 m-28 0 a28 28 0 1 0 56 0 a28 28 0 1 0 -56 0"],
-  immune_subsets:["M62 24 l26 11 v19 c0 18 -12 30 -26 36 c-14 -6 -26 -18 -26 -36 V35 Z"],
-  // cycle and hormones
-  sex_hormones:  ["M30 62 C42 34 54 34 62 52 C70 70 82 70 94 44","M30 78 h64"],
-  adrenal:       ["M32 72 l16 -22 l12 14 l14 -30 l18 38","M30 80 h64"],
-  growth:        ["M34 74 h14 v-12 h14 v-14 h14 v-16 h14","M34 82 h56"],
-  // metabolic
-  metabolic:     ["M34 70 a28 28 0 0 1 56 0","M62 70 l16 -18","M34 76 h56"],
-  cardiovascular:["M30 58 h16 l6 -16 l10 32 l8 -16 h24"],
-  fatty_acids:   ["M30 68 l16 -22 l16 22 l16 -22 l16 22"],
-  // nutrients
-  vitamins:      ["M40 80 c0 -26 18 -46 48 -50 c2 30 -18 50 -48 50 Z","M40 80 l18 -18"],
-  minerals:      ["M62 26 l24 20 l-9 34 h-30 l-9 -34 Z","M38 46 h48","M62 26 v54"],
-  methylation:   ["M62 26 l24 14 v28 l-24 14 l-24 -14 V40 Z","M50 56 l14 -10 v20 Z"],
-  // organ function
-  liver:         ["M30 40 c22 -8 48 -6 64 2 c6 14 -2 30 -18 36 l-10 -14 l-10 14 c-16 -4 -28 -20 -26 -38 Z"],
-  kidney:        ["M72 30 c18 8 20 40 2 50 c-16 9 -34 2 -40 -12 c-3 -7 0 -13 8 -14 c9 -1 9 -13 0 -15 c-8 -2 -8 -10 2 -13 c8 -3 20 -1 28 4 Z"],
-  pancreas:      ["M32 60 c10 -12 26 -16 40 -10 c10 4 18 2 24 -4 c6 8 4 18 -6 22 c-14 6 -34 10 -46 4 c-8 -4 -12 -8 -12 -12 Z","M50 58 h26"],
-  urinalysis:    ["M50 26 h24","M56 26 v18 l-18 30 a10 10 0 0 0 9 14 h30 a10 10 0 0 0 9 -14 l-18 -30 V26","M44 66 h36"],
-  microbiome:    ["M62 34 c-16 0 -16 20 0 20 c20 0 20 -28 0 -28 c-24 0 -24 40 0 40 c14 0 20 -8 22 -16"],
-};
-const PRIO_ART_TONE = {
-  "t-coral":   { stroke:"var(--coral-dark)",  tint:"var(--coral-light)" },
-  "t-amber":   { stroke:"var(--orange-dark)", tint:"var(--amber-light)" },
-  "t-neutral": { stroke:"var(--brown-mid)",   tint:"var(--brown-light)" },
-};
-/** The card's drawing, or "" when the system is unknown, unmapped or a safety class. */
-function prioArtSVG(sysId, idx, tone){
-  if(!sysId || SENSITIVE_SYSTEMS.has(sysId)) return "";
-  const d = PRIO_ART[sysId];
-  if(!d) return "";
-  // An unknown tone falls to neutral rather than to no drawing: the SHAPE is still true about the
-  // system, and toneFor only ever returns one of these three.
-  const t = PRIO_ART_TONE[tone] || PRIO_ART_TONE["t-neutral"];
-  const paths = d.map(p => '<path d="' + p + '" stroke="' + t.stroke + '"/>').join("");
-  return '<div class="prio-art" style="background:' + t.tint + ';--pa-i:' + (idx || 0) + '">' +
-         '<svg viewBox="0 0 124 104" aria-hidden="true" focusable="false">' + paths + '</svg></div>';
-}
-// MARKER_BAND_V3 — THE LEGEND RENDERS ONCE PER CARD, never per row, and only when a TIER 1
+    // MARKER_BAND_V3 — THE LEGEND RENDERS ONCE PER CARD, never per row, and only when a TIER 1
     // band actually drew on this card. A card whose only tracks are Tier 2 has no amber and no
     // coral to explain, and a legend naming two regions that are not on screen is a claim about
     // data this marker does not have. Set inside the map below, read after it, which is why the
@@ -6750,12 +6667,7 @@ function prioArtSVG(sysId, idx, tone){
       return '<span class="chip '+cls+'">'+esc(label)+'</span>';
     }).join('');
     const chipsRow = mkList.length ? '<div class="prio-chips">'+chips+'</div>' : '';
-    // PRIO_ART_V1 — the DRIVER's system, resolved the same way the chips resolve theirs.
-    const artSysId = pm ? chipSysByMarker[pm.marker_id] : null;
-    const artTone = toneFor(x);
-    return '<div class="prio '+artTone+'">'+
-      prioArtSVG(artSysId, i, artTone) +
-      '<div class="prio-body">'+
+    return '<div class="prio '+toneFor(x)+'">'+
       '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
       '<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+
       chipsRow +
@@ -6765,7 +6677,6 @@ function prioArtSVG(sysId, idx, tone){
             ' <span class="prio-chev">&rsaquo;</span></button>'+
           '<div class="prio-detail">'+detail+'</div>'
         : '')+
-      '</div>'+
     '</div>';
   }).join("") +
     // Bridge line: renders ONLY when more markers are flagged than the cards can show. N is the SAME
@@ -6776,9 +6687,6 @@ function prioArtSVG(sysId, idx, tone){
     (heroFlagN > pr.length
       ? '<button class="prio-bridge" type="button">These are the patterns that matter most. See all '+heroFlagN+' markers worth a closer look <span aria-hidden="true">&#8250;</span></button>'
       : "");
-  // PRIO_ART_V1 — draw-in once per page life. A panel switch re-renders these cards, and
-  // replaying the stagger on every switch would make the section feel like it was reloading.
-  if(!PRIO_ART_DRAWN){ PRIO_ART_DRAWN = true; $("prios").classList.add("pa-anim"); }
   const prioBridge = $("prios").querySelector(".prio-bridge");
   if(prioBridge) prioBridge.onclick = ()=> openMarkersView(p, null, 's-flag');
   // Per-card toggle wiring — mirrors longi: every card starts CLOSED on each render
