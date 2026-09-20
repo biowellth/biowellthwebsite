@@ -6549,7 +6549,7 @@ function dcUpdateProgress(){
   const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
   const done = __dcState.done.size, total = __dcState.three.length;
   const prog = host.querySelector('.dc-prog'); if(prog) prog.textContent = done + ' of ' + total + ' today';
-  const st = host.querySelector('.dc-status'); if(st) st.textContent = (total>0 && done===total) ? 'All done for today' : 'Three small invitations';
+  const st = host.querySelector('.dc-status'); if(st) st.textContent = (total>0 && done===total) ? 'All done for today' : 'Three small things you could do today';
   host.classList.toggle('all-done', total>0 && done===total);
 }
 
@@ -6591,7 +6591,7 @@ function dcRenderCard(){
   }).join('');
   host.innerHTML =
     '<div class="dc-head"><div class="dc-avatar">S</div>'
-    + '<div class="dc-titlewrap"><div class="dc-title">Today with Sana</div><div class="dc-status">Three small invitations</div></div>'
+    + '<div class="dc-titlewrap"><div class="dc-title">Today with Sana</div><div class="dc-status">Three small things you could do today</div></div>'
     + '<div class="dc-prog">0 of ' + __dcState.three.length + ' today</div></div>'
     + '<div class="dc-actions">' + rows + '</div>'
     + '<div class="dc-closing">That is all three for today, a quiet kind of progress.</div>';
