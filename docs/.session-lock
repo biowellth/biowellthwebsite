@@ -1,0 +1,5 @@
+HOLDER: claude-code session 5b252252
+TAKEN : 2026-09-20 19:15Z
+BRIEF : The drawing's colour follows the card's TONE, not its system. The
+        system-to-accent mapping I chose is deleted.
+SCOPE : dashboard.html, scripts/test-prio-art.mjs
