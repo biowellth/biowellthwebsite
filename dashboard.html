@@ -1135,7 +1135,12 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    them gets the teal and coral wash painted OVER its background. The well has to be a
    flat beige surface or the line colours are no longer on the surface they were
    contrast-checked against. */
-.hero-traj{flex:0 0 100%;order:4;margin-top:18px;position:relative;z-index:2}
+.hero-traj{flex:0 0 100%;order:4;margin-top:18px;position:relative;z-index:2;width:100%;align-self:stretch}
+/* width:100% and align-self:stretch are for the MOBILE hero, and they are load bearing.
+   At 600px and below .reveal-head becomes flex-direction:column with align-items:center
+   (line 1166), and in a column flex container flex-basis is the HEIGHT. The strip was
+   therefore shrink-to-fit on a phone, which is 0 while it is still empty, so it measured
+   0 and drew at the 680 default scaled into 216px: 3.5px labels. Measured, not guessed. */
 .hero-traj.hidden{display:none}
 .hero-traj-well{background:var(--brown-soft);border-radius:16px;padding:12px 14px 8px}
 .hero-traj-well svg{display:block;width:100%;height:auto}
@@ -1144,8 +1149,18 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .ht-faint{fill:none;stroke:rgba(71,55,43,.18);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 .ht-hi{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .ht-nextlink{stroke:rgba(71,55,43,.28);stroke-width:1;stroke-dasharray:3 3}
-.ht-label{font-family:'Instrument Sans',sans-serif;font-size:11px;font-weight:600}
-.ht-tick{font-family:'JetBrains Mono',monospace;font-size:9px;fill:rgba(71,55,43,.55)}
+/* LABEL TEXT IS BROWN, NOT THE LINE COLOUR. Coloured text was the identity carrier
+   and it cost contrast: --amber-deep clears 3:1 on the well, which is the floor for a
+   2.6px line, and falls short of the 4.5:1 a NAME has to meet. The swatch carries the
+   identity instead, because a 2.6px stroke is a graphical object and is read at the 3:1
+   floor it already passes, while the word beside it is text and is read at 4.5:1. */
+.ht-label{font-family:'Instrument Sans',sans-serif;font-size:11px;font-weight:600;fill:var(--brown)}
+.ht-swatch{stroke-width:2.6;stroke-linecap:round}
+.ht-tick{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--brown-mid)}
+/* The caption sits OUTSIDE the well, on the brown hero, so it is cream on brown and
+   not brown on beige. It had no rule at all until now and was inheriting the hero's
+   --cream at a browser default size. */
+.hero-traj-cap{font-family:'Instrument Sans',sans-serif;font-size:12px;color:rgba(250,248,244,.75);margin:8px 0 0;line-height:1.5}
 @keyframes htDraw{from{stroke-dashoffset:var(--ht-len,700)}to{stroke-dashoffset:0}}
 @keyframes htPulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* FIRST RENDER ONLY. .ht-anim is added once per page life by renderHeroTrajectory,
@@ -9849,15 +9864,47 @@ function heroTrajectoryModel(series, priorityIds){
 // HERO_TRAJ_V1 drawing. Inline SVG, string-built like every other chart here
 // (miniSparkSVG, the system chart) so there is no second rendering technique to
 // maintain. Geometry only; every exclusion already happened in the model.
-function heroTrajectorySVG(m){
-  const W = 680, H = 136, padT = 16, padB = 22, padL = 12;
-  // xToday sits mid-well rather than at xEnd. With one panel there is nothing to the left
-  // of it, and parking the dots hard against the next-panel column leaves two thirds of the
+function heroTrajectorySVG(m, width){
+  // THE VIEWBOX WIDTH IS THE RENDERED WIDTH, which is the whole point of taking a width
+  // at all. A fixed 680 viewBox stretched to width:100% scales its own text, so an 11px
+  // label rendered at about 5.7px inside a 350px phone well and the ticks were smaller
+  // still. Deriving every x from the real width means 11px text is 11px everywhere and
+  // the contrast numbers measured on the well are the numbers a reader actually gets.
+  // THE FLOOR IS 200, NOT 300, AND THE REASON IS MEASURED. At a 390px viewport the well's
+  // inner width is 218px: .app pads 40px 32px (line 111) and .reveal-head pads 30px 40px
+  // (line 356), neither overridden on mobile, so 390 - 64 - 80 - 28 = 218. A 300 floor
+  // would put a 300-unit viewBox inside 218 rendered pixels, scale everything by 0.73, and
+  // render the 11px label at 8px, which is the exact defect this width pass exists to fix.
+  // The floor is only here to stop a degenerate viewBox, and 200 does that.
+  const W = Math.max(200, Math.round(width || 680));
+  const H = 136, padT = 16, padB = 22, x0 = 10;
+  const narrow = W < 480;
+  // The label column scales with the plot but never collapses below a readable name and
+  // never eats more than a fifth of a wide well.
+  const labelW = Math.max(narrow ? 76 : 96, Math.min(150, Math.round(W * 0.28)));
+  const labelX = W - labelW + 4;
+  const xNext = labelX - 24;
+  const xEnd = xNext - 24;
+  const xFirst = x0 + 22;
+  // xToday sits mid-plot rather than at xEnd. With one panel there is nothing to the left
+  // of it, and parking the dots hard against the next-panel column leaves most of the
   // well empty, which reads as a chart that failed to load rather than a first panel.
-  const xFirst = 32, xEnd = 470, xNext = 516, labelX = 546, xToday = 300;
+  const xToday = Math.round(x0 + (xEnd - x0) * 0.62);
   const plotH = H - padT - padB, mid = padT + plotH / 2;
   const single = m.mode === "single";
   const MON3 = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const SWATCH = 12, SWGAP = 5, textX = labelX + SWATCH + SWGAP;
+  // 6.3px per character is Instrument Sans semibold at 11px, measured wide rather than
+  // average so a long name is trimmed early instead of running off the well.
+  const maxChars = Math.max(4, Math.floor((W - textX - 4) / 6.3));
+  const trim = (s) => {
+    s = String(s == null ? "" : s);
+    return s.length > maxChars ? (s.slice(0, maxChars - 1) + "…") : s;
+  };
+  // UNDER 480 THE FAINT SET IS HALVED. Twelve grey lines inside a 300px plot is a texture,
+  // not twelve readable markers, and it buries the three that are labelled.
+  const faint = narrow ? m.faint.slice(0, 6) : m.faint;
+
   const yOf = (pct) => mid - (Math.max(-50, Math.min(50, pct)) / 50) * (plotH / 2);
   const xOf = (d) => {
     if(m.dates.length < 2) return xEnd;
@@ -9874,13 +9921,13 @@ function heroTrajectorySVG(m){
   };
   const r1 = (n) => Math.round(n * 10) / 10;
 
-  const rows = single ? m.highlights.concat(m.faint) : [];
+  const rows = single ? m.highlights.concat(faint) : [];
   const rowY = (i) => padT + 8 + i * ((plotH - 16) / Math.max(1, rows.length - 1));
 
   let svg = '';
   // The next-panel column. Dashed and rounded because it is a promise, not a reading.
-  svg += '<rect class="ht-next" x="' + (xNext - 16) + '" y="' + padT + '" width="32" height="' + plotH + '" rx="12"/>';
-  if(!single) svg += '<line class="ht-axis" x1="' + padL + '" y1="' + mid + '" x2="' + xEnd + '" y2="' + mid + '"/>';
+  svg += '<rect class="ht-next" x="' + r1(xNext - 15) + '" y="' + padT + '" width="30" height="' + plotH + '" rx="12"/>';
+  if(!single) svg += '<line class="ht-axis" x1="' + x0 + '" y1="' + mid + '" x2="' + r1(xEnd) + '" y2="' + mid + '"/>';
 
   if(single){
     // Y CARRIES NO MEANING HERE and the caption says as much. With one panel every
@@ -9889,12 +9936,12 @@ function heroTrajectorySVG(m){
     // an order that the data does not contain.
     rows.forEach((mk, i) => {
       const y = rowY(i), hi = i < m.highlights.length;
-      svg += '<line class="ht-nextlink" x1="' + (xToday + 6) + '" y1="' + r1(y) + '" x2="' + (xNext - 18) + '" y2="' + r1(y) + '"/>';
-      svg += '<circle cx="' + xToday + '" cy="' + r1(y) + '" r="' + (hi ? 3.6 : 2.4) + '" ' +
+      svg += '<line class="ht-nextlink" x1="' + r1(xToday + 6) + '" y1="' + r1(y) + '" x2="' + r1(xNext - 17) + '" y2="' + r1(y) + '"/>';
+      svg += '<circle cx="' + r1(xToday) + '" cy="' + r1(y) + '" r="' + (hi ? 3.6 : 2.4) + '" ' +
              (hi ? 'class="ht-end" fill="' + mk.color + '"' : 'fill="rgba(71,55,43,.28)"') + '/>';
     });
   } else {
-    m.faint.forEach(mk => {
+    faint.forEach(mk => {
       const pts = mk.points.map(pt => ({ x: xOf(pt.date), y: yOf(pt.pct) }));
       if(pts.length < 2) return;
       svg += '<polyline class="ht-faint" style="--ht-len:' + len(pts) + '" points="' +
@@ -9915,6 +9962,10 @@ function heroTrajectorySVG(m){
   // it, and priority order is unrelated to where a line ended. Ordered by priority, a
   // third priority that finished at the top of the plot gets pushed below a second that
   // finished at the bottom, and its label then points at another marker's line.
+  //
+  // THE SWATCH CARRIES THE COLOUR, THE WORD DOES NOT. Coloured names cost contrast that
+  // text has to meet; a 2.6px stroke is a graphical object at a 3:1 floor, which every
+  // line colour already clears, while the name is text at 4.5:1 and is therefore brown.
   const labels = m.highlights.map((mk, i) => ({
     y: single ? rowY(i) : yOf(mk.points[mk.points.length - 1].pct),
     name: mk.name,
@@ -9924,12 +9975,13 @@ function heroTrajectorySVG(m){
   labels.forEach(l => {
     l.y = Math.min(H - padB, Math.max(l.y, prev + 16));
     prev = l.y;
-    svg += '<text class="ht-label" x="' + labelX + '" y="' + r1(l.y + 3.5) + '" fill="' + l.color + '">' +
-           esc(l.name) + '</text>';
+    svg += '<line class="ht-swatch" x1="' + r1(labelX) + '" y1="' + r1(l.y) + '" x2="' + r1(labelX + SWATCH) +
+           '" y2="' + r1(l.y) + '" stroke="' + l.color + '"/>';
+    svg += '<text class="ht-label" x="' + r1(textX) + '" y="' + r1(l.y + 3.8) + '">' + esc(trim(l.name)) + '</text>';
   });
 
   if(single){
-    svg += '<text class="ht-tick" x="' + xToday + '" y="' + (H - 6) + '" text-anchor="middle">today</text>';
+    svg += '<text class="ht-tick" x="' + r1(xToday) + '" y="' + (H - 6) + '" text-anchor="middle">today</text>';
   } else {
     m.dates.forEach(d => {
       const dt = new Date(d);
@@ -9938,7 +9990,10 @@ function heroTrajectorySVG(m){
              MON3[dt.getUTCMonth()] + '</text>';
     });
   }
-  svg += '<text class="ht-tick" x="' + xNext + '" y="' + (H - 6) + '" text-anchor="middle">next</text>';
+  // The word is dropped when the columns are too close to carry two labels, which on a
+  // 216px phone well they are: "Aug" and "next" overlap by a pixel at 390. The dashed
+  // rounded column is the element the reader needs; the word was only ever its caption.
+  if(xNext - xEnd >= 30) svg += '<text class="ht-tick" x="' + r1(xNext) + '" y="' + (H - 6) + '" text-anchor="middle">next</text>';
 
   const said = m.highlights.map(mk => mk.dir === "level"
     ? (mk.name + " roughly level")
@@ -9956,10 +10011,29 @@ function heroTrajectorySVG(m){
 // canonical_unit and is_cycle_gated are not on markerHistory's return, so they are
 // read from the same window.__rdSeries entry that markerHistory derives from, matched
 // by date, and fall back to the marker's own fields for the single-panel case.
-let HERO_TRAJ_DRAWN = false;
+let HERO_TRAJ_DRAWN = false;   // the draw-in is once per page life, not once per render
+let HERO_TRAJ_P = null;        // last payload, so a resize can redraw without a refetch
+let HERO_TRAJ_W = 0;           // last width drawn, so a resize that changes nothing is free
+let HERO_TRAJ_IO = null;       // IntersectionObserver, disconnected the moment it fires
+let HERO_TRAJ_RO = null;       // ResizeObserver, or true when the window fallback is attached
+let HERO_TRAJ_T = null;        // resize debounce
+
+// THE WELL'S INNER WIDTH, not the host's. .hero-traj-well pads 14px a side, and the SVG
+// renders inside that padding; passing the outer width would scale the viewBox down by
+// those 28px and shrink the text again, which is the bug this pass exists to fix.
+// clientWidth is 0 while #view-dashboard is still display:none, and it IS still hidden at
+// the first render (renderDashboard runs before showView at dashboard.html:2740), so 680
+// is the default and the ResizeObserver redraws at the real width once the view is shown.
+function heroTrajWidth(host){
+  const c = (host && host.clientWidth) || 0;
+  return c ? Math.max(200, c - 28) : 680;   // 200 floor, same reasoning as heroTrajectorySVG
+}
+
 function renderHeroTrajectory(p){
   const host = $("hero-traj");
   if(!host) return;
+  if(p) HERO_TRAJ_P = p; else p = HERO_TRAJ_P;
+  if(!p) return;
   const raw = (typeof window !== "undefined" && window.__rdSeries && typeof window.__rdSeries === "object")
     ? window.__rdSeries : {};
   const series = {};
@@ -9999,16 +10073,68 @@ function renderHeroTrajectory(p){
     host.classList.add("hidden");
     return;
   }
-  host.innerHTML = heroTrajectorySVG(model) +
-    '<p class="hero-traj-cap">' + esc(model.caption) + '</p>';
+  // UNHIDE BEFORE MEASURING. The host ships carrying .hidden, which is display:none, so
+  // measuring first reports 0 on every first render and draws at the 680 default even when
+  // the view is on screen. The ResizeObserver would repair that a debounce later, but the
+  // first paint is the one the reader sees. Measured in a browser, not reasoned about: the
+  // probe returned passedW 680 against a live host of 658 until this order was swapped.
   host.classList.remove("hidden");
-  // FIRST RENDER ONLY. Switching panels re-renders this strip, and replaying a 3s
-  // draw-in on every switch would make the hero feel like it is loading each time.
-  if(!HERO_TRAJ_DRAWN){
-    HERO_TRAJ_DRAWN = true;
+  HERO_TRAJ_W = heroTrajWidth(host);
+  host.innerHTML = heroTrajectorySVG(model, HERO_TRAJ_W) +
+    '<p class="hero-traj-cap">' + esc(model.caption) + '</p>';
+  heroTrajWatch(host);
+}
+
+// THE DRAW-IN FIRES ON FIRST SIGHT, NOT ON FIRST RENDER. The strip is below the fold on a
+// phone and the first render happens while the view is still hidden, so a render-time
+// animation played to nobody and the reader arrived to a plot that had already finished.
+// Once it has run it never runs again: the observer disconnects and the flag is page-life.
+// WITHOUT IntersectionObserver NOTHING IS ADDED, and the CSS then renders the lines
+// complete. Static is the correct degradation; a plot frozen at its start offset is empty.
+function heroTrajWatch(host){
+  if(!HERO_TRAJ_DRAWN && typeof IntersectionObserver !== "undefined"){
     const well = host.querySelector(".hero-traj-well");
-    if(well) well.classList.add("ht-anim");
+    if(well){
+      if(HERO_TRAJ_IO) HERO_TRAJ_IO.disconnect();
+      HERO_TRAJ_IO = new IntersectionObserver(function(entries){
+        for(const en of entries){
+          if(!en.isIntersecting) continue;
+          HERO_TRAJ_DRAWN = true;
+          en.target.classList.add("ht-anim");
+          if(HERO_TRAJ_IO){ HERO_TRAJ_IO.disconnect(); HERO_TRAJ_IO = null; }
+          break;
+        }
+      }, { threshold: 0.25 });
+      HERO_TRAJ_IO.observe(well);
+    }
   }
+  if(HERO_TRAJ_RO) return;
+  // ResizeObserver rather than a bare resize listener, because the width that matters
+  // changes without the window changing: the first render happens inside a hidden view,
+  // and the strip has to redraw at its real width the moment that view is shown.
+  if(typeof ResizeObserver !== "undefined"){
+    HERO_TRAJ_RO = new ResizeObserver(function(){ heroTrajResize(); });
+    HERO_TRAJ_RO.observe(host);
+  } else if(typeof window !== "undefined" && window.addEventListener){
+    HERO_TRAJ_RO = true;
+    window.addEventListener("resize", heroTrajResize);
+  }
+}
+
+// Debounced at 200ms, and a no-op unless the derived width actually moved. The width guard
+// is what makes re-entry safe: replacing innerHTML inside a ResizeObserver callback would
+// otherwise be a plausible way to observe your own write.
+function heroTrajResize(){
+  if(HERO_TRAJ_T) clearTimeout(HERO_TRAJ_T);
+  HERO_TRAJ_T = setTimeout(function(){
+    HERO_TRAJ_T = null;
+    const host = $("hero-traj");
+    if(!host || !HERO_TRAJ_P || host.classList.contains("hidden")) return;
+    if(heroTrajWidth(host) === HERO_TRAJ_W) return;
+    // Re-render drops .ht-anim with the old well. That is deliberate: the draw-in is not
+    // replayed on a resize, and HERO_TRAJ_DRAWN keeps heroTrajWatch from re-arming it.
+    renderHeroTrajectory(null);
+  }, 200);
 }
 // A qualitative marker is reported as a category (ABSENT, Negative, Nil) rather
 // than a number. The categorical text is not captured upstream, so these arrive

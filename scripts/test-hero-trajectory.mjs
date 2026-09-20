@@ -42,12 +42,16 @@ function extractConst(name) {
 
 const src = extractConst("SENSITIVE_MARKER_IDS") + "\n" +
             extractConst("SENSITIVE_SYSTEMS") + "\n" +
-            extract("heroTrajectoryModel") +
+            extract("esc") + "\n" +
+            extract("heroTrajectoryModel") + "\n" +
+            extract("heroTrajectorySVG") +
             "\n;globalThis.__model = heroTrajectoryModel;" +
+            "\n;globalThis.__svg = heroTrajectorySVG;" +
             "\n;globalThis.__SENS_MK = SENSITIVE_MARKER_IDS;" +
             "\n;globalThis.__SENS_SYS = SENSITIVE_SYSTEMS;";
 new Function(src)();
-const model = globalThis.__model, SENS_MK = globalThis.__SENS_MK, SENS_SYS = globalThis.__SENS_SYS;
+const model = globalThis.__model, draw = globalThis.__svg;
+const SENS_MK = globalThis.__SENS_MK, SENS_SYS = globalThis.__SENS_SYS;
 
 let pass = 0, fail = 0;
 const ok = (c, m) => c ? (pass++, console.log("  ok   " + m))
@@ -212,6 +216,100 @@ console.log("Y IS DISTANCE, NEVER A VERDICT");
   const r = model({ ferritin: mk("iron", [10, 12]) }, ["ferritin"]);
   const keys = Object.keys(r.highlights[0].points[0]).sort().join(",");
   eq(keys, "date,pct", "AXIS-1: a plotted point carries only a date and a percent, no band or status");
+}
+
+// ── GEOMETRY. heroTrajectorySVG derives every x from the width it is handed, so the
+// viewBox width IS the rendered width and 11px text is 11px at every size. A coordinate
+// outside [0, W] is a mark drawn off the well, which at 390 is most of the plot.
+console.log("WIDTH-DERIVED GEOMETRY -- nothing is drawn outside the width");
+const wide = () => {
+  const s = {}, prio = [];
+  for (let i = 0; i < 20; i++) {
+    const id = "m" + i;
+    s[id] = mk("iron", [100, 100 + i + 1], [D1, D3], { name: "Marker " + i });
+    if (i < 3) prio.push(id);
+  }
+  return { series: s, prio };
+};
+// Every x-bearing attribute in the output, plus both coordinates of every polyline point.
+function xsOf(svg) {
+  const xs = [];
+  for (const m of svg.matchAll(/\b(?:x|x1|x2|cx)="(-?[\d.]+)"/g)) xs.push(parseFloat(m[1]));
+  for (const m of svg.matchAll(/points="([^"]+)"/g))
+    for (const pair of m[1].trim().split(/\s+/)) xs.push(parseFloat(pair.split(",")[0]));
+  return xs;
+}
+const labelYs = (svg) =>
+  [...svg.matchAll(/<text class="ht-label"[^>]*\by="([\d.]+)"/g)].map(m => parseFloat(m[1]));
+
+for (const W of [300, 390, 680]) {
+  const { series, prio } = wide();
+  const r = model(series, prio);
+  const svg = draw(r, W);
+  const xs = xsOf(svg);
+  ok(xs.length > 0, "GEO-" + W + "-1: the plot emitted x coordinates at all");
+  ok(xs.every(x => x >= 0 && x <= W),
+     "GEO-" + W + "-2: every x is inside the width  (min " + Math.min(...xs) + ", max " + Math.max(...xs) + ", W " + W + ")");
+  ok(svg.includes('viewBox="0 0 ' + W + ' 136"'),
+     "GEO-" + W + "-3: the viewBox width is the width handed in, so text is not scaled");
+}
+{
+  // The floor and the default. The default exists because clientWidth is 0 while the
+  // dashboard view is still hidden at first render. The floor is 200 rather than 300
+  // because the real well at a 390px viewport is 218px wide, and a floor above that
+  // would scale the viewBox down and shrink the text again.
+  const { series, prio } = wide();
+  const r = model(series, prio);
+  ok(draw(r, 120).includes('viewBox="0 0 200 136"'), "GEO-4: a width under the floor clamps up to 200");
+  ok(draw(r, 218).includes('viewBox="0 0 218 136"'), "GEO-5: a real 390px-phone well is drawn at its own width, not scaled");
+  ok(draw(r, 0).includes('viewBox="0 0 680 136"'), "GEO-6: width 0, the hidden-view case, defaults to 680");
+}
+
+console.log("MOBILE -- the faint set halves under 480");
+{
+  const { series, prio } = wide();
+  const r = model(series, prio);
+  eq(r.faint.length, 12, "MOB-1: the model still offers 12, so the cap is the drawing's call");
+  const count = (svg) => (svg.match(/class="ht-faint"/g) || []).length;
+  eq(count(draw(r, 390)), 6, "MOB-2: at 390 wide only 6 faint lines are drawn");
+  eq(count(draw(r, 479)), 6, "MOB-3: 479 is still narrow");
+  eq(count(draw(r, 480)), 12, "MOB-4: 480 is not, so the cap has a real boundary");
+  eq(count(draw(r, 680)), 12, "MOB-5: and a wide well draws all 12");
+}
+
+console.log("LABELS -- 16px apart at the narrowest width");
+{
+  const { series, prio } = wide();
+  const ys = labelYs(draw(model(series, prio), 300));
+  eq(ys.length, 3, "LBL-1: three highlights are labelled at 300 wide");
+  const sorted = ys.slice().sort((a, b) => a - b);
+  let minGap = Infinity;
+  for (let i = 1; i < sorted.length; i++) minGap = Math.min(minGap, sorted[i] - sorted[i - 1]);
+  ok(minGap >= 15.99, "LBL-2: the closest pair is at least 16px apart  (got " + minGap + ")");
+  ok(ys.join(",") === sorted.join(","), "LBL-3: labels are emitted top to bottom, so spacing pushes against the one above");
+}
+{
+  // Single-panel rows are tighter than 16px by construction, which is exactly the case
+  // the spacing pass has to fix rather than inherit.
+  const one = (n) => ({ system_id: "iron", display_name: n,
+                        points: [{ value: 10, date: D1, unit: "ng/mL", cycleGated: false }] });
+  const s = {}; const prio = [];
+  for (let i = 0; i < 9; i++) { s["s" + i] = one("Marker " + i); if (i < 3) prio.push("s" + i); }
+  const r = model(s, prio);
+  eq(r.mode, "single", "LBL-4: nine single-point markers is the single-panel state");
+  const ys = labelYs(draw(r, 300)).slice().sort((a, b) => a - b);
+  let minGap = Infinity;
+  for (let i = 1; i < ys.length; i++) minGap = Math.min(minGap, ys[i] - ys[i - 1]);
+  ok(minGap >= 15.99, "LBL-5: single-panel labels are spaced too  (got " + minGap + ")");
+}
+
+console.log("SWATCH -- colour lives on the stroke, the name is brown");
+{
+  const { series, prio } = wide();
+  const svg = draw(model(series, prio), 680);
+  eq((svg.match(/class="ht-swatch"/g) || []).length, 3, "SWATCH-1: one swatch per highlighted marker");
+  ok(/class="ht-swatch"[^>]*stroke="var\(--coral-dark\)"/.test(svg), "SWATCH-2: the first swatch carries the first colour");
+  ok(!/<text class="ht-label"[^>]*fill="var\(--/.test(svg), "SWATCH-3: no label text carries a colour fill, so CSS keeps it brown");
 }
 
 console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");
