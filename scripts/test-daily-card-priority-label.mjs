@@ -113,32 +113,74 @@ eq(typeof ctx.dcShortenMarkerName, "function", "REACHABILITY: dcShortenMarkerNam
 eq(typeof ctx.dcMarkerLabel, "function", "REACHABILITY: dcMarkerLabel is in the app block");
 eq(typeof ctx.dcRenderCard, "function", "REACHABILITY: dcRenderCard is in the app block");
 
-// ── 2. the ruled shortening rule, every clause ───────────────────────────────
+// ── 2. the AMENDED shortening rule, every clause ──────────────────────
+// RULED 2026-09-21: the parenthetical is used ONLY when it holds two or more CONSECUTIVE
+// capitals. Otherwise the part before it is used, whatever the lengths.
 const SH = ctx.dcShortenMarkerName;
-eq(SH("Iron (Serum)"), "Iron", "BEFORE is shorter: 'Iron (Serum)' keeps the part before");
-eq(SH("Vitamin D (25-OH total)"), "Vitamin D", "BEFORE is shorter: 'Vitamin D (25-OH total)'");
-eq(SH("Vitamin B9 (Folate, serum)"), "Vitamin B9", "BEFORE is shorter: the parenthetical is longer");
-eq(SH("ALT (SGPT)"), "ALT", "BEFORE is shorter by one character");
-eq(SH("High-Sensitivity C-Reactive Protein (hs-CRP)"), "hs-CRP", "INSIDE is shorter: hs-CRP wins");
-eq(SH("Thyroid-Stimulating Hormone (TSH)"), "TSH", "INSIDE is shorter: TSH wins");
-eq(SH("Absolute Lymphocyte Count (ALC)"), "ALC", "INSIDE is shorter: ALC wins");
+
+// -- the parenthetical WINS, because it carries a run of capitals
+eq(SH("High-Sensitivity C-Reactive Protein (hs-CRP)"), "hs-CRP", "CAPS win: CRP is a capital run");
+eq(SH("Thyroid-Stimulating Hormone (TSH)"), "TSH", "CAPS win: TSH");
+eq(SH("Absolute Lymphocyte Count (ALC)"), "ALC", "CAPS win: ALC");
+eq(SH("DHEA-Sulfate (DHEA-S)"), "DHEA-S", "CAPS win: DHEA-S, with a hyphen inside the run");
+eq(SH("ALT (SGPT)"), "SGPT", "CAPS win EVEN WHEN LONGER than the part before");
+
+// -- the part before wins, because the parenthetical is a qualifier not an abbreviation
+eq(SH("Iron (Serum)"), "Iron", "no capital run: Serum is a qualifier, Iron wins");
+eq(SH("Magnesium (Serum)"), "Magnesium", "no capital run: was 'Serum' under the old rule");
+eq(SH("Vitamin B12 (serum)"), "Vitamin B12", "no capital run: was 'serum' under the old rule");
+eq(SH("Vitamin B9 (Folate, serum)"), "Vitamin B9", "no capital run in 'Folate, serum'");
+eq(SH("Something (Abc)"), "Something", "ONE capital is not a run, so the before wins");
+eq(SH("Something (aBC)"), "aBC", "a run of two anywhere in the parenthetical is enough");
+
+// -- no parenthetical at all
 eq(SH("Ferritin"), "Ferritin", "NO parenthetical: the whole name renders");
-eq(SH("Total Cholesterol"), "Total Cholesterol", "NO parenthetical, two words: the whole name renders");
-eq(SH("(ALC)"), "ALC", "BEFORE empty: the inside is used");
+eq(SH("Total Cholesterol"), "Total Cholesterol", "NO parenthetical, two words");
+eq(SH("ALT"), "ALT", "NO parenthetical, and capitals in the name itself change nothing");
+
+// -- empty parts
+eq(SH("(ALC)"), "ALC", "BEFORE empty and the inside has a run: the inside is used");
+eq(SH("(serum)"), "serum", "BEFORE empty and no run: the chosen part is empty, so the other is used");
 eq(SH("Iron ()"), "Iron", "INSIDE empty: the before is used");
 eq(SH("()"), "", "BOTH empty: the shortener yields nothing");
-eq(SH("   Iron   (  Serum  )   "), "Iron", "TRIMMED: surrounding and inner whitespace is stripped");
-eq(SH("  Thyroid-Stimulating Hormone ( TSH ) "), "TSH", "TRIMMED on the inside branch too");
-eq(SH("Iron (Serum) (Fasting)"), "Iron", "only the FIRST parenthetical is considered");
 
-// ── 3. dcMarkerLabel against the real GAP_MARKER_NAME ────────────────────────
+// -- trimming and the first-parenthetical rule
+eq(SH("   Iron   (  Serum  )   "), "Iron", "TRIMMED on the before branch");
+eq(SH("  Thyroid-Stimulating Hormone ( TSH ) "), "TSH", "TRIMMED on the inside branch");
+eq(SH("Iron (Serum) (TSH)"), "Iron", "only the FIRST parenthetical is considered");
+
+// ── 3. EVERY resolving display name, pinned BY NAME ────────────────────
+// All 21 marker ids that appear in the 650 non-keeper action_pool rows and resolve through
+// GAP_MARKER_NAME, measured 2026-09-21, with their row counts. Pinned individually so a
+// future change to the rule cannot silently flip one label without turning this red.
 const ML = ctx.dcMarkerLabel;
-eq(ML("ferritin"), "Ferritin", "resolves a real id with no parenthetical");
-eq(ML("iron_serum"), "Iron", "resolves a real id, before-branch");
-eq(ML("tsh"), "TSH", "resolves a real id, inside-branch");
-eq(ML("hs_crp"), "hs-CRP", "resolves a real id, inside-branch");
-eq(ML("alt"), "ALT", "resolves a real id, before-branch by one character");
-// the four ids measured against 650 non-keeper action_pool rows on 2026-09-21
+const PINNED = [
+  ["ferritin",             80, "Ferritin"],
+  ["hs_crp",               78, "hs-CRP"],
+  ["dhea_sulfate",         74, "DHEA-S"],
+  ["urinary_microalbumin", 74, "Urinary Microalbumin"],
+  ["alt",                  72, "SGPT"],
+  ["total_cholesterol",    54, "Total Cholesterol"],
+  ["free_t3",              48, "Free T3"],
+  ["vitamin_d_25oh_total", 23, "25-OH total"],
+  ["vitamin_b9_folate",    17, "Vitamin B9"],
+  ["vitamin_b12",          14, "Vitamin B12"],
+  ["fasting_glucose",      12, "Fasting Glucose"],
+  ["total_t3",             12, "Total T3"],
+  ["platelet_count",        6, "Platelet Count"],
+  ["total_ige",             6, "Total IgE"],
+  ["tsh",                   6, "TSH"],
+  ["fasting_insulin",       6, "Fasting Insulin"],
+  ["absolute_lymphocytes",  6, "ALC"],
+  ["iron_serum",            6, "Iron"],
+  ["magnesium_serum",       6, "Magnesium"],
+  ["homocysteine",          6, "Homocysteine"],
+  ["urine_blood",           5, "Urine Blood"],
+];
+eq(PINNED.length, 21, "all 21 resolving ids are pinned");
+for (const [id, rows, want] of PINNED) eq(ML(id), want, `PIN ${id} (${rows} rows)`);
+
+// the four ids measured against those same 650 rows that do NOT resolve
 eq(ML("11_deoxycortisol"), null, "UNRESOLVED id returns null, not a fallback (16 rows)");
 eq(ML("folate_lcmsms"), null, "UNRESOLVED id returns null, not a fallback (12 rows)");
 eq(ML("globulin"), null, "UNRESOLVED id returns null, not a fallback (6 rows)");

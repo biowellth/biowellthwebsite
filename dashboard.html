@@ -6576,9 +6576,15 @@ function dcProse(s){ return dcEsc(String(s==null?'':s).replace(/ \u2014 /g, ", "
 // recognise it on her own lab report. GAP_MARKER_NAME is the ONLY id->display-name source on
 // this page; ranges-slim.json holds range bounds under both its keys and no names at all.
 //
-// RULED 2026-09-20: take whichever is SHORTER, trimmed, of the text before the first
-// parenthetical and the text inside it. No parenthetical -> the whole name. If either part is
-// empty use the other; if both are, no label.
+// RULED 2026-09-21, amending the 2026-09-20 rule: the parenthetical is used ONLY when it
+// contains TWO OR MORE CONSECUTIVE CAPITALS. Otherwise the text before it is used, whatever
+// the lengths. No parenthetical -> the whole name. If the chosen part is empty use the other;
+// if both are, no label.
+//
+// The length comparison it replaces was measured wrong on real data: 'Magnesium (Serum)'
+// shortened to 'Serum' and 'Vitamin B12 (serum)' to 'serum', because a specimen word is
+// shorter than the marker it qualifies. Length cannot tell an abbreviation from a qualifier;
+// a run of capitals can.
 //
 // An id that does not resolve renders NO label — not a fallback, not the raw id, not an empty
 // chip. Four ids do not resolve today (11_deoxycortisol, folate_lcmsms, globulin, uacr),
@@ -6589,9 +6595,10 @@ function dcShortenMarkerName(name){
   if(!m) return s;
   const before = s.slice(0, m.index).trim();
   const inside = m[1].trim();
-  if(!before) return inside;
-  if(!inside) return before;
-  return inside.length < before.length ? inside : before;
+  // the capital run is tested on the INSIDE, which is the part being considered
+  const chosen = /[A-Z]{2}/.test(inside) ? inside : before;
+  const other  = chosen === inside ? before : inside;
+  return chosen ? chosen : other;
 }
 // hasOwnProperty, not a bare lookup: a marker id arrives from the database, and an id of
 // "constructor" or "toString" would otherwise resolve to something off Object.prototype and
