@@ -1,6 +1,0 @@
-session: b7af8dbe-becf-4811-99e6-7064619c03eb
-taken:   2026-09-21T02:03Z
-scope:   GAP_MARKER_NAME - add the four missing marker names so the daily card
-         priority label resolves all 25 ids. Held through build, tests, suite and
-         the PUSH. Released only after the deploy is verified.
-repos:   biowellth-website
