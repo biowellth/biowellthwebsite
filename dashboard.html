@@ -3430,7 +3430,20 @@ function applyCycleLens(status){
   // Nothing else moves: `cycling` below is already false for null, so the cycle-day
   // and length groups stay hidden and the label keeps its default wording.
   const withLens = !!(status && status !== "decline") || status === null;
+  // LMP_REVEAL_SCROLL_V1. The date row is revealed IN PLACE by this toggle and is never moved by
+  // code, verified across appendChild, insertBefore, insertAdjacentHTML, outerHTML, prepend, after
+  // and before: zero of them name #cyc-lens, .lmp-row or #cyc-lmp, against a control of 26
+  // appendChild sites in this file and 2 that genuinely move #ddc-wrap.
+  //
+  // Its place is the TOP of the card, above #cyc-questions. So when it appears after she has
+  // answered the questions below it, it is already scrolled past and reads as nothing happening.
+  // block "nearest" scrolls only when it is actually out of view, so a card that already shows the
+  // row does not jump.
+  const wasHidden = lens.classList.contains("hidden");
   lens.classList.toggle("hidden", !withLens);
+  if(withLens && wasHidden && typeof lens.scrollIntoView === "function"){
+    try{ lens.scrollIntoView({ block: "nearest" }); }catch(e){ lens.scrollIntoView(false); }
+  }
   // The heading names a section that has nothing in it when the lens is hidden.
   const hd = document.getElementById("cyc-heading"); if(hd) hd.classList.toggle("hidden", !withLens);
   if(!withLens){
