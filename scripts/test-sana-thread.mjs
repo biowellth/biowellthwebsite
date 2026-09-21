@@ -13,6 +13,7 @@
 //
 //   node scripts/test-sana-thread.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
+import { extractApp } from "./lib/extract-app.mjs";
 
 const FILE = process.env.DASH || "dashboard.html";
 const HTML = readFileSync(FILE, "utf8");
@@ -174,10 +175,7 @@ const sandbox = {
 };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 
-const lines = HTML.split("\n");
-const s0 = lines.findIndex((l) => l.trim() === "<script>");
-const e0 = lines.length - 1 - [...lines].reverse().findIndex((l) => l.trim() === "</script>");
-const SRC = lines.slice(s0 + 1, e0).join("\n");
+const SRC = extractApp(HTML, FILE);
 
 const vm = await import("node:vm");
 vm.createContext(sandbox);

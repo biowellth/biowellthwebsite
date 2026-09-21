@@ -34,16 +34,13 @@
 //
 //   node scripts/test-boot-fresh-profile.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
+import { extractApp } from "./lib/extract-app.mjs";
 import vm from "node:vm";
 
 const FILE = process.env.DASH || "dashboard.html";
 const HTML = readFileSync(FILE, "utf8");
 
-const lines = HTML.split("\n");
-const s = lines.findIndex((l) => l.trim() === "<script>");
-const e = lines.length - 1 - [...lines].reverse().findIndex((l) => l.trim() === "</script>");
-if (s < 0 || e <= s) { console.log("  FAIL could not locate the inline script block"); process.exit(1); }
-const SRC = lines.slice(s + 1, e).join("\n");
+const SRC = extractApp(HTML, FILE);
 
 // ── a DOM permissive enough that only REAL errors surface ────────────────────
 const mkEl = () => {
