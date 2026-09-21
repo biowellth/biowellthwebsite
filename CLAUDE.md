@@ -97,6 +97,47 @@ fresh lock you do not own means go read-only. Otherwise create it (session id, U
 repos) and commit it with your first write; remove it at seal. Read-only parallel sessions are
 fine; the lock governs writes.
 
+**THE LOCK IS HELD FOR THE DURATION OF A SESSION'S WORK, NOT TAKEN AND RELEASED
+AROUND INDIVIDUAL COMMITS. Ruled 2026-09-20.** Take it once when the work starts,
+hold it across every commit in that unit of work, release it at seal.
+
+**A PUSH TO A SHARED REMOTE IS A WRITE AND REQUIRES THE LOCK.** It is the most
+consequential write in this repo, because here it is also the deploy.
+
+**Why per-commit locking is not enough: it protects the commit and leaves the
+working tree open.** The 2026-09-08 incident was a FILE DELETED FROM THE WORKING
+TREE by a second session. Nothing was mid-commit when it happened, so a lock that
+exists only from `git add` to `git commit` would have been released at exactly the
+moment the damage was done. The window that matters is the one between commits,
+where files are half-edited and a harness is mid-run.
+
+Measured in the backend repo on 2026-09-20, which is what prompted the ruling: one
+session ran nine take/release cycles across 2h24m and held the lock for about 23
+minutes of it, 16%. The repo was unlocked for roughly two hours of its own active
+session, including gaps of 45 and 43 minutes. Every individual commit was locked
+and almost none of the work was.
+
+**AND THE OTHER HALF OF THE RULE HAS TO BE OBEYED TOO: a fresh lock you do not own
+means go read-only. It means read-only, not overwrite.** Earned the same day, in
+this repo, while the ruling above was being written into this file. Session
+`f5c202ec` took the lock at 22:24Z and committed it. Four minutes later session
+`b7af8dbe` wrote its own lock over the top, claiming `dashboard.html` — the file
+the first session was mid-edit on — and committed that. The first session's scope
+line simply vanished from the file.
+
+Nothing was lost, again by luck: the first session's changes were already
+committed, and the second produced no commit at all in the 1h47m that followed. But
+**an overwrite is indistinguishable from a free lock to everyone who reads the file
+afterwards**, which is worse than no lock, because the next reader sees a
+well-formed lock and trusts it.
+
+**There is still no stale-lock timeout, and that is a real gap rather than an
+oversight to fix casually.** An abandoned lock otherwise blocks the repo forever,
+and a wedged lock must never be why a production fix cannot ship. Until one exists:
+if you must supersede a lock, say so IN the lock file — whose lock, when it was
+taken, why you judged it abandoned, and what of theirs you checked was not at risk.
+A supersede that is recorded can be argued with. A silent one cannot.
+
 **The lock is COMMITTED, not just written.** A lock that exists only in a working tree protects
 nobody, because the thing it protects against is another session operating on that same working
 tree. Both incidents below were invisible to anyone reading the file list.
