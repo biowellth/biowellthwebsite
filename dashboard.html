@@ -3959,6 +3959,21 @@ async function onDdcTap(reportId, value, card){
   }
   window.__ddcAnswered[reportId] = value;
   if(card) card.outerHTML = '<div class="clarify-ack">Thank you. That tells us which period to read it against.</div>';
+
+  // DDC_ACK_DISMISS_V1. The acknowledgement replaced the card INSIDE #ddc, and nothing ever emptied
+  // it: ddcRender is the only code that clears that host, and it is unreachable once the mount state
+  // reads "shown". Meanwhile ddcPlace carries the surviving #ddc-wrap into the reveal slot on every
+  // entry to the reveal, so a thank-you for one report sat above every later card she opened.
+  //
+  // "done" IS A THIRD STATE, not a tidier "shown". ddcPlace reads it to leave the wrap where it is,
+  // so an answered beat can never be moved into a later reveal. Setting it BEFORE the timer fires
+  // means a view change during those four seconds is already covered.
+  window.__ddcMountState[reportId] = "done";
+  setTimeout(() => {
+    const wrap = $("ddc-wrap"), host = $("ddc");
+    if(wrap) wrap.classList.add("hidden");
+    if(host) host.innerHTML = "";
+  }, 4000);
 }
 
 /**
@@ -3997,6 +4012,10 @@ function mountDrawDateConfirm(reportId = window.__drawReportId){
 function ddcPlace(view){
   const wrap = $("ddc-wrap"), slot = $("ddc-rv-slot"), home = $("ddc-home");
   if(!wrap || !slot || !home) return;
+  // DDC_ACK_DISMISS_V1. An answered beat is never carried into a reveal. Checked against the report
+  // being revealed, not the one that was answered, so a second report still gets its own beat.
+  const rvId = window.__rdReport;
+  if(rvId && window.__ddcMountState[rvId] === "done") return;
   if(view === "reveal"){
     if(wrap.parentNode !== slot) slot.appendChild(wrap);
     const rid = window.__rdReport;
