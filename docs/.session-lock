@@ -1,6 +1,0 @@
-session: b7af8dbe-becf-4811-99e6-7064619c03eb
-taken:   2026-09-21T17:21Z
-scope:   EXTRACT_APP_HELPER_V1 - scripts/lib/extract-app.mjs, and switch the six
-         scripts broken by the Sentry block onto it. scripts/ only; dashboard.html
-         and index.html are not touched. Held through the push.
-repos:   biowellth-website
