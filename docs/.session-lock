@@ -1,0 +1,7 @@
+session: b7af8dbe-becf-4811-99e6-7064619c03eb
+taken:   2026-09-21T18:39Z
+scope:   FAIL_CLOSED_STATUS_V1 - the theme panel good bucket and
+         reportMarkerScored become explicit allowlists instead of
+         deciding healthy by exclusion. dashboard.html only.
+         Held through the push.
+repos:   biowellth-website
