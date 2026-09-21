@@ -5605,9 +5605,36 @@ const REPORT_NOT_SCORED_STATUS = new Set([
 // markerDetailHTML both ask this question and a row that says "result not scored" must not
 // expand into a trend chart.
 const NOT_SCORED_ROW_STATUS = new Set(["not_scored","needs_review"]);
+
+// ── TWO ALLOWLISTS, AND WHY THEY ARE ALLOWLISTS ─────────────────────────────────────────────
+// Both of these replaced an `else` / `!has(...)` that decided "healthy" by EXCLUSION, and both
+// were measured shipping a wrong answer on this page:
+//   unknown_unit reached "In range" through the theme panel's catch-all else, then needs_review
+//   did the same after it, on 2026-09-21. A status nobody had written a branch for was presented
+//   to a woman as a healthy result.
+// An exclusion test fails OPEN: the set of things it lets through is everything the author did
+// not think of, which grows every time the engine gains a status. An allowlist fails CLOSED: a
+// status nobody has ruled on is treated as unread, which is the honest answer to "we do not know
+// what this is". The cost is that adding a genuinely healthy status needs an edit here, and that
+// edit is exactly the deliberate decision that was missing both times.
+// KEEP THESE IN SYNC WITH THE ENGINE. Its live vocabulary on 2026-09-21 is nine values:
+// optimal, normal, watch, flag, not_scored, unknown_unit, no_value, supplement_high, needs_review.
+
+// Reaches the theme panel's "In range" tier. Nothing else does, by default or otherwise.
+const THEME_HEALTHY_STATUS = new Set(["optimal","normal"]);
+
+// Counts toward the honest coverage number, the one that renders as "we read N of them".
+// supplement_high IS here and is NOT in THEME_HEALTHY_STATUS: it is a real reading, taken and
+// read against a range, that came back above it. We read it, so it counts; it is not in range,
+// so it renders with watch. Those two facts are not in tension, and the two sets are separate
+// precisely so each can say its own thing.
+const COUNTS_AS_READ = new Set(["optimal","normal","watch","flag","supplement_high"]);
 function reportMarkerScored(m){
   if(!m || m.band == null) return false;                 // no band -> never read against a range
-  return !REPORT_NOT_SCORED_STATUS.has(String(m.status||"").toLowerCase());
+  // FAIL CLOSED. This was a negated membership test against the not-scored set, so any status
+  // nobody had added to that set counted as READ -- the same fail-open shape as the theme panel,
+  // on the number that renders as "we read N of them". An unrecognised status now does not count.
+  return COUNTS_AS_READ.has(String(m.status||"").toLowerCase());
 }
 // Honest coverage COUNT (never a % of a library, never cross-panel): distinct markers in
 // THIS panel that were actually read against a functional range. Deliberately NOT
@@ -9495,9 +9522,15 @@ function renderThemePanel(p){
       if(String(mk.status||"").toLowerCase() === "supplement_high"){ watch.push(mk); continue; }
       if(REPORT_NOT_SCORED_STATUS.has(String(mk.status||"").toLowerCase())){ unscored.push(mk); continue; }
       const cls = sysStatus(mk.status || "").cls;                    // ENGINE status bucket
+      // FAIL CLOSED. The flag and watch tests stay on the engine class: a status that reads as
+      // directional belongs in a tier that asks her to look, and routing one there is never an
+      // over-claim. good is the opposite case, so it is gated on an explicit allowlist and the
+      // final else sends everything unrecognised to unscored. This used to be a catch-all else
+      // into good, which is how unknown_unit and then needs_review were shown as "In range".
       if(cls === "s-flag") flag.push(mk);
       else if(cls === "s-watch") watch.push(mk);
-      else good.push(mk);
+      else if(THEME_HEALTHY_STATUS.has(String(mk.status||"").toLowerCase())) good.push(mk);
+      else unscored.push(mk);
     }
   }
 
