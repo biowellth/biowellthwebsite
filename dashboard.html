@@ -7476,6 +7476,20 @@ function renderCompanionChips(p, score){
   const chipsEl = $("comp-chips");
   if(!chipsEl) return;
   chipsEl.innerHTML = "";
+  // FACE_SCAN_ENTRY_INDEPENDENT_V1. The scan entry is revealed here, BEFORE the no-lead early
+  // return below, because it has nothing to do with the chips.
+  //
+  // sanaMountChat is the only caller of renderScanEntry, and until today its only reachable call
+  // site for a woman with a panel was the LAST statement of this function. So a payload with no
+  // narrative_headline.lead returned at the line below, renderScanEntry never ran, and both the
+  // #scan-entry card and the #btn-scan nav link stayed hidden for a fully consented woman. Her only
+  // remaining entry point was deck item 6, which lives inside the reveal and is gone once she
+  // leaves it.
+  //
+  // THIS DOES NOT WIDEN WHO SEES IT. renderScanEntry gates itself on sanaConsentGranted and returns
+  // with nothing rendered when that is false, and openFaceScan re-checks the same gate before
+  // minting a token. This only stops a missing narrative line from withholding it.
+  renderScanEntry();
   const nh = p && p.narrative_headline;
   const lead = (nh && typeof nh.lead === "string") ? nh.lead.trim() : "";
   if(!lead) return;   // no read -> no chips (the shell's own comp-read behavior governs the shell)
