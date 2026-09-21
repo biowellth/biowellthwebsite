@@ -132,11 +132,39 @@ afterwards**, which is worse than no lock, because the next reader sees a
 well-formed lock and trusts it.
 
 **There is still no stale-lock timeout, and that is a real gap rather than an
-oversight to fix casually.** An abandoned lock otherwise blocks the repo forever,
-and a wedged lock must never be why a production fix cannot ship. Until one exists:
+oversight to fix casually.** (SUPERSEDED 2026-09-21 by the stale-lock rule below,
+which defines one. The paragraph is kept because its reasoning is the bar that
+rule had to clear.) An abandoned lock otherwise blocks the repo forever,
+and a wedged lock must never be why a production fix cannot ship. That reasoning is
+what the rule below had to satisfy, and this half of it stands unchanged:
 if you must supersede a lock, say so IN the lock file — whose lock, when it was
 taken, why you judged it abandoned, and what of theirs you checked was not at risk.
 A supersede that is recorded can be argued with. A silent one cannot.
+
+**STALE-LOCK RULE, ruled 2026-09-21. A LOCK OLDER THAN 90 MINUTES WITH NO COMMIT
+FROM THAT SESSION SINCE IT WAS TAKEN IS STALE AND MAY BE SUPERSEDED.** Both halves
+are required. The age comes from the `taken:` stamp the lock carries, which is why
+it carries one. "No commit since" is read out of the log for that session, not
+guessed from the absence of activity you happened to notice.
+
+**A lock younger than 90 minutes, or one with any commit behind it, is HELD. Go
+read-only and say so** — say it out loud in the session rather than quietly
+declining to write, so the person can decide whether to wait or to intervene.
+
+**Superseding is never silent.** The reclaiming session writes the displaced
+session id, its taken time, and the reason into the lock file, exactly as
+`efd53f3` did on 2026-09-20.
+
+Earned the same day. Session `b7af8dbe` overwrote a held lock FOUR MINUTES after it
+was taken, rather than going read-only, and then produced no commit in the 1h47m
+that followed. Nothing was lost, by luck. But **an overwritten lock is
+indistinguishable from a free one to the next reader**, which is worse than no
+lock, because a well-formed lock file invites trust.
+
+The deeper reason this needed a number: **without a staleness definition, "is this
+abandoned?" has no answer**, and a session facing an old lock has only two moves,
+both bad — block forever, or overwrite. Ninety minutes and a commit check give it a
+third.
 
 **The lock is COMMITTED, not just written.** A lock that exists only in a working tree protects
 nobody, because the thing it protects against is another session operating on that same working
