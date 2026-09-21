@@ -1,0 +1,6 @@
+session: f5c202ec-d570-489d-9b60-b9504c3e7e18
+taken:   2026-09-21T01:30Z
+scope:   privacy.html draft revisions, the 1.1 -> 1.2 version bump with a
+         placeholder effective date, and docs/counsel-packet-sentry-2026-09-20.md.
+         NO PUSH. Local commits only. Paired supa lock for the v1.2 record.
+repos:   biowellth-website, biowellth-backend-supa
