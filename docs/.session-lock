@@ -1,6 +1,13 @@
-session: b7af8dbe-becf-4811-99e6-7064619c03eb
-taken:   2026-09-20T22:28Z
-scope:   DAILY_CARD_PRIORITY_LABEL_V1 — a label on each daily card action
-         row naming the priority it targets. dashboard.html and one test
-         script. No push.
+session: f5c202ec-d570-489d-9b60-b9504c3e7e18
+taken:   2026-09-21T00:13Z
+scope:   ERROR_MONITORING_V1 — the prefix and stub-environment fixes (297e11e),
+         their push, and the lock-discipline ruling in CLAUDE.md.
+         HELD THROUGH THE PUSH, released only at seal.
 repos:   biowellth-website
+note:    SUPERSEDES the lock of session b7af8dbe, which was written at 22:28Z ON TOP
+         OF THIS SESSION'S HELD LOCK (taken 22:24Z, commit cd6e559) rather than
+         going read-only. That lock claimed dashboard.html, the file this session
+         was mid-edit on. It produced no commit in the 1h47m before this note, and
+         the working tree is clean, so nothing of that session's work is at risk
+         here. Recorded rather than quietly overwritten, because it is the exact
+         collision the ruling added to CLAUDE.md in this session describes.
