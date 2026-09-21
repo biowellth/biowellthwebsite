@@ -1,6 +1,0 @@
-session: b7af8dbe-becf-4811-99e6-7064619c03eb
-taken:   2026-09-21T02:38Z
-scope:   CORE_CONSENT_V3_ROUTE - the upload consent call sends consent_type core
-         so it writes an append-only consent_events row. Approved core v1 text,
-         no new wording. Held through build, tests, suite and the PUSH.
-repos:   biowellth-website
