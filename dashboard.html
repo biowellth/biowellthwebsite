@@ -9403,7 +9403,7 @@ function renderThemePanel(p){
   const sysByMarker = {};
   for(const s of (Array.isArray(p && p.systems) ? p.systems : []))
     for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id) sysByMarker[m.marker_id] = s.system_id;
-  const flag=[], watch=[], good=[];
+  const flag=[], watch=[], good=[], unscored=[];
   for(const s of (Array.isArray(p && p.systems) ? p.systems : [])){
     if(SENSITIVE_SYSTEMS.has(s.system_id)) continue;                 // same system-level skip as the tally
     for(const mk of (Array.isArray(s.markers) ? s.markers : [])){
@@ -9412,6 +9412,17 @@ function renderThemePanel(p){
       // sensitive system, but assert it here — skip + warn rather than ever render one.
       const sysId = sysByMarker[mk.marker_id];
       if(THEME_SENSITIVE.has(sysId)){ console.warn('[theme-panel] sensitive marker reached emit site, skipped:', mk.marker_id, sysId); continue; }
+      // RULED 2026-09-21: a marker whose status is in REPORT_NOT_SCORED_STATUS is NEVER counted
+      // or shown as in range. It leaves the good group and the in-range count entirely.
+      //
+      // Tested BEFORE the class buckets because that is the only place it can be caught here.
+      // Every unscored status resolves to s-none or s-ref -- measured, all seven -- and the
+      // `else` below is a catch-all, so it swept every one of them into `good` and TIER 3
+      // rendered them under "In range" with a teal chip. The sibling counters elsewhere on the
+      // page test `cls === "s-good"` and were never exposed to this; this one tested nothing.
+      //
+      // Live on real data when it was found: 265 such markers across 21 reports and 15 owners.
+      if(REPORT_NOT_SCORED_STATUS.has(String(mk.status||"").toLowerCase())){ unscored.push(mk); continue; }
       const cls = sysStatus(mk.status || "").cls;                    // ENGINE status bucket
       if(cls === "s-flag") flag.push(mk);
       else if(cls === "s-watch") watch.push(mk);
@@ -9452,6 +9463,15 @@ function renderThemePanel(p){
       '<div class="tp-inrange-line"><span class="tp-chip tp-chip-teal">'+good.length+' in range</span>'+
         '<button class="tp-show" type="button" data-tp-toggle="1">show them</button></div>'+
       '<div class="tp-inrange-rows">'+names+'</div>');
+  }
+  // RULED 2026-09-21: one grey line when this theme carries unscored markers, verbatim
+  //   N not scored.
+  // No teal, no amber, no chip, no names. We did not read these results, so the line reports
+  // the count and nothing else -- it must not read as reassurance OR as a warning. .mk-note is
+  // the existing grey note class (--brown-mid), the same one the unknown_unit marker row uses.
+  // A count of 1 renders "1 not scored." from the same expression; no pluralisation needed.
+  if(unscored.length){
+    tiers.push('<div class="mk-note">'+unscored.length+' not scored.</div>');
   }
 
   const intro = SYSTEM_INTRO[OPEN_THEME];   // static intro; undefined key -> no paragraph
