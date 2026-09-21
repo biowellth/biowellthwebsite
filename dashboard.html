@@ -3966,8 +3966,15 @@ async function handleFile(file){
   // Consent gate: record consent BEFORE any storage upload or DB write. consent-accept is idempotent,
   // so a consented profile gets a no-op success. On failure nothing is stored and no model call is made;
   // roll the row back to the coral error state (Try again -> pre-file).
+  //
+  // CORE_CONSENT_V3_ROUTE. Sending consent_type selects consent-accept's v3 path, which writes an
+  // APPEND-ONLY row to consent_events carrying notice_sha256 of the exact text she agreed to, and
+  // THEN mirrors profiles.consent_accepted_at for core, which is what the four-layer upload gate
+  // reads. Without consent_type the call takes the legacy path, which updates that mutable column
+  // and records nothing else. The version is unchanged: core v1 is the approved notice and its text
+  // is byte-identical to the checkbox above, so no wording moves and nothing goes to counsel.
   try{
-    const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_version: "v1" } });
+    const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: "v1" } });
     if(consentRes.error) throw consentRes.error;
     CONSENTED = true;
     applyConsentUI();
