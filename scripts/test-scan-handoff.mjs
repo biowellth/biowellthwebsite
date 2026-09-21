@@ -474,7 +474,14 @@ ok("both gates read the same consent function",
   /sanaConsentGranted/.test(RS) && /sanaConsentGranted/.test(FN));
 ok("the render hook runs before the chat flag is consulted",
   /renderScanEntry\(\);\n  if\(!SANA_CHAT_ENABLED\) return;/.test(CODE));
-eq("renderScanEntry has exactly one call site", (CODE.match(/renderScanEntry\(\);/g) || []).length, 1);
+// TWO CALL SITES SINCE FACE_SCAN_ENTRY_INDEPENDENT_V1, and the second is the fix.
+// sanaMountChat is still the hook that reveals the entry, but its only reachable call site
+// for a woman WITH a panel was the last statement of renderCompanionChips, which returns
+// early when the payload carries no narrative_headline.lead. That withheld the scan entry
+// from a fully consented woman. renderCompanionChips now calls it before that return too.
+// No scan STRING changed: the SCAN_ORIGIN, url and window.open literals are asserted
+// unchanged above and below this line.
+eq("renderScanEntry has exactly two call sites", (CODE.match(/renderScanEntry\(\);/g) || []).length, 2);
 ok("markup order, not handler order, puts the intro above the button",
   RAW.indexOf('id="scan-intro"') < RAW.indexOf('id="scan-go"'));
 ok("markup order control: the ids really are present", RAW.indexOf('id="scan-go"') > 0);

@@ -134,8 +134,22 @@ function run({ report, invokeResult, invokeThrows, mountRow = null }) {
   return { rendered, host, wrap, card, invocations, logs, ctx, selects };
 }
 
+// FIXTURE CORRECTED 2026-09-21, and the correction is the point of DDC_REVERSED_PAIR_V1.
+// This object used to read collected_on 2024-07-25 with lmp_date_before_draw 2026-08-04 --
+// a period date AFTER the draw. That is the reversed pair, and the beat now renders
+// NOTHING for it, because neither offered answer is true. So every "renders" assertion
+// below was pinning the defect rather than the behaviour.
+//
+// QUALIFY is now an ordinary forward pair, which is what the ask path is for. The
+// reversed pair is asserted separately at the end of this file rather than dropped.
 const QUALIFY = {
   id: "b48bd09f-0000-4000-8000-000000000001",
+  collected_on: "2026-08-04",
+  lmp_date_before_draw: "2024-07-25",
+  cycle_date_provenance: "reported_at_upload",
+};
+const REVERSED = {
+  id: "b48bd09f-0000-4000-8000-000000000002",
   collected_on: "2024-07-25",
   lmp_date_before_draw: "2026-08-04",
   cycle_date_provenance: "reported_at_upload",
@@ -148,12 +162,15 @@ console.log("DRAW_DATE_CONFIRM_V1");
 {
   const r = run({ report: QUALIFY, invokeResult: OKRESULT });
   ok(r.rendered === true, "renders for a qualifying report");
-  ok(r.host.innerHTML.includes("Your panel was from 25 July 2024."),
+  // The two dates SWAPPED when the fixture was corrected to a forward pair. The claim is
+  // unchanged: the draw date is the headline, the period date is the body, and both go
+  // through rvFmtDate.
+  ok(r.host.innerHTML.includes("Your panel was from 4 August 2026."),
      "headline carries the draw date through rvFmtDate");
-  ok(r.host.innerHTML.includes("your last period started on 4 August 2026"),
+  ok(r.host.innerHTML.includes("your last period started on 25 July 2024"),
      "body carries the period date through rvFmtDate");
   // CONTROL against fmtDrawDate, which renders a day early in a negative offset.
-  ok(!r.host.innerHTML.includes("July 24, 2024") && !r.host.innerHTML.includes("August 3, 2026"),
+  ok(!r.host.innerHTML.includes("August 3, 2026") && !r.host.innerHTML.includes("July 24, 2024"),
      "neither date was rendered by fmtDrawDate");
   ok(r.host.innerHTML.includes("The one before this draw")
      && r.host.innerHTML.includes("My most recent one")
@@ -264,3 +281,15 @@ for (const prov of ["confirmed_before_draw", "confirmed_after_draw", "unknown"])
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
+
+// ---------------------------------------------------------------------------
+// DDC_REVERSED_PAIR_V1. A period date after the draw is answered, never asked.
+// ---------------------------------------------------------------------------
+{
+  const r = run({ report: REVERSED, invokeResult: OKRESULT });
+  ok(r.rendered === false, "a reversed pair renders nothing");
+  ok(r.host.innerHTML === "", "and leaves the host empty");
+  const fwd = run({ report: QUALIFY, invokeResult: OKRESULT });
+  ok(fwd.rendered === true,
+     "CONTROL: the forward pair DOES render, so the two checks above are about the reversal");
+}
