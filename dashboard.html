@@ -865,6 +865,10 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
   background:none;border:none;cursor:pointer;opacity:.55;padding:6px}
 #view-reveal .skip:hover{opacity:1}
 #view-reveal .deck{position:absolute;inset:0;z-index:10}
+/* DDC_AT_REVEAL_V1: the draw-date beat's slot, layered above the deck under the segments and Skip.
+   The slot itself lets taps through so the cards stay usable; only the beat inside takes them. */
+#view-reveal .ddc-rv-slot{position:absolute;top:96px;left:16px;right:16px;max-width:560px;margin:0 auto;z-index:43;pointer-events:none}
+#view-reveal .ddc-rv-slot > *{pointer-events:auto}
 #view-reveal .card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:safe center;
   padding:104px max(40px,calc((100% - 760px) / 2)) 104px;opacity:0;visibility:hidden;transform:translateY(8px);overflow-y:auto;
   transition:opacity .42s ease,transform .42s ease,visibility 0s linear .42s;pointer-events:none}
@@ -2150,6 +2154,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div class="segments" id="rd-segments"></div>
       <button class="skip" id="rd-skip">Skip</button>
       <div class="deck" id="rd-deck"></div>
+      <div class="ddc-rv-slot" id="ddc-rv-slot"></div>
       <div class="nav">
         <button class="navbtn back hide" id="rd-back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Back
@@ -2248,6 +2253,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div id="escalated"></div>
     </div>
 
+    <span id="ddc-home" hidden></span>
     <div id="ddc-wrap" class="hidden">
       <div id="ddc"></div>
     </div>
@@ -2466,6 +2472,7 @@ function showView(name){
   // would render into that hidden view too.
   if(name === "dashboard"){ SANA_MOUNT_ID = "sana-mount"; SANA_CONSENT_MOUNT_ID = "sana-consent"; }
   ["upload","processing","reveal","dashboard","interim","companion"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  ddcPlace(name);   // DDC_AT_REVEAL_V1: the draw-date beat follows her into and out of the reveal
   // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
   $("btn-new").classList.toggle("hidden", name!=="dashboard");
   // The panel switcher only earns its place once there is more than one panel to switch between.
@@ -3018,6 +3025,27 @@ async function testerGate(){
   // processing but an older panel is done, we show that done panel rather than
   // bouncing to the upload screen.
   const completed = await buildPicker(null);
+  // BOOT_RESUME_POLL_V1. A reload mid-reading used to land on the upload card or the companion,
+  // because pollForResult was only ever started by the upload path and the retry button, so nothing
+  // on boot noticed a report still in flight. Now, if her NEWEST report is uploaded or processing,
+  // boot shows the processing screen and resumes the poll for it; pollTick then walks it to interim,
+  // the reveal, a failure, or overdue exactly as it does after an upload.
+  //
+  // NEWEST ONLY, and only while it has NO results row. buildPicker orders by created_at desc, so
+  // [0] is her most recent upload. A report that already has a payload is a completed report and is
+  // left alone even if a rescore has set its status back to processing. An 'error' report falls
+  // through to FAILURE_REVISIT_V1 below unchanged.
+  //
+  // ONE POLL PER REPORT. pollForResult clears any interval already armed, and the guard skips the
+  // call entirely when this report is already the one being watched.
+  const __newest = (window.__allReports || [])[0];
+  if(__newest && (__newest.status === "uploaded" || __newest.status === "processing") &&
+     !(window.__doneReportIds || new Set()).has(__newest.id)){
+    pcRestoreProcessing();
+    showView("processing");
+    if(__pcPollReportId !== __newest.id) pollForResult(__newest.id);
+    return;
+  }
   // FAILURE_REVISIT_V1 — before bouncing to the upload screen, check whether she actually has a
   // FAILED report. Until now a woman whose only report failed landed on "Upload your blood work" as
   // if nothing had happened; the failure state existed but was reachable ONLY inside the live poll.
@@ -3810,6 +3838,11 @@ const DDC_OPTS = [
 ];
 // Mirrored locally so a re-render does not re-ask, the same way the confounder cache is mirrored.
 window.__ddcAnswered = window.__ddcAnswered || {};
+// DDC_AT_REVEAL_V1: per report, "inflight" while a mount's read is pending and "shown" once it
+// rendered the beat. The reveal entry point skips both, so the submit path and the reveal never
+// build the beat twice for one report in one session. A mount that finds nothing to ask clears
+// its entry, so the reveal can still ask once collected_on has landed.
+window.__ddcMountState = window.__ddcMountState || {};
 
 /** True when this report should be asked. Null dates or an already-confirmed row: no beat. */
 function ddcShouldAsk(rep){
@@ -3886,18 +3919,41 @@ async function onDdcTap(reportId, value, card){
  * If she navigates away before answering, nothing is lost. The column still holds
  * reported_at_upload, so the next time this runs she is asked again.
  */
-function mountDrawDateConfirm(){
-  const reportId = window.__drawReportId;
+function mountDrawDateConfirm(reportId = window.__drawReportId){
   if(!reportId) return;
+  window.__ddcMountState[reportId] = "inflight";
   (async () => {
+    let shown = false;
     try{
       const { data, error } = await sb.from("reports")
         .select("id, collected_on, lmp_date_before_draw, cycle_date_provenance")
         .eq("id", reportId).maybeSingle();
       if(error) throw error;
-      if(data) ddcRender(data);
+      if(data) shown = ddcRender(data) === true;
     }catch(e){ console.error("[ddc] mount read failed, the reading is unaffected:", e); }
+    if(shown) window.__ddcMountState[reportId] = "shown";
+    else delete window.__ddcMountState[reportId];
   })();
+}
+
+/**
+ * DDC_AT_REVEAL_V1. On a first upload she taps "Start my reading" while Call A is still running, so
+ * collected_on does not exist yet, ddcShouldAsk says no, and the beat never rendered: nothing asked
+ * again when the result landed. So the reveal is a second entry point. showView calls this on every
+ * view change: entering the reveal moves the ONE #ddc-wrap node into the slot above the deck and
+ * mounts it for the report being revealed; leaving the reveal puts the node back at #ddc-home, where
+ * the dashboard has always shown it. Never awaited, so the deck is never held for the read.
+ */
+function ddcPlace(view){
+  const wrap = $("ddc-wrap"), slot = $("ddc-rv-slot"), home = $("ddc-home");
+  if(!wrap || !slot || !home) return;
+  if(view === "reveal"){
+    if(wrap.parentNode !== slot) slot.appendChild(wrap);
+    const rid = window.__rdReport;
+    if(rid && !window.__ddcMountState[rid]) mountDrawDateConfirm(rid);
+  } else if(wrap.parentNode === slot){
+    home.after(wrap);
+  }
 }
 
 function navigateAfterSubmit(){
