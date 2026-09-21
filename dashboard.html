@@ -1222,6 +1222,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-tick svg{width:14px;height:14px;stroke:var(--white);stroke-width:2.6;fill:none;opacity:0;transform:scale(.6);transition:opacity .22s ease,transform .22s ease}
 .dc-body{flex:1}
 .dc-base{font-size:14.5px;font-weight:500;color:var(--brown);transition:color .22s ease}
+/* DAILY_CARD_PRIORITY_LABEL_V1. The marker a row is for, as a quiet eyebrow above the
+   action. No ratified mock for this existed, so it is built in the vocabulary the page
+   already uses for small metadata: the mono face, size and letter-spacing of .dc-prog,
+   the teal-dark of .dc-flavor. Deliberately not a chip -- a filled pill here would
+   compete with the tick and the row border for the same glance. It does not change on
+   .done, exactly as .dc-flavor does not. */
+.dc-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);opacity:.75;margin-bottom:4px}
 .dc-flavor{font-size:12px;font-weight:400;color:var(--teal-dark);opacity:.82;margin-top:5px;display:flex;gap:7px;align-items:flex-start}
 .dc-flavor::before{content:"";flex:none;width:14px;height:1.5px;background:var(--teal-mid);margin-top:8px;border-radius:2px}
 .dc-act.done{background:var(--teal-soft);border-color:var(--teal-light)}
@@ -6564,6 +6571,37 @@ function dcEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&
 // all, and it cannot reach rows a previous worker already wrote. Same split as
 // foundEsc/foundPipe: one escaper for identity, one pipe for prose.
 function dcProse(s){ return dcEsc(String(s==null?'':s).replace(/ \u2014 /g, ", ").replace(/\u2014/g, "-")); }
+
+// DAILY_CARD_PRIORITY_LABEL_V1 — the priority a row is aimed at, named the way she would
+// recognise it on her own lab report. GAP_MARKER_NAME is the ONLY id->display-name source on
+// this page; ranges-slim.json holds range bounds under both its keys and no names at all.
+//
+// RULED 2026-09-20: take whichever is SHORTER, trimmed, of the text before the first
+// parenthetical and the text inside it. No parenthetical -> the whole name. If either part is
+// empty use the other; if both are, no label.
+//
+// An id that does not resolve renders NO label — not a fallback, not the raw id, not an empty
+// chip. Four ids do not resolve today (11_deoxycortisol, folate_lcmsms, globulin, uacr),
+// covering 39 of 650 pool rows, so this path is live and not defensive.
+function dcShortenMarkerName(name){
+  const s = String(name == null ? '' : name).trim();
+  const m = s.match(/\(([^)]*)\)/);
+  if(!m) return s;
+  const before = s.slice(0, m.index).trim();
+  const inside = m[1].trim();
+  if(!before) return inside;
+  if(!inside) return before;
+  return inside.length < before.length ? inside : before;
+}
+// hasOwnProperty, not a bare lookup: a marker id arrives from the database, and an id of
+// "constructor" or "toString" would otherwise resolve to something off Object.prototype and
+// render as a label.
+function dcMarkerLabel(markerId){
+  if(!markerId) return null;
+  if(!Object.prototype.hasOwnProperty.call(GAP_MARKER_NAME, markerId)) return null;
+  const short = dcShortenMarkerName(GAP_MARKER_NAME[markerId]);
+  return short ? short : null;
+}
 const DC_CHECK_SVG = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
 
 function dcUpdateProgress(){
@@ -6604,9 +6642,12 @@ function dcRenderCard(){
     const done = __dcState.done.has(t.action.action_id);
     const pn = t.action.phase_notes;
     const flavor = (t.phase && pn && typeof pn === 'object') ? pn[t.phase] : null;
+    const label = dcMarkerLabel(t.action.priority_marker_id);
     return '<div class="dc-act' + (done ? ' done' : '') + '" data-aid="' + dcEsc(t.action.action_id) + '" role="button" tabindex="0">'
       + '<div class="dc-tick">' + DC_CHECK_SVG + '</div>'
-      + '<div class="dc-body"><div class="dc-base">' + dcProse(t.action.base_text) + '</div>'
+      + '<div class="dc-body">'
+      + (label ? '<div class="dc-label">' + dcEsc(label) + '</div>' : '')
+      + '<div class="dc-base">' + dcProse(t.action.base_text) + '</div>'
       + (flavor ? '<div class="dc-flavor">' + dcProse(flavor) + '</div>' : '')
       + '</div></div>';
   }).join('');
