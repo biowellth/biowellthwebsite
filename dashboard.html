@@ -11471,8 +11471,16 @@ function markerRowHTML(mk, sysLabel, range){
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
   const spark = (qd || unscored) ? miniSparkSVG([], color) : miniSparkSVG(markerHistory(mk), color);
   const dot  = '<span class="mdot '+cls+'"></span>';
+  // RULED COPY 2026-09-21. "Not scored." is the label; the sentence that follows is the
+  // explanation. It says NOTHING about whether her result is good or bad, because we did not
+  // read it -- so it stays in .mk-note (grey, --brown-mid) and must never take an amber or
+  // coral class. The previous wording explained our reference table; this one explains what
+  // happened to HER result, which is the only part she can do anything about.
+  //
+  // Double-quoted JS string, attribute quotes escaped: the single-quoted form would need
+  // \' for the apostrophe and that backslash would land in the served bytes.
   const note = isUnknownUnit
-    ? '<div class="mk-note">Shown as reported. The unit on this result could not be matched to our reference so it is not scored here.</div>'
+    ? "<div class=\"mk-note\">Not scored. Your lab reported this in a unit we can't read yet.</div>"
     : isNotScored
       ? '<div class="mk-note">'+(COMPONENT_NOTE[mk.marker_id]
           ? COMPONENT_NOTE[mk.marker_id]
