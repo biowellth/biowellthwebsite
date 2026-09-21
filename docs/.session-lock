@@ -1,6 +1,0 @@
-session: b7af8dbe-becf-4811-99e6-7064619c03eb
-taken:   2026-09-21T01:05Z
-scope:   DAILY_CARD_PRIORITY_LABEL_V1 amendment - dcShortenMarkerName uses the
-         parenthetical only when it holds two or more consecutive capitals.
-         Held through build, tests, suite and the push decision. Released at seal.
-repos:   biowellth-website
