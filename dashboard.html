@@ -6576,15 +6576,24 @@ function dcProse(s){ return dcEsc(String(s==null?'':s).replace(/ \u2014 /g, ", "
 // recognise it on her own lab report. GAP_MARKER_NAME is the ONLY id->display-name source on
 // this page; ranges-slim.json holds range bounds under both its keys and no names at all.
 //
-// RULED 2026-09-21, amending the 2026-09-20 rule: the parenthetical is used ONLY when it
-// contains TWO OR MORE CONSECUTIVE CAPITALS. Otherwise the text before it is used, whatever
-// the lengths. No parenthetical -> the whole name. If the chosen part is empty use the other;
-// if both are, no label.
+// RULED 2026-09-21: the parenthetical is used ONLY when it holds TWO OR MORE CONSECUTIVE
+// CAPITALS **and** is SHORTER than the text before it. Otherwise the text before it is used.
+// No parenthetical -> the whole name. If the chosen part is empty use the other; if both are,
+// no label.
 //
-// The length comparison it replaces was measured wrong on real data: 'Magnesium (Serum)'
-// shortened to 'Serum' and 'Vitamin B12 (serum)' to 'serum', because a specimen word is
-// shorter than the marker it qualifies. Length cannot tell an abbreviation from a qualifier;
-// a run of capitals can.
+// BOTH clauses are load-bearing, and each was earned by a label that shipped wrong:
+//
+//   length alone   'Magnesium (Serum)' -> 'Serum', 'Vitamin B12 (serum)' -> 'serum'.
+//                  A specimen word is shorter than the marker it qualifies.
+//   capitals alone 'Vitamin D (25-OH total)' -> '25-OH total', because the OH in 25-OH is a
+//                  capital run inside a phrase that is not an abbreviation.
+//
+// Together they read as: prefer the parenthetical only when it looks like an ABBREVIATION of
+// the name, which is a run of capitals, AND is actually more compact than the name.
+//
+// 'ALT (SGPT)' needs no special case: SGPT is 4 characters against ALT's 3, so the length
+// clause rejects it and the label is ALT -- the name printed on her panel, not the older
+// name for the same enzyme. tests/PIN alt pins that by name.
 //
 // An id that does not resolve renders NO label — not a fallback, not the raw id, not an empty
 // chip. Four ids do not resolve today (11_deoxycortisol, folate_lcmsms, globulin, uacr),
@@ -6596,8 +6605,9 @@ function dcShortenMarkerName(name){
   const before = s.slice(0, m.index).trim();
   const inside = m[1].trim();
   // the capital run is tested on the INSIDE, which is the part being considered
-  const chosen = /[A-Z]{2}/.test(inside) ? inside : before;
-  const other  = chosen === inside ? before : inside;
+  const useInside = /[A-Z]{2}/.test(inside) && inside.length < before.length;
+  const chosen = useInside ? inside : before;
+  const other  = useInside ? before : inside;
   return chosen ? chosen : other;
 }
 // hasOwnProperty, not a bare lookup: a marker id arrives from the database, and an id of

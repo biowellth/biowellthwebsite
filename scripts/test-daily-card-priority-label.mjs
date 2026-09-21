@@ -123,15 +123,18 @@ eq(SH("High-Sensitivity C-Reactive Protein (hs-CRP)"), "hs-CRP", "CAPS win: CRP 
 eq(SH("Thyroid-Stimulating Hormone (TSH)"), "TSH", "CAPS win: TSH");
 eq(SH("Absolute Lymphocyte Count (ALC)"), "ALC", "CAPS win: ALC");
 eq(SH("DHEA-Sulfate (DHEA-S)"), "DHEA-S", "CAPS win: DHEA-S, with a hyphen inside the run");
-eq(SH("ALT (SGPT)"), "SGPT", "CAPS win EVEN WHEN LONGER than the part before");
+eq(SH("ALT (SGPT)"), "ALT", "caps but LONGER: SGPT(4) loses to ALT(3), no exception needed");
 
 // -- the part before wins, because the parenthetical is a qualifier not an abbreviation
 eq(SH("Iron (Serum)"), "Iron", "no capital run: Serum is a qualifier, Iron wins");
+eq(SH("Vitamin D (25-OH total)"), "Vitamin D", "caps but LONGER: the OH run loses to the length clause");
+eq(SH("Abbrev (XY)"), "XY", "caps AND shorter: both clauses satisfied");
+eq(SH("AB (LONGERCAPS)"), "AB", "caps but longer: the before wins");
 eq(SH("Magnesium (Serum)"), "Magnesium", "no capital run: was 'Serum' under the old rule");
 eq(SH("Vitamin B12 (serum)"), "Vitamin B12", "no capital run: was 'serum' under the old rule");
 eq(SH("Vitamin B9 (Folate, serum)"), "Vitamin B9", "no capital run in 'Folate, serum'");
 eq(SH("Something (Abc)"), "Something", "ONE capital is not a run, so the before wins");
-eq(SH("Something (aBC)"), "aBC", "a run of two anywhere in the parenthetical is enough");
+eq(SH("Something (aBC)"), "aBC", "a run of two anywhere in the parenthetical, and shorter");
 
 // -- no parenthetical at all
 eq(SH("Ferritin"), "Ferritin", "NO parenthetical: the whole name renders");
@@ -159,10 +162,10 @@ const PINNED = [
   ["hs_crp",               78, "hs-CRP"],
   ["dhea_sulfate",         74, "DHEA-S"],
   ["urinary_microalbumin", 74, "Urinary Microalbumin"],
-  ["alt",                  72, "SGPT"],
+  ["alt",                  72, "ALT"],
   ["total_cholesterol",    54, "Total Cholesterol"],
   ["free_t3",              48, "Free T3"],
-  ["vitamin_d_25oh_total", 23, "25-OH total"],
+  ["vitamin_d_25oh_total", 23, "Vitamin D"],
   ["vitamin_b9_folate",    17, "Vitamin B9"],
   ["vitamin_b12",          14, "Vitamin B12"],
   ["fasting_glucose",      12, "Fasting Glucose"],
