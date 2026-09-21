@@ -1,0 +1,6 @@
+session: b7af8dbe-becf-4811-99e6-7064619c03eb
+taken:   2026-09-21T17:48Z
+scope:   THEME_PANEL_UNSCORED_V1 - unscored markers leave the theme panel good
+         group and the in-range count; one grey "N not scored." line instead.
+         renderThemePanel only. Held through the push.
+repos:   biowellth-website
