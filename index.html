@@ -1260,6 +1260,19 @@ route();
     // itself re-trip REPORT_ID and turn every event into a stub. A null id omits the user
     // key ENTIRELY rather than sending user:{id:null}, which would be a value that looks
     // like an answer.
+    //
+    // AMENDMENT F, 2026-09-20: THE ENVIRONMENT IS NOW CARRIED, for the same reason and
+    // found the same way. Measured on the live host: a stub reached Sentry with NO
+    // environment tag at all, against thirteen tags on the clean event beside it. So
+    // `environment:production` hid every suppression, and dev and production stubs
+    // grouped into ONE issue — which makes "how often is the guard firing in production"
+    // unanswerable, and a dev session inflates the production picture while looking
+    // identical to it. It is a constant string, "production" or "dev", decided by
+    // hostname above and carrying nothing from the event, so it adds no payload risk.
+    // Absent means the key is omitted, never an empty string.
+    //
+    // The general shape, now twice: a fresh-built object drops everything nobody
+    // remembered to copy, and each omission reads as a quiet zero rather than an error.
     function suppressed(event) {
       var type = null;
       try {
@@ -1277,6 +1290,7 @@ route();
       if (type) stub.exception = { values: [{ type: type }] };
       var uid = browserId();
       if (uid) stub.user = { id: uid };
+      if (event.environment) stub.environment = event.environment;
       return stub;
     }
 
