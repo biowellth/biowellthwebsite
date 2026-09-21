@@ -158,36 +158,43 @@ eq(SH("Iron (Serum) (TSH)"), "Iron", "only the FIRST parenthetical is considered
 // future change to the rule cannot silently flip one label without turning this red.
 const ML = ctx.dcMarkerLabel;
 const PINNED = [
-  ["ferritin",             80, "Ferritin"],
-  ["hs_crp",               78, "hs-CRP"],
-  ["dhea_sulfate",         74, "DHEA-S"],
-  ["urinary_microalbumin", 74, "Urinary Microalbumin"],
-  ["alt",                  72, "ALT"],
-  ["total_cholesterol",    54, "Total Cholesterol"],
-  ["free_t3",              48, "Free T3"],
-  ["vitamin_d_25oh_total", 23, "Vitamin D"],
-  ["vitamin_b9_folate",    17, "Vitamin B9"],
-  ["vitamin_b12",          14, "Vitamin B12"],
-  ["fasting_glucose",      12, "Fasting Glucose"],
-  ["total_t3",             12, "Total T3"],
-  ["platelet_count",        6, "Platelet Count"],
-  ["total_ige",             6, "Total IgE"],
-  ["tsh",                   6, "TSH"],
-  ["fasting_insulin",       6, "Fasting Insulin"],
-  ["absolute_lymphocytes",  6, "ALC"],
-  ["iron_serum",            6, "Iron"],
-  ["magnesium_serum",       6, "Magnesium"],
-  ["homocysteine",          6, "Homocysteine"],
-  ["urine_blood",           5, "Urine Blood"],
+  ["ferritin",               80, "Ferritin"],
+  ["hs_crp",                 78, "hs-CRP"],
+  ["dhea_sulfate",           74, "DHEA-S"],
+  ["urinary_microalbumin",   74, "Urinary Microalbumin"],
+  ["alt",                    72, "ALT"],
+  ["total_cholesterol",      54, "Total Cholesterol"],
+  ["free_t3",                48, "Free T3"],
+  ["vitamin_d_25oh_total",   23, "Vitamin D"],
+  ["vitamin_b9_folate",      17, "Vitamin B9"],
+  ["11_deoxycortisol",       16, "11-Deoxycortisol"],
+  ["vitamin_b12",            14, "Vitamin B12"],
+  ["fasting_glucose",        12, "Fasting Glucose"],
+  ["folate_lcmsms",          12, "Folate"],
+  ["total_t3",               12, "Total T3"],
+  ["absolute_lymphocytes",    6, "ALC"],
+  ["fasting_insulin",         6, "Fasting Insulin"],
+  ["globulin",                6, "Globulin"],
+  ["homocysteine",            6, "Homocysteine"],
+  ["iron_serum",              6, "Iron"],
+  ["magnesium_serum",         6, "Magnesium"],
+  ["platelet_count",          6, "Platelet Count"],
+  ["total_ige",               6, "Total IgE"],
+  ["tsh",                     6, "TSH"],
+  ["uacr",                    5, "UACR"],
+  ["urine_blood",             5, "Urine Blood"],
 ];
-eq(PINNED.length, 21, "all 21 resolving ids are pinned");
+eq(PINNED.length, 25, "ALL 25 priority_marker_ids in the 650 rows are pinned");
 for (const [id, rows, want] of PINNED) eq(ML(id), want, `PIN ${id} (${rows} rows)`);
 
-// the four ids measured against those same 650 rows that do NOT resolve
-eq(ML("11_deoxycortisol"), null, "UNRESOLVED id returns null, not a fallback (16 rows)");
-eq(ML("folate_lcmsms"), null, "UNRESOLVED id returns null, not a fallback (12 rows)");
-eq(ML("globulin"), null, "UNRESOLVED id returns null, not a fallback (6 rows)");
-eq(ML("uacr"), null, "UNRESOLVED id returns null, not a fallback (5 rows)");
+// ZERO UNRESOLVED. Every priority_marker_id in the 650 non-keeper action_pool rows resolves.
+// 11_deoxycortisol, folate_lcmsms, globulin and uacr were the four that did not; they were added
+// to GAP_MARKER_NAME from the worker library's display_name, verbatim.
+{
+  const unresolved = PINNED.filter(([id]) => ML(id) === null).map(([id]) => id);
+  eq(unresolved.length, 0, `zero unresolved ids across all 650 rows (got ${JSON.stringify(unresolved)})`);
+  eq(PINNED.reduce((n, [, rows]) => n + rows, 0), 650, "the pinned row counts sum to the measured 650");
+}
 eq(ML(null), null, "a null marker id returns null");
 eq(ML(""), null, "an empty marker id returns null");
 eq(ML("constructor"), null, "a prototype key does not resolve to a label");
@@ -203,6 +210,7 @@ function render(three, done = []) {
   b.ctx.dcRenderCard();
   return b;
 }
+const ABSENT_ID = "zzz_not_a_marker";   // deliberately synthetic: a real id can later resolve
 const act = (id, mid, text, phase = null, pn = null) =>
   ({ action: { action_id: id, priority_marker_id: mid, base_text: text, phase_notes: pn }, phase });
 
@@ -210,7 +218,7 @@ const act = (id, mid, text, phase = null, pn = null) =>
   const b = render([
     act("a1", "iron_serum", "Try adding lentils to one meal today."),
     act("a2", "tsh", "Try a ten minute walk after lunch."),
-    act("a3", "uacr", "Try keeping water intake steady today."),
+    act("a3", ABSENT_ID, "Try keeping water intake steady today."),
   ]);
   const h = b.captured.html;
 
@@ -225,7 +233,7 @@ const act = (id, mid, text, phase = null, pn = null) =>
   const rows = h.split(/<div class="dc-act(?=[ "])/);
   const third = rows[3];
   ok(!third.includes("dc-label"), "unresolved row: no label element at all");
-  ok(!third.includes("uacr"), "unresolved row: the raw marker id is NOT rendered");
+  ok(!third.includes(ABSENT_ID), "unresolved row: the raw marker id is NOT rendered");
   ok(third.includes("Try keeping water intake steady today."),
      "CONTROL: the unresolved row DID render, so the two assertions above can fire");
 
@@ -260,7 +268,7 @@ const act = (id, mid, text, phase = null, pn = null) =>
 { // a row that is done, and a row with a phase flavour, both unchanged by the label
   const b = render([
     act("a1", "ferritin", "Base one.", "luteal", { luteal: "A luteal note." }),
-    act("a2", "globulin", "Base two."),
+    act("a2", ABSENT_ID, "Base two."),
   ], ["a1"]);
   const h = b.captured.html;
   ok(h.includes('class="dc-act done"'), "the done row still renders its done class");
@@ -274,7 +282,7 @@ const act = (id, mid, text, phase = null, pn = null) =>
 
 { // every row unresolved -> no labels at all, and the card still renders
   const b = render([
-    act("a1", "uacr", "One."), act("a2", "globulin", "Two."), act("a3", "folate_lcmsms", "Three."),
+    act("a1", ABSENT_ID, "One."), act("a2", ABSENT_ID + "2", "Two."), act("a3", ABSENT_ID + "3", "Three."),
   ]);
   const h = b.captured.html;
   eq((h.match(/class="dc-label"/g) || []).length, 0, "no labels when nothing resolves");
