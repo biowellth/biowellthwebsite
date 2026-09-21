@@ -1,0 +1,6 @@
+session: b7af8dbe-becf-4811-99e6-7064619c03eb
+taken:   2026-09-21T00:21Z
+scope:   DAILY_CARD_PRIORITY_LABEL_V1 — a priority label on each daily card action
+         row in dashboard.html, one new .dc-label class, and its test script.
+         Held through build, tests and suite. Released at seal. NO PUSH.
+repos:   biowellth-website
