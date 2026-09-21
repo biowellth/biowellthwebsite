@@ -118,17 +118,21 @@ split so that this distinction is not lost.
 
 ## 5. Data processing agreement status
 
-**DPA status, Sentry, Article 28 processing agreement: [FILL IN ONCE I CONFIRM]**
+**DPA status, Sentry, Article 28 processing agreement: ACCEPTED.**
 
-This is recorded as unconfirmed rather than assumed. If an Article 28 agreement is not in
-place, this needs to be resolved before publication, since Sentry processes personal data,
-the pseudonymous browser identifier at minimum, on our behalf and stores it in the EU.
+Accepted 2026-09-20. Sentry Data Processing Amendment version 5.1.0, signed via
+Sentry's self-serve Legal & Compliance page, organization biowellth, by
+general@mybiowellth.com. Data Storage Region is European Union. Terms of Service and
+Privacy Policy were accepted at org creation the same day. The SOC2 Bridge Letter is
+deliberately not accepted, being a confidentiality acknowledgment for reading their audit
+report rather than a processing term. The Business Associate Agreement is not self-serve
+and is not applicable at present, since BioWellth does not handle PHI under HIPAA.
 
 ---
 
 ## 6. What happens next
 
-1. Counsel answers questions one and two, and confirms the DPA position.
+1. Counsel answers questions one and two.
 2. The heading is changed, or not, per that answer.
 3. The effective date placeholder is replaced with the cleared date, in the two places the
    policy carries it.
