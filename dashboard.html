@@ -3845,10 +3845,53 @@ window.__ddcAnswered = window.__ddcAnswered || {};
 window.__ddcMountState = window.__ddcMountState || {};
 
 /** True when this report should be asked. Null dates or an already-confirmed row: no beat. */
+// DDC_REVERSED_PAIR_V1. A stored period date LATER than the draw date cannot be
+// "the one before this draw", so both offered answers are false and the question
+// is unanswerable as posed. Measured on this database 2026-09-20: the reversed
+// pair is the MAJORITY of rows carrying a date, not the exception.
+//
+// STRING COMPARISON, NEVER Date PARSING. Both columns are date-only YYYY-MM-DD,
+// which sorts lexicographically, and `new Date("2024-07-25")` parses as UTC
+// midnight and renders a day early in any negative offset. On a comparison whose
+// whole job is ordering two dates, a parser that shifts one of them is
+// disqualifying. Same reasoning the beat already applies to rvFmtDate.
+function ddcReversedPair(rep){
+  if(!rep || !rep.collected_on || !rep.lmp_date_before_draw) return false;
+  return String(rep.lmp_date_before_draw) > String(rep.collected_on);
+}
+
+/**
+ * Records the only answer a reversed pair can carry, without asking her.
+ *
+ * NO DATE KEY, for the reason onDdcTap already gives: resending
+ * lmp_date_before_draw would put a second writer on it, and a date differing from
+ * the stored one clears the very confirm this call is setting. The body carries
+ * the answer and nothing else.
+ *
+ * FIRE AND FORGET, deliberately. This runs on a read path that must not hold the
+ * reading. A failure leaves the column as it was, the beat still renders nothing
+ * for this pair, and the next mount tries again. Nothing she can see depends on
+ * it landing.
+ */
+function ddcSendAfterDraw(rep){
+  if(!rep || !rep.id) return;
+  if(window.__ddcAnswered[rep.id]) return;            // the existing double-send guard
+  const prov = rep.cycle_date_provenance;
+  if(!(prov == null || prov === "reported_at_upload")) return;
+  window.__ddcAnswered[rep.id] = "confirmed_after_draw";
+  sb.functions.invoke("process-report", {
+    body: { report_id: rep.id, mode: "submit", cycle_date_provenance: "confirmed_after_draw" },
+  }).catch((e) => console.error("[ddc] reversed-pair stamp failed, nothing visible changes:", e));
+}
+
 function ddcShouldAsk(rep){
   if(!rep) return false;
   if(window.__ddcAnswered[rep.id]) return false;
   if(!rep.collected_on || !rep.lmp_date_before_draw) return false;
+  // A REVERSED PAIR IS ANSWERED, NOT ASKED. The date she gave is after the draw,
+  // so "my most recent one" is the only true answer and she is not asked to pick
+  // it. Nothing renders for this case.
+  if(ddcReversedPair(rep)){ ddcSendAfterDraw(rep); return false; }
   const prov = rep.cycle_date_provenance;
   // null (never stamped) or reported_at_upload (stamped by the upload capture) are the two states
   // that still need her answer. Any confirmed_* or unknown means she has already answered.
@@ -3883,11 +3926,18 @@ function ddcRender(rep){
  * confirm this call is setting. So the body carries the answer and nothing else.
  *
  * THE ACKNOWLEDGEMENT IS GATED ON THE SERVER SAYING IT WROTE. `persisted.cycle` is set only when
- * the cycle patch actually reached the row. This matters today: the deployed process-report is
- * ACTIVE version 36, which reads body.cycle_date_provenance ZERO times -- measured from the
- * downloaded body, against a control of 9 other body.* reads it does perform -- so it answers 200
- * with the confirm silently dropped. Without this gate the beat would thank her for a write that
- * never landed. With it, she sees the error line and the beat stays answerable.
+ * the cycle patch actually reached the row.
+ *
+ * THE LIVE STATE, MEASURED 2026-09-21 FROM THE DEPLOYED BODY. process-report is ACTIVE version 37
+ * and it DOES read the confirm: cycle_date_provenance appears 8 times in the deployed bundle,
+ * persistCycleCapture 6 and confirmed_before_draw 2, against a control of 9 for
+ * lmp_date_before_draw. So the confirm now lands and `persisted.cycle` reports it honestly.
+ *
+ * THIS COMMENT SAID THE OPPOSITE UNTIL TODAY, describing version 36 as reading it ZERO times. That
+ * was true when written and went stale when v37 shipped on 2026-09-20. The gate below is KEPT
+ * anyway, and not because the old reading still holds: a write that does not land must never be
+ * acknowledged, whatever the deployed version happens to do this week. The gate is the invariant;
+ * the version is a measurement with a date on it.
  */
 async function onDdcTap(reportId, value, card){
   if(!value) return;
