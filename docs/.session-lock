@@ -1,6 +1,0 @@
-session: 14463c25-f5c2-4424-b90d-65802a0cc7d8
-taken:   2026-09-21T18:15Z
-scope:   dashboard.html first-upload fixes: (A) boot resumes the poll for an
-         uploaded/processing newest report; (B) draw-date confirm beat at the
-         reveal entry point. Tests + mutants. Held through the push (= deploy).
-repos:   biowellth-website
