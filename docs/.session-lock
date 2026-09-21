@@ -1,0 +1,7 @@
+session: b7af8dbe-becf-4811-99e6-7064619c03eb
+taken:   2026-09-21T17:59Z
+scope:   NEEDS_REVIEW_SUPPLEMENT_HIGH_V1 - needs_review joins
+         REPORT_NOT_SCORED_STATUS and the not_scored row copy path;
+         supplement_high goes with watch in the theme panel.
+         dashboard.html only. Held through the push.
+repos:   biowellth-website
