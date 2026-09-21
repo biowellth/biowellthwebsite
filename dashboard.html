@@ -5539,8 +5539,16 @@ function reportMarkerName(m){ return (typeof m==="string") ? markerName({marker_
 // not a functional-range read of the value, so they do NOT count.
 const REPORT_NOT_SCORED_STATUS = new Set([
   "no_value","unknown_unit","not_scored","cycle_gated","reference_only",
-  "supplement_high","life_stage_reference",
+  "supplement_high","life_stage_reference","needs_review",
 ]);
+
+// Row-level "no scored band, show the unscored placeholder and the honest note". A SUBSET of
+// REPORT_NOT_SCORED_STATUS: the others each have their own row treatment already (unknown_unit
+// has its own ruled copy, no_value shows nothing, supplement_high and life_stage_reference are
+// real readings with their own calm labels). Declared once because markerRowHTML and
+// markerDetailHTML both ask this question and a row that says "result not scored" must not
+// expand into a trend chart.
+const NOT_SCORED_ROW_STATUS = new Set(["not_scored","needs_review"]);
 function reportMarkerScored(m){
   if(!m || m.band == null) return false;                 // no band -> never read against a range
   return !REPORT_NOT_SCORED_STATUS.has(String(m.status||"").toLowerCase());
@@ -9422,6 +9430,13 @@ function renderThemePanel(p){
       // page test `cls === "s-good"` and were never exposed to this; this one tested nothing.
       //
       // Live on real data when it was found: 265 such markers across 21 reports and 15 owners.
+      // supplement_high is a REAL reading that is high -- a water-soluble vitamin running above
+      // range because she is supplementing. It is not unread, so it does not belong in the
+      // "N not scored." count, and it is certainly not in range. It goes with watch. Tested
+      // BEFORE the unscored divert because it is a member of REPORT_NOT_SCORED_STATUS (that set
+      // governs whether a marker was scored against a functional range, which this was not) and
+      // the divert would otherwise claim it.
+      if(String(mk.status||"").toLowerCase() === "supplement_high"){ watch.push(mk); continue; }
       if(REPORT_NOT_SCORED_STATUS.has(String(mk.status||"").toLowerCase())){ unscored.push(mk); continue; }
       const cls = sysStatus(mk.status || "").cls;                    // ENGINE status bucket
       if(cls === "s-flag") flag.push(mk);
@@ -11363,7 +11378,9 @@ function markerDetailHTML(mk, cls){
   const color = ST_COLOR[cls] || ST_COLOR['s-none'];
   const info = markerSeriesInfo(mk);
   const isQual = isQualitative(mk, info);
-  const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
+  // needs_review joins not_scored here rather than getting copy of its own: the engine is
+  // saying it has not settled a verdict, which is the same thing this path already says.
+  const isNotScored = NOT_SCORED_ROW_STATUS.has(String(mk.status||"").toLowerCase());
   // Header shows the value AS REPORTED on this panel (raw printed value + unit),
   // never the normalized number.
   const unit = mk.unit ? ' <small>'+esc(mk.unit)+'</small>' : '';
@@ -11471,7 +11488,9 @@ function markerRowHTML(mk, sysLabel, range){
   const isQual = isQualitative(mk, info);
   // not_scored: the engine has no scored band for this marker (genuinely unbandable, or
   // cycle-gated). Same unscored register as above \u2014 grey dot, no value/spark, honest note.
-  const isNotScored = String(mk.status||"").toLowerCase()==="not_scored";
+  // needs_review joins not_scored here rather than getting copy of its own: the engine is
+  // saying it has not settled a verdict, which is the same thing this path already says.
+  const isNotScored = NOT_SCORED_ROW_STATUS.has(String(mk.status||"").toLowerCase());
   // Captured qualitative dipstick reading (value null, engine-scored via value_text): it shows its
   // display word and takes the engine status colour exactly like a numeric marker (marker below).
   const qd = qualDisplay(mk);

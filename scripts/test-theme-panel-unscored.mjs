@@ -154,10 +154,27 @@ ok(!G.includes("not scored"), "B-2: the words do not appear anywhere in the pane
 
 // ── 4. every unscored status behaves the same ────────────────────────────────
 console.log("\nEVERY STATUS IN REPORT_NOT_SCORED_STATUS, not just unknown_unit");
+// LEAVING THE IN-RANGE COUNT is the invariant, and it holds for EVERY member of the set including
+// supplement_high. Asserted for all of them below, unconditionally.
+//
+// PRODUCING THE "N not scored." LINE is a narrower claim, and supplement_high is deliberately NOT
+// part of it as of 2026-09-21: it is a REAL reading that is high -- a water-soluble vitamin above
+// range because she is supplementing -- so it was read, and it goes with watch instead. That is
+// asserted positively here rather than dropped, and pinned again in test-status-vocabulary.mjs.
+const UNREAD = UNSCORED.filter((s) => s !== "supplement_high");
 for (const st of UNSCORED) {
   const h = render([mk("m_good", "optimal"), mk("m_x1", st)]);
   ok(inRangeCount(h) === 1, "C-" + st + ": in-range count is 1, not 2 (got " + inRangeCount(h) + ")");
+}
+for (const st of UNREAD) {
+  const h = render([mk("m_good", "optimal"), mk("m_x1", st)]);
   ok(notScoredLine(h) === "1 not scored.", "C-" + st + "-line: shows \"1 not scored.\" (got " + JSON.stringify(notScoredLine(h)) + ")");
+}
+{
+  const h = render([mk("m_good", "optimal"), mk("m_x1", "supplement_high")]);
+  ok(notScoredLine(h) === null, "C-supplement_high-line: it is NOT in the not-scored count — it was read (got " + JSON.stringify(notScoredLine(h)) + ")");
+  ok(h.includes("Worth watching"), "C-supplement_high-watch: it renders under Worth watching instead");
+  ok(h.includes(">m_x1<"), "C-supplement_high-CONTROL: and the marker IS rendered somewhere, so the two above are not vacuous");
 }
 
 // ── 5. the count is the count ────────────────────────────────────────────────
