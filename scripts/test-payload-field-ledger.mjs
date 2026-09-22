@@ -153,10 +153,14 @@ const INTERNAL = {
   "model_used":                   { note: "diagnostic - which model produced this payload", basis: "judged" },
   "prompt_version":               { note: "diagnostic - which prompt pair produced this payload", basis: "judged" },
   "engine_input_snapshot":        { note: "audit record so a rescore can be paired with its inputs", basis: "judged" },
-  "internal_metadata":            { note: "named internal; the whole block is an audit trail", basis: "judged" },
+  // MOVED OUT 2026-09-22, both of them, because the DOCTOR SUMMARY reads them. internal_metadata
+  // was "named internal; the whole block is an audit trail" and cycle_day_at_interpretation was
+  // "audit trail". The block is still an audit trail; one leaf of it stopped being only that the
+  // moment a document printed the cycle day beside the draw date. The entries are deleted rather
+  // than re-noted because a field with reads is RENDERED by measurement, and LEDGER-6 is what
+  // forced this edit rather than letting the stale note stand.
   "internal_metadata.compression_ratio":            { note: "audit trail", basis: "judged" },
   "internal_metadata.confounders_active":           { note: "audit trail; the user-facing version is the confounder note", basis: "judged" },
-  "internal_metadata.cycle_day_at_interpretation":  { note: "audit trail", basis: "judged" },
   "internal_metadata.missing_data_notes":           { note: "audit trail", basis: "judged" },
   "internal_metadata.priorities_generated":         { note: "audit trail", basis: "judged" },
   "internal_metadata.total_markers_analysed":       { note: "audit trail; marker_counts is the rendered version", basis: "judged" },
@@ -212,13 +216,15 @@ const UNRENDERED_KNOWN = {
     note: "the earliest valid retest with its rationale, shown nowhere",
     basis: "judged",
   },
-  "provider_discussion_points": {
-    note: "BLOCKED: written in the third person for a clinician (\"symptoms she has noticed\"), so it needs a Call B copy change before it can render to her",
-    basis: "judged",
-  },
-  "provider_discussion_points[].point":              { note: "what to raise with her doctor; blocked with its parent on third-person copy", basis: "judged" },
-  "provider_discussion_points[].urgency":            { note: "prompt or routine; blocked with its parent", basis: "judged" },
-  "provider_discussion_points[].supporting_markers": { note: "which markers back the point; blocked with its parent", basis: "judged" },
+  // UNBLOCKED 2026-09-22 by a READER, not by a copy change. This entry said the block was
+  // "BLOCKED: written in the third person for a clinician, so it needs a Call B copy change
+  // before it can render to her". That reasoning was right and its conclusion was too narrow:
+  // third-person clinician copy needs a clinician READER, not a rewrite. The doctor summary is
+  // addressed to one, so `point` and `urgency` render there verbatim, guarded on prevalence
+  // language and on words that would tell a clinician what to order, prescribe or diagnose.
+  // They are gone from this list because they are measured as read; the health report still
+  // renders none of them, and for the health report the original reasoning stands.
+  "provider_discussion_points[].supporting_markers": { note: "which markers back the point; the doctor summary prints the point and its urgency and does NOT print this, because a question reads as a question and loses that the moment marker ids are stapled to it", basis: "judged" },
   "cluster_patterns": {
     note: "the cross-system story; the parent of three backlog fields",
     basis: "judged",
