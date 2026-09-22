@@ -1385,13 +1385,52 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .report-disc{border-top:2px solid var(--brown-light);margin-top:30px;padding-top:18px;font-size:12px;line-height:1.6;color:var(--brown-mid)}
 .report-disc strong{color:var(--brown)}
 .report-print-footer{display:none}
+/* ── DOCTOR SUMMARY v1 — screen styles. The document reuses .report-doc and the
+   .report-sec / .report-sec-h rhythm so it reads as the same product; everything
+   below is the part that differs, which is a table, editable rules and tick rows. */
+.doctor-doc .report-doc-title{font-size:22px}
+.doc-sec{margin-bottom:22px}
+.doc-line{font-size:13px;line-height:1.6;color:var(--brown);margin-bottom:5px}
+.doc-empty{font-size:13px;line-height:1.6;color:var(--brown-mid);margin:10px 0 8px}
+/* An editable rule. It prints exactly what she typed, and prints as a blank line
+   when she typed nothing, which is why there is no placeholder text and no JS. */
+.doc-rule{min-height:22px;border-bottom:1px solid var(--brown-light);margin:8px 0 12px;
+  font-size:13px;line-height:1.7;color:var(--brown);outline:none;padding:2px 2px 4px}
+.doc-rule:focus{border-bottom-color:var(--teal)}
+.doc-field{margin-bottom:4px}
+.doc-field-label{font-family:'Instrument Sans',sans-serif;font-size:10.5px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:2px}
+.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:10px}
+.doc-tbl th{font-family:'Instrument Sans',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid);text-align:left;
+  padding:6px 6px;border-bottom:1px solid var(--brown-light)}
+.doc-tbl td{font-size:12.5px;line-height:1.45;color:var(--brown);padding:6px 6px;
+  border-bottom:1px solid var(--brown-light);word-break:break-word}
+.doc-tbl th:nth-child(1),.doc-tbl td:nth-child(1){width:22%}
+.doc-tbl th:nth-child(2),.doc-tbl td:nth-child(2){width:11%}
+.doc-tbl th:nth-child(3),.doc-tbl td:nth-child(3){width:12%}
+.doc-tbl th:nth-child(4),.doc-tbl td:nth-child(4){width:21%}
+.doc-tbl th:nth-child(5),.doc-tbl td:nth-child(5){width:16%}
+.doc-tbl th:nth-child(6),.doc-tbl td:nth-child(6){width:18%}
+.doc-num{font-variant-numeric:tabular-nums}
+.doc-tbl-note td{color:var(--brown-mid);font-size:12px;font-style:italic;padding-top:4px;padding-bottom:9px}
+.doc-q{display:flex;align-items:flex-start;gap:9px;padding:7px 0;
+  border-bottom:1px solid var(--brown-light);cursor:pointer}
+.doc-q:last-of-type{border-bottom:none}
+.doc-q-box{flex:none;margin-top:3px;width:15px;height:15px;accent-color:var(--teal)}
+.doc-q-txt{font-size:13px;line-height:1.55;color:var(--brown)}
 @media print{
   body{visibility:visible!important;background:#fff!important}
   body>*{display:none!important}
   .report-view:not(.hidden){display:block!important;position:static!important;background:#fff!important}
   .report-bar{display:none!important}
   .report-scroll{overflow:visible!important;padding:0!important}
-  /* FIX B: per-page fixed footer removed (it stays display:none in print), so no reserved bottom pad. */
+  /* FIX B, CORRECTED 2026-09-22. This said the per-page fixed footer was removed and that it
+     "stays display:none in print", and it did — which meant the one sentence telling a reader
+     what the document is never reached paper on EITHER document. The element was still in the
+     markup at all times, so the page looked like it had a footer and printed without one.
+     The footer is now restored for any open .report-view, fixed to the bottom so Chrome repeats
+     it on every printed page, and .report-scroll reserves the space below it. */
   .report-doc{max-width:none!important;margin:0!important;border:none!important;border-radius:0!important;padding:0!important}
   .report-item,.report-note,.report-card,.report-snap-row{break-inside:avoid;page-break-inside:avoid}
   /* FIX A: scale report text ~1.2x for print legibility (body -> ~12pt); print-only, size hierarchy preserved. */
@@ -1410,6 +1449,41 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   .report-part-label,.report-retest-badge{font-size:14px!important}
   .report-disc{font-size:17.5px!important}
   @page{margin:14mm}
+
+  /* THE FOOTER, ON EVERY PAGE, FOR BOTH DOCUMENTS. position:fixed inside a print context is
+     repeated by Chrome on each sheet; .report-scroll reserves the height so no line lands
+     under it. Scoped to an OPEN .report-view so the closed document's footer stays hidden. */
+  .report-view:not(.hidden) .report-print-footer{display:block!important;position:fixed;
+    left:0;right:0;bottom:0;margin:0;padding:3mm 0 0;background:#fff;
+    border-top:1px solid #D9CFC4;color:#6B5B4D;font-size:8.5pt;line-height:1.4;text-align:left}
+  .report-scroll{padding-bottom:12mm!important}
+
+  /* ── DOCTOR SUMMARY v1 — two pages, and the sizes are the reason it is two.
+     The block above scales the HEALTH REPORT up ~1.2x for legibility, and .doctor-doc reuses
+     the same classes, so without these it would inherit a 34px title and a 19px body and run
+     to five or six sheets. Every rule here is more specific than the one it overrides. Body is
+     11pt; the table is the densest thing on the page and gets its own tighter rhythm. */
+  .doctor-doc .report-doc-title{font-size:17pt!important}
+  .doctor-doc .report-doc-meta{font-size:10pt!important;line-height:1.55!important}
+  .doctor-doc .report-doc-head{padding-bottom:8px!important;margin-bottom:11px!important}
+  .doctor-doc .report-sec-h{font-size:11.5pt!important;margin-bottom:2px!important;padding-bottom:4px!important}
+  .doctor-doc .doc-sec{margin-bottom:9px!important;break-inside:auto}
+  .doctor-doc .doc-line,.doctor-doc .doc-empty,.doctor-doc .doc-q-txt{font-size:11pt!important;line-height:1.4!important}
+  .doctor-doc .doc-rule{font-size:11pt!important;min-height:17px!important;margin:5px 0 6px!important}
+  .doctor-doc .doc-field-label{font-size:8pt!important;margin-bottom:1px!important}
+  .doctor-doc .doc-tbl th{font-size:8pt!important;padding:2px 5px!important}
+  .doctor-doc .doc-tbl td{font-size:9.5pt!important;line-height:1.25!important;padding:2px 5px!important}
+  .doctor-doc .doc-tbl-note td{font-size:9pt!important;padding-top:1px!important;padding-bottom:5px!important}
+  .doctor-doc .doc-q{padding:3px 0!important;break-inside:avoid}
+  .doctor-doc .doc-tbl tr{break-inside:avoid}
+  /* No chips and no tags on this document. It renders none; this is the guard that keeps it
+     true if a future edit reuses a report helper that emits one. */
+  .doctor-doc .report-chip,.doctor-doc .report-chips,.doctor-doc .report-tag,
+  .doctor-doc .report-retest-badge{display:none!important}
+  /* AN UNTICKED QUESTION DOES NOT PRINT. She unticks what she does not want to ask and the
+     sheet carries only the rest. :has() is what makes this possible with no JS and no state. */
+  .doctor-doc .doc-q:has(.doc-q-box:not(:checked)){display:none!important}
+  .doctor-doc .doc-q-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 
 /* ONBOARDING_V2 — site tokens only. Mirrors .onb-card geometry and the teal
