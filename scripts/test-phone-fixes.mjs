@@ -167,5 +167,39 @@ for (const op of ["appendChild", "insertBefore", "insertAdjacentHTML", "prepend(
 }
 eq((HTML.match(/appendChild/g) || []).length > 0, true, "F5-5-CONTROL: appendChild IS used elsewhere in the file, so the four checks above can fail");
 
+// ── FIX 6. The scan opens on a phone ─────────────────────────────────────────
+// iOS Safari grants a window.open only while the tap's user activation is live, and it does
+// not survive an await. openFaceScan has two above the open, so on a phone the call was
+// refused silently and nothing at all happened. The phone branch navigates the same tab
+// instead. The desktop branch must stay byte-identical, which is why the pinned open count
+// is asserted here as well as in FIX 4.
+console.log("\nFIX 6 — the scan opens on a phone");
+const scanFn = SRC.match(/async function openFaceScan[\s\S]*?\n\}\n/);
+ok(!!scanFn, "F6-CONTROL: openFaceScan was located");
+ok(/const url = SCAN_ORIGIN \+ "\/index-scan\.html#" \+ token;/.test(scanFn[0]),
+   "F6-CONTROL-2: the url expression is still the one the scan page reads, so the checks below are on the right function");
+ok(/location\.assign\(url\)/.test(scanFn[0]), "F6-1: a phone navigates the same tab with location.assign");
+ok(/window\.matchMedia\("\(pointer: coarse\)"\)/.test(scanFn[0]), "F6-2: the phone test reads pointer coarse");
+ok(/window\.innerWidth < 700/.test(scanFn[0]), "F6-3: with a narrow-viewport fallback for a browser that does not answer the media query");
+eq((HTML.match(/window\.open\(url, "_blank", "noopener"\);/g) || []).length, 1,
+   "F6-4: the pinned desktop open is still present exactly once");
+// Ordering: the phone branch must come BEFORE the desktop open, or it can never be reached.
+const aIdx = scanFn[0].indexOf("location.assign(url)");
+const wIdx = scanFn[0].indexOf('window.open(url, "_blank", "noopener")');
+ok(aIdx > 0 && wIdx > 0, "F6-5-CONTROL: both branches were located, so the order check below compares two real positions");
+ok(aIdx < wIdx, "F6-5: the phone branch runs before the desktop open");
+// It must return, or a phone would navigate AND try to open a window.
+ok(/if\(phone\)\{ location\.assign\(url\); return true; \}/.test(scanFn[0]),
+   "F6-6: the phone branch returns, so it never falls through to window.open");
+// THE PRECONDITION IS RECORDED IN THE CODE, because this branch is only safe while the scan
+// page carries its own route back. If that link is ever removed from scan.biowellth.ai, the
+// phone branch starts stranding her and the comment here is the only thing that says so.
+// A positive assertion on the comment, not an absence: an earlier attempt asserted the copy
+// was NOT in this file and failed against its own documentation.
+ok(/Back to your dashboard/.test(scanFn[0]),
+   "F6-7: openFaceScan records that the scan page carries the route back, which is what makes same-tab safe");
+ok(/strand/i.test(scanFn[0]),
+   "F6-7b: and names the consequence if that link goes away");
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

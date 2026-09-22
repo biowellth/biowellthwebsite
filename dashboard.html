@@ -8830,6 +8830,32 @@ async function openFaceScan(){
   // Raw, not encoded: the scan page reads the fragment as h.slice(1) with no
   // decode step, so encoding here would hand it a token it cannot use.
   const url = SCAN_ORIGIN + "/index-scan.html#" + token;
+
+  // SCAN_SAME_TAB_ON_PHONE_V1. On a phone the open above never happened.
+  //
+  // iOS Safari grants a window.open only while the user activation from the tap is still
+  // live, and it does not survive an await. Two sit above this line, sanaConsentGranted and
+  // sanaAccessToken, so by the time we asked for a window the activation was gone and Safari
+  // refused it silently. The founder tapped the scan button on her phone and nothing
+  // happened at all, which is the worst shape a failure can take: no window, no error, no
+  // way to tell a blocked popup from a dead button.
+  //
+  // Same tab is the fix rather than a workaround. The scan page is a full screen camera flow
+  // that wants the whole viewport anyway, and it now carries its own "Back to your dashboard"
+  // link, shipped 2026-09-22, so leaving this tab is no longer a one way trip. Without that
+  // link this branch would strand her, which is why it went first.
+  //
+  // COARSE POINTER OR A NARROW VIEWPORT, not a user agent string. A touch device is the thing
+  // that actually blocks the popup, and pointer coarse is how the platform says so; the width
+  // test is the fallback for a browser that does not answer the media query. There was no
+  // device check in this file before this line, so nothing existing could be reused.
+  //
+  // THE DESKTOP PATH IS UNTOUCHED, byte for byte. A second window is right on a desktop, where
+  // the dashboard stays visible beside it and noopener still severs the handle both ways.
+  const phone = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)
+    || window.innerWidth < 700;
+  if(phone){ location.assign(url); return true; }
+
   window.open(url, "_blank", "noopener");
   return true;
 }
