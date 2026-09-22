@@ -1321,7 +1321,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .onb-msg{font-size:13px;color:var(--coral-dark);margin-top:12px;min-height:1px}
 
 /* ── REPORT GENERATOR v1a — in-app health report + provider-ready PDF (render-only) ── */
-.report-cta-row{display:flex;justify-content:center;margin:28px 0 4px}
+.report-cta-row{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:28px 0 4px}
+/* DOCTOR_SUMMARY_V1 secondary CTA. Same pill geometry as .report-cta so the two read as a
+   pair, outlined rather than filled so the health report stays the primary action. */
+.report-cta.secondary{background:var(--white);color:var(--brown);border:1px solid var(--brown-light)}
+.report-cta.secondary:hover{background:var(--cream-mid);color:var(--brown);border-color:var(--brown-mid)}
 .report-cta{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;color:var(--white);background:var(--brown);border:none;border-radius:100px;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:9px}
 .report-cta:hover{background:var(--brown-mid)}
 .report-cta svg{width:17px;height:17px}
@@ -2308,6 +2312,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
         Generate health report
       </button>
+      <button class="report-cta secondary" id="btn-doctor" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/><path d="M9 3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2"/><path d="M16 3h5v5"/><path d="M21 3l-8 8"/></svg>
+        Prepare a summary for your doctor
+      </button>
     </div>
       </div>
     </div>
@@ -2412,6 +2420,23 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div class="report-doc" id="report-doc"></div>
   </div>
   <div class="report-print-footer">This report supports conversations with your healthcare provider and is not medical advice. It is not a diagnosis.</div>
+</div>
+
+<!-- DOCTOR SUMMARY v1 -- a SECOND document beside the health report, one to two pages, built to be
+     carried into an appointment. Reuses the .report-view chrome (Back / Save as PDF) and the print
+     isolation that already hides body>* for whichever .report-view is open, so the existing report
+     is untouched. The document itself carries its own class, .doctor-doc, and its own print block.
+     Content is assembled render-only from window.__rdPayload by openDoctor(). -->
+<div id="doctor-view" class="report-view hidden" role="dialog" aria-label="Summary for your doctor" aria-modal="true">
+<div class="report-bar">
+<button class="report-bar-btn" id="doctor-back" type="button">Back</button>
+<div class="report-bar-title">Summary for your doctor</div>
+<button class="report-bar-btn primary" id="doctor-print" type="button">Save as PDF</button>
+</div>
+<div class="report-scroll">
+<div class="report-doc doctor-doc" id="doctor-doc"></div>
+</div>
+<div class="report-print-footer">Functional ranges are narrower than laboratory reference ranges and are not diagnostic thresholds. The laboratory's own reference ranges are on the original report. BioWellth does not diagnose, treat or prescribe.</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
