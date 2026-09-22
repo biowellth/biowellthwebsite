@@ -6185,6 +6185,353 @@ function closeReport(){
   const pt = $("report-print"); if(pt) pt.onclick = ()=>window.print();
 })();
 
+// ══════════════════════════════════════════════════════════════════════════
+// DOCTOR SUMMARY v1 -- "Summary for your doctor". A SECOND document beside the
+// health report, one to two pages, built to be carried into an appointment.
+//
+// RENDER-ONLY off results.payload (window.__rdPayload) plus PROFILE.full_name and
+// window.__rdReportConf. No model call, no scoring, no status re-derivation. Every
+// number on the page was already in the payload before this function ran.
+//
+// WHY A SECOND DOCUMENT AND NOT A MODE OF THE FIRST. The health report is written
+// to her. This one is written to be READ ACROSS A DESK in a few minutes, so it
+// drops levers, retest chips, badges and narrative and keeps a table, her own
+// words, and the questions she wants answered. Sharing one builder would have
+// meant a flag threaded through forty lines of the other document.
+//
+// COPY RULES, enforced by scripts/test-doctor-summary.mjs: no colons and no
+// em dashes in user-facing text, straight apostrophes, and no test named to order
+// and no medication named. The one field that says "Medications" asks HER to write
+// what she already takes; it names nothing.
+// ══════════════════════════════════════════════════════════════════════════
+
+// VERBATIM COPY of BANNED_PREVALENCE_PHRASES in the worker's prevalence-guard.ts
+// (PREVALENCE_GUARD_V1, ruled 2026-09-21). Copied rather than paraphrased so both
+// sides drop the same words; the worker guards what Call D generates, this guards
+// what Call B already wrote into a payload stored before that guard existed.
+// Matched case-insensitively on WORD BOUNDARIES, which is what keeps "uncommon"
+// and "commonplace" out of the match.
+const DOCTOR_BANNED_PREVALENCE = [
+  "common",
+  "commonly",
+  "many women",
+  "most women",
+  "normal range",
+  "not immediately worrying",
+];
+// Stems, matched at a word boundary on the LEFT only, so "ordered", "prescribing",
+// "diagnostic", "medications" and "doses" all match while "border", "disorder" and
+// "overdose" do not. A question that tells a clinician what to order, prescribe or
+// diagnose is the one thing this page must never do.
+const DOCTOR_BANNED_STEMS = ["order", "prescrib", "diagnos", "medicat", "dose"];
+
+function doctorEscapeForRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+const DOCTOR_PREVALENCE_MATCHERS = DOCTOR_BANNED_PREVALENCE.map(function(phrase){
+  return { phrase: phrase, re: new RegExp("\\b" + doctorEscapeForRegex(phrase) + "\\b", "i") };
+});
+const DOCTOR_STEM_MATCHERS = DOCTOR_BANNED_STEMS.map(function(stem){
+  return { phrase: stem, re: new RegExp("\\b" + doctorEscapeForRegex(stem), "i") };
+});
+
+// The reason a point is blocked, or null. Order is stable so a drop always reports
+// the same reason for the same sentence. Returns a REASON CODE, never the sentence.
+function doctorPointBlocked(text){
+  if(typeof text !== "string" || text.trim() === "") return "empty";
+  for(const m of DOCTOR_PREVALENCE_MATCHERS) if(m.re.test(text)) return "prevalence_" + m.phrase.replace(/\s+/g, "_");
+  for(const m of DOCTOR_STEM_MATCHERS) if(m.re.test(text)) return "word_" + m.phrase;
+  if(text.indexOf(":") !== -1) return "colon";
+  if(text.indexOf("\u2014") !== -1) return "em_dash";
+  return null;
+}
+
+// Drop counters, read by the tests and by the console line. Counts only, never text.
+let DOCTOR_LAST_KEPT = 0, DOCTOR_LAST_DROPPED = 0;
+
+// marker_id -> the engine's own marker object from payload.systems[].markers[].
+// priorities[].primary_markers carries band / position / flag_status and NO value or
+// unit, so the value on this page has to come from the systems walk.
+function doctorMarkerIndex(p){
+  const byId = {}, sysById = {};
+  for(const s of (Array.isArray(p.systems) ? p.systems : []))
+    for(const m of (Array.isArray(s.markers) ? s.markers : [])){
+      if(!m || !m.marker_id) continue;
+      byId[m.marker_id] = m;
+      sysById[m.marker_id] = s.system_id;
+    }
+  return { byId: byId, sysById: sysById };
+}
+
+// SAFETY CLASS, at marker level. Mirrors cardStatus exactly rather than restating it:
+// same SAFETY_CLASS clean-band sets, same neutral word, same flag word. A heavy metal,
+// an absent antibody and a tumour marker below cutoff are "we looked and found nothing",
+// never "Looks good", and that holds on a page a clinician reads as much as on the body
+// map. An unrecognised band flags rather than passing quietly.
+function doctorSensitive(mk, sysId){
+  return !!((sysId && SENSITIVE_SYSTEMS.has(sysId)) || (mk && SENSITIVE_MARKER_IDS.has(mk.marker_id)));
+}
+function doctorStatusWord(mk, sysId){
+  if(doctorSensitive(mk, sysId)){
+    const cfg = SAFETY_CLASS[sysId];
+    if(!cfg) return SAFETY_NEUTRAL_WORD;
+    const b = String((mk && mk.band) || "").toLowerCase();
+    return (b !== "" && !cfg.clean.has(b)) ? (cfg.flagWord || BES_WORD["s-flag"]) : SAFETY_NEUTRAL_WORD;
+  }
+  return BES_WORD[sysStatus(mk && mk.status).cls] || BES_WORD["s-none"];
+}
+
+// BioWellth range for the table cell. ONE source of the directional logic, which is
+// healthyRangeText -- this only drops its leading word, because a column already
+// headed "BioWellth range" does not need the word "Healthy" in every cell.
+//
+// LABELLED IN THE CANONICAL UNIT, not the printed one. ranges-slim.json carries no
+// unit at all (measured: 228 entries, zero with a unit key); its bounds are the
+// library's, in the library's unit, and the payload carries that as canonical_unit.
+// Labelling a library bound with the lab's printed unit would be a silent unit claim.
+//
+// A SENSITIVE MARKER NEVER GETS A RANGE. Same rule the priority chips already apply
+// (a range for a toxic marker invites reading a ceiling as a target), and the same
+// answer a marker missing from ranges-slim gets, so no number can appear either way.
+function doctorRangeText(mk, sysId){
+  if(!mk) return "not ranged";
+  if(doctorSensitive(mk, sysId)) return "not ranged";
+  const t = healthyRangeText(lookupRange(mk), mk.canonical_unit || mk.unit || "");
+  if(!t) return "not ranged";
+  return t.replace(/^Healthy /, "");
+}
+
+// Value exactly as the payload holds it. value_text carries the raw printed string for a
+// censored result, so it wins; otherwise reportNum strips binary-float noise without
+// rewriting the number. Nothing here converts, rounds or re-scales.
+function doctorValueText(mk){
+  if(!mk) return "";
+  if(typeof mk.value_text === "string" && mk.value_text.trim()) return mk.value_text.trim();
+  if(mk.value === null || mk.value === undefined || mk.value === "") return "";
+  return String(reportNum(mk.value));
+}
+
+// Prior value for a marker, from the deterministic longitudinal buckets only. Returns ""
+// when there is no earlier panel or no prior for this marker, which the table prints as a
+// dash. Never infers a direction and never compares two panels itself.
+function doctorPrevious(p, markerId){
+  const L = p && p.longitudinal;
+  if(!L || !markerId) return "";
+  const all = [].concat(
+    Array.isArray(L.resolved) ? L.resolved : [],
+    Array.isArray(L.persistent_open) ? L.persistent_open : [],
+    Array.isArray(L.newly_crossed) ? L.newly_crossed : []
+  );
+  for(const m of all){
+    if(!m) continue;
+    if(String(m.marker_id || m.id || "") !== String(markerId)) continue;
+    if(m.prior_value === null || m.prior_value === undefined) return "";
+    const d = fmtPanelDate(L.baseline_panel_date);
+    return String(reportNum(m.prior_value)) + (m.unit ? " " + m.unit : "") + (d ? " (" + d + ")" : "");
+  }
+  return "";
+}
+
+// Fasting, from the per-draw confounder answer first and the engine's deferral reason
+// second. The confounder is the only place anyone RECORDED an answer; the deferral reason
+// is what the engine concluded. "Not sure" is an answer that records nothing, so it reads
+// the same as never asked. Never guesses from a marker.
+function doctorFasting(p){
+  const c = window.__rdReportConf || {};
+  if(Object.prototype.hasOwnProperty.call(c, "true_fasting_at_draw")){
+    const v = c.true_fasting_at_draw;
+    if(v === true) return "yes";
+    if(v === false) return "no";
+    return "not recorded";
+  }
+  const rs = (p.vitality && p.vitality.deferred_reasons) || {};
+  for(const k of Object.keys(rs)) if(rs[k] === "not_fasting") return "no";
+  return "not recorded";
+}
+
+// First sentence of a model-written paragraph, raw-trimmed then escaped. A COLON DROPS THE
+// WHOLE SENTENCE rather than being edited out: the colon rule is a copy rule about how a
+// sentence is BUILT, and deleting the punctuation from an explanatory pivot leaves a
+// sentence that reads as broken rather than one that reads as written.
+function doctorFirstSentence(raw){
+  let t = String(raw == null ? "" : raw)
+    .replace(/\s*\((?:Priority|priority)\s*\d+[^)]*\)/g, "")
+    .replace(/\s*\(p\d+\)/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if(!t) return "";
+  const m = t.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  const one = (m ? m[0] : t).trim();
+  if(one.indexOf(":") !== -1) return "";
+  return esc(one);
+}
+
+// ── Section 1, head ────────────────────────────────────────────────────────────
+function doctorHead(p){
+  const fn = firstName(PROFILE && PROFILE.full_name);
+  const meta = [];
+  meta.push(fn ? ("Prepared by " + esc(fn) + " with BioWellth") : "Prepared with BioWellth");
+  const d = p.panel_date ? fmtDrawDate(p.panel_date) : "";
+  if(d) meta.push("Blood draw " + esc(d));
+  if(p.lab_name) meta.push("Lab " + esc(p.lab_name));
+  meta.push("Fasting " + doctorFasting(p));
+  // Cycle context ONLY when the payload actually carries a day. An absent day is covered
+  // honestly by the "Not read on this panel" section; inventing a line here would not be.
+  const cd = p.internal_metadata && p.internal_metadata.cycle_day_at_interpretation;
+  if(typeof cd === "number" && isFinite(cd)) meta.push("Cycle day at draw " + cd);
+  return '<div class="report-doc-head"><div class="report-doc-title">Summary for your doctor</div>' +
+    '<div class="report-doc-meta">' + meta.join("<br>") + '</div></div>';
+}
+
+// ── Section 2, her reason for the visit ────────────────────────────────────────
+// contenteditable, so it prints exactly as typed and prints as a blank rule when empty.
+// No JS, no state, nothing stored. What she writes here never leaves the page.
+function doctorReason(){
+  return '<div class="report-sec doc-sec"><div class="report-sec-h">Reason for this visit</div>' +
+    '<div class="doc-rule" contenteditable="true" data-doc-field="reason"></div></div>';
+}
+
+// ── Section 3, the table ───────────────────────────────────────────────────────
+function doctorFindings(p){
+  const pr = (Array.isArray(p.priorities) ? p.priorities : [])
+    .filter(Boolean)
+    .slice()
+    .sort(function(a, b){
+      const ra = (typeof a.rank === "number") ? a.rank : 99;
+      const rb = (typeof b.rank === "number") ? b.rank : 99;
+      return ra - rb;
+    })
+    .slice(0, 5);
+  let html = '<div class="report-sec doc-sec"><div class="report-sec-h">Findings to discuss</div>';
+  if(!pr.length){
+    return html + '<div class="doc-empty">Nothing on this panel was surfaced as a finding.</div></div>';
+  }
+  const idx = doctorMarkerIndex(p);
+  html += '<table class="doc-tbl"><thead><tr>' +
+    '<th>Marker</th><th>Value</th><th>Unit</th><th>BioWellth range</th><th>Status</th><th>Previous</th>' +
+    '</tr></thead><tbody>';
+  pr.forEach(function(x){
+    const pms = (Array.isArray(x.primary_markers) ? x.primary_markers : []).filter(Boolean);
+    pms.forEach(function(pm){
+      const id = pm.marker_id;
+      const mk = (id && idx.byId[id]) || null;
+      const sysId = (id && idx.sysById[id]) || x.system_id || null;
+      const nm = markerName(mk || pm);
+      const val = mk ? doctorValueText(mk) : "";
+      const unit = (mk && mk.unit) ? mk.unit : "";
+      const prev = doctorPrevious(p, id);
+      html += '<tr>' +
+        '<td>' + esc(nm) + '</td>' +
+        '<td class="doc-num">' + (val ? esc(val) : "-") + '</td>' +
+        '<td>' + (unit ? esc(unit) : "-") + '</td>' +
+        '<td>' + esc(doctorRangeText(mk, sysId)) + '</td>' +
+        '<td>' + esc(doctorStatusWord(mk, sysId)) + '</td>' +
+        '<td>' + (prev ? esc(prev) : "-") + '</td>' +
+      '</tr>';
+    });
+    const line = doctorFirstSentence(x.why_this_matters);
+    if(line) html += '<tr class="doc-tbl-note"><td colspan="6">' + line + '</td></tr>';
+  });
+  return html + '</tbody></table></div>';
+}
+
+// ── Section 4, the questions ───────────────────────────────────────────────────
+// Every point is guarded before it renders. She can untick any row; an unticked row is
+// hidden in print by the @media print rule, so the printed sheet carries only what she
+// still wants to ask. The drop COUNT is logged, never the sentence -- the same rule the
+// worker's guard holds, because a log line is a surface too.
+function doctorQuestions(p){
+  const pts = (Array.isArray(p.provider_discussion_points) ? p.provider_discussion_points : []).filter(Boolean);
+  const kept = [], drops = [];
+  pts.forEach(function(x){
+    const t = (x && typeof x.point === "string") ? x.point : "";
+    const why = doctorPointBlocked(t);
+    if(why){ drops.push(why); return; }
+    kept.push({ text: t, prompt: String((x && x.urgency) || "routine").toLowerCase() === "prompt" });
+  });
+  DOCTOR_LAST_KEPT = kept.length;
+  DOCTOR_LAST_DROPPED = drops.length;
+  if(drops.length){
+    console.warn("DOCTOR_SUMMARY_V1 dropped " + drops.length + " of " + pts.length +
+      " discussion points (" + drops.join(", ") + ")");
+  }
+  // prompt before routine, stable within each tier.
+  const ordered = kept.filter(function(k){ return k.prompt; }).concat(kept.filter(function(k){ return !k.prompt; }));
+  let html = '<div class="report-sec doc-sec"><div class="report-sec-h">Questions for today</div>';
+  if(!ordered.length){
+    return html + '<div class="doc-empty">Add your own questions below</div>' +
+      '<div class="doc-rule" contenteditable="true" data-doc-field="q1"></div>' +
+      '<div class="doc-rule" contenteditable="true" data-doc-field="q2"></div></div>';
+  }
+  ordered.forEach(function(k, i){
+    html += '<label class="doc-q"><input type="checkbox" class="doc-q-box" checked data-doc-q="' + i + '">' +
+      '<span class="doc-q-txt">' + esc(k.text) + '</span></label>';
+  });
+  return html + '</div>';
+}
+
+// ── Section 5, what she brings that no panel holds ─────────────────────────────
+function doctorContext(){
+  const rows = [["Medications", "meds"], ["Supplements", "supps"], ["What I have noticed", "noticed"]];
+  let html = '<div class="report-sec doc-sec"><div class="report-sec-h">What I take and what I have noticed</div>';
+  rows.forEach(function(r){
+    html += '<div class="doc-field"><div class="doc-field-label">' + esc(r[0]) + '</div>' +
+      '<div class="doc-rule" contenteditable="true" data-doc-field="' + r[1] + '"></div></div>';
+  });
+  return html + '</div>';
+}
+
+// ── Section 6, what was not read ───────────────────────────────────────────────
+// Reuses REPORT_DEFER_REASON so the two documents can never give different reasons for
+// the same deferral. Nothing else goes in this section.
+function doctorNotRead(p){
+  const v = p.vitality || {};
+  const deferred = Array.isArray(v.deferred) ? v.deferred : [];
+  const reasons = (v.deferred_reasons && typeof v.deferred_reasons === "object") ? v.deferred_reasons : {};
+  const lines = [];
+  deferred.forEach(function(sysId){
+    const why = REPORT_DEFER_REASON[reasons[sysId]] || "";
+    const name = reportSysName(p, sysId);
+    lines.push(why
+      ? (name + ". " + why.replace(/^./, function(c){ return c.toUpperCase(); }) + ".")
+      : (name + ". Not scored on this panel."));
+  });
+  const gated = (Array.isArray(p.systems) ? p.systems : []).some(function(s){
+    return (Array.isArray(s.markers) ? s.markers : []).some(function(m){ return m && m.is_cycle_gated; });
+  });
+  if(gated) lines.push("Hormone results are held until phase-specific ranges have been reviewed.");
+  if(!lines.length) return "";
+  return '<div class="report-sec doc-sec"><div class="report-sec-h">Not read on this panel</div>' +
+    lines.map(function(l){ return '<div class="doc-line">' + esc(l) + '</div>'; }).join("") + '</div>';
+}
+
+function doctorDocHtml(p){
+  return '<!-- DOCTOR_SUMMARY_V1 -->' + doctorHead(p) + doctorReason() + doctorFindings(p) +
+    doctorQuestions(p) + doctorContext() + doctorNotRead(p);
+}
+
+function openDoctor(){
+  const p = window.__rdPayload;
+  if(!p) return;
+  closeReport();                       // one .report-view open at a time, or print shows both
+  $("doctor-doc").innerHTML = doctorDocHtml(p);
+  const dv = $("doctor-view");
+  dv.classList.remove("hidden");
+  const sc = dv.querySelector(".report-scroll"); if(sc) sc.scrollTop = 0;
+  document.body.style.overflow = "hidden";
+  if(window.__reportPrevTitle == null) window.__reportPrevTitle = document.title;
+  const titleParts = ["Summary for your doctor", firstName(PROFILE && PROFILE.full_name), fmtDrawDate(p.panel_date)].filter(Boolean);
+  document.title = titleParts.join(" - ");
+}
+function closeDoctor(){
+  $("doctor-view").classList.add("hidden");
+  document.body.style.overflow = "";
+  if(window.__reportPrevTitle != null){ document.title = window.__reportPrevTitle; window.__reportPrevTitle = null; }
+}
+(function wireDoctor(){
+  const b = $("btn-doctor"); if(b) b.onclick = openDoctor;
+  const bk = $("doctor-back"); if(bk) bk.onclick = closeDoctor;
+  const pt = $("doctor-print"); if(pt) pt.onclick = function(){ window.print(); };
+})();
+
 // ── STAGE 2: one-line verdict for the hero #headline ───────────────────────
 // F3 PERSONALIZATION (2026-07-14): the verdict is now WRITTEN BY Call B and names
 // HER actual drivers (narrative_headline.verdict), so two women in the same band no
