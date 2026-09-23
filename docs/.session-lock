@@ -1,0 +1,4 @@
+session: 89e62d58
+taken: 2026-09-23T02:01:21Z
+scope: dashboard.html (theme page overlay + Browse everything row), scripts/test-theme-page.mjs
+note: Move Everything else by theme into Browse everything as a third row.
