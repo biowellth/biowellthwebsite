@@ -17,8 +17,9 @@
 //   node scripts/test-doctor-summary.mjs
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { extractApp } from "./lib/extract-app.mjs";
+import { createHash } from "node:crypto";
 
 const FILE = process.env.DASH || "dashboard.html";
 const RANGES = "ranges-slim.json";
@@ -145,6 +146,22 @@ const driverFor = (payload) => `<script>
              range: td[3].innerText.trim(), status: td[4].innerText.trim(), prev: td[5].innerText.trim() };
   });
   res.questions = qa("#doctor-doc .doc-q .doc-q-txt").map(e => e.innerText.trim());
+  // The MODEL's survivors, separately from what renders. Since DOCTOR_QUESTION_FLOOR_V1 the two
+  // differ, and a pin on the rendered count alone can no longer say whether the guard worked.
+  res.modelKept = (typeof DOCTOR_LAST_KEPT !== "undefined") ? DOCTOR_LAST_KEPT : null;
+  res.modelDropped = (typeof DOCTOR_LAST_DROPPED !== "undefined") ? DOCTOR_LAST_DROPPED : null;
+  res.qEmpty = (() => {
+    const secs = qa("#doctor-doc .report-sec");
+    const qs = secs.find(x => { const h = x.querySelector(".report-sec-h");
+      return h && h.innerText.trim() === "Questions for today"; });
+    return qs ? qs.querySelectorAll(".doc-empty").length : "NO SECTION";
+  })();
+  res.qSectionHtml = (() => {
+    const secs = qa("#doctor-doc .report-sec");
+    const qs = secs.find(x => { const h = x.querySelector(".report-sec-h");
+      return h && h.innerText.trim() === "Questions for today"; });
+    return qs ? qs.outerHTML : "";
+  })();
   res.noteRows = qa("#doctor-doc .doc-tbl-note").map(e => e.innerText.trim());
   res.notRead = qa("#doctor-doc .doc-line").map(e => e.innerText.trim());
   res.rules = qa("#doctor-doc .doc-rule").length;
@@ -280,7 +297,11 @@ else {
   // her priorities, so the point naming it goes.
   ok(!/\bTSH\b/i.test(joined), "DS-5g: the planted point naming a non-priority marker was dropped");
   // CONTROL: a clean point must survive, or every assertion above would pass on an empty list.
-  eq(r.questions.length, 1, "DS-5c CONTROL: exactly the one clean point survived");
+  // RE-POINTED with the floor. ONE model point survives, which is what DS-5a..DS-5g are about;
+  // the section renders THREE because the floor tops it up. Pinning the rendered count here would
+  // now be pinning the floor, and the guard's own result would stop being asserted at all.
+  eq(r.modelKept, 1, "DS-5c CONTROL: exactly the one clean MODEL point survived the guard");
+  eq(r.questions.length, 3, "DS-5c2: and the section renders three, the floor having topped it up");
   ok(joined.indexOf("worth looking into further") !== -1, "DS-5d CONTROL: and it is the clean one");
   ok(/\bferritin\b/i.test(joined),
      "DS-5h CONTROL: the surviving question DOES name a marker, so DS-5g is not passing because every marker name is dropped");
@@ -430,6 +451,152 @@ console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its o
 {
   const MUT = {
     fix1: [["  for(const sh of DOCTOR_BANNED_SHAPES) if(sh.re.test(text)) return sh.code;\n", ""]],
+  };
+  for (const name of Object.keys(MUT)) {
+    let src = html, located = true;
+    for (const [from, to] of MUT[name]) {
+      if (src.indexOf(from) === -1) { located = false; break; }
+      src = src.replace(from, to);
+    }
+    ok(located, "DS-29." + name + ": the mutant anchor was LOCATED, so it is a real change");
+    if (!located) continue;
+    try { new Function(extractApp(src, "mutant " + name)); }
+    catch (e) { ok(false, "DS-29b." + name + ": the mutant is valid JavaScript (" + e.message + ")"); continue; }
+    ok(true, "DS-29b." + name + ": the mutant parses, so its result means something");
+    const mr = await run(src, name === "fix1" ? PAYLOAD : withPoints(0));
+    if (!mr) { ok(false, "DS-30." + name + ": the mutant page never finished"); continue; }
+    if (name === "fix1") {
+      const g = JSON.parse(await ev(`(() => {
+        const vocab = doctorBuildMarkerVocab(window.__rdPayload);
+        return JSON.stringify(doctorPointBlocked("Could I have something with my ferritin?", new Set(["ferritin"]), vocab));
+      })()`));
+      eq(g, null, "DS-30.fix1: without the shapes loop a diagnosis question passes, so DS-21 can fail");
+    }
+    if (name === "fix2") {
+      eq(mr.questions.length, 0, "DS-30.fix2: without the floor the section renders nothing, so DS-12.0 can fail");
+      eq(mr.qEmpty, 1, "DS-30b.fix2: and the empty state comes back");
+    }
+    if (name === "fix3") {
+      ok(JSON.stringify(mr.headings) !== JSON.stringify(WANT_HEADINGS),
+         "DS-30.fix3: the old order fails the heading pin, so DS-3 can fail  (" + JSON.stringify(mr.headings) + ")");
+    }
+  }
+}
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// DOCTOR_QUESTION_FLOOR_V1 + the diagnosis shapes + the section swap.
+//
+// WHY THE FLOOR IS TESTED BY COUNT AND BY GUARD. She prints this page. The guard is deliberately
+// hard, so the section it protects is likeliest to be empty on exactly the panels where the model
+// wrote carelessly, and "Add your own questions below" hands the hardest part of the visit back to
+// her. Every floor question must therefore both APPEAR and SURVIVE the same bar as a model one.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+const CLEAN_POINTS = [
+  { point: "Is my ferritin result worth looking into further?", supporting_markers: ["ferritin"], urgency: "routine" },
+  { point: "What is my ferritin result saying about my energy?", supporting_markers: ["ferritin"], urgency: "routine" },
+  { point: "Could my ferritin result be worth a second look?", supporting_markers: ["ferritin"], urgency: "routine" },
+];
+const withPoints = (n) => Object.assign({}, PAYLOAD, { provider_discussion_points: CLEAN_POINTS.slice(0, n) });
+const noPriorities = () => Object.assign({}, PAYLOAD, { priorities: [], provider_discussion_points: [] });
+
+console.log("\nTHE QUESTION FLOOR -- 0, 1, 2 and 3 surviving model questions");
+const FLOOR = {};
+for (const n of [0, 1, 2, 3]) {
+  const fr = await run(html, withPoints(n));
+  FLOOR[n] = fr;
+  if (!fr) { ok(false, "DS-11." + n + ": the page never finished"); continue; }
+  eq(fr.modelKept, n, "DS-11." + n + " CONTROL: exactly " + n + " model question(s) survived the guard");
+  eq(fr.questions.length, 3, "DS-12." + n + ": the section renders THREE questions");
+  eq(fr.qEmpty, 0, "DS-13." + n + ": and no empty state, because something rendered");
+  ok(fr.questions.every(q => q.trim().length > 0),
+     "DS-14." + n + ": every rendered question carries text");
+  ok(fr.questions.every(q => /\?$/.test(q.trim())),
+     "DS-15." + n + ": and every one ends in a question mark");
+}
+// The model's own survivors come FIRST, so a generated question never displaces a written one.
+if (FLOOR[1] && FLOOR[1].questions.length === 3) {
+  eq(FLOOR[1].questions[0], CLEAN_POINTS[0].point,
+     "DS-16: the surviving model question keeps position 1, ahead of the floor");
+}
+// CONTROL: the floor is what made the difference, not the payload. n=3 renders three MODEL
+// questions and no floor text; n=0 renders three and none of them is a model point.
+if (FLOOR[3] && FLOOR[0]) {
+  const modelTexts = new Set(CLEAN_POINTS.map(p => p.point));
+  eq(FLOOR[3].questions.filter(q => modelTexts.has(q)).length, 3,
+     "DS-17 CONTROL: with three model questions the floor adds nothing");
+  eq(FLOOR[0].questions.filter(q => modelTexts.has(q)).length, 0,
+     "DS-17b CONTROL: with none, every rendered question came from the floor");
+}
+
+console.log("\nZERO PRIORITIES -- the two fixed questions, named exactly");
+const ZP = await run(html, noPriorities());
+if (!ZP) { ok(false, "DS-18: the zero-priority page never finished"); }
+else {
+  eq(ZP.questions.length, 2, "DS-18: exactly two questions render");
+  eq(ZP.questions[0], "Is there anything in these results you would want to keep an eye on?",
+     "DS-18a: the first is the fixed wording");
+  eq(ZP.questions[1], "Could anything in these results be connected to how I have been feeling lately?",
+     "DS-18b: and the second");
+  eq(ZP.qEmpty, 0, "DS-18c: the questions section shows no empty state");
+  // CONTROL: doctorFindings has its OWN .doc-empty and an unscoped count reports it as this one.
+  ok(ZP.rangesLoaded, "DS-18d CONTROL: ranges-slim really loaded, so the guard ran against the full vocabulary");
+}
+
+console.log("\nEVERY FLOOR QUESTION PASSES THE GUARD, against the full vocabulary");
+{
+  // RE-RENDER FIRST. The probe below reads window.__rdPayload, which is whatever the LAST run()
+  // left behind -- and that was the ZERO-PRIORITY payload, so the "marker-named" candidates were
+  // silently the two unnamed ones and DS-20 passed on the wrong list. DS-20c is the control that
+  // caught it, and this line is the fix: put a payload WITH priorities in front of the probe.
+  await run(html, withPoints(0));
+  const probe = `(() => {
+    const P = window.__rdPayload;
+    const vocab = doctorBuildMarkerVocab(P);
+    const top = (Array.isArray(P.priorities) ? P.priorities : []).filter(Boolean).slice()
+      .sort((a,b)=>((typeof a.rank==="number")?a.rank:99)-((typeof b.rank==="number")?b.rank:99)).slice(0,5);
+    const ids = new Set();
+    top.forEach(x => (x.primary_markers||[]).forEach(m => m && m.marker_id && ids.add(String(m.marker_id))));
+    const names = doctorFloorMarkers(top);
+    const withNames = doctorFloorQuestions(names).map(q => doctorPointBlocked(q, ids, vocab));
+    const zero = doctorFloorQuestions([]).map(q => doctorPointBlocked(q, new Set(), vocab));
+    return JSON.stringify({ withNames, zero, vocabNames: vocab.names.length, names,
+      knownPositive: doctorPointBlocked("Please order a repeat panel.", ids, vocab) });
+  })()`;
+  const g = JSON.parse(await ev(probe));
+  ok(g.vocabNames > 500, "DS-19 CONTROL: the guard is running against the real vocabulary  (" + g.vocabNames + " names)");
+  ok(g.knownPositive !== null, "DS-19b CONTROL: and it still refuses a point that must go  (" + JSON.stringify(g.knownPositive) + ")");
+  ok(g.withNames.every(x => x === null),
+     "DS-20: every marker-named floor question passes doctorPointBlocked  (" + JSON.stringify(g.withNames) + ")");
+  ok(g.zero.every(x => x === null),
+     "DS-20b: and both zero-priority questions do too  (" + JSON.stringify(g.zero) + ")");
+  ok(g.names.length >= 1, "DS-20c CONTROL: the floor found at least one marker name to use");
+}
+
+console.log("\nBYTE-IDENTICAL -- three surviving questions render exactly as before these fixes");
+{
+  const md5 = (x) => createHash("md5").update(String(x)).digest("hex");
+  let before = null;
+  try { before = execSync("git show HEAD:dashboard.html", { maxBuffer: 1 << 28 }).toString(); }
+  catch (e) { ok(false, "DS-27: could not read HEAD:dashboard.html -- " + e.message); }
+  if (before) {
+    const B = await run(before, withPoints(3));
+    ok(!!B && !B.threw, "DS-27 CONTROL: the BEFORE build rendered the same payload without throwing");
+    if (B && FLOOR[3]) {
+      ok(B.qSectionHtml.length > 0, "DS-27b CONTROL: the BEFORE questions section is non-empty  (" + B.qSectionHtml.length + " chars)");
+      eq(md5(FLOOR[3].qSectionHtml), md5(B.qSectionHtml),
+         "DS-28: the questions section is byte-identical when three model questions survive");
+      // And the BEFORE build must DIFFER on a payload the floor touches, or DS-28 is comparing a
+      // renderer that ignores these fixes rather than one they left alone.
+      const B0 = await run(before, withPoints(0));
+      if (B0) ok(md5(B0.qSectionHtml) !== md5(FLOOR[0].qSectionHtml),
+        "DS-28b CONTROL: with ZERO model questions the two builds differ, so DS-28 is a real match");
+    }
+  }
+}
+
+console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its own pin red");
+{
+  const MUT = {
+    fix2: [["  if(ordered.length < 3){\n", "  if(false){\n"]],
   };
   for (const name of Object.keys(MUT)) {
     let src = html, located = true;

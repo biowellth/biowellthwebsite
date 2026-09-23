@@ -6918,13 +6918,75 @@ function doctorFindings(p){
 // hidden in print by the @media print rule, so the printed sheet carries only what she
 // still wants to ask. The drop COUNT is logged, never the sentence -- the same rule the
 // worker's guard holds, because a log line is a surface too.
+// ── THE QUESTION FLOOR ──────────────────────────────────────────────────────────────────
+//
+// WHY A FLOOR. She prints this page and carries it into an appointment. A page whose question
+// section says "Add your own questions below" hands the hardest part of the visit back to her at
+// the moment she has least room to think. The model's questions are guarded hard, and correctly:
+// a point that names a test to order or a marker she has no priority for is dropped and nothing
+// replaces it. That is right about the point and wrong about the page, because the guard is most
+// likely to empty the section on exactly the panels where the model wrote carelessly.
+//
+// THE FLOOR IS NOT WRITING CLINICAL COPY. Every question is a fixed sentence with ONE slot, and
+// the slot is a marker name the engine already owns. It states nothing about a result, names no
+// condition, asks for no test by name, and carries no number.
+//
+// AND IT OBEYS THE SAME BAR. Each candidate is run through doctorPointBlocked before it is
+// appended. A floor question that could not survive the guard has no business on the page the
+// guard exists to protect, and generating one that fails would be the surface quietly exempting
+// itself from its own rule.
+
+// The distinct priority markers, in priority order, as NAMES. Built from the same sorted and
+// capped list doctorQuestions uses for priorityIds, so a name here is always a marker the guard
+// will recognise as one of hers. Taking it from an uncapped list would produce a question naming
+// a marker outside the allowed set, which the guard would then drop.
+function doctorFloorMarkers(sortedPriorities){
+  const out = [], seen = new Set();
+  for(const x of sortedPriorities){
+    for(const pm of (Array.isArray(x.primary_markers) ? x.primary_markers : [])){
+      if(!pm || !pm.marker_id) continue;
+      const id = String(pm.marker_id);
+      if(seen.has(id)) continue;
+      const nm = markerName(pm);
+      if(!nm) continue;
+      seen.add(id);
+      out.push(nm);
+    }
+  }
+  return out;
+}
+
+// The candidates, in the order they are offered. F2 is skipped when there is no second distinct
+// marker, which is the only one of the four that can fail to fill.
+//
+// THE ZERO-PRIORITY PAIR IS DIFFERENT IN KIND. With no priorities there is no marker to name, so
+// the two questions name nothing and ask about "these results". They are the whole floor in that
+// case, so the section carries two rather than three.
+function doctorFloorQuestions(names){
+  if(!names.length){
+    return [
+      "Is there anything in these results you would want to keep an eye on?",
+      "Could anything in these results be connected to how I have been feeling lately?",
+    ];
+  }
+  const A = names[0], B = names.length > 1 ? names[1] : null;
+  const out = [];
+  out.push("What might my " + A + " result be saying about my health, and is it something to look into more?");
+  if(B) out.push("Could my " + A + " and " + B + " results be connected?");
+  out.push("Could my " + A + " result be connected to anything I have been feeling lately?");
+  out.push("Is there a test that would make my " + A + " result clearer?");
+  return out;
+}
+
 function doctorQuestions(p){
   const pts = (Array.isArray(p.provider_discussion_points) ? p.provider_discussion_points : []).filter(Boolean);
   // The priority set is the one the TABLE ABOVE rendered, capped at five and read off the
   // same primary_markers, so a question can only survive if it names a marker she can see
   // on the page she is holding. Built once per render, not once per point.
-  const priorityIds = new Set();
-  (Array.isArray(p.priorities) ? p.priorities : [])
+  // Hoisted to a named list, because the FLOOR below has to read the SAME five. Sourcing the
+  // floor's marker names from a differently-ordered or uncapped list would let it name a marker
+  // that is not in priorityIds, and the guard would then drop the question this page generated.
+  const topPriorities = (Array.isArray(p.priorities) ? p.priorities : [])
     .filter(Boolean)
     .slice()
     .sort(function(a, b){
@@ -6932,12 +6994,13 @@ function doctorQuestions(p){
       const rb = (typeof b.rank === "number") ? b.rank : 99;
       return ra - rb;
     })
-    .slice(0, 5)
-    .forEach(function(x){
-      (Array.isArray(x.primary_markers) ? x.primary_markers : []).forEach(function(pm){
-        if(pm && pm.marker_id) priorityIds.add(String(pm.marker_id));
-      });
+    .slice(0, 5);
+  const priorityIds = new Set();
+  topPriorities.forEach(function(x){
+    (Array.isArray(x.primary_markers) ? x.primary_markers : []).forEach(function(pm){
+      if(pm && pm.marker_id) priorityIds.add(String(pm.marker_id));
     });
+  });
   const vocab = doctorBuildMarkerVocab(p);
   const kept = [], drops = [];
   pts.forEach(function(x){
@@ -6954,7 +7017,33 @@ function doctorQuestions(p){
   }
   // prompt before routine, stable within each tier.
   const ordered = kept.filter(function(k){ return k.prompt; }).concat(kept.filter(function(k){ return !k.prompt; }));
+
+  // DOCTOR_QUESTION_FLOOR_V1 — top up to THREE, in the fixed order above, skipping any candidate
+  // that cannot be filled or that the guard refuses. Appended AFTER the prompt/routine ordering,
+  // so a model question never loses its place to a generated one, and carried as prompt:false so
+  // nothing generated here can claim urgency the engine did not assign.
+  //
+  // DEDUPED against what survived, on the trimmed lowercase text, so a model question that
+  // already says one of these does not appear twice.
+  //
+  // THE GUARD RUNS ON THEM TOO. See the note above doctorFloorMarkers: a floor question that
+  // cannot survive doctorPointBlocked does not belong on this page.
+  if(ordered.length < 3){
+    const seenText = new Set(ordered.map(function(k){ return String(k.text).trim().toLowerCase(); }));
+    const candidates = doctorFloorQuestions(doctorFloorMarkers(topPriorities));
+    for(const q of candidates){
+      if(ordered.length >= 3) break;
+      const key = q.trim().toLowerCase();
+      if(seenText.has(key)) continue;
+      if(doctorPointBlocked(q, priorityIds, vocab)) continue;
+      seenText.add(key);
+      ordered.push({ text: q, prompt: false });
+    }
+  }
+
   let html = '<div class="report-sec doc-sec"><div class="report-sec-h">Questions for today</div>';
+  // The empty state survives ONLY when nothing at all renders, which now means the model had
+  // nothing AND every floor candidate was unfillable or refused.
   if(!ordered.length){
     return html + '<div class="doc-empty">Add your own questions below</div>' +
       '<div class="doc-rule" contenteditable="true" data-doc-field="q1"></div>' +
