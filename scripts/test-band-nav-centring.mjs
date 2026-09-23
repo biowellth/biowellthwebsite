@@ -395,7 +395,14 @@ ok("no-track control: the same fixture WITH a numeric value draws",
 {
   const RS = JSON.parse(readFileSync(process.env.RANGES || "ranges-slim.json", "utf8")).by_marker_id;
   const entries = Object.entries(RS);
-  eq("library control: ranges-slim carries the expected number of entries", entries.length, 228);
+  // RE-POINTED 2026-09-23, and the three numbers move together for ONE reason. ranges-slim.json
+  // was regenerated from biomarker-library-v2.1.1.json (md5 b03f3b60) and vitamin_b5 dropped out,
+  // because the library now carries biowellth_optimal: null for it and parse_range refuses a
+  // null. The committed file predated that and still held a range the library no longer defines.
+  // Its old entry had a two-ended functional range AND a conv pair, so it counted in all three of
+  // these: 228 -> 227, 140 -> 139, 123 -> 122, each exactly one. Every other entry is byte-equal
+  // apart from the new id field, verified by a key-set and value diff before these were touched.
+  eq("library control: ranges-slim carries the expected number of entries", entries.length, 227);
   const twoEnded = (r) => r.low != null && r.high != null && Number(r.high) > Number(r.low);
   const usableConv = (r) => r.conv_low != null && r.conv_high != null &&
     isFinite(Number(r.conv_low)) && isFinite(Number(r.conv_high)) &&
@@ -414,9 +421,9 @@ ok("no-track control: the same fixture WITH a numeric value draws",
     else { t2++; if (g.floored) floored++; gw.push(g.g1 - g.g0); }
   }
   gw.sort((a, b) => a - b);
-  eq("library: entries with a TWO-ENDED functional range", entries.length - notTwoEnded, 140);
+  eq("library: entries with a TWO-ENDED functional range", entries.length - notTwoEnded, 139);
   eq("library: entries with only ONE functional bound, which can never draw", notTwoEnded, 88);
-  eq("library: entries that build a TIER 1 axis", t1, 123);
+  eq("library: entries that build a TIER 1 axis", t1, 122);
   eq("library: entries that build a TIER 2 axis", t2, 16);
   eq("library: entries that draw NOTHING under either tier", none, 89);
   eq("and those three partition the library", t1 + t2 + none, entries.length);

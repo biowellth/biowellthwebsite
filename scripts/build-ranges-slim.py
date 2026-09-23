@@ -142,6 +142,9 @@ def main(library_path, out_path):
     by_id = {}
     by_dn = {}
     by_alias = {}
+    alias_collisions = []
+    dn_collisions = []
+    no_marker_id = []
     themes_by_id = {}
     skipped = []
 
@@ -160,6 +163,8 @@ def main(library_path, out_path):
         if mid and themes:
             themes_by_id[mid] = themes
 
+        if not mid:
+            no_marker_id.append(dn)
         rng_str = (((m.get('ranges') or {}).get('default') or {})
                    .get('biowellth_optimal'))
         rng = parse_range(rng_str)
@@ -197,14 +202,43 @@ def main(library_path, out_path):
             rng = dict(rng)
             rng['conv_low'] = conv['low']
             rng['conv_high'] = conv['high']
+        # RANGE_ID_V1 — carry the marker_id on the range object itself.
+        #
+        # WHY. The doctor summary's guard has to answer "is this name one of HER priority markers",
+        # and it builds that answer from two sources. Names taken from the payload's
+        # systems[].markers[] arrive WITH an id; names taken from this file's by_alias_lc and
+        # by_display_name_lc arrived with NO id at all, so every one of them resolved to undefined
+        # and read as a marker she has no priority for. Measured on a real stored panel before this
+        # line existed: all four marker-shaped drops were unresolvable names, and all four floor
+        # questions the page generates for itself were dropped too, leaving her doctor summary with
+        # an empty questions section.
+        #
+        # A PER-MARKER FIELD, which is the case the note below the conv pair describes as the right
+        # one. It belongs to the marker, so every map that resolves to that marker should carry it,
+        # and it is set on the SHARED object rather than per map. by_marker_id therefore carries it
+        # too, where it is redundant because the key already is the id; splitting the object to
+        # avoid that would mean three copies per marker and would break the rule on the next line.
+        #
         # The three range maps share one rng object (Step 0b) — do NOT attach per-map fields here.
+        if mid:
+            rng['id'] = mid
         if mid:
             by_id[mid] = rng
         if dn:
-            by_dn[dn.lower().strip()] = rng
+            key = dn.lower().strip()
+            if key in by_dn and by_dn[key].get('id') != mid:
+                dn_collisions.append((key, by_dn[key].get('id'), mid))
+            by_dn[key] = rng
         for a in aliases:
             if isinstance(a, str) and a.strip():
-                by_alias[a.lower().strip()] = rng
+                key = a.lower().strip()
+                # LAST WRITER WINS, unchanged. An alias shared by two markers already resolved to
+                # whichever came later in the library; the id makes that visible instead of silent,
+                # so a collision is now something a build can report rather than something a reader
+                # has to infer from a range that looks wrong.
+                if key in by_alias and by_alias[key].get('id') != mid:
+                    alias_collisions.append((key, by_alias[key].get('id'), mid))
+                by_alias[key] = rng
 
     out = {
         'schema_version': schema_version,
@@ -223,6 +257,19 @@ def main(library_path, out_path):
     print(f'  by_marker_id entries  : {len(by_id)}')
     print(f'  by_display_name_lc    : {len(by_dn)}')
     print(f'  by_alias_lc           : {len(by_alias)}')
+    # RANGE_ID_V1 — count what carries an id, and say so rather than assuming it. An entry without
+    # one is a name the doctor guard still cannot resolve, so a non-zero figure here is the thing
+    # to look at first when a question is dropped for naming a marker she does have.
+    missing_id = sum(1 for m in (by_id, by_dn, by_alias) for v in m.values() if 'id' not in v)
+    print(f'  entries WITHOUT an id : {missing_id}')
+    if no_marker_id:
+        print(f'  markers with no marker_id: {len(no_marker_id)} -> {no_marker_id[:5]}')
+    print(f'  alias collisions      : {len(alias_collisions)}')
+    for k, was, now in alias_collisions:
+        print(f'      alias {k!r}: {was} -> {now}')
+    print(f'  display-name collisions: {len(dn_collisions)}')
+    for k, was, now in dn_collisions:
+        print(f'      display_name {k!r}: {was} -> {now}')
     print(f'  themes_by_marker_id   : {len(themes_by_id)}')
     print(f'  band_family_optimal   : {band_family_optimal}')
     print(f'  engine source         : {engine_path}')
