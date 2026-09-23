@@ -1139,7 +1139,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .reveal-head-text{flex:1 1 0;min-width:0;order:1}
 .score-info-btn{font-family:'Instrument Sans',sans-serif;font-size:11px;color:rgba(250,248,244,.6);background:none;border:none;border-bottom:1px dotted rgba(250,248,244,.4);padding:0 0 1px;cursor:pointer;letter-spacing:.02em}
 .score-info-btn:hover{color:var(--cream)}
-.score-info-pop{flex:0 0 100%;order:4;margin-top:4px;font-size:12px;line-height:1.6;color:rgba(250,248,244,.72);background:rgba(0,0,0,.18);border:1px solid rgba(250,248,244,.14);border-radius:12px;padding:14px 16px}
+/* white-space:pre-line added 2026-09-23. The popover is filled with textContent, so the two
+   coverage blocks above the signed paragraph are separated by real newlines; without this the
+   browser collapses them and three separate statements run together as one wall. */
+.score-info-pop{flex:0 0 100%;order:4;margin-top:4px;font-size:12px;line-height:1.6;color:rgba(250,248,244,.72);background:rgba(0,0,0,.18);border:1px solid rgba(250,248,244,.14);border-radius:12px;padding:14px 16px;white-space:pre-line}
 .coverage-line{font-size:13.5px;line-height:1.6;color:rgba(250,248,244,.78);margin-top:6px}
 .sparse-sub{font-size:14px;line-height:1.6;color:rgba(250,248,244,.72);margin-top:8px;font-weight:400}
 .coverage-line.hidden{display:none}
@@ -5436,20 +5439,26 @@ const SPARSE_SR1 = "We could not read enough of this panel to give you a score y
 const SPARSE_SR2 = "We could still read some of your results, and they are below.";
 const SPARSE_SR3 = "A broader blood panel, one that covers more of your systems, would let us give you a full score.";
 
-function renderCoverageLine(p){
-  const el = $("coverage-line"); if(!el) return;
-  const hide = ()=>{ el.classList.add("hidden"); el.textContent=""; };
+// PURE AS OF 2026-09-23, and renamed for it. This was renderCoverageLine and wrote straight
+// into #coverage-line in the hero; it now RETURNS the sentence and the popover renders it.
+// Every gate, every count and every word below is unchanged from the hero version -- the point
+// of moving the function rather than rewriting it is that the sentence cannot quietly become a
+// different sentence in its new home.
+//
+// RETURNS "" for every case that used to hide the element, so an empty string is the caller's
+// signal to render nothing, exactly as hide() was.
+function coverageSentence(p){
   const v = (p && p.vitality) || {};
-  if(isSuppressed(v)){ return hide(); }   // suppressed: SR-1..SR-3 carry the message; "0 of 7 areas" is noise
+  if(isSuppressed(v)){ return ""; }   // suppressed: SR-1..SR-3 carry the message; "0 of 7 areas" is noise
   const pills = v.pills || {};
   const names = Object.keys(pills);
-  if(!names.length){ return hide(); }
+  if(!names.length){ return ""; }
   // Legacy guard: pre-v51 payloads carry neither deferred_reasons nor per-pill refusal_reason.
   const legacy = (v.deferred_reasons == null) && names.every(n => pills[n] && !('refusal_reason' in pills[n]));
-  if(legacy){ return hide(); }
+  if(legacy){ return ""; }
   const scoring = names.filter(n => pills[n] && pills[n].score != null);
   const held = names.filter(n => pills[n] && pills[n].score == null);
-  if(!held.length){ return hide(); }   // all areas read -> nothing to say
+  if(!held.length){ return ""; }   // all areas read -> nothing to say
   let line = "Based on " + scoring.length + " of the " + names.length + " systems behind your vitality score.";
   const rvals = Object.values(v.deferred_reasons || {});
   const fastingUnknown = rvals.some(r => r === "fasting_unknown");
@@ -5468,8 +5477,43 @@ function renderCoverageLine(p){
   } else if(fastingUnknown && !answered){
     line += " " + capitalise(joined) + " is waiting on one answer.";
   }
-  el.textContent = line;
-  el.classList.remove("hidden");
+  return line;
+}
+
+// ── DEFERRED SYSTEMS, the SECOND axis, and the reason it is a second function ──────────────
+// A HELD PILL AND A DEFERRED SYSTEM ARE NOT THE SAME FACT. A pill is one of the seven groups
+// the composite is built from; a deferred system is one of the engine's twenty-two, held back
+// from marker-level scoring. Measured 2026-09-23 on both stored non-keeper payloads, every one
+// of the seven pills scored while sex_hormones was deferred, so a single sentence welding the
+// two together would have read "This score counts 7 of 7 systems. Hormones were left out" --
+// self-contradictory, and wrong about what her number contains.
+//
+// So they are two sentences with two gates, and either can appear without the other.
+//
+// ONE PAIR PER DISTINCT REASON, not per system, so two systems held for the same reason are
+// named together rather than repeating the sentence. Names come from reportSysName, the same
+// library-backed naming the health report uses, and are joined by reportJoinNames.
+function deferralSentences(p){
+  const v = (p && p.vitality) || {};
+  const deferred = Array.isArray(v.deferred) ? v.deferred : [];
+  if(!deferred.length) return [];
+  const reasons = (v.deferred_reasons && typeof v.deferred_reasons === "object") ? v.deferred_reasons : {};
+  const byReason = {}, order = [];
+  deferred.forEach(function(sysId){
+    const code = reasons[sysId];
+    const why = (code && REPORT_DEFER_REASON[code]) ? REPORT_DEFER_REASON[code] : "";
+    if(!why) return;                       // no ruled reason -> say nothing rather than guess
+    if(!byReason[why]){ byReason[why] = []; order.push(why); }
+    byReason[why].push(sysId);
+  });
+  return order.map(function(why){
+    const names = reportJoinNames(byReason[why].map(function(sysId){ return reportSysName(p, sysId); }));
+    // A FRAGMENT needs "because" and a period; a SENTENCE stands alone. Same test the health
+    // report uses, so the two surfaces compose the table identically.
+    return deferReasonIsSentence(why)
+      ? (names + " were not counted toward this score. " + why)
+      : (names + " were not counted toward this score, because " + why + ".");
+  });
 }
 function renderClarify(reportId){
   const wrap = $("clarify-wrap"), host = $("clarify");
@@ -7842,7 +7886,20 @@ async function renderDashboard(p, reportId){
     }
     $("headline").classList.add(headlineTier(headlineText));
   }
-  renderCoverageLine(p);
+  // THE HERO COVERAGE LINE IS RETIRED, 2026-09-23, at the founder's ruling. Its sentence now
+  // opens the "What's this?" popover, where it sits beside the paragraph explaining the score it
+  // qualifies. #coverage-line stays in the markup with its id so readers and tests resolve; it is
+  // cleared and hidden here on EVERY render rather than merely left alone, so the guarantee is a
+  // line of code and not an assumption about who else might write to it.
+  //
+  // THIS RETIREMENT RIDES IN THE POPOVER COMMIT, not the hero one, because renderCoverageLine
+  // became coverageSentence in the same change. A commit that renames the function and leaves
+  // this call standing throws a ReferenceError on every render, and on this repo a push is a
+  // deploy, so an intermediate commit has to be shippable too.
+  {
+    const covEl = $("coverage-line");
+    if(covEl){ covEl.textContent = ""; covEl.classList.add("hidden"); }
+  }
 
   // Demoted "what this score is" explainer: a TAP/CLICK-toggle popover on the ring
   // (not hover — touch-safe). p1 verbatim (marker-count interpolation kept; copy
@@ -7858,7 +7915,18 @@ async function renderDashboard(p, reportId){
       const countSentence = (typeof mc === "number" && mc > 0)
         ? "We looked at the "+mc+" markers in this report."
         : "We looked at the markers in this report.";
-      infoPop.textContent = "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is not a diagnosis, and it does not replace your doctor. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. Our ranges are often tighter than the ones printed on your lab report. When we read a marker differently from your lab, we will say so. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
+      // COVERAGE FIRST, THEN THE SIGNED EXPLAINER. Both lines are about what the number in the
+      // ring does and does not contain, so they belong above the paragraph that describes what
+      // the number is. textContent is kept -- this is the one place a model-free string meets a
+      // user, and switching to innerHTML to gain two line breaks would put an escaping decision
+      // where none is needed. .score-info-pop carries white-space:pre-line so the blank line
+      // between blocks survives.
+      const infoLines = [];
+      const cov = coverageSentence(p);
+      if(cov) infoLines.push(cov);
+      deferralSentences(p).forEach(function(d){ infoLines.push(d); });
+      const infoLead = infoLines.length ? (infoLines.join("\n\n") + "\n\n") : "";
+      infoPop.textContent = infoLead + "This is your vitality score, a single read of how well your body is functioning right now. It is not a biological age or a forecast of your future health. It is not a diagnosis, and it does not replace your doctor. It is a snapshot of how your body is doing today, read against functional ranges built for feeling well rather than just the standard cutoffs that flag illness, chosen with South Asian women in mind. Our ranges are often tighter than the ones printed on your lab report. When we read a marker differently from your lab, we will say so. "+countSentence+" As you test over time, watching how this moves matters more than any single number.";
       infoBtn.classList.remove("hidden");
       infoPop.classList.add("hidden");                 // start closed on every render
       infoBtn.setAttribute("aria-expanded", "false");
