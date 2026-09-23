@@ -102,8 +102,12 @@ const PAYLOAD = {
   ],
   quietly_working: [], coverage_gap: null,
 };
-const WANT_HEADINGS = ["Reason for this visit", "Findings to discuss", "Questions for today",
-                       "What I take and what I have noticed", "Read with these in mind"];
+// RE-POINTED 2026-09-23 with the section swap. "What I take and what I have noticed" now sits
+// DIRECTLY ABOVE "Questions for today"; the pin follows the order rather than being relaxed, so a
+// future accidental swap still goes red.
+const WANT_HEADINGS = ["Reason for this visit", "Findings to discuss",
+                       "What I take and what I have noticed", "Questions for today",
+                       "Read with these in mind"];
 
 const STUB = `<script>
 window.__errs = []; addEventListener("error", e => window.__errs.push(String(e.message)));
@@ -574,9 +578,13 @@ console.log("\nEVERY FLOOR QUESTION PASSES THE GUARD, against the full vocabular
 console.log("\nBYTE-IDENTICAL -- three surviving questions render exactly as before these fixes");
 {
   const md5 = (x) => createHash("md5").update(String(x)).digest("hex");
+  // AN EXPLICIT REF, not HEAD. "before" means the build these three commits land ON, and HEAD
+  // stops meaning that the moment a second one lands: with the floor already in HEAD both sides
+  // rendered the same three questions and DS-28b, the control, went red on a correct file.
+  const BEFORE_REF = process.env.BEFORE_REF || "d611060";
   let before = null;
-  try { before = execSync("git show HEAD:dashboard.html", { maxBuffer: 1 << 28 }).toString(); }
-  catch (e) { ok(false, "DS-27: could not read HEAD:dashboard.html -- " + e.message); }
+  try { before = execSync("git show " + BEFORE_REF + ":dashboard.html", { maxBuffer: 1 << 28 }).toString(); }
+  catch (e) { ok(false, "DS-27: could not read " + BEFORE_REF + ":dashboard.html -- " + e.message); }
   if (before) {
     const B = await run(before, withPoints(3));
     ok(!!B && !B.threw, "DS-27 CONTROL: the BEFORE build rendered the same payload without throwing");
@@ -597,6 +605,42 @@ console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its o
 {
   const MUT = {
     fix2: [["  if(ordered.length < 3){\n", "  if(false){\n"]],
+  };
+  for (const name of Object.keys(MUT)) {
+    let src = html, located = true;
+    for (const [from, to] of MUT[name]) {
+      if (src.indexOf(from) === -1) { located = false; break; }
+      src = src.replace(from, to);
+    }
+    ok(located, "DS-29." + name + ": the mutant anchor was LOCATED, so it is a real change");
+    if (!located) continue;
+    try { new Function(extractApp(src, "mutant " + name)); }
+    catch (e) { ok(false, "DS-29b." + name + ": the mutant is valid JavaScript (" + e.message + ")"); continue; }
+    ok(true, "DS-29b." + name + ": the mutant parses, so its result means something");
+    const mr = await run(src, name === "fix1" ? PAYLOAD : withPoints(0));
+    if (!mr) { ok(false, "DS-30." + name + ": the mutant page never finished"); continue; }
+    if (name === "fix1") {
+      const g = JSON.parse(await ev(`(() => {
+        const vocab = doctorBuildMarkerVocab(window.__rdPayload);
+        return JSON.stringify(doctorPointBlocked("Could I have something with my ferritin?", new Set(["ferritin"]), vocab));
+      })()`));
+      eq(g, null, "DS-30.fix1: without the shapes loop a diagnosis question passes, so DS-21 can fail");
+    }
+    if (name === "fix2") {
+      eq(mr.questions.length, 0, "DS-30.fix2: without the floor the section renders nothing, so DS-12.0 can fail");
+      eq(mr.qEmpty, 1, "DS-30b.fix2: and the empty state comes back");
+    }
+    if (name === "fix3") {
+      ok(JSON.stringify(mr.headings) !== JSON.stringify(WANT_HEADINGS),
+         "DS-30.fix3: the old order fails the heading pin, so DS-3 can fail  (" + JSON.stringify(mr.headings) + ")");
+    }
+  }
+}
+console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its own pin red");
+{
+  const MUT = {
+    fix3: [["    doctorContext() + doctorQuestions(p) + doctorReadWith(p);",
+            "    doctorQuestions(p) + doctorContext() + doctorReadWith(p);"]],
   };
   for (const name of Object.keys(MUT)) {
     let src = html, located = true;

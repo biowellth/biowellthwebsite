@@ -326,8 +326,17 @@ else {
   const B = await run(before, base());
   ok(!!B && !B.threw, "EP-25 CONTROL: the BEFORE build rendered the same payload without throwing");
   if (B) {
+    // THE DOCTOR SUMMARY LEFT THIS LIST ON 2026-09-23, deliberately, and it is not a weakening.
+    // This block asks whether the EMPTY-PROSE fixes changed a populated render. Three commits
+    // later that document was reordered on purpose ("What I take and what I have noticed" moved
+    // above "Questions for today") and gained a question floor, so a byte comparison against
+    // BEFORE_REF now measures TWO change sets and can only ever be red. The guarantee did not go
+    // away, it moved: test-doctor-summary.mjs DS-28 pins its questions section byte-identical
+    // against that document's OWN baseline, and WANT_HEADINGS pins the new section order. A
+    // surface removed from a comparison has to name what covers it instead, or this is how a
+    // test quietly stops asserting anything.
     const surfaces = [["dashboard", "dashHtml"], ["health report", "reportHtml"],
-                      ["doctor summary", "doctorHtml"], ["reveal deck", "deckHtml"]];
+                      ["reveal deck", "deckHtml"]];
     for (const [label, key] of surfaces) {
       const a = md5(B[key] || ""), b = md5(CTL[key] || "");
       ok((B[key] || "").length > 0, "EP-26." + label + " CONTROL: the BEFORE surface is non-empty  (" + (B[key] || "").length + " chars)");

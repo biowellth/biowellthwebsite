@@ -7120,9 +7120,14 @@ function doctorReadWith(p){
     lines.map(function(l){ return '<div class="doc-line">' + esc(l) + '</div>'; }).join("") + '</div>';
 }
 
+// SECTION ORDER. "What I take and what I have noticed" sits DIRECTLY ABOVE "Questions for
+// today", swapped 2026-09-23. It used to follow the questions, which put the three blank rules
+// she fills in by hand below the list she reads out, so the page asked her to answer before it
+// asked her to look. Reading what she is taking and what she has noticed is what makes several of
+// the questions answerable in the room, and the pair now runs in that order. Nothing else moved.
 function doctorDocHtml(p){
   return '<!-- DOCTOR_SUMMARY_V1 -->' + doctorHead(p) + doctorReason() + doctorFindings(p) +
-    doctorQuestions(p) + doctorContext() + doctorReadWith(p);
+    doctorContext() + doctorQuestions(p) + doctorReadWith(p);
 }
 
 function openDoctor(){
