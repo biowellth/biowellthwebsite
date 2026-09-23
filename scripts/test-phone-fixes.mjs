@@ -138,10 +138,19 @@ console.log("\nFIX 4a — the scan entry does not ride on a narrative line");
 const chips = SRC.match(/function renderCompanionChips[\s\S]*?\n\}\n/);
 ok(!!chips, "F4-CONTROL: renderCompanionChips was located");
 const callIdx = chips[0].indexOf("renderScanEntry()");
-const earlyIdx = chips[0].indexOf("if(!lead) return;");
+const mountIdx = chips[0].indexOf("sanaMountChat()");
+const lateIdx = chips[0].indexOf("if(!ansEl) return;");
 ok(callIdx > 0, "F4-1: renderScanEntry is called inside renderCompanionChips");
-ok(earlyIdx > 0, "F4-1-CONTROL: the no-lead early return is still there, so F4-2 compares two real positions");
-ok(callIdx < earlyIdx, "F4-2: the call runs BEFORE the early return, so a missing narrative line cannot withhold the scan entry");
+// RE-POINTED, EMPTY_PROSE_V1. These two pinned that renderScanEntry sat ABOVE the no-lead early
+// return. That return is GONE -- PROSE_GUARD_V1 (worker v134) can empty narrative_headline.lead,
+// and the return withheld the whole chip row plus sanaMountChat, which was measured missing on a
+// blanked payload. The guarantee is now stronger, so the pin follows it rather than being deleted:
+// there is no lead-shaped early return at all, and BOTH reveals run above the only return left.
+ok(chips[0].indexOf("if(!lead) return;") === -1,
+   "F4-1: there is no no-lead early return in renderCompanionChips any more");
+ok(lateIdx > 0, "F4-1-CONTROL: the late `if(!ansEl) return` IS still there, so F4-2 compares two real positions");
+ok(callIdx < lateIdx && mountIdx > 0 && mountIdx < lateIdx,
+   "F4-2: renderScanEntry AND sanaMountChat both run before the only remaining return, so neither rides on a payload field");
 // The consent gate is untouched: the entry must still be consent-gated.
 const rse = SRC.match(/async function renderScanEntry[\s\S]*?\n\}\n/);
 ok(!!rse && /await sanaConsentGranted\(\)/.test(rse[0]), "F4-3: renderScanEntry still gates itself on consent");

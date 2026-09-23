@@ -8551,9 +8551,28 @@ function renderCompanionChips(p, score){
   // with nothing rendered when that is false, and openFaceScan re-checks the same gate before
   // minting a token. This only stops a missing narrative line from withholding it.
   renderScanEntry();
-  const nh = p && p.narrative_headline;
-  const lead = (nh && typeof nh.lead === "string") ? nh.lead.trim() : "";
-  if(!lead) return;   // no read -> no chips (the shell's own comp-read behavior governs the shell)
+  // EMPTY_PROSE_V1 — THE SAME MISTAKE, ONE LINE FURTHER DOWN. The block above records that
+  // renderScanEntry was moved up here because it was reachable only from the LAST statement of
+  // this function, behind the no-lead early return. sanaMountChat was that last statement, and it
+  // was left where it was. Measured 2026-09-23 on a synthetic payload with every prose field
+  // emptied: SANA_MOUNTED false, sana-thread, sana-input and sana-send all absent, against all
+  // four present on the same payload with the fields populated. The chat is not a chip and does
+  // not read narrative_headline; it was lost because of where it sat.
+  //
+  // MOUNTING IS IDEMPOTENT. sanaMountChat returns early on SANA_MOUNTED, and it calls
+  // renderScanEntry itself, so hoisting it changes nothing for a payload that reaches the end.
+  // It also clears the `if(!ansEl) return` above the old call site, which could strand the chat
+  // in the same way for a document with no #comp-answer.
+  sanaMountChat();
+  // THE NO-LEAD RETURN IS GONE. It withheld the whole chip row, and three of the five chips read
+  // no model prose at all: the camera-reading action chip, the vitality-score chip (gated on the
+  // ring's own number) and "What should I do next?". The two that DO quote the payload are each
+  // already gated on their own text, so removing this gate cannot surface an empty chip.
+  //
+  // KNOWN AND NOT WIDENED HERE: "What should I do next?" answers with "start with your priority
+  // cards", which is false on a panel carrying zero priorities. That is reachable TODAY whenever a
+  // lead is present, so it is a pre-existing defect of that chip's copy and not of this gate.
+  // Gating it on priorities would change a currently-shipping path, which this commit does not do.
 
   const CLOSING = "This is a small preview. Sana, your full companion who can answer anything about your panel, is arriving soon.";
   const items = [];
@@ -8662,7 +8681,6 @@ function renderCompanionChips(p, score){
     };
   });
 
-  sanaMountChat();
 }
 
 // ── ONBOARDING_V2 was declared INSIDE renderCompanionChips until 2026-09-05.
