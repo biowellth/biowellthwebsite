@@ -1143,10 +1143,20 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .coverage-line{font-size:13.5px;line-height:1.6;color:rgba(250,248,244,.78);margin-top:6px}
 .sparse-sub{font-size:14px;line-height:1.6;color:rgba(250,248,244,.72);margin-top:8px;font-weight:400}
 .coverage-line.hidden{display:none}
-.hero-stats{display:flex;flex-wrap:wrap;gap:14px 36px;flex:0 0 100%;order:3;margin-top:18px;padding-top:18px;border-top:1px solid rgba(250,248,244,.14)}
+/* THE COUNTS MOVED OFF THE DARK HERO 2026-09-23, so their colours had to move with them.
+   Every value here was written for .reveal-head, which is var(--brown) with cream text
+   (:1109): the hairline was rgba(250,248,244,.14) and the label rgba(250,248,244,.6), both
+   near-white. On the cream page background under #theme-wrap those are invisible, so moving
+   the markup alone would have shipped a row of numbers with no labels and no rule above them.
+   The base rule is now the LIGHT one, and the dark values are re-scoped under .reveal-head so
+   the row still reads correctly if it is ever put back. flex:0 0 100% and order:3 are inert
+   outside that flex container and stay scoped to it for the same reason. */
+.hero-stats{display:flex;flex-wrap:wrap;gap:14px 36px;margin:0 0 18px;padding-top:18px;border-top:1px solid var(--brown-light)}
+.reveal-head .hero-stats{flex:0 0 100%;order:3;margin:18px 0 0;border-top-color:rgba(250,248,244,.14)}
 .hero-stat{min-width:60px}
 .hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;line-height:1}
-.hs-lbl{font-size:11px;color:rgba(250,248,244,.6);margin-top:5px;line-height:1.3}
+.hs-lbl{font-size:11px;color:var(--brown-mid);margin-top:5px;line-height:1.3}
+.reveal-head .hs-lbl{color:rgba(250,248,244,.6)}
 .hero-trend{margin-top:16px;font-size:13px;font-style:italic;color:var(--teal-mid)}
 .hero-trend.hidden{display:none}
 /* ── HERO_TRAJ_V1 — the trajectory strip, full width under the hero stats.
@@ -2260,7 +2270,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="headline" id="headline"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
       </div>
-        <div class="hero-stats" id="hero-stats"></div>
+      <!-- The four-count row (#hero-stats) LIVED HERE and moved to the top of #theme-wrap on
+           2026-09-23. The hero now carries one thing to read -- a band word, a headline, the
+           ring and the explainer -- and the counts are a way into the themes below, which is
+           where they now sit. The element, its id and its class are UNCHANGED, because
+           renderDashboard fills it by id ($("hero-stats")) and not by position. -->
       <!-- HERO_TRAJ_V1 host. Empty and hidden in markup; renderHeroTrajectory fills it
            after the stats render, and hides it again when there is nothing to draw. -->
       <div class="hero-traj hidden" id="hero-traj"></div>
@@ -2394,6 +2408,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 
 
     <div id="theme-wrap">
+      <!-- Moved out of .reveal-head 2026-09-23. SAME element, SAME id, SAME class, so every
+           reader keeps working untouched. -->
+      <div class="hero-stats" id="hero-stats"></div>
       <div class="section-label acc-amber">Everything else, by theme</div>
       <div class="theme-sub">Grouped by how it shows up in daily life, not by where it sits in your body.</div>
       <div class="theme-grid" id="theme-grid"></div>
@@ -7865,7 +7882,11 @@ async function renderDashboard(p, reportId){
       stat(flag,  "Worth a closer look", ST_COLOR['s-flag']) +
       stat(watch, "Worth watching",      ST_COLOR['s-watch']) +
       stat(good,  "Looks good",          'var(--teal-mid)') +
-      stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
+      // "Gaps to test" was rgba(250,248,244,.55), a near-white chosen for the dark hero. The
+      // row now sits on the cream page under #theme-wrap, where that is unreadable. The other
+      // three are mid-tone (ST_COLOR coral/amber, teal-mid) and read on both surfaces, so this
+      // is the only one that had to change.
+      stat(gaps,  "Gaps to test",       "var(--brown-mid)");
   }
 
   // HERO_TRAJ_V1 — the trajectory strip, directly after the stats it sits under.
