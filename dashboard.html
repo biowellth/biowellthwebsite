@@ -502,7 +502,36 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .chip.s-none{background:var(--brown-soft);color:var(--brown-mid)}
 .chip.s-ref{background:var(--teal-soft);color:var(--teal-dark)}
 .prio-action{font-size:13px;color:var(--brown-mid);line-height:1.6;background:var(--brown-soft);border-radius:10px;padding:10px 12px}
-.prio-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-top:10px}
+/* ── PRIO_TOGGLE_RIGHT_V1, 2026-09-23. The expander moved to the right of the headline.
+   THE MARKUP DID NOT MOVE. .prio-body still emits .prio-top, .prio-chips, .prio-toggle,
+   .prio-detail in that order, which is what keeps wireDisclosures, its aria-expanded and the
+   .prio.open rules working untouched -- and what lets the narrow layout fall back to exactly
+   today's flow by turning the grid off.
+
+   WHY GRID AND NOT ABSOLUTE POSITIONING. An absolutely positioned expander reserves no space,
+   so a long headline runs underneath it, and the only fix is guessing a padding-right wide
+   enough for both "See more" and "Hide". A grid column is measured by the browser from the
+   button's own width, so neither label can ever collide with the headline.
+
+   BASELINE, NOT CENTRE. align-self:baseline puts the button's text on the SAME BASELINE as the
+   headline's FIRST line. Centring would drift down the card as soon as a headline wrapped to
+   two lines, which several of them do. */
+.prio-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;
+  /* 44px touch target without moving the visual box: padding grows the hit area, the negative
+     margin gives the space back to the layout. */
+  padding:14px 0;margin:-14px 0 0;min-height:44px;box-sizing:border-box}
+@media(min-width:481px){
+  .prio-body{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
+  .prio-top{grid-column:1;grid-row:1}
+  .prio-toggle{grid-column:2;grid-row:1;align-self:baseline;justify-self:end;margin-top:0}
+  .prio-chips{grid-column:1/-1;grid-row:2}
+  .prio-detail{grid-column:1/-1;grid-row:3}
+}
+@media(max-width:480px){
+  /* Below the chips, right-aligned, so the headline keeps the full width. This is the flow the
+     card already had; the only addition is the alignment. */
+  .prio-toggle{display:flex;width:max-content;margin-left:auto;margin-top:0}
+}
 .prio-toggle:hover{color:var(--brown)}
 .prio-chev{display:inline-block;margin-left:4px;font-size:15px;line-height:1;transition:transform .2s}
 .prio.open .prio-chev{transform:rotate(90deg)}
@@ -7772,7 +7801,15 @@ window.addEventListener('focus', dcResumeLate);
 // the reveal deck's see-all toggle can get away with the simpler form and this one cannot.
 //
 // No colon and no em dash, per the copy tone rule.
-const PRIO_TOGGLE_LABEL = { closed: "See more details", open: "Hide details" };
+// CHANGED 2026-09-23 from { "See more details", "Hide details" }, on the founder's explicit
+// instruction, as part of moving the expander to the right of the headline. The long pair did
+// not fit a right-hand column beside a 20px headline without crowding it.
+//
+// IT WAS A RATIFIED PAIR AND THIS IS RECORDED RATHER THAN QUIETLY REPLACED.
+// scripts/test-density-collapse.mjs asserted it under the name "the ratified pair"; that
+// assertion is updated in the same commit, so the pin still exists and still names what it is.
+// Reversing this is one edit here and one there.
+const PRIO_TOGGLE_LABEL = { closed: "See more", open: "Hide" };
 const MORE_TOGGLE_LABEL = { closed: "See more", open: "See less" };
 
 // DENSITY_COLLAPSE_V1 — shared wiring for every .*-toggle / .*-detail pair on the dashboard.

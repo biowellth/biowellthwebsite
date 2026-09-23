@@ -687,7 +687,11 @@ const toneFor = () => "t-coral";
 const prioArtSVG = () => "";
 const healthyRangeText = (ref) => (ref && ref.low != null && ref.high != null)
   ? ("Healthy " + ref.low + " to " + ref.high) : "";
-const PRIO_TOGGLE_LABEL = { closed: "See more details", open: "Hide details" };
+// READ OUT OF THE PAGE 2026-09-23, the same way BAND_LEGEND_HTML is read two lines below. It was
+// a hand-typed copy of the shipped pair, which silently went stale the moment PRIO_TOGGLE_RIGHT_V1
+// shortened it. This file asserts geometry, not copy, so it wants whatever the page ships.
+const PRIO_TOGGLE_LABEL = new Function(
+  "return " + (CODE.match(/const PRIO_TOGGLE_LABEL = (\{[\s\S]*?\});/) || [])[1] + ";")();
 // MARKER_BAND_V3 — the legend markup is read out of the page, not restated here.
 const BAND_LEGEND_HTML = new Function(
   "return " + (CODE.match(/const BAND_LEGEND_HTML = ([\s\S]*?);\n/) || [])[1] + ";")();

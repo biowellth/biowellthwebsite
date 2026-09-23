@@ -20,6 +20,7 @@
 //   node scripts/test-dashboard-e2e.mjs            (SHOT=1 also writes screenshots to /tmp)
 //   DASH=path/to/dashboard.html node scripts/test-dashboard-e2e.mjs
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { extractApp } from "./lib/extract-app.mjs";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 
@@ -106,6 +107,22 @@ const driver = (payload) => `<script>
   res.artStroke = art ? (art.querySelector("path") || {}).getAttribute?.("stroke") : null;
   res.paAnim = !!document.querySelector("#prios.pa-anim");
   res.lastCardHasArt = !!(document.querySelectorAll("#prios .prio")[2] || {}).querySelector?.(".prio-art");
+  // PRIO_TOGGLE_RIGHT_V1 geometry. Rectangles, read from the laid-out page, because where a
+  // control SITS is the one thing a source scan cannot answer.
+  const R = (e) => e.getBoundingClientRect();
+  res.toggles = [...document.querySelectorAll("#prios .prio")].map(c => {
+    const t = c.querySelector(".prio-title"), tg = c.querySelector(".prio-toggle"),
+          ch = c.querySelector(".prio-chips"), bd = c.querySelector(".prio-body");
+    if(!t || !tg) return null;
+    return {
+      rightOfHeadline: R(tg).left >= R(t).right,
+      belowChips: ch ? (R(tg).top >= R(ch).bottom - 1) : null,
+      onFirstLine: Math.abs((R(tg).top + R(tg).height / 2) - (R(t).top + Math.min(R(t).height, 26) / 2)) < 14,
+      flushRight: bd ? Math.round(R(bd).right - R(tg).right) : null,
+      h: Math.round(R(tg).height),
+      label: tg.querySelector(".prio-toggle-label").textContent.trim()
+    };
+  }).filter(Boolean);
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -115,9 +132,13 @@ const driver = (payload) => `<script>
 const html = readFileSync(FILE, "utf8");
 if (html.indexOf(CDN) === -1) { console.log("  FAIL E2E-0: the Supabase CDN tag was not found in " + FILE); fail++; done(1); }
 let currentDriver = "";
+// Set to a mutated copy of the page for one run, then cleared. The mutant assertions need the
+// SAME harness and the SAME payload as the real run, or a difference proves nothing.
+let serveHtml = null, MUTANT_HTML = null;
 const server = createServer((req, res) => {
   if (req.url.startsWith("/page")) {
-    const body = html.replace(CDN, STUB).replace("</body>", currentDriver + "</body>");
+    const src = serveHtml || html;
+    const body = src.replace(CDN, STUB).replace("</body>", currentDriver + "</body>");
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(body); return;
   }
   res.writeHead(404); res.end("no");
@@ -208,6 +229,67 @@ else {
   ok(empty.arts === 0, "E2E-16: so no drawings");
   ok(wide && wide.sections.prios === true && empty.sections.prios === false,
      "E2E-17: the two runs DISAGREE, which is what proves the harness is reading the real page");
+}
+
+// ── PRIO_TOGGLE_RIGHT_V1 ─────────────────────────────────────────────────────
+// The expander moved to the right of the headline at >=481px and stays below the chips at
+// <=480px. Both are read off the LAID-OUT page; the markup is identical at both widths, so the
+// only thing that can distinguish them is the media query actually applying.
+console.log("PRIO TOGGLE -- right of the headline on desktop");
+{
+  const t = (wide && wide.toggles) || [];
+  ok(t.length > 0, "E2E-18: the desktop render produced expanders to measure  (" + t.length + ")");
+  ok(t.every(x => x.rightOfHeadline), "E2E-19: every expander sits to the RIGHT of its headline");
+  ok(t.every(x => x.belowChips === false), "E2E-20: and none of them is below the chips");
+  ok(t.every(x => x.onFirstLine), "E2E-21: each is aligned to the headline's FIRST line");
+  ok(t.every(x => x.flushRight === 0), "E2E-22: and flush to the card body's right edge  (gaps " + JSON.stringify([...new Set(t.map(x=>x.flushRight))]) + ")");
+  ok(t.every(x => x.h >= 44), "E2E-23: the touch target is at least 44px  (heights " + JSON.stringify([...new Set(t.map(x=>x.h))]) + ")");
+}
+console.log("PRIO TOGGLE -- below the chips on a phone");
+const phone = await run(PAYLOAD, 390);
+if (!phone) { console.log("  FAIL E2E-24: the phone render never finished"); fail++; }
+else {
+  const t = phone.toggles || [];
+  ok(t.length > 0, "E2E-24: the phone render produced expanders to measure  (" + t.length + ")");
+  ok(t.every(x => x.belowChips), "E2E-25: every expander drops BELOW the chips under 480px");
+  ok(t.every(x => !x.rightOfHeadline), "E2E-26: none of them sits beside the headline there");
+  ok(t.every(x => x.flushRight === 0), "E2E-27: and each is right-aligned");
+  ok(t.every(x => x.h >= 44), "E2E-28: the touch target is still at least 44px");
+  // CONTROL. The two widths must DISAGREE, or the media query is doing nothing and every
+  // assertion above is describing one layout twice.
+  ok(wide.toggles[0].rightOfHeadline !== phone.toggles[0].rightOfHeadline,
+     "E2E-29 CONTROL: desktop and phone place it differently, so the breakpoint is real");
+}
+
+// ── THE MUTANT. Valid CSS-only change that restores the old position. ────────
+// The >=481 grid block is what lifts the expander onto the headline row. Deleting it returns the
+// button to its markup position, below the chips, at every width -- which is exactly the layout
+// this change replaced. E2E-19 and E2E-20 must go red.
+console.log("MUTANT -- the desktop grid is removed");
+{
+  const GRID = html.match(/@media\(min-width:481px\)\{\n(?:.*\n)*?\}\n/);
+  ok(!!GRID, "E2E-30: the >=481 grid block was LOCATED in the shipped page, so the mutant is a real removal");
+  if (GRID) {
+    const mutant = html.replace(GRID[0], "");
+    ok(mutant.length < html.length, "E2E-31: the mutant is shorter, so the removal took effect");
+    // It is CSS, so "valid JS" is the app block still parsing: prove the removal did not cut code.
+    let okJs = true;
+    try { new Function(extractApp(mutant, "the mutant")); } catch (e) { okJs = false; }
+    ok(okJs, "E2E-32: the mutant page's script still parses, so the cut was CSS only");
+    MUTANT_HTML = mutant;
+  }
+}
+if (MUTANT_HTML) {
+  serveHtml = MUTANT_HTML;
+  const m = await run(PAYLOAD, 1280);
+  serveHtml = null;
+  if (!m) { console.log("  FAIL E2E-33: the mutant page never finished"); fail++; }
+  else {
+    const t = m.toggles || [];
+    ok(t.length > 0, "E2E-33: the mutant rendered cards to measure  (" + t.length + ")");
+    ok(t.every(x => !x.rightOfHeadline), "E2E-34: without the grid the expander is NOT beside the headline, so E2E-19 can fail");
+    ok(t.every(x => x.belowChips), "E2E-35: it falls back below the chips, so E2E-20 can fail");
+  }
 }
 
 ws.close(); chrome.kill(); server.close();

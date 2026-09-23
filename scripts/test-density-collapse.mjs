@@ -153,8 +153,13 @@ const BAND_LEGEND_HTML = new Function(
 const MORE_TOGGLE_LABEL = shipped("MORE_TOGGLE_LABEL");
 ok("label-source control: both constants were read out of the page, not defaulted",
   typeof PRIO_TOGGLE_LABEL.closed === "string" && typeof MORE_TOGGLE_LABEL.closed === "string");
+// CHANGED 2026-09-23 with PRIO_TOGGLE_RIGHT_V1. The pair was ratified as
+// {"See more details","Hide details"} and is now {"See more","Hide"}, shortened on the founder's
+// explicit instruction because the expander moved to a right-hand column beside the headline and
+// the long pair crowded it. The assertion is kept, not dropped, so the pair is still pinned and
+// still named -- reversing the copy means editing this line and the constant, nothing else.
 eq("shipped priority labels are the ratified pair", JSON.stringify(PRIO_TOGGLE_LABEL),
-  '{"closed":"See more details","open":"Hide details"}');
+  '{"closed":"See more","open":"Hide"}');
 eq("shipped shared labels are the ratified pair", JSON.stringify(MORE_TOGGLE_LABEL),
   '{"closed":"See more","open":"See less"}');
 
@@ -245,7 +250,7 @@ ok("it is still wrapped in .prio-finding, not stripped to bare text",
   detail.includes('<div class="prio-finding">' + WHY + "</div>"));
 
 ok("the toggle renders with the collapsed label",
-  face.includes('<span class="prio-toggle-label">See more details</span>'));
+  face.includes('<span class="prio-toggle-label">See more</span>'));
 ok("the toggle starts closed",
   face.includes('class="prio-toggle" type="button" aria-expanded="false"'));
 ok("the chevron survived the label span (it is a sibling, not overwritten)",
@@ -393,17 +398,21 @@ wireDisclosures(host, ".prio", ".prio-toggle", PRIO_TOGGLE_LABEL);
 
 ok("every card is reset to CLOSED on render", !cardA.classList.contains("open") && !cardB.classList.contains("open"));
 eq("aria-expanded is reset too", cardA._tog.getAttribute("aria-expanded"), "false");
-eq("the label is reset to the collapsed string", cardA._label.textContent, "See more details");
+// These five read the SHIPPED pair rather than restating it. They were five hand-typed copies
+// of "See more details" / "Hide details", and every one of them went red when the pair was
+// shortened -- five failures for one copy decision already pinned, deliberately, at :156.
+// What this block is actually about is the WIRING: reset, swap, independence, re-render.
+eq("the label is reset to the collapsed string", cardA._label.textContent, PRIO_TOGGLE_LABEL.closed);
 
 cardA._tog.onclick();
-eq("opening one card swaps its label to the open string", cardA._label.textContent, "Hide details");
+eq("opening one card swaps its label to the open string", cardA._label.textContent, PRIO_TOGGLE_LABEL.open);
 eq("and sets aria-expanded true", cardA._tog.getAttribute("aria-expanded"), "true");
 ok("the card carries .open", cardA.classList.contains("open"));
 ok("INDEPENDENCE: the sibling card stayed closed", !cardB.classList.contains("open"));
-eq("and the sibling's label did not move", cardB._label.textContent, "See more details");
+eq("and the sibling's label did not move", cardB._label.textContent, PRIO_TOGGLE_LABEL.closed);
 
 cardA._tog.onclick();
-eq("closing it again restores the collapsed label", cardA._label.textContent, "See more details");
+eq("closing it again restores the collapsed label", cardA._label.textContent, PRIO_TOGGLE_LABEL.closed);
 eq("and aria-expanded false", cardA._tog.getAttribute("aria-expanded"), "false");
 
 // Re-running the wiring on an open card must close it: that is the panel-switch case.
@@ -411,7 +420,7 @@ cardA._tog.onclick();
 ok("precondition: the card is open again", cardA.classList.contains("open"));
 wireDisclosures(host, ".prio", ".prio-toggle", PRIO_TOGGLE_LABEL);
 ok("RE-RENDER resets an open card back to closed", !cardA.classList.contains("open"));
-eq("and its label back to collapsed", cardA._label.textContent, "See more details");
+eq("and its label back to collapsed", cardA._label.textContent, PRIO_TOGGLE_LABEL.closed);
 
 // all three sections go through this one helper
 eq("all three sections are wired through the SAME helper",
