@@ -1,0 +1,4 @@
+session: 89e62d58
+taken: 2026-09-23T01:08:25Z
+scope: dashboard.html (move #hero-stats back into .reveal-head)
+note: Revert one element. The flag commit 9fb8193 is untouched.
