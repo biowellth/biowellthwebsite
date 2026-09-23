@@ -8425,7 +8425,14 @@ async function renderDashboard(p, reportId){
   // Copy-safety: route the dashboard "What's already strong" beat through the shared
   // suppression helper (dropSuppressedQW) — drops purely heavy-metals/autoimmune "wins".
   // The reveal-deck Beat 1 goes through the same helper, so the logic lives in one place.
-  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p);
+  // EMPTY_PROSE_V1 — an entry whose finding PROSE_GUARD_V1 (worker v134) emptied has nothing to
+  // put on a card face, and a card with no title is not a quieter card, it is a blank one.
+  // Filtered HERE rather than inside the map, so the first RENDERED card is the one that picks
+  // up the section's closing-line duty and the section hides on an all-empty list exactly the
+  // way it already hides on an empty one. With every finding populated this filter removes
+  // nothing and every count below is unchanged.
+  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p)
+    .filter(x => x && typeof x.finding === "string" && x.finding.trim() !== "");
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
   // Generic verdict intro — names NO systems, so it is leak-proof by construction
   // (no per-entry system name needed). textContent: static string, no injection path.
@@ -13108,7 +13115,12 @@ function buildDeck(p, reportId, faceScanConsented){
     return '<p class="vis-bridge stag">This panel gave us ' + total + ' markers and ' + read +
       '. The full picture also counts markers this panel did not include.</p>';
   })();
-  const qw = dropSuppressedQW(Array.isArray(p.quietly_working) ? p.quietly_working : [], p);
+  // EMPTY_PROSE_V1 — same filter as the dashboard going-right cards, for the same reason: beat 1
+  // renders one .qcard per entry and its only text is the finding, so an emptied one is a
+  // tick-mark card with nothing beside it. The `if(qw.length)` gate below then hides the whole
+  // beat on an all-empty list, which is the behaviour it already has for zero strengths.
+  const qw = dropSuppressedQW(Array.isArray(p.quietly_working) ? p.quietly_working : [], p)
+    .filter(x => x && typeof x.finding === "string" && x.finding.trim() !== "");
   const pri = Array.isArray(p.priorities) && p.priorities[0] ? p.priorities[0] : null;
   const f = p.foundations || {};
   const levers = Array.isArray(f.levers) ? f.levers : [];
