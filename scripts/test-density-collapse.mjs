@@ -142,6 +142,13 @@ const shipped = (name) => {
   if (!m) throw new Error("shipped constant not found: " + name);
   return new Function("return " + m[0].replace("const " + name + " = ", "") + ";")();
 };
+// Sibling of shipped() for STRING constants. Same reasoning: the assertions below must read the
+// sentence the page ships, not a copy of it typed here, or a copy edit passes on the stub.
+const shippedStr = (name) => {
+  const m = HTML.match(new RegExp("const " + name + "\\s*= \"((?:[^\"\\\\]|\\\\.)*)\";"));
+  if (!m) throw new Error("shipped string constant not found: " + name);
+  return new Function('return "' + m[1] + '";')();
+};
 const PRIO_TOGGLE_LABEL = shipped("PRIO_TOGGLE_LABEL");
 // PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
 // toneFor is, because the drawing is not what this file asserts: scripts/test-prio-art.mjs
@@ -285,11 +292,16 @@ const FIND = "SENTINEL_FINDING_ZQ", IMPL = "SENTINEL_IMPLICATION_ZQ";
 // opened -- which surfaced as a SyntaxError from new Function, not as a pass.
 const quietSrc = cutAfter(CODE, '$("quiet").innerHTML = q.map(', "(", ")");
 const quietArrow = quietSrc.slice(quietSrc.indexOf("(", quietSrc.indexOf("q.map")) + 1, -1);
+// DENSITY_COLLAPSE_V2: the callback takes (x, i) now, because the FIRST card carries the
+// section's two loose paragraphs. The control still proves a function was cut and not a
+// fragment; it just no longer assumes the one-parameter form.
 ok("quiet extraction control: it cut an arrow function, not a fragment",
-  /^\s*x\s*=>/.test(quietArrow));
-const quietFn = new Function("esc", "MORE_TOGGLE_LABEL", "return " + quietArrow + ";")(esc, MORE_TOGGLE_LABEL);
+  /^\s*\(?\s*x\s*(,\s*i\s*)?\)?\s*=>/.test(quietArrow));
+const quietFn = new Function("esc", "MORE_TOGGLE_LABEL", "QUIET_INTRO", "QUIET_FOOT", "quietIntro",
+  "return " + quietArrow + ";")(esc, MORE_TOGGLE_LABEL, shippedStr("QUIET_INTRO"), shippedStr("QUIET_FOOT"), shippedStr("QUIET_INTRO"));
 
-const qcard = quietFn({ finding: FIND, implication: IMPL });
+// Index 1, so this is a NON-first card: it carries its own line and nothing else.
+const qcard = quietFn({ finding: FIND, implication: IMPL }, 1);
 ok("going-right render control: it produced a .quiet card", /class="quiet"/.test(qcard));
 ok("the headline is present and outside any detail wrapper",
   qcard.includes('<div class="quiet-title">' + FIND + "</div>"));
@@ -299,23 +311,43 @@ ok("a disclosure control renders", qcard.includes('class="quiet-toggle"'));
 ok("it carries the shared collapsed label",
   qcard.includes('<span class="quiet-toggle-label">See more</span>'));
 ok("it starts closed", qcard.includes('aria-expanded="false"'));
-const qbare = quietFn({ finding: FIND });
+const qbare = quietFn({ finding: FIND }, 1);
 ok("no implication -> NO toggle, so the control is never dead",
   !qbare.includes("quiet-toggle") && qbare.includes(FIND));
 
-// THE CLAMP is CSS, and it is the collapsed state, so it must sit on .quiet-note
-// itself with .quiet.open releasing it. Asserted on RAW because it is a stylesheet
-// rule, with a control proving the matcher can fire.
-ok("the clamped element is .quiet-note and it is clamped to two lines",
-  /\.quiet-note\{[^}]*-webkit-line-clamp:2[^}]*\}/.test(RAW));
-ok("the clamp rule carries every declaration it needs to take effect",
-  /\.quiet-note\{[^}]*display:-webkit-box[^}]*\}/.test(RAW) &&
-  /\.quiet-note\{[^}]*-webkit-box-orient:vertical[^}]*\}/.test(RAW) &&
-  /\.quiet-note\{[^}]*overflow:hidden[^}]*\}/.test(RAW));
-ok("opening the card releases the clamp",
-  /\.quiet\.open \.quiet-note\{[^}]*-webkit-line-clamp:none[^}]*\}/.test(RAW));
-ok("clamp-matcher control: the same matcher finds NO clamp on .quiet-title",
-  !/\.quiet-title\{[^}]*-webkit-line-clamp/.test(RAW));
+// DENSITY_COLLAPSE_V2 — the FIRST card carries the two sentences that used to sit loose above
+// and below the cards, intro before its own line and the closing line after it.
+const qfirst = quietFn({ finding: FIND, implication: IMPL }, 0);
+ok("V2: the first card carries the section intro inside its disclosure",
+  qfirst.includes('<p class="quiet-intro">' + shippedStr("QUIET_INTRO") + "</p>"));
+ok("V2: and the closing line, after its own implication",
+  qfirst.indexOf(IMPL) < qfirst.indexOf(shippedStr("QUIET_FOOT")));
+ok("V2: intro comes FIRST, before that implication",
+  qfirst.indexOf(shippedStr("QUIET_INTRO")) < qfirst.indexOf(IMPL));
+// CONTROL: a later card carries NEITHER, or "the first card carries them" says nothing.
+ok("V2 CONTROL: a non-first card carries neither sentence",
+  !qcard.includes(shippedStr("QUIET_INTRO")) && !qcard.includes(shippedStr("QUIET_FOOT")));
+// A first card with NO implication still gets a control, because it still has two sentences.
+const qfirstBare = quietFn({ finding: FIND }, 0);
+ok("V2: a first card with no implication STILL gets a control, so no sentence is stranded",
+  qfirstBare.includes("quiet-toggle") && qfirstBare.includes(shippedStr("QUIET_FOOT")));
+
+// THESE FOUR PINNED THE V1 CLAMP, which showed the implication's first two lines on the card
+// face. V2 hides the body outright, so there is no partial state left to clamp and the clamp
+// rules are gone. The assertions are RE-POINTED at the mechanism that replaced them rather than
+// deleted, because what they were really protecting is unchanged: THE DEFAULT STATE IS THE QUIET
+// ONE, expressed in the base rule so a card whose JS never ran renders collapsed, not expanded.
+ok("V2: the card body is .quiet-detail and it is hidden in the BASE rule",
+  /\.quiet-detail\{[^}]*display:none[^}]*\}/.test(RAW));
+ok("V2: opening the card reveals it",
+  /\.quiet\.open \.quiet-detail\{[^}]*display:block[^}]*\}/.test(RAW));
+ok("V2: the V1 clamp is gone, so nothing shows a partial implication",
+  !/-webkit-line-clamp/.test(RAW));
+// CONTROL: the same matcher finds the sibling mechanism it was modelled on, so a rule-shaped
+// regex that simply never matches cannot pass the two assertions above.
+ok("V2 matcher control: the same shape finds .lever-detail, which this was modelled on",
+  /\.lever-detail\{[^}]*display:none[^}]*\}/.test(RAW) &&
+  /\.lever\.open \.lever-detail\{[^}]*display:block[^}]*\}/.test(RAW));
 
 // ---------------------------------------------------------------------------
 // 3. THE FOUNDATIONS LEVER, executed.
