@@ -6660,33 +6660,54 @@ function doctorContext(){
   return html + '</div>';
 }
 
-// ── Section 6, what was not read ───────────────────────────────────────────────
-// Reuses REPORT_DEFER_REASON so the two documents can never give different reasons for
-// the same deferral. Nothing else goes in this section.
-function doctorNotRead(p){
-  const v = p.vitality || {};
-  const deferred = Array.isArray(v.deferred) ? v.deferred : [];
-  const reasons = (v.deferred_reasons && typeof v.deferred_reasons === "object") ? v.deferred_reasons : {};
+// ── Section 6, the reading conditions ──────────────────────────────────────────
+// WAS "Not read on this panel", WITH ONE LINE PER DEFERRED SYSTEM. Both were wrong and the
+// founder caught them on the printed PDF.
+//
+// A DEFERRAL IS A SCORING EXCLUSION, NOT AN UNREAD MARKER. The engine defers a system from
+// the composite when it cannot score it fairly; the markers themselves were measured and
+// several of them can be sitting in the table on the page above. So a line saying a system
+// was "not read" contradicted the rows a clinician was looking at while reading it. Every
+// system-level line is gone and nothing replaces it.
+//
+// WHAT SURVIVES IS ONLY WHAT CHANGES HOW A RESULT IS READ. Two things do.
+//
+// FASTING, and only for the markers it actually moves. Glucose, insulin and triglycerides
+// move with the last meal. ApoA1 and ApoB do not, which is why this never says "lipids":
+// naming the lipid panel would tell a clinician to discount two results that are valid
+// whatever she ate. The line renders only when at least one of those three markers is in
+// the payload, so a panel without them never carries a caveat about results it does not
+// contain.
+//
+// CYCLE GATING, unchanged. A held hormone is genuinely unread and saying so is correct.
+const DOCTOR_FASTING_SENSITIVE = ["fasting_glucose", "glucose", "fasting_insulin", "insulin", "triglycerides"];
+
+function doctorReadWith(p){
   const lines = [];
-  deferred.forEach(function(sysId){
-    const why = REPORT_DEFER_REASON[reasons[sysId]] || "";
-    const name = reportSysName(p, sysId);
-    lines.push(why
-      ? (name + ". " + why.replace(/^./, function(c){ return c.toUpperCase(); }) + ".")
-      : (name + ". Not scored on this panel."));
-  });
+  const fasting = doctorFasting(p);
+  if(fasting === "not recorded" || fasting === "no"){
+    const present = (Array.isArray(p.systems) ? p.systems : []).some(function(s){
+      return (Array.isArray(s.markers) ? s.markers : []).some(function(m){
+        return m && m.marker_id && DOCTOR_FASTING_SENSITIVE.indexOf(String(m.marker_id)) !== -1;
+      });
+    });
+    if(present){
+      lines.push("Fasting was " + fasting + " for this draw, so glucose, insulin and triglyceride " +
+        "results are read with that in mind.");
+    }
+  }
   const gated = (Array.isArray(p.systems) ? p.systems : []).some(function(s){
     return (Array.isArray(s.markers) ? s.markers : []).some(function(m){ return m && m.is_cycle_gated; });
   });
   if(gated) lines.push("Hormone results are held until phase-specific ranges have been reviewed.");
   if(!lines.length) return "";
-  return '<div class="report-sec doc-sec"><div class="report-sec-h">Not read on this panel</div>' +
+  return '<div class="report-sec doc-sec"><div class="report-sec-h">Read with these in mind</div>' +
     lines.map(function(l){ return '<div class="doc-line">' + esc(l) + '</div>'; }).join("") + '</div>';
 }
 
 function doctorDocHtml(p){
   return '<!-- DOCTOR_SUMMARY_V1 -->' + doctorHead(p) + doctorReason() + doctorFindings(p) +
-    doctorQuestions(p) + doctorContext() + doctorNotRead(p);
+    doctorQuestions(p) + doctorContext() + doctorReadWith(p);
 }
 
 function openDoctor(){
