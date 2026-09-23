@@ -11323,6 +11323,20 @@ function markerHistory(mk){
 }
 
 // ── HERO_TRAJ_V1 ──────────────────────────────────────────────────────────────
+// OFF AS OF 2026-09-23. The hero carries a band word, a headline, a vitality ring and one
+// explainer button, and the trajectory strip was a fifth thing competing with them above
+// the fold. Turning it off is a layout decision, not a verdict on the drawing.
+//
+// A FLAG AND NOT A DELETION, deliberately. The strip is ~400 lines with its own model,
+// geometry, observers and 149 assertions behind it, and every one of those still runs.
+// Deleting it would throw that away to save bytes nobody is short of; flipping one
+// constant gives it back. The suite pins BOTH states, so the off path and the on path are
+// each proven rather than one being assumed from the other.
+//
+// IT RETURNS BEFORE ANY WORK. Not after the model, not after the SVG. The host ends in
+// exactly the state SINGLE_PANEL_HIDDEN_V1 leaves it in -- emptied and hidden -- because
+// that is the state the rest of the page already knows how to live beside.
+const HERO_TRAJ_ENABLED = false;
 // The hero trajectory strip. One line per marker, height = percent change from
 // THAT MARKER'S OWN earliest point, centre line = no change.
 //
@@ -11692,6 +11706,15 @@ function heroTrajPanelCount(){
 function renderHeroTrajectory(p){
   const host = $("hero-traj");
   if(!host) return;
+  // HERO_TRAJ_ENABLED. Off leaves the host in the SAME state SINGLE_PANEL_HIDDEN_V1 leaves
+  // it in, and for the same reason: an empty hidden node is a thing the layout already
+  // handles, where a stale well or a half-drawn plot is not. No model is built, no SVG is
+  // assembled and no observer is armed, so the off path costs nothing per render.
+  if(!HERO_TRAJ_ENABLED){
+    host.innerHTML = "";
+    host.classList.add("hidden");
+    return;
+  }
   if(p) HERO_TRAJ_P = p; else p = HERO_TRAJ_P;
   if(!p) return;
   const raw = (typeof window !== "undefined" && window.__rdSeries && typeof window.__rdSeries === "object")

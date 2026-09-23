@@ -438,7 +438,14 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   globalThis.$ = (id) => (id === "hero-traj" ? host : null);
   globalThis.markerName = (mk) => mk.display_name || mk.marker_id;
   globalThis.window = {};
-  new Function([extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
+  // HERO_TRAJ_ENABLED IS FORCED ON HERE, and that is the whole reason this sandbox still
+  // says anything. The shipped constant is false, which hides the strip unconditionally, and
+  // every GUARD assertion below would then pass for a reason that has nothing to do with the
+  // logic it was written for -- GUARD-5..9 would be vacuous and GUARD-10, their control,
+  // would go red. Forcing it true keeps the single-panel rules under test. The SHIPPED value
+  // is pinned separately, in the FLAG block after this one.
+  new Function(["const HERO_TRAJ_ENABLED = true;",
+                extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
                 extractConst("HT_MON_SHORT"), extractConst("HT_MON_LONG"), extract("heroDateParts"),
                 // HERO_TICK_YEAR_V1: heroTrajectorySVG calls this, so this SECOND sandbox needs it
                 // too. It is a separate module from the one built at the top of the file and the
@@ -508,6 +515,106 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   ok(!host.classes.has("hidden"), "GUARD-10: a MULTI-panel payload still renders, so hiding is not unconditional");
   ok(host.innerHTML.includes('class="ht-hi"'), "GUARD-11: and it draws the multi-panel lines");
   ok(!host.innerHTML.includes('class="ht-ring"'), "GUARD-12: never the dormant first-panel ring");
+}
+
+// ── HERO_TRAJ_ENABLED ─────────────────────────────────────────────────────────
+// The strip is off as shipped. These pin the SHIPPED constant and the path it takes, against
+// the SAME multi-panel fixture GUARD-10 uses as its live control -- so "hidden" here cannot
+// be the single-panel rule firing by accident.
+console.log("FLAG -- HERO_TRAJ_ENABLED is false, and it hides a MULTI-panel strip");
+{
+  const flagSrc = extractConst("HERO_TRAJ_ENABLED");
+  ok(/=\s*false\s*;/.test(flagSrc), "FLAG-0: the SHIPPED constant is false  (" + JSON.stringify(flagSrc.trim()) + ")");
+
+  const lets2 = (HTML.match(/^let HERO_TRAJ_\w+ = [^\n]*$/gm) || []).join("\n");
+  const buildRender = (flagLine) => {
+    const host2 = {
+      innerHTML: "", classes: new Set(["hidden"]), clientWidth: 630,
+      classList: { add: (c) => host2.classes.add(c), remove: (c) => host2.classes.delete(c),
+                   contains: (c) => host2.classes.has(c) },
+      querySelector: () => null
+    };
+    globalThis.$ = (id) => (id === "hero-traj" ? host2 : null);
+    globalThis.markerName = (mk) => mk.display_name || mk.marker_id;
+    globalThis.window = {};
+    const built = new Function([flagLine,
+      extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
+      extractConst("HT_MON_SHORT"), extractConst("HT_MON_LONG"), extract("heroDateParts"),
+      extract("heroTickLabels"), extract("esc"), extract("markerSeriesInfo"),
+      extract("markerHistory"), extract("heroTrajectoryModel"), extract("heroTrajectorySVG"),
+      lets2, extract("heroTrajWidth"), extract("heroTrajPanelCount"),
+      extract("renderHeroTrajectory"), extract("heroTrajWatch"), extract("heroTrajResize"),
+      "return renderHeroTrajectory;"].join("\n"))();
+    return { render: built, host: host2 };
+  };
+
+  // The SAME multi-panel fixture GUARD-10 renders with.
+  const MULTI2 = { systems: [{ system_id: "iron", markers: [
+      { marker_id: "ferritin", display_name: "Ferritin", value: 17, canonical_unit: "ng/mL",
+        normalized_value: 17 }] }],
+    panel_date: "2026-08-05",
+    priorities: [{ primary_markers: [{ marker_id: "ferritin" }] }] };
+  const SERIES2 = { ferritin: [
+    { collected_on: "2026-03-05", normalized_value: 12, canonical_unit: "ng/mL", is_cycle_gated: false },
+    { collected_on: "2026-08-05", normalized_value: 17, canonical_unit: "ng/mL", is_cycle_gated: false } ] };
+  const runWith = (flagLine) => {
+    const b = buildRender(flagLine);
+    globalThis.window.__rdSeries = SERIES2;
+    globalThis.window.__rdPayload = MULTI2;
+    globalThis.window.__allReports = [{ id: "r1", collected_on: "2026-03-05" }, { id: "r2", collected_on: "2026-08-05" }];
+    globalThis.window.__doneReportIds = new Set(["r1", "r2"]);
+    b.host.innerHTML = ""; b.host.classes = new Set(["hidden"]);
+    b.render(MULTI2);
+    return { hidden: b.host.classes.has("hidden"), html: b.host.innerHTML };
+  };
+
+  const shipped = runWith(flagSrc);
+  ok(shipped.hidden, "FLAG-1: with the shipped flag, a MULTI-panel payload is HIDDEN");
+  eq(shipped.html, "", "FLAG-2: and the host is emptied, the same state SINGLE_PANEL_HIDDEN_V1 leaves");
+
+  // CONTROL. The identical fixture with the flag flipped true must render, or FLAG-1 is
+  // passing because the fixture never drew anything in the first place.
+  const on = runWith("const HERO_TRAJ_ENABLED = true;");
+  ok(!on.hidden, "FLAG-3 CONTROL: flipping the flag true restores GUARD-10, the strip renders");
+  ok(on.html.includes('class="ht-hi"'), "FLAG-4 CONTROL: and restores GUARD-11, it draws the lines");
+  ok(!on.html.includes('class="ht-ring"'), "FLAG-5 CONTROL: and GUARD-12, never the dormant ring");
+
+  // THE MUTANT. A renderHeroTrajectory that ignores the flag, spliced in as valid JS by
+  // deleting the guard's three-line body from the shipped source. FLAG-1 and FLAG-2 must fail.
+  const shippedFn = extract("renderHeroTrajectory");
+  const GUARD_RE = /if\(!HERO_TRAJ_ENABLED\)\{[\s\S]*?\n  \}\n/;
+  ok(GUARD_RE.test(shippedFn), "MUTF-0: the flag guard was LOCATED in the shipped function, so the mutant is a real removal");
+  const mutFn = shippedFn.replace(GUARD_RE, "");
+  let mutOk = true, mutRes = null;
+  try {
+    const host3 = {
+      innerHTML: "", classes: new Set(["hidden"]), clientWidth: 630,
+      classList: { add: (c) => host3.classes.add(c), remove: (c) => host3.classes.delete(c),
+                   contains: (c) => host3.classes.has(c) },
+      querySelector: () => null
+    };
+    globalThis.$ = (id) => (id === "hero-traj" ? host3 : null);
+    globalThis.markerName = (mk) => mk.display_name || mk.marker_id;
+    globalThis.window = {};
+    const r = new Function([extractConst("HERO_TRAJ_ENABLED"),
+      extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
+      extractConst("HT_MON_SHORT"), extractConst("HT_MON_LONG"), extract("heroDateParts"),
+      extract("heroTickLabels"), extract("esc"), extract("markerSeriesInfo"),
+      extract("markerHistory"), extract("heroTrajectoryModel"), extract("heroTrajectorySVG"),
+      lets2, extract("heroTrajWidth"), extract("heroTrajPanelCount"),
+      mutFn, extract("heroTrajWatch"), extract("heroTrajResize"),
+      "return renderHeroTrajectory;"].join("\n"))();
+    globalThis.window.__rdSeries = SERIES2;
+    globalThis.window.__rdPayload = MULTI2;
+    host3.innerHTML = ""; host3.classes = new Set(["hidden"]);
+    r(MULTI2);
+    mutRes = { hidden: host3.classes.has("hidden"), html: host3.innerHTML };
+  } catch (e) { mutOk = false; }
+  ok(mutOk, "MUTF-1: the mutant is valid JavaScript, so its red is behaviour and not syntax");
+  if (mutOk && mutRes) {
+    ok(!mutRes.hidden, "MUTF-2: ignoring the flag renders the strip, so FLAG-1 can fail");
+    ok(mutRes.html.includes('class="ht-hi"'), "MUTF-3: and fills the host, so FLAG-2 can fail");
+  }
 }
 
 console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");
