@@ -2674,7 +2674,7 @@ let PROFILE = {};
 async function loadProfile(){
   if(!USER) return;
   const { data } = await sb.from("profiles")
-    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at, menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, amenorrhea_reason, hormone_therapy_status, typical_cycle_length_days, typical_period_duration_days").eq("id", USER.id).maybeSingle();
+    .select("full_name, dob, supp_b12, supp_folate, supp_status_updated_at, confounders, supplements, context_note, consent_accepted_at, age_affirmed_at, menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, amenorrhea_reason, hormone_therapy_status, typical_cycle_length_days, typical_period_duration_days, about_you_status").eq("id", USER.id).maybeSingle();
   PROFILE = data || {};
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
   applyDobGate();   // DOB_GATE_V1 -- before applyConsentUI, which reads DOB_GATE_OPEN
@@ -3630,6 +3630,10 @@ async function dobGateContinue(){
   if(card) card.style.display = "none";
   if(row) row.style.display = "";
   applyConsentUI();
+  // ABOUT_YOU_V1 — About-you follows the date of birth check. onb2Open carries every
+  // other condition itself (consent, status, remaining gates), so this is a no-op for
+  // anyone it should not reach.
+  onb2Open();
 }
 
 { const b = $("dob-gate-go"); if(b) b.onclick = dobGateContinue; }
@@ -4452,10 +4456,9 @@ async function handleFile(file){
     // suppress on a second upload.
 
     pollForResult(reportId);
-    // ONBOARDING_V2 entry point. Upload accepted, the read is running, so the
-    // wait is the one moment these questions cost the user nothing. Dark until
-    // the flag flips, and it returns immediately without consent.
-    onb2Open();
+    // ABOUT_YOU_V1 — the after-upload auto-open that stood here is REMOVED. The
+    // pop-up is once only and opens after the gates at boot; during an upload the
+    // draw card offers it through its own "Tell us about you" link instead.
   }catch(err){
     uploadRowFail(isConsentRefusal(err) ? CONSENT_FALLBACK_COPY : ("Upload failed: " + (err.message||"please try again.")));
   }
@@ -8898,15 +8901,18 @@ function renderCompanionChips(p, score){
 // no" from "never asked" on exactly that basis (see resolveContraception and
 // resolvePregnancy in the worker). Writing a default here would silently
 // convert unknown into a declaration.
-const ONBOARDING_ENABLED = false;
+// ABOUT_YOU_V1 — ON as of 2026-09-23, in the same commit as the gating that makes it
+// safe: once only (about_you_status null), after every earlier gate, never after an
+// upload, and "Skip for now" or close records 'skipped'.
+const ONBOARDING_ENABLED = true;
 
 // All user-visible strings in one place so the copy rules stay checkable at a
 // glance. No em dashes, no colons in body copy, short plain sentences.
 // Conditions and symptoms are STORED DECLARATIONS. Nothing here reflects them
 // back as findings, and no string may start doing so.
 const ONB2_COPY = {
-  intro: "While we read your report, a few quick questions. They help us read it better. You can skip any of them.",
-  skip: "Skip",
+  intro: "A few things about you, so we can read your results in the context of your life. About two minutes, and you can skip anything.",
+  skip: "Skip for now",
   next: "Next",
   done: "Done. Your reading is almost ready.",
   resume: "Finish setting up",
@@ -8934,8 +8940,10 @@ const ONB2_COPY = {
 //   cycle_status           regular | irregular | pcos | amenorrheic | none
 //   hormonal_contraception none | current | ceased_within_12_months
 //   vegetarian_status      no CHECK; the five values already live in the column
+// ABOUT_YOU_V1 — no dob screen. The DOB gate is the one asker for date of birth,
+// and it runs before this flow can open (onb2GatesClear), so asking here too
+// would be a second asker for the same column.
 const ONB2_SCREENS = [
-  { id:"dob",  key:"dob",   q:ONB2_COPY.s0, kind:"date" },
   { id:"preg", key:"preg",  q:ONB2_COPY.s1, kind:"one",
     opts:[["Yes",true],["No",false]] },
   { id:"life", key:"life_stage", q:ONB2_COPY.s2, kind:"one", note:ONB2_COPY.s2note,
@@ -8965,6 +8973,14 @@ const ONB2_SCREENS = [
 ];
 
 const onb2 = { idx:0, ans:{}, stored:{}, open:false, cards:[], hist:[], firstIdx:0 };
+
+// ABOUT_YOU_V1 — the columns the flow reads on open. about_you_status is here so a
+// fresh read, not only the boot read, decides whether it may open unprompted.
+const ONB2_STORED_COLS = "life_stage, cycle_status, menstrual_status, vegetarian_status, hormonal_contraception, " +
+  "pregnant_or_postpartum_within_6_months, health_goals, known_conditions, symptoms, supp_b12, supp_folate, about_you_status";
+
+/** Answers prefilled from stored values. Nothing yet; screens are prefilled in ABOUT_YOU_SCREENS_V1. */
+function onb2Prefill(s){ return {}; }
 
 /**
  * menstrual_status is DERIVED, never asked. Ruling 2026-09-02.
@@ -9012,6 +9028,10 @@ async function onb2Write(patch){
     const { error } = await sb.from("profiles").update(patch).eq("id", USER.id);
     if(error) return false;
     Object.assign(onb2.stored, patch);
+    // ABOUT_YOU_V1. PROFILE is what the boot gate, the draw card's link and the
+    // last-period lens read, so a saved answer has to reach it too or the page keeps
+    // acting on the values it loaded at boot.
+    PROFILE = Object.assign(PROFILE || {}, patch);
     return true;
   }catch(_){ return false; }
 }
@@ -9022,7 +9042,6 @@ function onb2Patch(sc){
   if(!(sc.key in a)) return p;                       // skipped -> nothing, ever
   const v = a[sc.key];
 
-  if(sc.id === "dob"){ if(v) p.dob = v; return p; }
 
   if(sc.id === "preg"){
     p.pregnant_or_postpartum_within_6_months = v;
@@ -9091,11 +9110,7 @@ function onb2Int(v, lo, hi){
  * the path without removing them from the track.
  */
 function onb2BuildOrder(){
-  const skipDob = onb2.stored.dob != null;
-  onb2.order = ONB2_SCREENS.filter(sc=>{
-    if(sc.id === "dob") return !skipDob;
-    return onb2InPath(sc);
-  });
+  onb2.order = ONB2_SCREENS.filter(sc=> onb2InPath(sc));
 }
 
 /** esc + em-dash strip, same defence the Sana copy block uses. */
@@ -9409,25 +9424,18 @@ function onb2GoBack(){
 /**
  * The done card is the last card in the track, so finishing is one more leap.
  *
- * GATED ON A READ-BACK. "Done" is a claim that the answers were saved, so it is
- * not shown until the profile has been re-read and agrees. Two ways to fail:
- * the read itself errors, or the dob screen was answered THIS RUN and the
- * read-back still shows `dob` null, which is what a CHECK refusal looks like from
- * the client side.
+ * ABOUT_YOU_V1. Reaching the end records about_you_status 'completed' with the time.
+ * "Done" is a claim that the flow was recorded, so a refused write keeps her on the
+ * last screen with the write-fail line, exactly like a refused answer does, and the
+ * same Next re-attempts it. Every answered screen was already saved on its own Next.
  *
- * Only `dob` is asserted, not every field. It is the one whose refusal is
- * silent and load-bearing; the others have no value constraint that can reject
- * them, so a null there means skipped rather than refused.
+ * The dob read-back that stood here went with the dob screen. The DOB gate owns
+ * date of birth and runs its own refusal handling (dobGateContinue).
  */
 async function onb2Finish(){
-  let back = null;
-  try{
-    const { data, error } = await sb.from("profiles").select("dob").eq("id", USER.id).maybeSingle();
-    if(error) { onb2Msg(ONB2_COPY.writeFail); return; }
-    back = data || {};
-  }catch(_){ onb2Msg(ONB2_COPY.writeFail); return; }
-
-  if(("dob" in onb2.ans) && back.dob == null){ onb2Msg(ONB2_COPY.writeFail); return; }
+  onb2Msg("");
+  const ok = await onb2Write({ about_you_status: "completed", about_you_at: new Date().toISOString() });
+  if(!ok){ onb2Msg(ONB2_COPY.writeFail); return; }
 
   const from = onb2.idx;
   const to = onb2.cards.length;            // the done card sits after the screens
@@ -9444,28 +9452,88 @@ function onb2Close(){
   if(m){ m.classList.remove("show"); m.setAttribute("aria-hidden","true"); }
   onb2.open = false;
   onb2ResumeChip();
+  // Surfaces that read the answers re-render from the values just saved.
+  if(typeof aboutYouAfterClose === "function"){ try{ aboutYouAfterClose(); }catch(_){} }
+}
+
+/**
+ * ABOUT_YOU_V1 — leaving the flow before the end, by "Skip for now" or the close
+ * control, records about_you_status 'skipped' with the time, so the pop-up is not
+ * offered unprompted again. Screens she already answered stay saved; nothing is
+ * rolled back.
+ *
+ * A COMPLETED STATUS IS NEVER DOWNGRADED. When she reopens the flow from Account
+ * to update her details and closes it part way, she has still been through it once,
+ * so 'completed' stands. Only a status that is not already 'completed' is written.
+ *
+ * A refused write still closes. The pop-up must never trap her, and the honest
+ * consequence of a failed write is the one she would expect anyway: the column
+ * stays null and she may be offered it again next time.
+ */
+async function onb2Dismiss(){
+  if(!onb2.open || onb2.dismissing) return;
+  onb2.dismissing = true;
+  try{
+    const cur = (onb2.stored && onb2.stored.about_you_status) || (PROFILE && PROFILE.about_you_status) || null;
+    if(cur !== "completed"){
+      const ok = await onb2Write({ about_you_status: "skipped", about_you_at: new Date().toISOString() });
+      if(!ok) console.error("[about-you] skipped status did not save; the flow may be offered again");
+    }
+  } finally {
+    onb2.dismissing = false;
+    onb2Close();
+  }
+}
+
+/**
+ * ABOUT_YOU_V1 — is every EARLIER gate closed? The pop-up follows them and never
+ * stacks on one. All four are overlays or states that must win:
+ *   tester agreement  #tester-gate visible
+ *   age affirmation   #age-modal .show
+ *   DOB gate          DOB_GATE_OPEN, which also stays true for an under-18 refusal,
+ *                     so the age block is covered by the same flag
+ */
+function onb2GatesClear(){
+  if(DOB_GATE_OPEN) return false;
+  const tg = document.getElementById("tester-gate");
+  if(tg && !tg.classList.contains("hidden")) return false;
+  const am = document.getElementById("age-modal");
+  if(am && am.classList.contains("show")) return false;
+  return true;
 }
 
 /**
  * Entry point. Renders only when the flag is on AND core consent exists.
  * Consent absent means the flow does not render at all, rather than rendering
  * and failing to save.
+ *
+ * ABOUT_YOU_V1 — ONCE ONLY. Unprompted, it opens only while about_you_status is
+ * null, checked against the boot read AND a fresh read, so an answer given on
+ * another device is honoured. `{ force: true }` is the explicit door, used by the
+ * draw card's link and by Account; it ignores the status but never the gates.
  */
-async function onb2Open(){
+async function onb2Open(opts){
+  const force = !!(opts && opts.force === true);
   if(!ONBOARDING_ENABLED) return;
-  if(onb2.open) return;
+  if(onb2.open || onb2.opening) return;
   if(!CONSENTED) return;
+  if(!onb2GatesClear()) return;
+  if(!force && PROFILE && PROFILE.about_you_status != null) return;
+  onb2.opening = true;
   try{
-    const { data } = await sb.from("profiles")
-      .select("dob, life_stage, cycle_status, menstrual_status, vegetarian_status, hormonal_contraception, pregnant_or_postpartum_within_6_months, health_goals, known_conditions, symptoms, supp_b12, supp_folate")
-      .eq("id", USER.id).maybeSingle();
-    onb2.stored = data || {};
-  }catch(_){ onb2.stored = {}; }
-  onb2.ans = {}; onb2.hist = [];
-  // The TRACK holds every applicable card. Only screen 0 is conditional, and only
-  // on stored dob -- the pregnancy branch is navigation, not rendering, so those
-  // cards stay in the track for the leap to fly over.
-  onb2.cards = ONB2_SCREENS.filter(sc=> sc.id !== "dob" || onb2.stored.dob == null);
+    try{
+      const { data } = await sb.from("profiles")
+        .select(ONB2_STORED_COLS)
+        .eq("id", USER.id).maybeSingle();
+      onb2.stored = data || {};
+    }catch(_){ onb2.stored = {}; }
+    if(!force && onb2.stored.about_you_status != null) return;
+    if(!onb2GatesClear()) return;
+    onb2.ans = onb2Prefill(onb2.stored); onb2.hist = [];
+    // The TRACK holds every screen. The pregnancy branch is navigation, not
+    // rendering, so skipped cards stay in the track for the leap to fly over.
+    onb2.cards = ONB2_SCREENS.slice();
+  } finally { onb2.opening = false; }
   if(!onb2.cards.length) return;
   onb2.idx = 0; onb2.firstIdx = 0;
   const m = document.getElementById("onb2-modal");
@@ -9550,9 +9618,12 @@ function onb2WireCard(el, sc, k){
   if(sc.opts2) toggle("data-y", "symptoms", ["None of these"]);
   if(sc.supps) toggle("data-s", "supps", ["Neither"]);
   const nx = el.querySelector(".onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
-  const sk = el.querySelector(".onb2-skip"); if(sk) sk.onclick = ()=> onb2Advance(true);
+  // ABOUT_YOU_V1. "Skip for now" and the close control both leave the WHOLE flow and
+  // record that she chose to, so it is not offered unprompted again. A single
+  // question is skipped with Next, which writes nothing for an unanswered screen.
+  const sk = el.querySelector(".onb2-skip"); if(sk) sk.onclick = onb2Dismiss;
   const bk = el.querySelector(".onb2-back"); if(bk) bk.onclick = onb2GoBack;
-  const cx = el.querySelector(".onb2-x"); if(cx) cx.onclick = onb2Close;
+  const cx = el.querySelector(".onb2-x"); if(cx) cx.onclick = onb2Dismiss;
 }
 
 // Spec: the track maths is read from live container width, so a resize re-derives
@@ -9613,24 +9684,15 @@ async function onb2RenderAccount(){
   if(b) b.onclick = onb2Open;
 }
 
+/**
+ * ABOUT_YOU_V1 — the "Finish setting up" chip NEVER shows. About-you is offered once,
+ * then only where she asks for it (the draw card's link, Account). A standing nag for
+ * every unanswered column would undo the once-only rule. Kept as a function because
+ * boot and onb2Close call it; it only ever hides the element.
+ */
 async function onb2ResumeChip(){
   const el = document.getElementById("onb2-resume");
-  if(!el) return;
-  if(!ONBOARDING_ENABLED || !CONSENTED){ el.classList.add("hidden"); return; }
-  let s = onb2.stored;
-  if(!s || !Object.keys(s).length){
-    try{
-      const { data } = await sb.from("profiles")
-        .select("dob, life_stage, cycle_status, vegetarian_status, hormonal_contraception, health_goals")
-        .eq("id", USER.id).maybeSingle();
-      s = data || {};
-    }catch(_){ s = {}; }
-  }
-  const missing = (s.dob == null) || (s.cycle_status == null) || (s.vegetarian_status == null) ||
-                  (s.hormonal_contraception == null) || (s.health_goals == null);
-  el.textContent = ONB2_COPY.resume;
-  el.onclick = onb2Open;
-  el.classList.toggle("hidden", !missing);
+  if(el) el.classList.add("hidden");
 }
 
 
