@@ -1352,7 +1352,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    teal-soft, NOT coral — this is reassurance/upstream levers, not attention) */
 .found-lead{font-size:14.5px;line-height:1.7;color:var(--brown-mid);margin-bottom:20px}
 .found-lead.hidden,.found-closing.hidden{display:none}
-.found-levers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
+/* DENSITY_COLLAPSE_V2 — THREE ACROSS at >=768px, stacked below it. Was repeat(2,1fr) at every
+   width with a 1-col rule at <=600, which left a 2+1 orphan row for the usual three levers. */
+.found-levers{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+@media(min-width:768px){.found-levers{grid-template-columns:repeat(3,1fr)}}
 .lever{background:var(--white);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
 .lever-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
 .lever-action{font-size:14px;line-height:1.6;color:var(--brown);margin-bottom:8px}
@@ -1367,7 +1370,18 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .lever.open .lever-detail{display:block}
 .found-closing{margin-top:16px;font-size:14px;line-height:1.7;color:var(--teal-dark);font-style:italic}
 .found-panel{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:18px;padding:24px}
-@media(max-width:600px){.found-levers{grid-template-columns:1fr}.found-panel{padding:18px}}
+@media(max-width:600px){.found-panel{padding:18px}}
+/* The "Why these" disclosure, under the row. Same collapsed-by-default shape as .lever-detail
+   and .quiet-detail, and the same toggle look as its three siblings. */
+.found-why{margin-top:16px}
+.found-why.hidden{display:none}
+.found-why-toggle{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--brown-mid);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
+.found-why-toggle:hover{color:var(--brown)}
+.found-why.open .prio-chev{transform:rotate(90deg)}
+.found-why-detail{display:none;margin-top:10px}
+.found-why.open .found-why-detail{display:block}
+.found-why-detail .found-lead{margin-bottom:0}
+.found-why-detail .found-closing{margin-top:14px}
 /* First-run onboarding card — reuses the .sys-modal overlay idiom + :root tokens */
 .onb-modal{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:24px;
   background:rgba(71,55,43,.45);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s linear .25s}
@@ -2447,9 +2461,19 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div id="foundations-wrap" class="hidden">
       <div class="section-label acc-teal">Where to focus your habits</div>
       <div class="found-panel">
-        <p id="found-lead" class="found-lead"></p>
+        <!-- DENSITY_COLLAPSE_V2, 2026-09-23. #found-lead sat ABOVE the levers and #found-closing
+             BELOW them. Both now sit under the row behind one "Why these" disclosure, closed by
+             default. THE IDS AND CLASSES ARE UNCHANGED, which is what keeps renderFoundations
+             writing to them with no edit, and NEITHER PARAGRAPH WAS TOUCHED. -->
         <div id="found-levers" class="found-levers"></div>
-        <p id="found-closing" class="found-closing"></p>
+        <div class="found-why" id="found-why">
+          <button class="found-why-toggle" type="button" aria-expanded="false">
+            <span class="found-why-toggle-label">Why these</span> <span class="prio-chev">&rsaquo;</span></button>
+          <div class="found-why-detail">
+            <p id="found-lead" class="found-lead"></p>
+            <p id="found-closing" class="found-closing"></p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -7367,12 +7391,18 @@ function renderFoundations(p){
     // Deploy B's fallback is preserved exactly: with no lv.action the connection was the primary
     // line, so in that case it must NOT be hidden or the card collapses to a bare name. Hence the
     // hidden set is conditional on `action` rather than unconditional.
-    const hidden = action ? (conn ? '<div class="lever-conn">'+conn+'</div>' : '')+relates : relates;
-    const faceConn = action ? '' : (conn ? '<div class="lever-conn">'+conn+'</div>' : '');
+    // DENSITY_COLLAPSE_V2 — THE FACE IS THE LEVER TITLE AND THE CONTROL. V1 kept .lever-action on
+    // the face and argued a bare noun is "a label, not an instruction"; that is still true of a
+    // lone card, and it is the row that answers it. Three titles side by side read as a set of
+    // choices, which a stack of three paragraphs did not, and the instruction is one tap away.
+    //
+    // ACTION LEADS THE DISCLOSURE, then the reasoning, then the cross-reference, which is the
+    // order they had on the page. Deploy B's fallback is preserved: with no lv.action the
+    // connection was the primary line, so it leads instead and nothing is left unsaid.
+    const hidden = (action ? '<div class="lever-action">'+action+'</div>' : '')+
+      (conn ? '<div class="lever-conn">'+conn+'</div>' : '')+relates;
     return '<div class="lever">'+
-      '<div class="lever-name">'+name+'</div>'+
-      (action ? '<div class="lever-action">'+action+'</div>' : '')+
-      faceConn+
+      '<div class="lever-name">'+name+'</div>' +
       (hidden
         ? '<button class="lever-toggle" type="button" aria-expanded="false">'+
             '<span class="lever-toggle-label">'+MORE_TOGGLE_LABEL.closed+'</span>'+
@@ -7389,6 +7419,24 @@ function renderFoundations(p){
   const closeEl = $("found-closing");
   if(f.closing){ closeEl.innerHTML = foundPipe(f.closing); closeEl.classList.remove("hidden"); }
   else { closeEl.innerHTML = ""; closeEl.classList.add("hidden"); }
+
+  // DENSITY_COLLAPSE_V2 — the "Why these" disclosure over the lead and the closing line. Wired
+  // through the SAME helper as the levers, the priority cards and the going-right cards, so it
+  // inherits reset-to-closed on every render rather than reimplementing it.
+  //
+  // THE LABEL DOES NOT SWAP. Every other disclosure here reads "See more" / "See less"; this one
+  // names what is behind it, and a control that renamed itself on open would be describing its
+  // own state instead. The chevron carries the state, which is what it does on the other three.
+  //
+  // IT HIDES WHEN THERE IS NOTHING BEHIND IT. A control that opens an empty box is the dead
+  // control this file's own standard forbids, and a payload can carry levers with no lead and
+  // no closing line.
+  const whyEl = $("found-why");
+  if(whyEl){
+    const hasWhy = !!(f.lead || f.closing);
+    whyEl.classList.toggle("hidden", !hasWhy);
+    if(hasWhy) wireDisclosures(wrap, ".found-why", ".found-why-toggle", FOUND_WHY_LABEL);
+  }
 }
 
 // Copy-safety helper (shared): drop "quietly working" strengths that are PURELY
@@ -7849,6 +7897,10 @@ const MORE_TOGGLE_LABEL = { closed: "See more", open: "See less" };
 // that owned them, and a string with one home is a string that cannot drift from its markup.
 // BOTH ARE VERBATIM. The intro is the string renderQuietSection set on #quiet-intro; the closing
 // line is the one that was hard-coded in the #quiet-wrap markup.
+// The "Why these" control names its content instead of its state, so both faces are the same
+// word. wireDisclosures still swaps the string; swapping it for itself is the no-op that keeps
+// this control on the same code path as the other three rather than off on a special case.
+const FOUND_WHY_LABEL = { closed: "Why these", open: "Why these" };
 const QUIET_INTRO = "A lot is quietly going right. These are the systems that tend to be hardest to move, and yours are steady.";
 const QUIET_FOOT  = "These are worth protecting as much as the flags are worth addressing.";
 

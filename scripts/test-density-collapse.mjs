@@ -365,18 +365,28 @@ const ldet = lev.slice(lev.indexOf('<div class="lever-detail">'));
 ok("lever split control: both halves non-empty and they reassemble",
   lface.length > 20 && ldet.length > 20 && lev === lface + ldet);
 ok("the collapsed lever keeps its name", lface.includes(NAME));
-ok("the collapsed lever keeps its action", lface.includes(ACT));
+// V1 KEPT THE ACTION ON THE FACE; V2 puts it behind the disclosure, because three titles in a
+// row are the choice and the instruction is one tap away. Re-pointed, not deleted: the question
+// "where does the action render" is still asked, the answer changed.
+ok("V2: the action is behind the disclosure, leading it",
+  !lface.includes(ACT) && ldet.indexOf(ACT) === 0 || ldet.includes(ACT) && !lface.includes(ACT));
+ok("V2: the face is the title and the control, nothing else",
+  lface.includes(NAME) && !lface.includes(ACT) && !lface.includes(LCONN));
 ok("the connection is behind the disclosure", !lface.includes(LCONN) && ldet.includes(LCONN));
 ok("the relates cross-reference is behind the disclosure too",
   !lface.includes("lever-relates") && ldet.includes("lever-relates"));
 ok("the lever toggle carries the shared collapsed label",
   lface.includes('<span class="lever-toggle-label">See more</span>'));
 
-// Deploy B's fallback: with no action, the connection IS the primary line and
-// must stay on the face, or the card collapses to a bare noun.
+// Deploy B's fallback, under V2. With no action the connection is still the primary line, so it
+// LEADS THE DISCLOSURE instead of leading the face. What must never happen is the line going
+// missing, which is what this pins.
 const levNoAction = leverFn({ display_name: NAME, connection: LCONN, appears_in_priority_ids: [] });
-ok("no action -> the connection stays on the FACE, not hidden",
-  levNoAction.includes(LCONN) && !levNoAction.includes("lever-detail"));
+ok("V2: no action -> the connection leads the disclosure and is never dropped",
+  levNoAction.includes(LCONN) && levNoAction.includes("lever-detail"));
+ok("V2: and it is not on the face, which carries the title and the control",
+  levNoAction.split("lever-detail")[0].includes(NAME) &&
+  !levNoAction.split("lever-detail")[0].includes(LCONN));
 ok("no-action control: that card really does lack an action line",
   !levNoAction.includes("lever-action"));
 
@@ -384,11 +394,28 @@ ok("the lever detail hides by default and opens on .open",
   /\.lever-detail\{[^}]*display:none[^}]*\}/.test(RAW) &&
   /\.lever\.open \.lever-detail\{[^}]*display:block[^}]*\}/.test(RAW));
 
-// THE GRID IS NOT CHANGED by this commit.
-ok("the foundations grid is untouched: still 2-up with align-items:start",
-  /\.found-levers\{display:grid;grid-template-columns:repeat\(2,1fr\);gap:12px;align-items:start\}/.test(RAW));
-ok("and still drops to 1-up only below 600px",
-  /@media\(max-width:600px\)\{\.found-levers\{grid-template-columns:1fr\}/.test(RAW));
+// THE GRID CHANGED IN V2: 1-up is now the base and three-across arrives at >=768px. It was
+// repeat(2,1fr) at every width with a 1-col rule below 600, which left the usual three levers
+// as a 2+1 orphan row.
+ok("V2: the grid base is a single column",
+  /\.found-levers\{display:grid;grid-template-columns:1fr;gap:12px;align-items:start\}/.test(RAW));
+ok("V2: and it goes THREE across at >=768px",
+  /@media\(min-width:768px\)\{\.found-levers\{grid-template-columns:repeat\(3,1fr\)\}\}/.test(RAW));
+// CONTROL: the old 2-up rule is gone, so the two assertions above cannot both be describing a
+// stylesheet that still ships the previous layout underneath them.
+ok("V2 CONTROL: no 2-up rule survives for .found-levers",
+  !/\.found-levers\{[^}]*repeat\(2,1fr\)/.test(RAW));
+
+// THE "WHY THESE" DISCLOSURE, closed by default like its three siblings.
+ok("V2: the why-these body hides by default and opens on .open",
+  /\.found-why-detail\{[^}]*display:none[^}]*\}/.test(RAW) &&
+  /\.found-why\.open \.found-why-detail\{[^}]*display:block[^}]*\}/.test(RAW));
+ok("V2: its label names its content and does NOT swap on open",
+  JSON.stringify(shipped("FOUND_WHY_LABEL")) === '{"closed":"Why these","open":"Why these"}');
+ok("V2: the control ships closed in the markup",
+  /<button class="found-why-toggle" type="button" aria-expanded="false">/.test(RAW));
+ok("V2: and both paragraphs now live behind it",
+  /<div class="found-why-detail">\s*<p id="found-lead"[^>]*><\/p>\s*<p id="found-closing"[^>]*><\/p>/.test(RAW));
 
 // ---------------------------------------------------------------------------
 // 4. wireDisclosures, executed against a fake DOM.

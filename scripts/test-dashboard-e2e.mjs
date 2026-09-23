@@ -78,8 +78,18 @@ const PAYLOAD = {
     prio(2, "Your liver is under some load", "liver", "alt", "ALT", "high"),
     prio(3, "An unmapped system draws nothing", "mystery_system", "unknown_marker", "Unknown", "high"),
   ],
-  quietly_working: [{ finding: "A quiet win", implication: "still true" }],
-  foundations: { lead: "Lead line", levers: [{ display_name: "Sleep", connection: "c" }], closing: "Closing" },
+  // DENSITY_COLLAPSE_V2 needs MORE THAN ONE of each, because the claims are about a SET of
+  // disclosures and a THREE-column row. With one lever and one win the fixture could not tell a
+  // three-across row from a one-across one, and "all of them are closed" was a claim about three
+  // controls. Three of each gives 3 quiet + 3 lever + 1 why = seven.
+  quietly_working: [
+    { finding: "A quiet win", implication: "still true" },
+    { finding: "A second win", implication: "also still true" },
+    { finding: "A third win", implication: "holding steady" }],
+  foundations: { lead: "Lead line", levers: [
+    { display_name: "Sleep", action: "Sleep action", connection: "c" },
+    { display_name: "Iron", action: "Iron action", connection: "c2" },
+    { display_name: "Movement", action: "Movement action", connection: "c3" }], closing: "Closing" },
   coverage_gap: { by_system: { vitamins: ["vitamin_d"] }, direction_only: [] },
 };
 const EMPTY = { panel_date: "2026-08-05", vitality: { composite: null, band: {}, display: { show_composite: false } },
@@ -134,6 +144,19 @@ const driver = (payload) => `<script>
     probe.style.color = "var(--teal)"; document.body.appendChild(probe);
     res.tealResolved = getComputedStyle(probe).color; probe.remove();
   }
+  // DENSITY_COLLAPSE_V2. Both sections collapse to headlines with disclosures, so what is at
+  // risk is a disclosure shipping OPEN and a paragraph rendering by default. Read off the laid
+  // out page, because "closed by default" is a computed style, not a string in the source.
+  res.disclosures = [...document.querySelectorAll("#quiet-wrap [aria-expanded], #foundations-wrap [aria-expanded]")]
+    .map(b => b.getAttribute("aria-expanded"));
+  res.bodiesHidden = [...document.querySelectorAll("#quiet-wrap .quiet-detail, #foundations-wrap .lever-detail, #foundations-wrap .found-why-detail")]
+    .map(e => getComputedStyle(e).display);
+  res.whyToggle = !!document.querySelector("#found-why .found-why-toggle");
+  res.whyLabel = document.querySelector("#found-why .found-why-toggle-label")
+    ? document.querySelector("#found-why .found-why-toggle-label").textContent.trim() : null;
+  res.leverCols = document.getElementById("found-levers")
+    ? getComputedStyle(document.getElementById("found-levers")).gridTemplateColumns.split(" ").length : 0;
+  res.leverCount = document.querySelectorAll("#found-levers .lever").length;
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -286,6 +309,51 @@ else {
   // assertion above is describing one layout twice.
   ok(wide.toggles[0].rightOfHeadline !== phone.toggles[0].rightOfHeadline,
      "E2E-29 CONTROL: desktop and phone place it differently, so the breakpoint is real");
+}
+
+// ── DENSITY_COLLAPSE_V2 ──────────────────────────────────────────────────────
+console.log("COLLAPSE -- every disclosure ships closed");
+{
+  const d = (wide && wide.disclosures) || [];
+  ok(d.length >= 5, "E2E-38: at least five disclosures render across the two sections  (" + d.length + ")");
+  ok(d.every(x => x === "false"), "E2E-38b: every one of them ships aria-expanded false  (" + JSON.stringify([...new Set(d)]) + ")");
+  const bodies = (wide && wide.bodiesHidden) || [];
+  ok(bodies.length >= 5, "E2E-39: and every disclosure has a body to hide  (" + bodies.length + ")");
+  ok(bodies.every(x => x === "none"), "E2E-39b: all of them compute display:none by default  (" + JSON.stringify([...new Set(bodies)]) + ")");
+  ok(wide.whyToggle, "E2E-40: the Why these control renders under the lever row");
+  eq(wide.whyLabel, "Why these", "E2E-40b: and it names its content");
+  eq(wide.leverCols, 3, "E2E-41: the lever row is THREE across at 1280");
+  eq(wide.leverCount, 3, "E2E-41b: with three levers in it, so the column count is not describing an empty grid");
+}
+if (phone) {
+  eq(phone.leverCols, 1, "E2E-42: and stacks to one column on a phone");
+  ok((phone.disclosures || []).every(x => x === "false"), "E2E-42b: still all closed there");
+  // CONTROL. The two widths must DISAGREE on the column count, or the breakpoint does nothing.
+  ok(wide.leverCols !== phone.leverCols, "E2E-43 CONTROL: desktop and phone differ, so the 768 breakpoint is real");
+}
+
+// ── A SECOND MUTANT: a paragraph rendered by default. Valid JS. ──────────────
+// .quiet-detail is what hides the going-right body. Flipping its base rule to display:block is
+// the smallest valid change that puts a paragraph back on the page uninvited, which is exactly
+// what E2E-39b exists to catch.
+console.log("MUTANT -- a collapsed body renders by default");
+{
+  const BASE = ".quiet-detail{display:none;margin-top:8px}";
+  ok(html.indexOf(BASE) !== -1, "E2E-44: the collapsed base rule was LOCATED, so the mutant is a real change");
+  const mut = html.replace(BASE, ".quiet-detail{display:block;margin-top:8px}");
+  ok(mut.length === html.length + 1, "E2E-44b: the mutant differs by the one word  (" + (mut.length - html.length) + ")");
+  let okJs = true;
+  try { new Function(extractApp(mut, "the mutant")); } catch (e) { okJs = false; }
+  ok(okJs, "E2E-44c: the mutant page's script still parses, so the cut was CSS only");
+  serveHtml = mut;
+  const m2 = await run(PAYLOAD, 1280);
+  serveHtml = null;
+  if (!m2) { console.log("  FAIL E2E-45: the mutant page never finished"); fail++; }
+  else {
+    ok((m2.bodiesHidden || []).some(x => x !== "none"),
+       "E2E-45: with the base rule flipped a body renders by default, so E2E-39b can fail  (" +
+       JSON.stringify([...new Set(m2.bodiesHidden || [])]) + ")");
+  }
 }
 
 // ── THE MUTANT. Valid CSS-only change that restores the old position. ────────
