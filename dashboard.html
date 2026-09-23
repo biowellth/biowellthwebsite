@@ -2270,11 +2270,17 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="headline" id="headline"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
       </div>
-      <!-- The four-count row (#hero-stats) LIVED HERE and moved to the top of #theme-wrap on
-           2026-09-23. The hero now carries one thing to read -- a band word, a headline, the
-           ring and the explainer -- and the counts are a way into the themes below, which is
-           where they now sit. The element, its id and its class are UNCHANGED, because
-           renderDashboard fills it by id ($("hero-stats")) and not by position. -->
+      <!-- THE FOUR-COUNT ROW MOVED OUT AND CAME BACK, both on 2026-09-23. f4fa2a4 put it at
+           the top of #theme-wrap on the reasoning that the hero should carry one thing to read;
+           seen on the page, the counts belong with the score they summarise, so it is here
+           again. Recorded rather than quietly reverted, because the next person to think the
+           hero is crowded should know this was tried and what it looked like.
+
+           IT SURVIVES THE ROUND TRIP UNCHANGED, and that is not luck. renderDashboard fills it
+           by id ($("hero-stats")), never by position, and its colours are split between a light
+           base rule and a .reveal-head-scoped dark one (:1154-1159), so the same element reads
+           correctly in either place. -->
+        <div class="hero-stats" id="hero-stats"></div>
       <!-- HERO_TRAJ_V1 host. Empty and hidden in markup; renderHeroTrajectory fills it
            after the stats render, and hides it again when there is nothing to draw. -->
       <div class="hero-traj hidden" id="hero-traj"></div>
@@ -2408,9 +2414,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 
 
     <div id="theme-wrap">
-      <!-- Moved out of .reveal-head 2026-09-23. SAME element, SAME id, SAME class, so every
-           reader keeps working untouched. -->
-      <div class="hero-stats" id="hero-stats"></div>
       <div class="section-label acc-amber">Everything else, by theme</div>
       <div class="theme-sub">Grouped by how it shows up in daily life, not by where it sits in your body.</div>
       <div class="theme-grid" id="theme-grid"></div>
@@ -7882,11 +7885,12 @@ async function renderDashboard(p, reportId){
       stat(flag,  "Worth a closer look", ST_COLOR['s-flag']) +
       stat(watch, "Worth watching",      ST_COLOR['s-watch']) +
       stat(good,  "Looks good",          'var(--teal-mid)') +
-      // "Gaps to test" was rgba(250,248,244,.55), a near-white chosen for the dark hero. The
-      // row now sits on the cream page under #theme-wrap, where that is unreadable. The other
-      // three are mid-tone (ST_COLOR coral/amber, teal-mid) and read on both surfaces, so this
-      // is the only one that had to change.
-      stat(gaps,  "Gaps to test",       "var(--brown-mid)");
+      // "Gaps to test" is the only one of the four with no colour of its own to carry, so it
+      // takes the hero's cream at 55%. It was var(--brown-mid) for the length of f4fa2a4, while
+      // the row sat on the cream page under #theme-wrap; the row is back on the dark card, so
+      // this is back with it. The other three are mid-tone (ST_COLOR coral/amber, teal-mid) and
+      // read on both surfaces, which is why this was the only value that ever had to move.
+      stat(gaps,  "Gaps to test",       "rgba(250,248,244,.55)");
   }
 
   // HERO_TRAJ_V1 — the trajectory strip, directly after the stats it sits under.
