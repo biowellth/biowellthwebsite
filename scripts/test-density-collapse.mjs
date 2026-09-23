@@ -122,6 +122,11 @@ ok("cutter control: it throws on a missing anchor", (() => {
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const markerName = (m) => (m && (m.display_name || m.marker_id)) || "";
+// EMPTY_PROSE_V1 — the priority card arrow now calls priorityTitle, the ONE shared title rule
+// (dashboard, health report, both deck sites). Compiled from the SHIPPED source rather than
+// stubbed, so this harness exercises the real fallback chain and not a local imitation of it.
+const priorityTitle = new Function("markerName",
+  "return " + cutAfter(CODE, "function priorityTitle(x, i){", "{", "}") + ";")(markerName);
 const sysStatus = () => ({ cls: "s-good", label: "Looks good" });
 const toneFor = () => "t-coral";
 const SENSITIVE_SYSTEMS = new Set(["heavy_metals", "autoimmune", "tumor_markers"]);
@@ -230,12 +235,12 @@ const prioFn = new Function(
   "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
   "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
   "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-  "markerBandGeometry", "BAND_LEGEND_HTML",
+  "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
   "return " + prioArrow + ";"
 )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
   chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
   markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
-  markerBandGeometry, BAND_LEGEND_HTML);
+  markerBandGeometry, BAND_LEGEND_HTML, priorityTitle);
 
 const card = prioFn(priority, 0);
 ok("priority render control: it produced a .prio card at all", /class="prio /.test(card));

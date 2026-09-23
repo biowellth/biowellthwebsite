@@ -5455,6 +5455,32 @@ function markerName(m){
   if(id==null || String(id).trim()==='') return '';   // priority sites: no id -> nothing to map
   return (typeof GAP_MARKER_NAME!=='undefined' && GAP_MARKER_NAME[id]) || humanizeMarkerId(id);
 }
+// EMPTY_PROSE_V1 — ONE title rule for a priority, used by all four surfaces (the dashboard card,
+// the health report card, the reveal deck's beat 3 and its priority list and detail modal).
+//
+// PROSE_GUARD_V1 (worker v134) can leave `headline` as an empty string, and every surface used to
+// render that straight through: the dashboard and the deck as an empty element, the report as its
+// "Priority N" label. A blank line beside a rank number is the worst of those, so the rule is
+// shared rather than repeated, and the order is deliberate:
+//
+//   1. THE HEADLINE, RAW AND UNTRIMMED when it has any content, so a populated payload renders
+//      byte-identical to before this helper existed.
+//   2. THE PRIMARY MARKER'S NAME, through markerName, which already resolves display_name, then
+//      the gap-name table, then a humanised id. Measured on the newest stored non-keeper payload:
+//      every priority carries at least one primary_marker and every marker carries a non-empty
+//      display_name, so this step lands in practice rather than in theory.
+//   3. "Priority N", the form the health report already used, as the last resort.
+//
+// IT NEVER COMPOSES A SENTENCE. A marker name is a label the engine already owns; anything
+// longer would be this file writing clinical copy, which is the thing the guard exists to stop.
+function priorityTitle(x, i){
+  const raw = (x && typeof x.headline === "string") ? x.headline : "";
+  if(raw.trim() !== "") return raw;
+  const pm = (x && Array.isArray(x.primary_markers) && x.primary_markers[0]) ? x.primary_markers[0] : null;
+  const nm = markerName(pm);
+  if(nm) return nm;
+  return "Priority " + ((x && typeof x.rank === "number") ? x.rank : (i + 1));
+}
 function gapName(id){ return GAP_MARKER_NAME[id] || id; }
 function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 
@@ -6385,7 +6411,10 @@ function priorityCards(p){
     const prompt = reportUrgencyPrompt(x);
     const chip = '<span class="report-tag '+(prompt?"prompt":"routine")+'">'+(prompt?"Raise soon":"Routine")+'</span>';
     const fallbackName = "Priority "+(typeof x.rank==="number"?x.rank:(i+1));
-    const headFull = (typeof x.headline==="string" && x.headline.trim()) ? reportProse(x.headline) : fallbackName;
+    // EMPTY_PROSE_V1 — reportProse stays on MODEL PROSE ONLY. A derived title is a marker name or
+    // the "Priority N" label, neither of which is prose, so it takes a plain esc instead of the
+    // dash-rewriting pass. fallbackName is kept as priorityTitle's own last resort, not dropped.
+    const headFull = (typeof x.headline==="string" && x.headline.trim()) ? reportProse(x.headline) : esc(priorityTitle(x, i));
     let card = '<div class="report-card"><div class="report-item-h"><span>'+headFull+'</span>'+chip+'</div>';
 
     // WHAT WE SEE
@@ -8384,7 +8413,7 @@ async function renderDashboard(p, reportId){
       prioArtSVG(artSysId, i, artTone) +
       '<div class="prio-body">'+
       '<div class="prio-top"><span class="prio-rank">'+String(rank).padStart(2,"0")+'</span>'+
-      '<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+
+      '<span class="prio-title">'+esc(priorityTitle(x, i))+'</span></div>'+
       chipsRow +
       (detail
         ? '<button class="prio-toggle" type="button" aria-expanded="false">'+
@@ -13229,7 +13258,7 @@ function buildDeck(p, reportId, faceScanConsented){
     beats.push(
       '<section class="card">' +
         '<div class="eyebrow coral stag">The one place to focus first</div>' +
-        '<h1 class="display h-md stag">' + esc(pri.headline || '') + '</h1>' +
+        '<h1 class="display h-md stag">' + esc(priorityTitle(pri, 0)) + '</h1>' +
         (markerStr ? '<div class="markerline stag">' + markerStr + '</div>' : '') +
         (pri.why_this_matters ? '<p class="sub stag" style="margin-top:0">' + esc(pri.why_this_matters) + '</p>' : '') +
       '</section>'
@@ -13330,7 +13359,7 @@ function buildDeck(p, reportId, faceScanConsented){
       '<div class="prio-card ' + toneFor(pr) + (stag ? ' stag' : '') + '" data-prio-index="' + i + '"' +
         (stag ? ' style="animation-delay:' + (0.3 + i*0.18).toFixed(2) + 's"' : '') + '>' +
         '<div class="pnum">' + (i+1) + '</div>' +
-        '<div class="pbody"><div class="ph">' + esc(pr.headline || ('Priority ' + (i+1))) + '</div></div>' +
+        '<div class="pbody"><div class="ph">' + esc(priorityTitle(pr, i)) + '</div></div>' +
         '<div class="pchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>' +
       '</div>';
     const collapsed = priCount > COLLAPSE_AT;
@@ -13513,7 +13542,7 @@ function buildDeck(p, reportId, faceScanConsented){
     pmcard.innerHTML =
       '<button class="pm-close" id="rd-pmclose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '<div class="pm-num">' + (i+1) + '</div>' +
-      '<h2 class="pm-h">' + esc(pr.headline || '') + '</h2>' +
+      '<h2 class="pm-h">' + esc(priorityTitle(pr, i)) + '</h2>' +
       (markerStr ? '<div class="markerline">' + markerStr + '</div>' : '') +
       body;
     $('rd-pmclose').addEventListener('click', closePrio);

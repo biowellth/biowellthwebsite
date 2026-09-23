@@ -140,6 +140,13 @@ const BASE = {
   esc: (x) => String(x == null ? "" : x).replace(/[&<>"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])),
   markerName: (m) => (m && m.marker_id) || "marker",
+  // EMPTY_PROSE_V1 — priorityTitle is the ONE shared title rule and buildDeck now calls it at
+  // three sites. COMPILED FROM THE SHIPPED SOURCE, not stubbed, because a stub here would be a
+  // local imitation of the exact fallback chain the deck is being tested for. It is handed this
+  // scope's own markerName, so it still runs entirely inside the harness.
+  priorityTitle: new Function("markerName",
+    "return " + CODE.slice(CODE.indexOf("function priorityTitle(x, i){"),
+      CODE.indexOf("function gapName(")) + ";")((m) => (m && m.marker_id) || "marker"),
   // The eight externals buildDeck reaches for. Each was DISCOVERED by running the function and
   // reading the ReferenceError, not guessed, and each was checked NOT to be declared inside
   // buildDeck before being stubbed -- a stub that shadows a real inner function would make the

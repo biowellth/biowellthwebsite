@@ -183,6 +183,11 @@ const PRIO_TOGGLE_LABEL = new Function("return " +
   cutAfter(CODE, "const PRIO_TOGGLE_LABEL = {", "{", "}").replace(/^const PRIO_TOGGLE_LABEL = /, "") + ";")();
 
 const markerName = (m) => (m && (m.display_name || m.marker_id)) || "";
+// EMPTY_PROSE_V1 — the priority card arrow now calls priorityTitle, the ONE shared title rule
+// (dashboard, health report, both deck sites). Compiled from the SHIPPED source rather than
+// stubbed, so this harness exercises the real fallback chain and not a local imitation of it.
+const priorityTitle = new Function("markerName",
+  "return " + cutAfter(CODE, "function priorityTitle(x, i){", "{", "}") + ";")(markerName);
 const sysStatus = () => ({ cls: "s-good", label: "Looks good" });
 const toneFor = () => "t-coral";
 // PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
@@ -209,12 +214,12 @@ function renderWith(lookupObj, band, value) {
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-    "markerBandGeometry", "BAND_LEGEND_HTML",
+    "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
     "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
     markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
-    markerBandGeometry, BAND_LEGEND_HTML);
+    markerBandGeometry, BAND_LEGEND_HTML, priorityTitle);
   const card = prioFn({
     rank: 1, headline: "H", system_id: "metabolic",
     primary_markers: [{ marker_id: "fixture_marker", display_name: "Fixture Marker", band: band }],

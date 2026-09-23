@@ -677,8 +677,27 @@ ok("consistency control: nothing drawn means nothing to contradict",
 // ===========================================================================
 const prioSrc = cutAfter(CODE, '$("prios").innerHTML = pr.map((x,i)=>{', "{", "}");
 const prioArrow = prioSrc.slice(prioSrc.indexOf("(x,i)=>"));
+// EMPTY_PROSE_V1 HARNESS GUARD. The extracted arrow calls priorityTitle, and this file compiles it
+// at FOUR separate sites. Each missing binding surfaces only as a ReferenceError from whichever
+// assertion runs first, which is how three of the four were found. Count them instead.
+{
+  // THE NEEDLES ARE ASSEMBLED AT RUNTIME. Written as plain literals they matched THEMSELVES in
+  // this file and the guard reported 5 of 4, which is the instrument counting its own text. Any
+  // self-scanning check has this failure mode, and the split is what makes the count honest.
+  const SELF = readFileSync(new URL(import.meta.url), "utf8");
+  const needle = (a, b) => new RegExp(a + b, "g");
+  const uses = (SELF.match(needle('"return " \\+ prioArrow', ' \\+ ";"')) || []).length;
+  const bound = (SELF.match(needle('"BAND_LEGEND_HTML", ', '"priorityTitle",')) || []).length;
+  ok("harness guard: every prioArrow compilation binds priorityTitle  (" + bound + " of " + uses + ")",
+    uses > 0 && uses === bound);
+}
 const SENSITIVE_SYSTEMS = new Set(["heavy_metals", "autoimmune", "tumor_markers"]);
 const markerName = (m) => (m && (m.display_name || m.marker_id)) || "";
+// EMPTY_PROSE_V1 — the priority card arrow now calls priorityTitle, the ONE shared title rule
+// (dashboard, health report, both deck sites). Compiled from the SHIPPED source rather than
+// stubbed, so this harness exercises the real fallback chain and not a local imitation of it.
+const priorityTitle = new Function("markerName",
+  "return " + cutAfter(CODE, "function priorityTitle(x, i){", "{", "}") + ";")(markerName);
 const sysStatus = () => ({ cls: "s-good", label: "Looks good" });
 const toneFor = () => "t-coral";
 // PRIO_ART_V1 — the card callback calls prioArtSVG for its drawing. Stubbed here the same way
@@ -704,11 +723,12 @@ function renderPriority({ sysId, ref, value, band }) {
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+    "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
+    "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, lookupRange, healthyRangeText,
     markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
-    markerBandGeometry, BAND_LEGEND_HTML);
+    markerBandGeometry, BAND_LEGEND_HTML, priorityTitle);
   return fn({
     rank: 1, headline: "SENTINEL_HEADLINE",
     primary_markers: [{ marker_id: "m1", display_name: "Sentinel Marker",
@@ -766,11 +786,12 @@ ok("WIRING: with the map empty, no band draws even if a value is set on pm", (()
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+    "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
+    "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     chipSysByMarker, chipValByMarker, () => F, healthyRangeText,
     markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
-    markerBandGeometry, BAND_LEGEND_HTML);
+    markerBandGeometry, BAND_LEGEND_HTML, priorityTitle);
   const html = fn({ rank: 1, headline: "H",
     primary_markers: [{ marker_id: "m1", display_name: "M", band: "optimal", value: 15 }] }, 0);
   return !html.includes('class="mk-band"');
@@ -1234,11 +1255,12 @@ eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || [])
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+    "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
+    "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     { m1: "metabolic", m2: "metabolic", m3: "metabolic" }, { m1: 7, m2: 25, m3: 2 },
     () => F, healthyRangeText, markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG,
-    markerBandGeometry, BAND_LEGEND_HTML);
+    markerBandGeometry, BAND_LEGEND_HTML, priorityTitle);
   const card = many({ rank: 1, headline: "H", why_this_matters: "W", primary_markers: [
     { marker_id: "m1", display_name: "One", band: "low" },
     { marker_id: "m2", display_name: "Two", band: "high" },
@@ -1254,10 +1276,12 @@ eq("and exactly three of them", (BAND_LEGEND_HTML.match(/class="mk-lg /g) || [])
     "esc", "markerName", "sysStatus", "toneFor", "SENSITIVE_SYSTEMS",
     "chipSysByMarker", "chipValByMarker", "lookupRange", "healthyRangeText",
     "markerBandHTML", "bandContradictsEngine", "PRIO_TOGGLE_LABEL", "prioArtSVG",
-    "markerBandGeometry", "BAND_LEGEND_HTML", "return " + prioArrow + ";"
+    "markerBandGeometry", "BAND_LEGEND_HTML", "priorityTitle",
+    "return " + prioArrow + ";"
   )(esc, markerName, sysStatus, toneFor, SENSITIVE_SYSTEMS,
     { m1: "metabolic" }, { m1: 7 }, () => ({ low: 10, high: null }), healthyRangeText,
-    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG, markerBandGeometry, BAND_LEGEND_HTML)(
+    markerBandHTML, bandContradictsEngine, PRIO_TOGGLE_LABEL, prioArtSVG, markerBandGeometry,
+    BAND_LEGEND_HTML, priorityTitle)(
     { rank: 1, headline: "H", why_this_matters: "W",
       primary_markers: [{ marker_id: "m1", display_name: "One", band: "low" }] }, 0);
   eq("no-band control: that card drew no band at all", (none.match(/class="mk-band"/g) || []).length, 0);
