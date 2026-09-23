@@ -74,6 +74,8 @@ function makeCtx({ writeResults, answered }) {
       return writeResults[k];
     },
     onb2Patch: () => (answered ? { pregnant_or_postpartum_within_6_months: false } : {}),
+    onb2SideWrites: async () => true,   // ABOUT_YOU_SCREENS_V1: nothing to side-write on this screen
+    onb2GroupValue: () => null,
     onb2NextIdx: () => -1,           // force the finish path
     onb2Leap: () => { log.advanced = true; log.order.push("leap"); },
     onb2Transit: () => {}, onb2Present: () => { log.doneShown = true; },

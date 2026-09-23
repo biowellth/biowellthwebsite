@@ -1652,6 +1652,15 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .onb2-next{background:var(--teal);color:var(--white);font-weight:700;font-size:14px;border-radius:100px;padding:12px 26px;transition:background .3s ease,transform .3s ease}
 .onb2-next:hover{background:var(--teal-dark);transform:translateY(-1px)}
 .onb2-group{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);font-weight:700;margin:14px 0 8px}
+/* ABOUT_YOU_SCREENS_V1 — group helper line, "Add your own" row, typed-entry chips. The
+   input is 16px so iOS does not zoom the page on focus. The card scrolls inside the
+   viewport, because the meds screen is taller than a phone screen. */
+.onb2-help{font-size:13px;color:var(--brown-mid);margin:-4px 0 8px;line-height:1.5}
+.onb2-add{display:flex;gap:8px;margin-top:8px}
+.onb2-add-in{flex:1 1 auto;min-width:0;font-family:inherit;font-size:16px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:10px;padding:9px 12px}
+.onb2-add-btn{flex:0 0 auto;font-family:inherit;font-size:14px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 16px}
+.onb2-add-btn:hover{border-color:var(--teal)}
+.onb2-card{max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow-y:auto}
 .onb2-done{text-align:center;padding-top:26px}
 #onb2-resume{font-size:13px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 16px;margin:10px 0}
 #onb2-resume.hidden{display:none}
@@ -8933,6 +8942,15 @@ const ONB2_COPY = {
   s7cond: "Conditions",
   s7symp: "Symptoms",
   s7note: "Anything else you want us to keep in mind",
+  // ABOUT_YOU_SCREENS_V1
+  s3reason: "Is there a reason you know of?",
+  s4ht: "Are you using hormone therapy right now?",
+  s8: "Anything you take regularly?",
+  s8meds: "Medicines you take regularly",
+  s8medsHelp: "The type of medicine is enough.",
+  s8supp: "Supplements you take",
+  addOwn: "Add your own",
+  addBtn: "Add",
 };
 
 // Enums are the live CHECK constraints, verbatim. Never retyped from a brief.
@@ -8958,29 +8976,94 @@ const ONB2_SCREENS = [
     opts:[["Yes, currently","current"],
           ["I stopped within the last year","ceased_within_12_months"],
           ["No","none"]] },
-  { id:"diet", key:"vegetarian_status", q:ONB2_COPY.s5, kind:"one", supps:true,
+  // ABOUT_YOU_SCREENS_V1 — the postmenopause form of the hbc screen. It sits beside
+  // hbc in the track and onb2InPath shows exactly one of the two, so the leap, the
+  // counter and the seeds need no new machinery. It writes hormone_therapy_status
+  // ONLY, with the tokens the live CHECK allows (yes | no | not_sure), and never a
+  // contraception column.
+  { id:"hbc-ht", key:"hormone_therapy_status", q:ONB2_COPY.s4ht, kind:"one",
+    opts:[["Yes","yes"],["No","no"],["Not sure","not_sure"]] },
+  // The B12 and folate sub-question moved to the meds screen with the other supplements.
+  { id:"diet", key:"vegetarian_status", q:ONB2_COPY.s5, kind:"one",
     opts:[["Vegetarian","Vegetarian"],["Non-vegetarian","Non-vegetarian"],
           ["Eggetarian","Eggetarian"],["Vegan","Vegan"],
           ["Mostly vegetarian","Mostly vegetarian"]] },
-  { id:"goal", key:"health_goals", q:ONB2_COPY.s6, kind:"many",
-    opts:["Energy","Sleep","Cycle health","Fertility","Weight","Stress",
-          "Healthy aging","Just curious about my numbers"] },
-  { id:"cond", key:"known_conditions", q:ONB2_COPY.s7, kind:"many2",
-    opts:["Thyroid condition","PCOS","Anemia or low iron","Diabetes or prediabetes","None of these"],
-    // "None of these" in BOTH groups. The symptom list said "None", which reads
-    // as a different kind of answer beside an identical chip one row above.
-    opts2:["Fatigue","Hair loss","Brain fog","Mood changes","Bloating","None of these"] },
+  // ABOUT_YOU_SCREENS_V1 — chip groups. Each opt is [label, stored token]. Conditions,
+  // symptoms and medicines store the label itself, the convention these columns
+  // already use ("None of these" included). Supplements store the lowercase tokens the
+  // draw card wrote (BC_SUPPLEMENTS), so existing rows and new ones read the same.
+  // `none` is the exclusive chip. An entry she types is appended as a plain string.
+  { id:"cond", key:"cond", q:ONB2_COPY.s7, kind:"groups",
+    groups:[
+      { key:"known_conditions", label:ONB2_COPY.s7cond, none:"None of these",
+        opts:["Thyroid condition","PCOS","Anemia or low iron","Diabetes or prediabetes",
+              "High blood pressure","High cholesterol","None of these"].map(x=>[x,x]) },
+      { key:"symptoms", label:ONB2_COPY.s7symp, none:"None of these",
+        opts:["Fatigue or low energy","Poor sleep","Hair loss","Brain fog","Low mood or anxiety",
+              "Mood swings","Bloating","Heavy periods","None of these"].map(x=>[x,x]) },
+    ] },
+  { id:"meds", key:"meds", q:ONB2_COPY.s8, kind:"groups", note:true,
+    groups:[
+      { key:"medications", label:ONB2_COPY.s8meds, help:ONB2_COPY.s8medsHelp, none:"None of these",
+        opts:["Thyroid medicine","Metformin or diabetes medicine","Blood pressure medicine",
+              "Cholesterol medicine","Acid reflux medicine","Antidepressant or anxiety medicine",
+              "Steroids","None of these"].map(x=>[x,x]) },
+      // Biotin is a chip here but NOT a supplements[] entry: it is the one supplement
+      // that touches scoring, so it goes to confounders.biotin_supplementation through
+      // set_confounder, exactly as the draw card routed it (BC_SUPPLEMENTS comment).
+      { key:"supplements", label:ONB2_COPY.s8supp, none:"none of these",
+        opts:[["Iron","iron"],["Vitamin B12","b12"],["Folate","folate"],["Vitamin D","vitamin_d"],
+              ["Omega 3","omega3"],["Multivitamin","multivitamin"],["Probiotic","probiotic"],
+              ["Biotin","biotin"],["None of these","none of these"]] },
+    ] },
 ];
+
+// Typed entries: trimmed, at most this many characters, the same bound the worker
+// applies (about-you-context.ts in supa), so nothing is cut twice at different lengths.
+const ONB2_ADD_MAX = 200;
 
 const onb2 = { idx:0, ans:{}, stored:{}, open:false, cards:[], hist:[], firstIdx:0 };
 
 // ABOUT_YOU_V1 — the columns the flow reads on open. about_you_status is here so a
 // fresh read, not only the boot read, decides whether it may open unprompted.
 const ONB2_STORED_COLS = "life_stage, cycle_status, menstrual_status, vegetarian_status, hormonal_contraception, " +
-  "pregnant_or_postpartum_within_6_months, health_goals, known_conditions, symptoms, supp_b12, supp_folate, about_you_status";
+  "hormonal_contraception_ceased_at, pregnant_or_postpartum_within_6_months, typical_cycle_length_days, " +
+  "typical_period_duration_days, amenorrhea_reason, hormone_therapy_status, known_conditions, symptoms, " +
+  "medications, supplements, confounders, context_note, supp_b12, supp_folate, about_you_status";
 
-/** Answers prefilled from stored values. Nothing yet; screens are prefilled in ABOUT_YOU_SCREENS_V1. */
-function onb2Prefill(s){ return {}; }
+/**
+ * ABOUT_YOU_SCREENS_V1 — every screen opens showing what she already told us.
+ *
+ * A prefilled screen is an answer she can see and change, and Next saves it as shown;
+ * nothing she has not answered is invented here. Two values have no prefill because
+ * the stored form cannot tell them apart from unanswered: life_stage "Not sure" is
+ * stored as null, and 'pregnant' is not an option on that screen.
+ *
+ * Biotin is prefilled from confounders.biotin_supplementation, its only home.
+ */
+function onb2Prefill(s){
+  s = s || {};
+  const a = {};
+  if(s.pregnant_or_postpartum_within_6_months === true || s.pregnant_or_postpartum_within_6_months === false)
+    a.preg = s.pregnant_or_postpartum_within_6_months;
+  if(["premenopause","perimenopause","postmenopause"].indexOf(s.life_stage) >= 0) a.life_stage = s.life_stage;
+  if(s.cycle_status != null) a.cycle_status = s.cycle_status;
+  if(s.typical_cycle_length_days != null) a.cycle_len = String(s.typical_cycle_length_days);
+  if(s.typical_period_duration_days != null) a.period_dur = String(s.typical_period_duration_days);
+  if(s.amenorrhea_reason != null) a.amen_reason = s.amenorrhea_reason;
+  if(s.hormonal_contraception != null) a.hormonal_contraception = s.hormonal_contraception;
+  if(typeof s.hormonal_contraception_ceased_at === "string" && s.hormonal_contraception_ceased_at.length >= 7)
+    a.ceased_ym = s.hormonal_contraception_ceased_at.slice(0,7);
+  if(s.hormone_therapy_status != null) a.hormone_therapy_status = s.hormone_therapy_status;
+  if(s.vegetarian_status != null) a.vegetarian_status = s.vegetarian_status;
+  const list = (v)=> Array.isArray(v) ? v.filter(x=> typeof x === "string" && x.trim()) : null;
+  ["known_conditions","symptoms","medications"].forEach(k=>{ const l = list(s[k]); if(l) a[k] = l; });
+  const supp = list(s.supplements);
+  const biotin = !!(s.confounders && s.confounders.biotin_supplementation === true);
+  if(supp || biotin) a.supplements = (supp || []).filter(x=> x !== "biotin").concat(biotin ? ["biotin"] : []);
+  if(typeof s.context_note === "string" && s.context_note.trim()) a.context_note = s.context_note;
+  return a;
+}
 
 /**
  * menstrual_status is DERIVED, never asked. Ruling 2026-09-02.
@@ -9039,7 +9122,31 @@ async function onb2Write(patch){
 /** The per-screen patch. Returns {} when the screen was skipped or unanswered. */
 function onb2Patch(sc){
   const a = onb2.ans, p = {};
-  if(!(sc.key in a)) return p;                       // skipped -> nothing, ever
+  // ABOUT_YOU_SCREENS_V1 — chip-group screens. Each group writes its own column and
+  // ONLY when something is chosen or typed in it, so an untouched group, and an
+  // untouched screen, write nothing at all.
+  if(sc.kind === "groups"){
+    if(sc.id === "cond"){
+      const kc = onb2GroupValue("known_conditions"); if(kc) p.known_conditions = kc;
+      const sy = onb2GroupValue("symptoms"); if(sy) p.symptoms = sy;
+    }
+    if(sc.id === "meds"){
+      const md = onb2GroupValue("medications"); if(md) p.medications = md;
+      const sp = onb2GroupValue("supplements");
+      if(sp){
+        // Biotin never enters supplements[]; onb2SideWrites sends it to set_confounder.
+        p.supplements = sp.filter(x=> x !== "biotin");
+        // Answered means both are known: chosen is true, not chosen is false.
+        p.supp_b12 = sp.indexOf("b12") >= 0;
+        p.supp_folate = sp.indexOf("folate") >= 0;
+        p.supp_status_updated_at = new Date().toISOString();
+      }
+      const note = (a.context_note || "").trim().slice(0, 500);
+      if(note) p.context_note = note;
+    }
+    return p;
+  }
+  if(!(sc.key in a)) return p;                       // unanswered -> nothing, ever
   const v = a[sc.key];
 
 
@@ -9060,6 +9167,21 @@ function onb2Patch(sc){
     // rather than a clamped guess.
     const cl = onb2Int(a.cycle_len, 15, 90); if(cl != null) p.typical_cycle_length_days = cl;
     const du = onb2Int(a.period_dur, 1, 15); if(du != null) p.typical_period_duration_days = du;
+    // ABOUT_YOU_SCREENS_V1 — the amenorrhea reason, same tokens the draw card wrote
+    // (hormonal_contraception | breastfeeding | medical | not_sure, the live CHECK).
+    // Written with its answer, and CLEARED when the cycle answer is anything else, so
+    // a reason cannot outlive the "no periods" answer it explained. Lockstep, the
+    // same rule menstrual_status follows above.
+    if(v === "amenorrheic"){
+      if(ONB2_AMEN_REASONS.some(r=> r[1] === a.amen_reason)) p.amenorrhea_reason = a.amen_reason;
+    } else {
+      p.amenorrhea_reason = null;
+    }
+    return p;
+  }
+  if(sc.id === "hbc-ht"){
+    // Hormone therapy only. No contraception column is touched on this screen.
+    p.hormone_therapy_status = v;
     return p;
   }
   if(sc.id === "hbc"){
@@ -9076,25 +9198,64 @@ function onb2Patch(sc){
     return p;
   }
   if(sc.id === "diet"){
+    // Diet only. B12 and folate are answered on the meds screen now.
     p.vegetarian_status = v;
-    if(a.supps){                                      // Neither is a real answer, both false
-      p.supp_b12 = a.supps.indexOf("Vitamin B12") >= 0;
-      p.supp_folate = a.supps.indexOf("Folate") >= 0;
-      p.supp_status_updated_at = new Date().toISOString();
-    }
-    return p;
-  }
-  if(sc.id === "goal"){ p.health_goals = v; return p; }
-  if(sc.id === "cond"){
-    // Chip strings exactly as shipped. No cross-screen inference: a PCOS chip
-    // here never touches cycle_status, which S3 owns.
-    p.known_conditions = v;
-    if(a.symptoms) p.symptoms = a.symptoms;
-    const note = (a.context_note || "").trim();
-    if(note) p.context_note = note;
     return p;
   }
   return p;
+}
+
+// ABOUT_YOU_SCREENS_V1 — the amenorrhea reason options, [label, stored token]. The
+// tokens are the ones the draw card's cq-reason block wrote and the live CHECK allows.
+const ONB2_AMEN_REASONS = [["Hormonal contraception","hormonal_contraception"],["Breastfeeding","breastfeeding"],
+                           ["A medical reason or treatment","medical"],["Not sure","not_sure"]];
+
+/** One typed entry: trimmed and capped. Empty returns null. */
+function onb2CleanEntry(v){
+  const s = String(v == null ? "" : v).trim().slice(0, ONB2_ADD_MAX);
+  return s ? s : null;
+}
+
+/**
+ * A group's value to save: its chips and typed entries, plus anything still sitting
+ * in its "Add your own" box, so text she typed but did not press Add for is not lost.
+ * Duplicates collapse. Returns null when nothing is chosen or typed, which is what
+ * makes an untouched group write nothing.
+ */
+function onb2GroupValue(key){
+  const a = onb2.ans;
+  const out = [];
+  (Array.isArray(a[key]) ? a[key] : []).forEach(x=>{ const c = onb2CleanEntry(x); if(c && out.indexOf(c) < 0) out.push(c); });
+  const draft = onb2CleanEntry(a.__draft && a.__draft[key]);
+  if(draft && out.indexOf(draft) < 0){
+    const g = onb2FindGroup(key);
+    if(g && g.none){ const i = out.indexOf(g.none); if(i >= 0) out.splice(i, 1); }   // typing means not "none"
+    out.push(draft);
+  }
+  return out.length ? out : null;
+}
+function onb2FindGroup(key){
+  for(const sc of ONB2_SCREENS) for(const g of (sc.groups || [])) if(g.key === key) return g;
+  return null;
+}
+
+/**
+ * Writes that are not a profiles column. Biotin goes through the existing
+ * set_confounder path, the one supplement that reaches the engine. Runs only when
+ * the supplements group was answered, and a refusal is reported like any other
+ * refused write so "Done" never claims it was saved.
+ */
+async function onb2SideWrites(sc){
+  if(!sc || sc.id !== "meds") return true;
+  const sp = onb2GroupValue("supplements");
+  if(!sp) return true;
+  const on = sp.indexOf("biotin") >= 0;
+  try{
+    const { error } = await sb.rpc("set_confounder", { p_key: "biotin_supplementation", p_value: on });
+    if(error) return false;
+    PROFILE.confounders = Object.assign({}, (PROFILE && PROFILE.confounders) || {}, { biotin_supplementation: on });
+    return true;
+  }catch(_){ return false; }
 }
 
 function onb2Int(v, lo, hi){
@@ -9130,6 +9291,12 @@ function onb2Esc(s){
  */
 function onb2InPath(sc){
   if((sc.id === "life" || sc.id === "cyc") && onb2.ans.preg === true) return false;
+  // ABOUT_YOU_SCREENS_V1 — exactly one of hbc and hbc-ht is on the path. After
+  // menopause the question is hormone therapy, not birth control. Pregnancy takes the
+  // life screen off the path, so the pregnant branch keeps the hbc screen.
+  const postmeno = onb2.ans.preg !== true && onb2.ans.life_stage === "postmenopause";
+  if(sc.id === "hbc") return !postmeno;
+  if(sc.id === "hbc-ht") return postmeno;
   return true;
 }
 /** Position of a track index among on-path cards, and the on-path total. */
@@ -9171,6 +9338,15 @@ function onb2CardHtml(sc, idx){
            '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3dur) + '</div>' +
            '<input type="number" class="onb2-num" data-f="period_dur" min="1" max="15" value="' + onb2Esc(a.period_dur || "") + '">';
     }
+    // ABOUT_YOU_SCREENS_V1 — the amenorrhea reason, only under "I don't get periods right now".
+    if(sc.id === "cyc" && a.cycle_status === "amenorrheic"){
+      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s3reason) + '</div><div class="onb2-opts">';
+      ONB2_AMEN_REASONS.forEach((o,k)=>{
+        const sel = a.amen_reason === o[1] ? " sel" : "";
+        h += '<button type="button" class="onb2-opt onb2-reason' + sel + '" data-r="' + k + '">' + onb2Esc(o[0]) + "</button>";
+      });
+      h += "</div>";
+    }
     if(sc.when && a.hormonal_contraception === "ceased_within_12_months"){
       const MO = ["January","February","March","April","May","June","July",
                   "August","September","October","November","December"];
@@ -9187,31 +9363,35 @@ function onb2CardHtml(sc, idx){
       h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s4when) + '</div>' +
            '<div class="onb2-when">' + mo + yr + "</div>";
     }
-    if(sc.supps){
-      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s5supp) + '</div><div class="onb2-opts row">';
-      ["Vitamin B12","Folate","Neither"].forEach(x=>{
-        const on = (a.supps || []).indexOf(x) >= 0 ? " sel" : "";
-        h += '<button type="button" class="onb2-chip' + on + '" data-s="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
+  } else if(sc.kind === "groups"){
+    // ABOUT_YOU_SCREENS_V1 — chip groups. Chips come from the screen table; entries
+    // she typed are whatever in her list is not a chip token, shown selected, and
+    // tapping one removes it. Each group has its own "Add your own" box.
+    sc.groups.forEach(g=>{
+      const cur = Array.isArray(a[g.key]) ? a[g.key] : [];
+      const toks = g.opts.map(o=> o[1]);
+      h += '<div class="onb2-group">' + onb2Esc(g.label) + "</div>";
+      if(g.help) h += '<div class="onb2-help">' + onb2Esc(g.help) + "</div>";
+      h += '<div class="onb2-opts row" data-group="' + onb2Esc(g.key) + '">';
+      g.opts.forEach((o,k)=>{
+        const on = cur.indexOf(o[1]) >= 0 ? " sel" : "";
+        h += '<button type="button" class="onb2-chip' + on + '" data-gi="' + k + '">' + onb2Esc(o[0]) + "</button>";
       });
-      h += "</div>";
-    }
-  } else if(sc.kind === "many" || sc.kind === "many2"){
-    if(sc.opts2) h += '<div class="onb2-group">' + onb2Esc(ONB2_COPY.s7cond) + "</div>";
-    h += '<div class="onb2-opts row">';
-    sc.opts.forEach(x=>{
-      const on = (a[sc.key] || []).indexOf(x) >= 0 ? " sel" : "";
-      h += '<button type="button" class="onb2-chip' + on + '" data-c="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
+      cur.forEach((x,k)=>{
+        if(toks.indexOf(x) >= 0) return;
+        h += '<button type="button" class="onb2-chip sel onb2-own" data-own="' + k + '" aria-label="Remove ' +
+             onb2Esc(x) + '">' + onb2Esc(x) + ' &#215;</button>';
+      });
+      const draft = (a.__draft && a.__draft[g.key]) || "";
+      h += '</div><div class="onb2-add"><input type="text" class="onb2-add-in" data-add="' + onb2Esc(g.key) +
+           '" maxlength="' + ONB2_ADD_MAX + '" placeholder="' + onb2Esc(ONB2_COPY.addOwn) + '" aria-label="' +
+           onb2Esc(g.label + ", " + ONB2_COPY.addOwn) + '" value="' + onb2Esc(draft) + '">' +
+           '<button type="button" class="onb2-add-btn" data-addbtn="' + onb2Esc(g.key) + '">' +
+           onb2Esc(ONB2_COPY.addBtn) + "</button></div>";
     });
-    h += "</div>";
-    if(sc.opts2){
-      h += '<div class="onb2-group">' + onb2Esc(ONB2_COPY.s7symp) + "</div>";
-      h += '<div class="onb2-opts row">';
-      sc.opts2.forEach(x=>{
-        const on = (a.symptoms || []).indexOf(x) >= 0 ? " sel" : "";
-        h += '<button type="button" class="onb2-chip' + on + '" data-y="' + onb2Esc(x) + '">' + onb2Esc(x) + "</button>";
-      });
-      h += '</div><div class="onb2-sub">' + onb2Esc(ONB2_COPY.s7note) + '</div>' +
-           '<textarea class="onb2-ta" data-f="note" rows="2"></textarea>';
+    if(sc.note){
+      h += '<div class="onb2-sub">' + onb2Esc(ONB2_COPY.s7note) + '</div>' +
+           '<textarea class="onb2-ta" data-f="note" rows="2" maxlength="500">' + onb2Esc(a.context_note || "") + "</textarea>";
     }
   }
   // BACK is new and ratified. Visible from the second VISIBLE screen on, left of
@@ -9391,6 +9571,17 @@ async function onb2Advance(skipped){
     onb2Msg("");
     const ok = await onb2Write(onb2Patch(sc));
     if(!ok){ onb2Msg(ONB2_COPY.writeFail); return; }
+    // ABOUT_YOU_SCREENS_V1 — Biotin's set_confounder, held to the same rule: a refused
+    // write keeps her on this screen with the retry line.
+    const ok2 = await onb2SideWrites(sc);
+    if(!ok2){ onb2Msg(ONB2_COPY.writeFail); return; }
+    // Text still in an "Add your own" box was saved with the group; show it as a chip
+    // if she comes Back, rather than as unsent text.
+    (sc.groups || []).forEach(g=>{
+      const v = onb2GroupValue(g.key);
+      if(v) onb2.ans[g.key] = v;
+      if(onb2.ans.__draft) onb2.ans.__draft[g.key] = "";
+    });
   }
   if(sc && skipped) delete onb2.ans[sc.key];   // a skip must not leak into a later derive
   const to = onb2NextIdx(onb2.idx);
@@ -9582,18 +9773,69 @@ function onb2Recard(k){
 
 function onb2WireCard(el, sc, k){
   const a = onb2.ans;
-  el.querySelectorAll(".onb2-opt").forEach(b=>{
+  el.querySelectorAll(".onb2-opt[data-i]").forEach(b=>{
     b.onclick = ()=>{
       a[sc.key] = sc.opts[parseInt(b.getAttribute("data-i"),10)][1];
       if(sc.id === "preg") a.preg = a[sc.key];
       if(sc.id === "cyc") a.cycle_status = a[sc.key];
       if(sc.id === "hbc") a.hormonal_contraception = a[sc.key];
       onb2Ack();
-      // A pregnancy answer changes the visible path, so every card's "N of M"
-      // and the seed row move with it.
-      if(sc.id === "preg"){ onb2.cards.forEach((_,j)=> onb2Recard(j)); onb2Seeds(); }
+      // A pregnancy or life-stage answer changes the visible path (pregnancy skips two
+      // cards; postmenopause swaps hbc for hbc-ht), so every card's "N of M" and the
+      // seed row move with it.
+      if(sc.id === "preg" || sc.id === "life"){ onb2.cards.forEach((_,j)=> onb2Recard(j)); onb2Seeds(); }
       else onb2Recard(k);
     };
+  });
+  // ABOUT_YOU_SCREENS_V1 — the amenorrhea reason sub-question.
+  el.querySelectorAll(".onb2-reason[data-r]").forEach(b=>{
+    b.onclick = ()=>{
+      a.amen_reason = ONB2_AMEN_REASONS[parseInt(b.getAttribute("data-r"),10)][1];
+      onb2Ack(); onb2Recard(k);
+    };
+  });
+  // ABOUT_YOU_SCREENS_V1 — chip groups. "None of these" is exclusive both ways: choosing
+  // it clears the group, typed entries included, and choosing anything else, or adding
+  // an entry, clears it.
+  (sc.groups || []).forEach(g=>{
+    const row = el.querySelector('[data-group="' + g.key + '"]');
+    if(!row) return;
+    const list = ()=> (Array.isArray(a[g.key]) ? a[g.key] : []).slice();
+    row.querySelectorAll(".onb2-chip[data-gi]").forEach(b=>{
+      b.onclick = ()=>{
+        const v = g.opts[parseInt(b.getAttribute("data-gi"),10)][1];
+        let cur = list();
+        if(v === g.none){ cur = (cur.indexOf(v) >= 0) ? [] : [v]; }
+        else {
+          cur = cur.filter(x=> x !== g.none);
+          const i = cur.indexOf(v); if(i >= 0) cur.splice(i,1); else cur.push(v);
+        }
+        a[g.key] = cur; onb2Ack(); onb2Recard(k);
+      };
+    });
+    row.querySelectorAll(".onb2-own[data-own]").forEach(b=>{
+      b.onclick = ()=>{
+        const cur = list(); cur.splice(parseInt(b.getAttribute("data-own"),10), 1);
+        a[g.key] = cur; onb2Recard(k);
+      };
+    });
+    const inp = el.querySelector('[data-add="' + g.key + '"]');
+    const add = ()=>{
+      const v = onb2CleanEntry(inp && inp.value);
+      if(!a.__draft) a.__draft = {};
+      a.__draft[g.key] = "";
+      if(!v){ onb2Recard(k); return; }
+      const cur = list().filter(x=> x !== g.none);
+      if(cur.indexOf(v) < 0) cur.push(v);
+      a[g.key] = cur; onb2Ack(); onb2Recard(k);
+      const again = document.querySelector('#onb2-track .onb2-q[data-k="' + k + '"] [data-add="' + g.key + '"]');
+      if(again) again.focus();
+    };
+    if(inp){
+      inp.oninput = ()=>{ if(!a.__draft) a.__draft = {}; a.__draft[g.key] = inp.value; };
+      inp.onkeydown = (e)=>{ if(e.key === "Enter"){ e.preventDefault(); add(); } };
+    }
+    const ab = el.querySelector('[data-addbtn="' + g.key + '"]'); if(ab) ab.onclick = add;
   });
   const bindF = (f, key)=>{ const e = el.querySelector('[data-f="' + f + '"]'); if(e) e.oninput = ()=>{ a[key] = e.value; }; };
   bindF("dob","dob"); bindF("cycle_len","cycle_len"); bindF("period_dur","period_dur"); bindF("note","context_note");
@@ -9602,21 +9844,6 @@ function onb2WireCard(el, sc, k){
     a.ceased_ym = (mv && yv) ? (yv + "-" + mv) : null; };
   if(mo) mo.onchange = setYm;
   if(yr) yr.onchange = setYm;
-  const toggle = (attr, key, exclusive)=>{
-    el.querySelectorAll(".onb2-chip[" + attr + "]").forEach(b=>{
-      b.onclick = ()=>{
-        const v = b.getAttribute(attr);
-        let cur = (a[key] || []).slice();
-        if(exclusive && exclusive.indexOf(v) >= 0){ cur = [v]; }
-        else { cur = cur.filter(x=> !exclusive || exclusive.indexOf(x) < 0);
-               const idx = cur.indexOf(v); if(idx >= 0) cur.splice(idx,1); else cur.push(v); }
-        a[key] = cur; onb2Ack(); onb2Recard(k);
-      };
-    });
-  };
-  if(sc.kind === "many" || sc.kind === "many2") toggle("data-c", sc.key, null);
-  if(sc.opts2) toggle("data-y", "symptoms", ["None of these"]);
-  if(sc.supps) toggle("data-s", "supps", ["Neither"]);
   const nx = el.querySelector(".onb2-next"); if(nx) nx.onclick = ()=> onb2Advance(false);
   // ABOUT_YOU_V1. "Skip for now" and the close control both leave the WHOLE flow and
   // record that she chose to, so it is not offered unprompted again. A single
