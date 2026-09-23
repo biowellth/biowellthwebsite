@@ -690,7 +690,6 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
    expanded, which is the failure direction this file avoids. Same shape as .lever-detail. */
 .quiet-detail{display:none;margin-top:8px}
 .quiet.open .quiet-detail{display:block}
-.quiet-detail .quiet-intro{font-size:15px;margin-bottom:10px}
 .quiet-detail .quiet-foot{margin-top:10px}
 /* The three disclosure toggles share .prio-toggle's look. Listed rather than merged into that
    selector so a future change to one section's control does not silently move the other two. */
@@ -2449,12 +2448,16 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
-      <!-- DENSITY_COLLAPSE_V2, 2026-09-23. #quiet-intro and .quiet-foot LIVED HERE, as loose
-           paragraphs above and below the cards. Both now render inside the FIRST card's
-           disclosure, intro before that card's own line and the closing line after it, so the
-           reading order a woman meets when she opens it is the order she met on the page.
-           NEITHER SENTENCE WAS EDITED: the strings moved, they did not change. The intro is the
-           same string renderQuietSection writes; the closing line is QUIET_FOOT below. -->
+      <!-- DENSITY_COLLAPSE_V3, 2026-09-23. THE INTRO IS BACK WHERE IT STARTED, loose and visible
+           under the label, and V2 moved it inside the first card's disclosure for one day. The
+           round trip is recorded rather than erased because the reasoning that moved it still
+           reads well and is still wrong for this one line: a section whose every card is shut
+           needs one sentence on the page saying why the section is there, and a reader who never
+           opens a card would otherwise meet a label and three headlines with nothing joining
+           them. The CLOSING line did not come back; it stays in the first card's disclosure,
+           because it is a reflection on what was just read and has no job above it.
+           NEITHER SENTENCE WAS EDITED at any point: the strings moved, they did not change. -->
+      <p class="quiet-intro" id="quiet-intro"></p>
       <div id="quiet"></div>
     </div>
 
@@ -7892,11 +7895,10 @@ window.addEventListener('focus', dcResumeLate);
 // Reversing this is one edit here and one there.
 const PRIO_TOGGLE_LABEL = { closed: "See more", open: "Hide" };
 const MORE_TOGGLE_LABEL = { closed: "See more", open: "See less" };
-// DENSITY_COLLAPSE_V2 — the two sentences that used to sit loose around the going-right cards.
-// Named constants because they are now built into a card body rather than written into a node
-// that owned them, and a string with one home is a string that cannot drift from its markup.
-// BOTH ARE VERBATIM. The intro is the string renderQuietSection set on #quiet-intro; the closing
-// line is the one that was hard-coded in the #quiet-wrap markup.
+// The two sentences that frame the going-right cards. Named constants since V2, and they stay
+// named after V3 put the intro back above the cards: QUIET_INTRO is written to #quiet-intro and
+// QUIET_FOOT is built into the first card's disclosure, so the two live in different places and
+// neither is retyped in the markup. BOTH ARE VERBATIM against the pre-V2 file.
 // The "Why these" control names its content instead of its state, so both faces are the same
 // word. wireDisclosures still swaps the string; swapping it for itself is the no-op that keeps
 // this control on the same code path as the other three rather than off on a special case.
@@ -8409,6 +8411,7 @@ async function renderDashboard(p, reportId){
   // Generic verdict intro — names NO systems, so it is leak-proof by construction
   // (no per-entry system name needed). textContent: static string, no injection path.
   const quietIntro = q.length ? QUIET_INTRO : "";
+  $("quiet-intro").textContent = quietIntro;
   // DENSITY_COLLAPSE_V1 — the implication line is CLAMPED to two lines and the rest sits behind
   // the same disclosure the priority cards use. The headline (.quiet-title) is always visible.
   //
@@ -8423,17 +8426,16 @@ async function renderDashboard(p, reportId){
   // implication moved inside .quiet-detail, which is display:none until the card opens, so the
   // clamp that used to show its first two lines is gone with it.
   //
-  // THE FIRST CARD CARRIES THE SECTION'S TWO LOOSE PARAGRAPHS, intro above its own line and the
-  // closing line below. That is why its toggle is not gated on x.implication the way the others
-  // are: a first card with no implication still has the intro and the closing line to reveal, and
-  // gating it would have dropped two sentences off the page. Every other card keeps the old rule,
-  // so a card with nothing to reveal still renders no control.
+  // DENSITY_COLLAPSE_V3 — the intro went back above the cards (see #quiet-wrap). THE FIRST CARD
+  // STILL CARRIES THE CLOSING LINE, at the end of its disclosure, which is why its toggle is not
+  // gated on x.implication the way the others are: a first card with no implication still has
+  // that line to reveal. The gate is the BODY being non-empty, which reads as x.implication or
+  // the closing line being present, so a card with nothing to reveal still renders no control.
   $("quiet").innerHTML = q.map((x, i)=>{
     const first = i === 0;
-    const extraTop = first && quietIntro ? '<p class="quiet-intro">'+esc(quietIntro)+'</p>' : '';
     const extraEnd = first ? '<p class="quiet-foot">'+esc(QUIET_FOOT)+'</p>' : '';
     const note = x.implication ? '<div class="quiet-note">'+esc(x.implication)+'</div>' : '';
-    const body = extraTop + note + extraEnd;
+    const body = note + extraEnd;
     return '<div class="quiet"><div class="quiet-title">'+esc(x.finding||"")+'</div>'+
       (body
         ? '<button class="quiet-toggle" type="button" aria-expanded="false">'+

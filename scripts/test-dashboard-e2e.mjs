@@ -151,6 +151,23 @@ const driver = (payload) => `<script>
     .map(b => b.getAttribute("aria-expanded"));
   res.bodiesHidden = [...document.querySelectorAll("#quiet-wrap .quiet-detail, #foundations-wrap .lever-detail, #foundations-wrap .found-why-detail")]
     .map(e => getComputedStyle(e).display);
+  // DENSITY_COLLAPSE_V3. The intro is a loose node above the cards again. "Visible above the
+  // cards" is a laid-out fact -- two rectangles and a computed style -- so it is read here and
+  // not from source text, which cannot tell a node in the markup from a node on the page.
+  {
+    const intro = document.getElementById("quiet-intro");
+    const firstQuiet = document.querySelector("#quiet .quiet");
+    res.introLoose = document.querySelectorAll("#quiet-wrap > .quiet-intro").length;
+    res.introInDetail = document.querySelectorAll("#quiet-wrap .quiet-detail .quiet-intro").length;
+    res.introVisible = !!intro && getComputedStyle(intro).display !== "none"
+      && getComputedStyle(intro).visibility === "visible"
+      && intro.getBoundingClientRect().height > 0;
+    res.introText = intro ? intro.textContent.trim().length : 0;
+    res.introAboveCards = !!(intro && firstQuiet)
+      && intro.getBoundingClientRect().bottom <= firstQuiet.getBoundingClientRect().top + 1;
+    const d = firstQuiet ? firstQuiet.querySelector(".quiet-detail") : null;
+    res.firstDetailKids = d ? [...d.children].map(e => e.className) : null;
+  }
   res.whyToggle = !!document.querySelector("#found-why .found-why-toggle");
   res.whyLabel = document.querySelector("#found-why .found-why-toggle-label")
     ? document.querySelector("#found-why .found-why-toggle-label").textContent.trim() : null;
@@ -320,6 +337,14 @@ console.log("COLLAPSE -- every disclosure ships closed");
   const bodies = (wide && wide.bodiesHidden) || [];
   ok(bodies.length >= 5, "E2E-39: and every disclosure has a body to hide  (" + bodies.length + ")");
   ok(bodies.every(x => x === "none"), "E2E-39b: all of them compute display:none by default  (" + JSON.stringify([...new Set(bodies)]) + ")");
+  ok(wide.introLoose === 1, "E2E-39c: the going-right intro is ONE loose paragraph in the section  (" + wide.introLoose + ")");
+  ok(wide.introInDetail === 0, "E2E-39d: and no copy of it sits inside a disclosure  (" + wide.introInDetail + ")");
+  ok(wide.introVisible && wide.introText > 0,
+     "E2E-39e: it renders visible, with text, while every card below it is shut  (" + wide.introText + " chars)");
+  ok(wide.introAboveCards, "E2E-39f: and its box ends above the first card's box");
+  ok(JSON.stringify(wide.firstDetailKids) === JSON.stringify(["quiet-note", "quiet-foot"]),
+     "E2E-39g: the first card's disclosure holds its own line then the closing line, nothing else  ("
+     + JSON.stringify(wide.firstDetailKids) + ")");
   ok(wide.whyToggle, "E2E-40: the Why these control renders under the lever row");
   eq(wide.whyLabel, "Why these", "E2E-40b: and it names its content");
   eq(wide.leverCols, 3, "E2E-41: the lever row is THREE across at 1280");

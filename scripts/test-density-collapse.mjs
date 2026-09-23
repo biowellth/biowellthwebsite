@@ -292,11 +292,17 @@ const FIND = "SENTINEL_FINDING_ZQ", IMPL = "SENTINEL_IMPLICATION_ZQ";
 // opened -- which surfaced as a SyntaxError from new Function, not as a pass.
 const quietSrc = cutAfter(CODE, '$("quiet").innerHTML = q.map(', "(", ")");
 const quietArrow = quietSrc.slice(quietSrc.indexOf("(", quietSrc.indexOf("q.map")) + 1, -1);
-// DENSITY_COLLAPSE_V2: the callback takes (x, i) now, because the FIRST card carries the
-// section's two loose paragraphs. The control still proves a function was cut and not a
-// fragment; it just no longer assumes the one-parameter form.
+// The callback takes (x, i), because the FIRST card carries the section's closing line. The
+// control still proves a function was cut and not a fragment; it just does not assume the
+// one-parameter form.
 ok("quiet extraction control: it cut an arrow function, not a fragment",
   /^\s*\(?\s*x\s*(,\s*i\s*)?\)?\s*=>/.test(quietArrow));
+// QUIET_INTRO AND quietIntro ARE BOTH STILL BOUND even though V3 took the intro back out of the
+// card. V2 read it as `quietIntro`, the renderer-scope local, so that is the name a regression
+// would reintroduce -- and an unbound name throws a ReferenceError out of new Function, which
+// aborts the whole file and reads as a broken harness rather than as the regression it is.
+// Bound, the "the intro is not in here" pin below goes RED, which is what it is for. Checked
+// both ways against the pre-change file.
 const quietFn = new Function("esc", "MORE_TOGGLE_LABEL", "QUIET_INTRO", "QUIET_FOOT", "quietIntro",
   "return " + quietArrow + ";")(esc, MORE_TOGGLE_LABEL, shippedStr("QUIET_INTRO"), shippedStr("QUIET_FOOT"), shippedStr("QUIET_INTRO"));
 
@@ -315,22 +321,34 @@ const qbare = quietFn({ finding: FIND }, 1);
 ok("no implication -> NO toggle, so the control is never dead",
   !qbare.includes("quiet-toggle") && qbare.includes(FIND));
 
-// DENSITY_COLLAPSE_V2 — the FIRST card carries the two sentences that used to sit loose above
-// and below the cards, intro before its own line and the closing line after it.
+// DENSITY_COLLAPSE_V3 — the intro went back above the cards and the FIRST card keeps ONLY the
+// closing line, at the end of its disclosure. These three pins were V2's and are RE-POINTED
+// rather than deleted: they still guard the same two things, which sentence lives where and
+// whether a control can ever be dead.
 const qfirst = quietFn({ finding: FIND, implication: IMPL }, 0);
-ok("V2: the first card carries the section intro inside its disclosure",
-  qfirst.includes('<p class="quiet-intro">' + shippedStr("QUIET_INTRO") + "</p>"));
-ok("V2: and the closing line, after its own implication",
+ok("V3: the first card carries the closing line at the END of its disclosure",
+  qfirst.includes('<p class="quiet-foot">' + shippedStr("QUIET_FOOT") + "</p>") &&
   qfirst.indexOf(IMPL) < qfirst.indexOf(shippedStr("QUIET_FOOT")));
-ok("V2: intro comes FIRST, before that implication",
-  qfirst.indexOf(shippedStr("QUIET_INTRO")) < qfirst.indexOf(IMPL));
-// CONTROL: a later card carries NEITHER, or "the first card carries them" says nothing.
-ok("V2 CONTROL: a non-first card carries neither sentence",
+ok("V3: and NOT the intro, which is a loose node again",
+  !qfirst.includes(shippedStr("QUIET_INTRO")) && !qfirst.includes('<p class="quiet-intro">'));
+// CONTROL: a later card carries NEITHER, or "the first card carries the closing line" says nothing.
+ok("V3 CONTROL: a non-first card carries neither sentence",
   !qcard.includes(shippedStr("QUIET_INTRO")) && !qcard.includes(shippedStr("QUIET_FOOT")));
-// A first card with NO implication still gets a control, because it still has two sentences.
+// A first card with NO implication still gets a control, because the closing line is still
+// behind it. A non-first card in the same state gets none -- that is qbare, above.
 const qfirstBare = quietFn({ finding: FIND }, 0);
-ok("V2: a first card with no implication STILL gets a control, so no sentence is stranded",
+ok("V3: a first card with no implication STILL gets a control, so the closing line is not stranded",
   qfirstBare.includes("quiet-toggle") && qfirstBare.includes(shippedStr("QUIET_FOOT")));
+// WHERE THE INTRO WENT. Source pins, because the node is written by a different statement than
+// the one this section executes, so the card-level assertions above cannot see it at all.
+ok("V3: #quiet-intro is markup again, a loose paragraph inside the section",
+  /<p class="quiet-intro" id="quiet-intro"><\/p>/.test(RAW));
+ok("V3: and the renderer writes the named constant into it",
+  /\$\("quiet-intro"\)\.textContent = quietIntro;/.test(RAW));
+ok("V3: the in-disclosure size override for that paragraph is GONE with it",
+  !/\.quiet-detail \.quiet-intro\{/.test(RAW));
+ok("V3 CONTROL: the sibling override for the closing line is still there, so that absence is not a bad regex",
+  /\.quiet-detail \.quiet-foot\{/.test(RAW));
 
 // THESE FOUR PINNED THE V1 CLAMP, which showed the implication's first two lines on the card
 // face. V2 hides the body outright, so there is no partial state left to clamp and the clamp
