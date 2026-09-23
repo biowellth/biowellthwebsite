@@ -6294,10 +6294,24 @@ const DOCTOR_BANNED_PREVALENCE = [
   "not immediately worrying",
 ];
 // Stems, matched at a word boundary on the LEFT only, so "ordered", "prescribing",
-// "diagnostic", "medications" and "doses" all match while "border", "disorder" and
-// "overdose" do not. A question that tells a clinician what to order, prescribe or
-// diagnose is the one thing this page must never do.
-const DOCTOR_BANNED_STEMS = ["order", "prescrib", "diagnos", "medicat", "dose"];
+// "diagnostic", "medications", "doses", "requested", "repeating" and "workups" all match
+// while "border", "disorder" and "overdose" do not. A question that tells a clinician what
+// to order, prescribe or diagnose is the one thing this page must never do.
+//
+// WIDENED 2026-09-23 from five stems to nine, after the founder read a printed PDF. The
+// first five caught a point that said "order" and let through one that said "request the
+// same panel again", which is the same instruction in politer words.
+//
+// STRONGER THAN THE WORKER'S LIST ON PURPOSE, and this is worth knowing. The Call B guard
+// in biowellth-backend-supa (provider-point-guard.ts, PROVIDER_POINT_GUARD_V1) rules the
+// same nine words but stores the LITERAL forms "prescribe" and "medication", so it misses
+// "prescribing" and "medicated". These are stems, so they do not. The two lists agree on
+// what is banned and this one catches more inflections; a point that survives there can
+// still be dropped here, which is the safe direction for the surface she carries.
+const DOCTOR_BANNED_STEMS = [
+  "request", "repeat", "workup", "order", "prescrib",
+  "diagnos", "medicat", "dose", "including",
+];
 
 function doctorEscapeForRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 const DOCTOR_PREVALENCE_MATCHERS = DOCTOR_BANNED_PREVALENCE.map(function(phrase){
@@ -6306,15 +6320,101 @@ const DOCTOR_PREVALENCE_MATCHERS = DOCTOR_BANNED_PREVALENCE.map(function(phrase)
 const DOCTOR_STEM_MATCHERS = DOCTOR_BANNED_STEMS.map(function(stem){
   return { phrase: stem, re: new RegExp("\\b" + doctorEscapeForRegex(stem), "i") };
 });
+// "work up" and "work-up" are the SAME WORD as "workup" and a model writes all three. The
+// ruled list stays at nine; this folds the spacings onto the listed one before matching.
+function doctorFoldWords(text){ return String(text).replace(/\bwork[\s-]+up\b/gi, "workup"); }
 
-// The reason a point is blocked, or null. Order is stable so a drop always reports
-// the same reason for the same sentence. Returns a REASON CODE, never the sentence.
-function doctorPointBlocked(text){
+// ── THE MARKER VOCABULARY, and the one thing ranges-slim CANNOT do ──────────────────────
+// The rule is "drop a point naming a marker she has no priority for". That needs two
+// things: knowing a string IS a marker name, and knowing WHICH marker.
+//
+// ranges-slim.json gives the first and NOT the second. Measured 2026-09-23: its
+// by_alias_lc (803 keys) and by_display_name_lc (228) map a name to a {low, high} RANGE,
+// and zero entries carry a marker_id. Content cannot recover it either, because only 190
+// distinct range signatures cover 228 markers and 59 ids share a signature with another
+// marker. The build script comments that its three maps share one range object, but JSON
+// has no references, so that identity dies in JSON.parse.
+//
+// So the two sources are used for the two different things each can actually prove:
+//   ranges-slim  -> IS this string a marker name (a vocabulary of 946 distinct names)
+//   the payload  -> WHICH marker, from systems[].markers[] display_name and marker_id
+//
+// A name in the vocabulary that the payload cannot resolve is DROPPED. That is the
+// conservative direction and it has one known cost: an ALIAS of a marker she DOES have a
+// priority for ("Hcy" for a homocysteine priority) is dropped too, because nothing here
+// can tie the alias back to the id. A lost question is cheap; a test request that reads as
+// a question is not.
+//
+// MINIMUM LENGTH 3, measured rather than guessed. The vocabulary carries one-character
+// keys (k, u, v) and forty two-character keys, and exactly two of all its keys are
+// ordinary English words, "as" and "be". A length floor of 3 removes both and every
+// one-character key. Longer collisions do exist (car, far, tag, tin, bun) and they fail
+// in the DROP direction, which is the safe one.
+const DOCTOR_NAME_MIN_LEN = 3;
+
+function doctorBuildMarkerVocab(p){
+  const nameToId = new Map();
+  const add = function(name, id){
+    const k = String(name == null ? "" : name).toLowerCase().trim();
+    if(k.length >= DOCTOR_NAME_MIN_LEN && !nameToId.has(k)) nameToId.set(k, id);
+  };
+  for(const sys of (Array.isArray(p.systems) ? p.systems : []))
+    for(const m of (Array.isArray(sys.markers) ? sys.markers : [])){
+      if(!m || !m.marker_id) continue;
+      const id = String(m.marker_id);
+      add(id, id);
+      add(id.replace(/_/g, " "), id);
+      add(m.display_name, id);
+    }
+  const names = new Set();
+  for(const k of nameToId.keys()) names.add(k);
+  const R = (typeof RANGES_LOOKUP !== "undefined") ? RANGES_LOOKUP : null;
+  for(const map of [R && R.by_alias_lc, R && R.by_display_name_lc]){
+    if(!map) continue;
+    for(const k of Object.keys(map)){
+      const t = String(k).toLowerCase().trim();
+      if(t.length >= DOCTOR_NAME_MIN_LEN) names.add(t);
+    }
+  }
+  return { nameToId: nameToId, names: [...names].sort(function(a, b){ return b.length - a.length; }) };
+}
+
+// A name matches only as a WHOLE token run. Without the boundaries "ldl" would match inside
+// a longer word and a short alias would match inside a number.
+function doctorNameAt(lower, name){
+  let i = lower.indexOf(name);
+  while(i !== -1){
+    const before = i === 0 ? "" : lower[i - 1];
+    const after = (i + name.length >= lower.length) ? "" : lower[i + name.length];
+    const wordy = function(c){ return c !== "" && /[a-z0-9]/.test(c); };
+    if(!wordy(before) && !wordy(after)) return true;
+    i = lower.indexOf(name, i + 1);
+  }
+  return false;
+}
+
+// The reason a point is blocked, or null. Order is stable so a drop always reports the same
+// reason for the same sentence. Returns a REASON CODE, never the sentence and never a name.
+// `vocab` is optional so an older caller degrades to the punctuation and word checks rather
+// than throwing; when it is absent the marker rule simply does not run.
+function doctorPointBlocked(text, priorityIds, vocab){
   if(typeof text !== "string" || text.trim() === "") return "empty";
+  const folded = doctorFoldWords(text);
   for(const m of DOCTOR_PREVALENCE_MATCHERS) if(m.re.test(text)) return "prevalence_" + m.phrase.replace(/\s+/g, "_");
-  for(const m of DOCTOR_STEM_MATCHERS) if(m.re.test(text)) return "word_" + m.phrase;
+  for(const m of DOCTOR_STEM_MATCHERS) if(m.re.test(folded)) return "word_" + m.phrase;
   if(text.indexOf(":") !== -1) return "colon";
   if(text.indexOf("\u2014") !== -1) return "em_dash";
+  if(text.indexOf("\u2013") !== -1) return "en_dash";
+  if(vocab && vocab.names && vocab.names.length){
+    const allowed = priorityIds || new Set();
+    const lower = text.toLowerCase();
+    for(const name of vocab.names){
+      if(!doctorNameAt(lower, name)) continue;
+      const id = vocab.nameToId.get(name);
+      if(id && allowed.has(id)) continue;          // a marker she HAS a priority for
+      return "marker_not_in_priorities";
+    }
+  }
   return null;
 }
 
@@ -6514,10 +6614,29 @@ function doctorFindings(p){
 // worker's guard holds, because a log line is a surface too.
 function doctorQuestions(p){
   const pts = (Array.isArray(p.provider_discussion_points) ? p.provider_discussion_points : []).filter(Boolean);
+  // The priority set is the one the TABLE ABOVE rendered, capped at five and read off the
+  // same primary_markers, so a question can only survive if it names a marker she can see
+  // on the page she is holding. Built once per render, not once per point.
+  const priorityIds = new Set();
+  (Array.isArray(p.priorities) ? p.priorities : [])
+    .filter(Boolean)
+    .slice()
+    .sort(function(a, b){
+      const ra = (typeof a.rank === "number") ? a.rank : 99;
+      const rb = (typeof b.rank === "number") ? b.rank : 99;
+      return ra - rb;
+    })
+    .slice(0, 5)
+    .forEach(function(x){
+      (Array.isArray(x.primary_markers) ? x.primary_markers : []).forEach(function(pm){
+        if(pm && pm.marker_id) priorityIds.add(String(pm.marker_id));
+      });
+    });
+  const vocab = doctorBuildMarkerVocab(p);
   const kept = [], drops = [];
   pts.forEach(function(x){
     const t = (x && typeof x.point === "string") ? x.point : "";
-    const why = doctorPointBlocked(t);
+    const why = doctorPointBlocked(t, priorityIds, vocab);
     if(why){ drops.push(why); return; }
     kept.push({ text: t, prompt: String((x && x.urgency) || "routine").toLowerCase() === "prompt" });
   });
