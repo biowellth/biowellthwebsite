@@ -1,4 +1,0 @@
-session: 89e62d58
-taken: 2026-09-23T02:39:34Z
-scope: dashboard.html (prio expander to the right), scripts/test-density-collapse.mjs, scripts/test-dashboard-e2e.mjs
-note: PRIO_TOGGLE_RIGHT_V1. Layout only, plus the label the brief specified.
