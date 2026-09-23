@@ -5748,11 +5748,22 @@ function closeSystemsView(){ const v=$("view-systems"); if(v) v.classList.add("h
 // cluster data in the payload (cluster_patterns) is Call B synthesis, not
 // engine/system-detected, so v1a omits it per the build brief.
 // ══════════════════════════════════════════════════════════════════════════
+// TWO SHAPES LIVE IN THIS TABLE AS OF 2026-09-23, and every reader has to handle both.
+// The two fasting entries are CLAUSE FRAGMENTS, lowercase and unpunctuated, written to sit
+// after the word "because". cycle_day_unknown is now a WHOLE SENTENCE, founder-approved
+// verbatim, because it is the one a woman reads in three different places and it had to say
+// the same thing in all of them.
+//
+// A reader tells them apart by the value itself (initial capital plus a final period), which
+// is what reportDeferredNote does below. That is deliberately a property of the STRING and not
+// a second key, so adding a reason cannot mean remembering to update a parallel list.
 const REPORT_DEFER_REASON = {
   fasting_unknown:  "these read best from a fasting draw, and we do not know whether this draw was fasting",
   not_fasting:      "these read best from a fasting draw, and this one was not fasting",
-  cycle_day_unknown:"a single draw needs the day of your cycle to read these correctly",
+  cycle_day_unknown:"Hormone results are held until phase-specific ranges have been reviewed.",
 };
+// True when a reason is a whole sentence rather than a "because ..." fragment.
+function deferReasonIsSentence(r){ return /^[A-Z][\s\S]*\.$/.test(String(r == null ? "" : r)); }
 const REPORT_SYS_NAME_FALLBACK = { cardiovascular:"Cardiovascular", metabolic:"Metabolic", sex_hormones:"Sex hormones" };
 
 function reportSysName(p, sysId){
@@ -5878,7 +5889,15 @@ function reportDeferredNote(p){
   const clauses = [];
   Object.keys(byReason).forEach(code=>{
     const names = byReason[code].map(s=>reportSysName(p,s));
-    clauses.push(reportJoinNames(names)+" "+(names.length>1?"were":"was")+" not scored because "+REPORT_DEFER_REASON[code]+".");
+    // A FRAGMENT is joined with "because"; a SENTENCE is left to stand on its own. Written
+    // 2026-09-23 with cycle_day_unknown, which became a whole sentence that day. Embedding it
+    // after "because" produced "... not scored because Hormone results are held until
+    // phase-specific ranges have been reviewed.." -- a capital mid-sentence and two periods,
+    // in the health report PDF. The branch is on the string's own shape, so a future reason
+    // written either way composes correctly with no further edit here.
+    const why = REPORT_DEFER_REASON[code];
+    const lead = reportJoinNames(names)+" "+(names.length>1?"were":"was")+" not scored";
+    clauses.push(deferReasonIsSentence(why) ? (lead+". "+why) : (lead+" because "+why+"."));
   });
   if(noReason.length){
     const names = noReason.map(s=>reportSysName(p,s));
@@ -6748,7 +6767,15 @@ function doctorReadWith(p){
   const gated = (Array.isArray(p.systems) ? p.systems : []).some(function(s){
     return (Array.isArray(s.markers) ? s.markers : []).some(function(m){ return m && m.is_cycle_gated; });
   });
-  if(gated) lines.push("Hormone results are held until phase-specific ranges have been reviewed.");
+  // ONE SOURCE for this sentence as of 2026-09-23. It was typed out here and is now read from
+  // REPORT_DEFER_REASON, which the health report and the score popover also read, so the three
+  // places a woman can meet it cannot drift.
+  //
+  // THE GATE IS NOT THE TABLE'S GATE, and that is why this line survives rather than being
+  // deleted. It fires on a CYCLE-GATED MARKER, which is a fact about a result; the popover and
+  // the report fire on a DEFERRED SYSTEM, which is a fact about the score. A panel can have one
+  // without the other, so folding them into one condition would lose a true statement.
+  if(gated) lines.push(REPORT_DEFER_REASON.cycle_day_unknown);
   if(!lines.length) return "";
   return '<div class="report-sec doc-sec"><div class="report-sec-h">Read with these in mind</div>' +
     lines.map(function(l){ return '<div class="doc-line">' + esc(l) + '</div>'; }).join("") + '</div>';
