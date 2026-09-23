@@ -6611,12 +6611,20 @@ function doctorFoldWords(text){ return String(text).replace(/\bwork[\s-]+up\b/gi
 // The rule is "drop a point naming a marker she has no priority for". That needs two
 // things: knowing a string IS a marker name, and knowing WHICH marker.
 //
-// ranges-slim.json gives the first and NOT the second. Measured 2026-09-23: its
-// by_alias_lc (803 keys) and by_display_name_lc (228) map a name to a {low, high} RANGE,
-// and zero entries carry a marker_id. Content cannot recover it either, because only 190
-// distinct range signatures cover 228 markers and 59 ids share a signature with another
-// marker. The build script comments that its three maps share one range object, but JSON
-// has no references, so that identity dies in JSON.parse.
+// ranges-slim.json GAVE the first and not the second, and that is no longer true. This block
+// described the state before RANGE_ID_V1 and is corrected rather than deleted, because the
+// reasoning it records is why the id had to be added to the FILE rather than recovered here.
+//
+// WAS, measured 2026-09-23 before the change: by_alias_lc (803 keys) and by_display_name_lc (228)
+// mapped a name to a {low, high} RANGE and ZERO entries carried a marker_id. Content could not
+// recover it either, because only 190 distinct range signatures covered 228 markers and 59 ids
+// shared a signature with another marker. The build script comments that its three maps share one
+// range object, but JSON has no references, so that identity dies in JSON.parse.
+//
+// IS, after RANGE_ID_V1 regenerated the file from the library: 800 aliases and 227 display names,
+// EVERY one carrying an "id". The count fell because vitamin_b5 lost its range in the library.
+// An entry without an id still contributes its name and no mapping, which is exactly the old
+// behaviour, so a stale ranges-slim degrades rather than throwing.
 //
 // So the two sources are used for the two different things each can actually prove:
 //   ranges-slim  -> IS this string a marker name (a vocabulary of 946 distinct names)
@@ -6685,17 +6693,23 @@ function doctorBuildMarkerVocab(p){
 
 // A name matches only as a WHOLE token run. Without the boundaries "ldl" would match inside
 // a longer word and a short alias would match inside a number.
-function doctorNameAt(lower, name){
+// EVERY place this name matches as a whole token run, as [start, end) spans. The scan below needs
+// WHERE a name matched, not just whether, so it can tell a shorter marker name sitting INSIDE a
+// longer one from the same name standing on its own.
+function doctorNameSpans(lower, name){
+  const out = [];
   let i = lower.indexOf(name);
   while(i !== -1){
     const before = i === 0 ? "" : lower[i - 1];
     const after = (i + name.length >= lower.length) ? "" : lower[i + name.length];
     const wordy = function(c){ return c !== "" && /[a-z0-9]/.test(c); };
-    if(!wordy(before) && !wordy(after)) return true;
+    if(!wordy(before) && !wordy(after)) out.push([i, i + name.length]);
     i = lower.indexOf(name, i + 1);
   }
-  return false;
+  return out;
 }
+// The boolean face of doctorNameSpans. One definition of "matches", so the two cannot drift.
+function doctorNameAt(lower, name){ return doctorNameSpans(lower, name).length > 0; }
 
 // The reason a point is blocked, or null. Order is stable so a drop always reports the same
 // reason for the same sentence. Returns a REASON CODE, never the sentence and never a name.
@@ -6716,8 +6730,41 @@ function doctorPointBlocked(text, priorityIds, vocab){
   if(vocab && vocab.names && vocab.names.length){
     const allowed = priorityIds || new Set();
     const lower = text.toLowerCase();
+    // NAME_SPAN_V1 — a shorter marker name sitting INSIDE a longer one that already matched is
+    // not a second marker, it is part of the first.
+    //
+    // MEASURED on a real panel: the floor's own pattern question named two of her priority
+    // markers, iron_serum at [9,21] and transferrin_saturation at [26,48]. "transferrin" also
+    // matched, at [26,37], entirely inside the longer span, and resolves to the transferrin
+    // marker she has no priority for. So the page generated a question about two of her own
+    // results and then refused it. Every occurrence of the shorter name was part of the longer
+    // name; there was no third marker in that sentence.
+    //
+    // vocab.names is sorted LONGEST FIRST, so by the time a shorter name is considered every
+    // longer one has already claimed its spans. That ordering is what makes one pass enough.
+    //
+    // A CONTAINED NAME IS SKIPPED, NOT ALLOWED. The two are different: skipping means this name
+    // contributed nothing, so a later name is still judged on its own. Treating it as allowed
+    // would have let a genuinely non-priority marker through whenever it happened to share a
+    // prefix with one of hers.
+    //
+    // AND A NAME THAT ALSO APPEARS OUTSIDE still counts. Only the occurrences inside a claimed
+    // span are discounted; one occurrence standing alone is enough to judge the name, which is
+    // what stops "transferrin saturation ... and my transferrin" from passing.
+    //
+    // SPANS ARE RECORDED BEFORE the allowed check, so an ALLOWED long name still shadows the
+    // short names inside it. That is the case this exists for.
+    const taken = [];
+    const inside = function(sp){
+      for(const t of taken) if(sp[0] >= t[0] && sp[1] <= t[1]) return true;
+      return false;
+    };
     for(const name of vocab.names){
-      if(!doctorNameAt(lower, name)) continue;
+      const spans = doctorNameSpans(lower, name);
+      if(!spans.length) continue;
+      const fresh = spans.filter(function(sp){ return !inside(sp); });
+      if(!fresh.length) continue;                  // every occurrence is part of a longer name
+      for(const sp of fresh) taken.push(sp);
       const id = vocab.nameToId.get(name);
       if(id && allowed.has(id)) continue;          // a marker she HAS a priority for
       return "marker_not_in_priorities";

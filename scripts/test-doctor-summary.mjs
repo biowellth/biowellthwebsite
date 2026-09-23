@@ -739,5 +739,110 @@ console.log("\nMUTANT -- the id lookup removed");
   }
 }
 
+let SPAN_PAYLOAD = null;
+
+console.log("\nNAME_SPAN_V1 -- a shorter marker name inside a longer matched one is part of it");
+{
+  // THE FIXTURE IS THE REAL PAIR, taken from a live panel rather than invented. "Transferrin" is
+  // the first 11 characters of "Transferrin Saturation", so in a sentence naming both of her iron
+  // markers the shorter name matched at [26,37] entirely inside the longer one's [26,48] and
+  // resolved to the transferrin marker she has no priority for. The page generated a question
+  // about two of her own results and then refused it.
+  //
+  // Values are invented; only the ids and names come from the library.
+  const mk = (id, dn) => ({ marker_id: id, display_name: dn, value: 12, unit: "ng/mL",
+    status: "watch", band: "suboptimal_low", position: "low", flag_status: "user_facing" });
+  SPAN_PAYLOAD = Object.assign({}, PAYLOAD, {
+    provider_discussion_points: [],
+    systems: [{ system_id: "iron_status", display_name: "Iron", status: "watch",
+      markers: [mk("iron_serum", "Iron (Serum)"), mk("transferrin_saturation", "Transferrin Saturation")] }],
+    priorities: [
+      { priority_id: "p1", rank: 1, headline: "Synthetic finding one.", system_id: "iron_status",
+        severity: "moderate", why_this_matters: "Invented sentence.",
+        action_layer: { primary_lever: "Invented lever." },
+        primary_markers: [mk("iron_serum", "Iron (Serum)")] },
+      { priority_id: "p2", rank: 2, headline: "Synthetic finding two.", system_id: "iron_status",
+        severity: "moderate", why_this_matters: "Invented sentence.",
+        action_layer: { primary_lever: "Invented lever." },
+        primary_markers: [mk("transferrin_saturation", "Transferrin Saturation")] },
+    ],
+  });
+  const sr = await run(html, SPAN_PAYLOAD);
+  ok(!!sr && !sr.threw, "DS-39 CONTROL: the span fixture rendered without throwing");
+
+  const probe = `(() => {
+    const P = window.__rdPayload;
+    const vocab = doctorBuildMarkerVocab(P);
+    const ids = new Set(["iron_serum", "transferrin_saturation"]);
+    const b = (t) => doctorPointBlocked(t, ids, vocab);
+    const lower = "could my iron (serum) and transferrin saturation results be connected?";
+    return JSON.stringify({
+      pair:        b("Could my Iron (Serum) and Transferrin Saturation results be connected?"),
+      shortAlone:  b("Is my Transferrin result worth looking into further?"),
+      bothWays:    b("Could my Transferrin Saturation and my Transferrin results be connected?"),
+      longSpan:    doctorNameSpans(lower, "transferrin saturation"),
+      shortSpan:   doctorNameSpans(lower, "transferrin"),
+      shortId:     vocab.nameToId.get("transferrin") || null,
+      longId:      vocab.nameToId.get("transferrin saturation") || null,
+      knownPositive: b("Please order a repeat panel."),
+    });
+  })()`;
+  const g = JSON.parse(await ev(probe));
+  ok(g.knownPositive !== null, "DS-39b CONTROL: the guard still refuses a point that must go  (" + JSON.stringify(g.knownPositive) + ")");
+  eq(g.longId, "transferrin_saturation", "DS-40 CONTROL: the long name resolves to one of hers");
+  eq(g.shortId, "transferrin", "DS-40b CONTROL: the short name resolves to a marker she has NO priority for");
+  // The containment is asserted, not assumed: same start, shorter end, both inside one sentence.
+  ok(g.longSpan.length === 1 && g.shortSpan.length === 1 &&
+     g.shortSpan[0][0] >= g.longSpan[0][0] && g.shortSpan[0][1] <= g.longSpan[0][1],
+     "DS-41 CONTROL: the short name's span lies INSIDE the long one's  (" +
+     JSON.stringify(g.shortSpan) + " within " + JSON.stringify(g.longSpan) + ")");
+  eq(g.pair, null, "DS-42: a question naming both of her iron markers is KEPT");
+  eq(g.shortAlone, "marker_not_in_priorities",
+     "DS-43: the shorter non-priority name standing alone is still DROPPED");
+  eq(g.bothWays, "marker_not_in_priorities",
+     "DS-44: and appearing BOTH inside the longer name and separately is still DROPPED");
+
+  // The floor candidate that this bug was refusing now survives and reaches the page.
+  eq(sr.questions.length, 3, "DS-45: the floor fills to three on this fixture");
+  const floorProbe = `(() => {
+    const P = window.__rdPayload;
+    const vocab = doctorBuildMarkerVocab(P);
+    const top = (P.priorities || []).filter(Boolean).slice()
+      .sort((a,b)=>((typeof a.rank==="number")?a.rank:99)-((typeof b.rank==="number")?b.rank:99)).slice(0,5);
+    const ids = new Set();
+    top.forEach(x => (x.primary_markers||[]).forEach(m => m && m.marker_id && ids.add(String(m.marker_id))));
+    const cands = doctorFloorQuestions(doctorFloorMarkers(top));
+    return JSON.stringify({ n: cands.length, why: cands.map(q => doctorPointBlocked(q, ids, vocab)) });
+  })()`;
+  const f = JSON.parse(await ev(floorProbe));
+  eq(f.n, 4, "DS-45b CONTROL: all four floor candidates were generated, so DS-46 covers the pattern one");
+  ok(f.why.every(x => x === null),
+     "DS-46: every floor candidate passes the guard, the pattern one included  (" + JSON.stringify(f.why) + ")");
+}
+
+console.log("\nMUTANT -- the span skip removed");
+{
+  const SPAN_LINE = '      const fresh = spans.filter(function(sp){ return !inside(sp); });\n';
+  ok(html.indexOf(SPAN_LINE) !== -1, "DS-47: the span-skip line was LOCATED, so the mutant is a real change");
+  if (html.indexOf(SPAN_LINE) !== -1) {
+    // Valid JavaScript: every span counts again, which is exactly the pre-fix behaviour.
+    const mut = html.replace(SPAN_LINE, '      const fresh = spans;\n');
+    try { new Function(extractApp(mut, "the span mutant")); ok(true, "DS-47b: the mutant parses"); }
+    catch (e) { ok(false, "DS-47b: the mutant is valid JavaScript (" + e.message + ")"); }
+    const mr = await run(mut, SPAN_PAYLOAD);
+    if (!mr) { ok(false, "DS-48: the mutant page never finished"); }
+    else {
+      const g2 = JSON.parse(await ev(`(() => {
+        const vocab = doctorBuildMarkerVocab(window.__rdPayload);
+        const ids = new Set(["iron_serum", "transferrin_saturation"]);
+        return JSON.stringify(doctorPointBlocked(
+          "Could my Iron (Serum) and Transferrin Saturation results be connected?", ids, vocab));
+      })()`));
+      eq(g2, "marker_not_in_priorities",
+         "DS-48: without the span skip the pair question is dropped again, so DS-42 can fail");
+    }
+  }
+}
+
 chrome.kill(); server.close();
 done(fail ? 1 : 0);
