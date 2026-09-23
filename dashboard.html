@@ -523,7 +523,27 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 @media(min-width:481px){
   .prio-body{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
   .prio-top{grid-column:1;grid-row:1}
-  .prio-toggle{grid-column:2;grid-row:1;align-self:baseline;justify-self:end;margin-top:0}
+  /* CENTRED ON THE CARD BODY, NOT THE HEADLINE. It spans rows 1 and 2, so its alignment box is
+     the headline plus the chips, and align-self:center lands on the middle of that. Spanning only
+     row 1 would centre it on the headline, which is what align-self:baseline already did more
+     precisely; the mockup puts it level with the whole block.
+
+     ROWS 1-2 AND NOT 1-3, deliberately. .prio-detail is display:none while the card is closed, so
+     closed it contributes no row and body centre == rows 1-2 centre. Open, the detail takes row 3
+     and the control STAYS level with the headline and chips instead of sliding down the card as
+     the content grows, which is the behaviour a control that opens that content should have.
+
+     COLOUR AND SIZE ARE .sysr-all's PAIR, read off the "See all N systems" button at :155, which
+     ships font-size:14px with color:var(--teal). The Sana chips are NOT the source: .comp-chip
+     (:1302) is var(--brown) text inside a teal-light border, so its green is a border, not a link.
+
+     THE HOVER MUST LIVE IN THIS BLOCK. .prio-toggle:hover at :520 is (0,2,0) and would beat a
+     bare .prio-toggle here whatever the media query says, so the teal would revert to brown on
+     hover. Same specificity, later in source, wins. --teal-dark is the darker token of the same
+     family, which is the file's existing link convention (--brown-mid to --brown). */
+  .prio-toggle{grid-column:2;grid-row:1/3;align-self:center;justify-self:end;margin-top:0;
+    font-size:14px;color:var(--teal)}
+  .prio-toggle:hover{color:var(--teal-dark)}
   .prio-chips{grid-column:1/-1;grid-row:2}
   .prio-detail{grid-column:1/-1;grid-row:3}
 }

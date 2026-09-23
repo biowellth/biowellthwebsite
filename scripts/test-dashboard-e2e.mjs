@@ -114,15 +114,26 @@ const driver = (payload) => `<script>
     const t = c.querySelector(".prio-title"), tg = c.querySelector(".prio-toggle"),
           ch = c.querySelector(".prio-chips"), bd = c.querySelector(".prio-body");
     if(!t || !tg) return null;
+    const cs = getComputedStyle(tg);
     return {
       rightOfHeadline: R(tg).left >= R(t).right,
       belowChips: ch ? (R(tg).top >= R(ch).bottom - 1) : null,
-      onFirstLine: Math.abs((R(tg).top + R(tg).height / 2) - (R(t).top + Math.min(R(t).height, 26) / 2)) < 14,
+      // CENTRED ON THE BODY, not the headline. Signed delta so a regression says which way it went.
+      bodyCentreDelta: bd ? +((R(tg).top + R(tg).height / 2) - (R(bd).top + R(bd).height / 2)).toFixed(2) : null,
       flushRight: bd ? Math.round(R(bd).right - R(tg).right) : null,
       h: Math.round(R(tg).height),
+      color: cs.color,
+      fontSize: cs.fontSize,
       label: tg.querySelector(".prio-toggle-label").textContent.trim()
     };
   }).filter(Boolean);
+  // The token is RESOLVED from the page, so the colour pin follows a token change instead of
+  // freezing a hex the stylesheet no longer uses.
+  {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--teal)"; document.body.appendChild(probe);
+    res.tealResolved = getComputedStyle(probe).color; probe.remove();
+  }
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -241,7 +252,16 @@ console.log("PRIO TOGGLE -- right of the headline on desktop");
   ok(t.length > 0, "E2E-18: the desktop render produced expanders to measure  (" + t.length + ")");
   ok(t.every(x => x.rightOfHeadline), "E2E-19: every expander sits to the RIGHT of its headline");
   ok(t.every(x => x.belowChips === false), "E2E-20: and none of them is below the chips");
-  ok(t.every(x => x.onFirstLine), "E2E-21: each is aligned to the headline's FIRST line");
+  // E2E-21 PINNED FIRST-LINE ALIGNMENT UNTIL 2026-09-23. The mockup centres the control on the
+  // card body -- headline plus chips -- so the rule it pins changed with the CSS rather than the
+  // assertion being dropped. The delta is signed, so a regression names its direction.
+  ok(t.every(x => Math.abs(x.bodyCentreDelta) <= 2),
+     "E2E-21: each is vertically centred on the card body, within 2px  (deltas " +
+     JSON.stringify(t.map(x => x.bodyCentreDelta)) + ")");
+  ok(wide.tealResolved && t.every(x => x.color === wide.tealResolved),
+     "E2E-21b: the colour is the page's own --teal token, not a hex  (" + JSON.stringify(wide.tealResolved) + ")");
+  ok(t.every(x => x.fontSize === "14px"),
+     "E2E-21c: at 14px, the size .sysr-all ships  (" + JSON.stringify([...new Set(t.map(x => x.fontSize))]) + ")");
   ok(t.every(x => x.flushRight === 0), "E2E-22: and flush to the card body's right edge  (gaps " + JSON.stringify([...new Set(t.map(x=>x.flushRight))]) + ")");
   ok(t.every(x => x.h >= 44), "E2E-23: the touch target is at least 44px  (heights " + JSON.stringify([...new Set(t.map(x=>x.h))]) + ")");
 }
@@ -255,6 +275,13 @@ else {
   ok(t.every(x => !x.rightOfHeadline), "E2E-26: none of them sits beside the headline there");
   ok(t.every(x => x.flushRight === 0), "E2E-27: and each is right-aligned");
   ok(t.every(x => x.h >= 44), "E2E-28: the touch target is still at least 44px");
+  // THE PHONE FALLBACK IS UNCHANGED, and that is an assertion rather than an omission. The
+  // restyle lives inside the >=481 block, so under 480 the control keeps the base colour and
+  // size. Without these two, moving the declarations out of the media query would pass.
+  ok(phone.tealResolved && t.every(x => x.color !== phone.tealResolved),
+     "E2E-28b: under 480px the colour is NOT the teal token  (" + JSON.stringify([...new Set(t.map(x => x.color))]) + ")");
+  ok(t.every(x => x.fontSize === "13px"),
+     "E2E-28c: and the size is still 13px  (" + JSON.stringify([...new Set(t.map(x => x.fontSize))]) + ")");
   // CONTROL. The two widths must DISAGREE, or the media query is doing nothing and every
   // assertion above is describing one layout twice.
   ok(wide.toggles[0].rightOfHeadline !== phone.toggles[0].rightOfHeadline,
@@ -289,6 +316,9 @@ if (MUTANT_HTML) {
     ok(t.length > 0, "E2E-33: the mutant rendered cards to measure  (" + t.length + ")");
     ok(t.every(x => !x.rightOfHeadline), "E2E-34: without the grid the expander is NOT beside the headline, so E2E-19 can fail");
     ok(t.every(x => x.belowChips), "E2E-35: it falls back below the chips, so E2E-20 can fail");
+    ok(m.tealResolved && t.every(x => x.color !== m.tealResolved),
+       "E2E-36: and loses the teal, so E2E-21b can fail");
+    ok(t.every(x => x.fontSize === "13px"), "E2E-37: and the 14px, so E2E-21c can fail");
   }
 }
 
