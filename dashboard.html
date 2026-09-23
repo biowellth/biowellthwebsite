@@ -6463,10 +6463,39 @@ function doctorStatusWord(mk, sysId){
 // A SENSITIVE MARKER NEVER GETS A RANGE. Same rule the priority chips already apply
 // (a range for a toxic marker invites reading a ceiling as a target), and the same
 // answer a marker missing from ranges-slim gets, so no number can appear either way.
+// UNIT SPELLING, and why this fold is deliberately narrow. The value column prints the unit
+// as the LAB printed it and the range column prints the LIBRARY's, and on 2026-09-23 the
+// founder found a row reading "\u00b5mol/L" in one column and "umol/L" in the other. That is one
+// unit spelled two ways and it reads as a discrepancy a clinician has to resolve.
+//
+// So the range column adopts the VALUE column's spelling, but ONLY when the two strings are
+// the same unit under a fold of things that cannot change meaning: the two micro signs
+// (\u00b5 U+00B5 and \u03bc U+03BC) against a plain u, ASCII case, and whitespace.
+//
+// EVERYTHING ELSE IS LEFT ALONE, and that is the load-bearing half. Measured on the rendered
+// table of one real panel, 13 of 18 rows already agreed, one was the micro-sign case this
+// folds, and THREE were genuinely different units in the same row (\u00b5IU/mL against mIU/L,
+// \u00b5g/mL against mg/L, \u00b5g/mg of Creatinine against mg/g). Folding those would print the
+// lab's unit beside the library's numbers, which is a false unit claim and a worse defect
+// than the one being fixed. When the fold does not match, the canonical unit stands.
+function doctorFoldUnit(u){
+  return String(u == null ? "" : u)
+    .replace(/[\u00b5\u03bc]/g, "u")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+function doctorRangeUnit(mk){
+  const printed = (mk && mk.unit) ? String(mk.unit) : "";
+  const canonical = (mk && mk.canonical_unit) ? String(mk.canonical_unit) : "";
+  if(!canonical) return printed;
+  if(printed && doctorFoldUnit(printed) === doctorFoldUnit(canonical)) return printed;
+  return canonical;
+}
+
 function doctorRangeText(mk, sysId){
   if(!mk) return "not ranged";
   if(doctorSensitive(mk, sysId)) return "not ranged";
-  const t = healthyRangeText(lookupRange(mk), mk.canonical_unit || mk.unit || "");
+  const t = healthyRangeText(lookupRange(mk), doctorRangeUnit(mk));
   if(!t) return "not ranged";
   return t.replace(/^Healthy /, "");
 }
