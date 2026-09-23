@@ -6181,13 +6181,32 @@ function snapshotSection(p){
     '</div>';
   }
 
-  // Quietly-working line stays exactly as before: one teal-dot bullet.
+  // Quietly-working line: one teal-dot bullet, sourced from the first entry that HAS a sentence.
+  //
+  // EMPTY_PROSE_V1 — worker v134's PROSE_GUARD_V1 drops an unsafe SENTENCE and leaves the field as
+  // an empty string, so an entry in this list no longer implies there is a finding to print.
+  //
+  // THE HARDCODED FALLBACK IS GONE, and it is described rather than quoted so it cannot come back
+  // by being copied out of this comment. It was an authored reassurance that stood in whenever the
+  // first entry had no finding: a declarative all-clear covering several systems at once, asserted
+  // without having read any of them. That is the one substitution this surface must never make.
+  // The guard empties a sentence PRECISELY when it was not safe to print, so replacing it with a
+  // broader claim says more than the payload supports at the exact moment it should say less.
+  //
+  // THE COUNT STILL COUNTS ENTRIES, not sentences. "N more systems are quietly steady" is a claim
+  // about systems, and a system whose sentence was guarded away is still a steady system. With
+  // every finding populated the two counts are equal, which is why this line is unchanged then.
+  //
+  // THE ALL-CLEAR BRANCH BELOW KEEPS ITS ORIGINAL TRIGGER, `!qw.length`, not the new filter. It is
+  // another reassurance, and widening it to fire when entries exist but their sentences were
+  // guarded away would reintroduce the same defect one branch down.
   const qw = reportDropDeferredQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p);
+  const qwSaid = qw.filter(x => x && typeof x.finding === "string" && x.finding.trim() !== "");
   let qwHtml = "";
-  if(qw.length){
+  if(qwSaid.length){
     const more = qw.length>1 ? (" "+(qw.length-1)+" more system"+(qw.length-1===1?" is":"s are")+" quietly steady too.") : "";
-    qwHtml = '<ul class="report-bullets"><li>'+reportProse(qw[0].finding || "Several systems are quietly doing well.")+more+'</li></ul>';
-  } else if(!pr.length && !suppressed && !reportAmhFlagged(p)){
+    qwHtml = '<ul class="report-bullets"><li>'+reportProse(qwSaid[0].finding)+more+'</li></ul>';
+  } else if(!qw.length && !pr.length && !suppressed && !reportAmhFlagged(p)){
     // Flagged AMH (cycle-independent, no priority card since sex_hormones is deferred) means the
     // panel IS asking for attention, so never claim "nothing" here — Further testing raises AMH.
     qwHtml = '<ul class="report-bullets"><li>Nothing in this panel is asking for your attention right now. Your readings sit within the ranges we would want to see.</li></ul>';
