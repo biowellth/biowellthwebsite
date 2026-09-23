@@ -1,0 +1,4 @@
+session: 89e62d58
+taken: 2026-09-23T02:55:21Z
+scope: dashboard.html (prio expander restyle, CSS only), scripts/test-dashboard-e2e.mjs
+note: align-self center on rows 1-2, 14px, var(--teal), hover var(--teal-dark).
