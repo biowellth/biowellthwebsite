@@ -1413,7 +1413,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .doc-tbl th:nth-child(5),.doc-tbl td:nth-child(5){width:16%}
 .doc-tbl th:nth-child(6),.doc-tbl td:nth-child(6){width:18%}
 .doc-num{font-variant-numeric:tabular-nums}
-.doc-tbl-note td{color:var(--brown-mid);font-size:12px;font-style:italic;padding-top:4px;padding-bottom:9px}
 .doc-q{display:flex;align-items:flex-start;gap:9px;padding:7px 0;
   border-bottom:1px solid var(--brown-light);cursor:pointer}
 .doc-q:last-of-type{border-bottom:none}
@@ -1473,7 +1472,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   .doctor-doc .doc-field-label{font-size:8pt!important;margin-bottom:1px!important}
   .doctor-doc .doc-tbl th{font-size:8pt!important;padding:2px 5px!important}
   .doctor-doc .doc-tbl td{font-size:9.5pt!important;line-height:1.25!important;padding:2px 5px!important}
-  .doctor-doc .doc-tbl-note td{font-size:9pt!important;padding-top:1px!important;padding-bottom:5px!important}
   .doctor-doc .doc-q{padding:3px 0!important;break-inside:avoid}
   .doctor-doc .doc-tbl tr{break-inside:avoid}
   /* No chips and no tags on this document. It renders none; this is the guard that keeps it
@@ -6521,22 +6519,9 @@ function doctorFasting(p){
   return "not recorded";
 }
 
-// First sentence of a model-written paragraph, raw-trimmed then escaped. A COLON DROPS THE
-// WHOLE SENTENCE rather than being edited out: the colon rule is a copy rule about how a
-// sentence is BUILT, and deleting the punctuation from an explanatory pivot leaves a
-// sentence that reads as broken rather than one that reads as written.
-function doctorFirstSentence(raw){
-  let t = String(raw == null ? "" : raw)
-    .replace(/\s*\((?:Priority|priority)\s*\d+[^)]*\)/g, "")
-    .replace(/\s*\(p\d+\)/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  if(!t) return "";
-  const m = t.match(/^[\s\S]*?[.!?](?=\s|$)/);
-  const one = (m ? m[0] : t).trim();
-  if(one.indexOf(":") !== -1) return "";
-  return esc(one);
-}
+// doctorFirstSentence lived here and is GONE 2026-09-23 with the note row it fed. It had one
+// caller and no other, so it goes out in the same commit rather than being left behind as a
+// helper someone later wires back in without the decision that removed it.
 
 // ── Section 1, head ────────────────────────────────────────────────────────────
 function doctorHead(p){
@@ -6601,8 +6586,11 @@ function doctorFindings(p){
         '<td>' + (prev ? esc(prev) : "-") + '</td>' +
       '</tr>';
     });
-    const line = doctorFirstSentence(x.why_this_matters);
-    if(line) html += '<tr class="doc-tbl-note"><td colspan="6">' + line + '</td></tr>';
+    // NO NOTE ROW. A one-sentence why_this_matters under each finding was removed 2026-09-23
+    // after the founder read the printed PDF. The table states the value, the range, the
+    // status and the previous reading; a sentence of model prose under it restated what the
+    // row already said and pushed the sheet longer. The table alone carries the finding, and
+    // her own words in the two editable sections carry everything the table cannot.
   });
   return html + '</tbody></table></div>';
 }
