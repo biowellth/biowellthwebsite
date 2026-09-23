@@ -6820,6 +6820,75 @@ function heroDateParts(d){
   if(!(mo >= 0 && mo <= 11) || !isFinite(y)) return null;
   return { short: HT_MON_SHORT[mo] + " " + y, long: HT_MON_LONG[mo] + " " + y };
 }
+
+// ── HERO_TICK_YEAR_V1 ─────────────────────────────────────────────────────────
+// Tick labels for the multi-panel trajectory strip, one per date, in the same order.
+//
+// WHY THIS EXISTS. The multi-panel ticks printed a bare three-letter month while the
+// single-panel branch of the SAME function already printed "Mar 2025" through
+// heroDateParts. Nothing recorded a reason for the difference, and it is not survivable
+// on real data: the x axis is ORDINAL, spaced by index and not by elapsed time, so two
+// panels a week apart and two eleven months apart draw identically and the tick is the
+// only cue a reader has. Two panels drawn in the same month of different years both read
+// "Jun", which is not a small ambiguity on a chart about change over time.
+//
+// THREE FORMS, AND THE ORDER BETWEEN THEM IS THE DESIGN.
+//   "Jun 2025"    the default, and what a reader should normally see
+//   "Jun 25"      when the full form cannot fit the space between two ticks
+//   "5 Jun 2025"  when the chosen form would print the SAME label for two DIFFERENT dates
+//
+// UNIQUENESS BEATS WIDTH, deliberately. A day-bearing label is wider and may crowd its
+// neighbour, and that is still better than two ticks reading "Jun 2025" over different
+// draws: a crowded label is hard to read, a duplicated one is wrong.
+//
+// THE WIDTH TEST IS ARITHMETIC, NOT A GUESS. .ht-tick is JetBrains Mono at 10px, a
+// MONOSPACE face, so a character advance is 0.6em = 6px exactly. The gutter is the gap a
+// label needs beyond its own width before it touches the next one.
+//
+// PURE. Its only outside references are heroDateParts and HT_MON_SHORT, both above it.
+function heroTickLabels(dates, gapPx){
+  const list = Array.isArray(dates) ? dates : [];
+  if(!list.length) return [];
+  const CH = 6, GUTTER = 6;
+  const gap = (typeof gapPx === "number" && isFinite(gapPx) && gapPx > 0) ? gapPx : Infinity;
+  const parsed = list.map(function(d){
+    const dt = new Date(d);
+    if(isNaN(dt)) return null;                  // unparseable -> no tick, same as before
+    const p = heroDateParts(d);
+    return {
+      mon: HT_MON_SHORT[dt.getUTCMonth()],
+      yyyy: dt.getUTCFullYear(),
+      day: dt.getUTCDate(),
+      short: p ? p.short : (HT_MON_SHORT[dt.getUTCMonth()] + " " + dt.getUTCFullYear())
+    };
+  });
+  const form = {
+    full:       function(e){ return e.short; },
+    compact:    function(e){ return e.mon + " " + String(e.yyyy).slice(-2); },
+    fullDay:    function(e){ return e.day + " " + e.short; },
+    compactDay: function(e){ return e.day + " " + e.mon + " " + String(e.yyyy).slice(-2); }
+  };
+  const render = function(fn){ return parsed.map(function(e){ return e ? fn(e) : ""; }); };
+  const fits = function(labels){
+    let w = 0;
+    for(const t of labels) if(t.length > w) w = t.length;
+    return (w * CH + GUTTER) <= gap;
+  };
+  const distinct = function(labels){
+    const seen = {};
+    for(const t of labels){
+      if(t === "") continue;                    // an absent tick is not a duplicate
+      if(seen[t]) return false;
+      seen[t] = true;
+    }
+    return true;
+  };
+  const full = render(form.full);
+  const narrowed = fits(full);
+  const base = narrowed ? full : render(form.compact);
+  if(distinct(base)) return base;
+  return narrowed ? render(form.fullDay) : render(form.compactDay);
+}
 /** Whole days from a draw date to the viewer's current calendar day. null when unreadable. */
 function heroPanelAgeDays(d, now){
   if(d == null || d === "") return null;
@@ -11277,9 +11346,13 @@ function markerHistory(mk){
 // between two units is arithmetic on nothing.
 //
 // PURE, and deliberately free of the DOM so the suite can exercise it against the
-// shipped source. Its only outside references are the two SENSITIVE_* sets, which
-// is why it FAILS CLOSED: if either is missing the function throws rather than
-// quietly drawing a safety-class marker.
+// shipped source. Its outside references are the two SENSITIVE_* sets, which is why
+// it FAILS CLOSED -- if either is missing the function throws rather than quietly
+// drawing a safety-class marker -- and, since HERO_TICK_YEAR_V1, heroDateParts for
+// the caption's baseline label. That third one was added 2026-09-23; this comment
+// said "only ... the two SENSITIVE_* sets" and is corrected rather than deleted,
+// because the harness extracts exactly this list and a reader checking it needs to
+// find the real one.
 function heroTrajectoryModel(series, priorityIds){
   const CLAMP = 50, HI_MAX = 3, FAINT_MAX = 12;
   const COLORS = ["var(--coral-dark)", "var(--amber-deep)", "var(--teal-dark)"];
@@ -11379,8 +11452,14 @@ function heroTrajectoryModel(series, priorityIds){
   out.firstDate = dates[0] || null;
   const d0 = out.firstDate ? new Date(out.firstDate) : null;
   out.firstMonth = (d0 && !isNaN(d0)) ? MONTHS[d0.getUTCMonth()] : "";
+  // HERO_TICK_YEAR_V1. firstLabel is the SHORT form WITH THE YEAR, the same words a tick
+  // carries, so the caption and the axis under it name the baseline identically. firstMonth
+  // is kept as the long month name because it is a different shape with its own readers;
+  // deleting it to save a field would be a rename dressed as a fix.
+  const fp = out.firstDate ? heroDateParts(out.firstDate) : null;
+  out.firstLabel = fp ? fp.short : out.firstMonth;
   out.caption = multi
-    ? ("Each line is one marker. Height shows how far it moved since " + out.firstMonth +
+    ? ("Each line is one marker. Height shows how far it moved since " + out.firstLabel +
        ", not whether that is good.")
     : "One panel is a snapshot. Your next one turns every dot into a line.";
   return out;
@@ -11404,7 +11483,10 @@ function heroTrajectorySVG(m, width, panelDate){
   // The floor is only here to stop a degenerate viewBox, and 200 does that.
   const W = Math.max(200, Math.round(width || 680));
   const narrow = W < 480;
-  const MON3 = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  // MON3 lived here and is GONE with HERO_TICK_YEAR_V1. It existed only to print a bare
+  // month on the multi-panel ticks, which is the defect that change removes, and its one
+  // remaining reader now calls heroTickLabels. HT_MON_SHORT holds the same twelve strings
+  // for anything that needs them, which is why this is a deletion and not a move.
   const r1 = (n) => Math.round(n * 10) / 10;
   const SWATCH = 12, SWGAP = 5, x0 = 10;
 
@@ -11535,11 +11617,18 @@ function heroTrajectorySVG(m, width, panelDate){
     svg += '<text class="ht-label" x="' + r1(textX) + '" y="' + r1(l.y + 3.8) + '">' + esc(trim(l.name)) + '</text>';
   });
 
-  m.dates.forEach(d => {
-    const dt = new Date(d);
-    if(isNaN(dt)) return;
+  // HERO_TICK_YEAR_V1. The label set is decided for the whole row at once, because both
+  // rules that shape it are about the row rather than one tick: whether the widest label
+  // fits the gap between two ticks, and whether any two ticks would read the same. The gap
+  // is the real spacing xOf produces, so the test is against the drawing, not an estimate
+  // of it. One date needs no gap, since nothing can collide with it.
+  const tickGap = (m.dates.length > 1) ? ((xEnd - xFirst) / (m.dates.length - 1)) : Infinity;
+  const tickLabels = heroTickLabels(m.dates, tickGap);
+  m.dates.forEach((d, i) => {
+    const t = tickLabels[i];
+    if(!t) return;                       // unparseable date, no tick, unchanged behaviour
     svg += '<text class="ht-tick" x="' + r1(xOf(d)) + '" y="' + (H - 6) + '" text-anchor="middle">' +
-           MON3[dt.getUTCMonth()] + '</text>';
+           esc(t) + '</text>';
   });
   // The word is dropped when the columns are too close to carry two labels, which on a
   // 216px phone well they are: "Aug" and "next" overlap by a pixel at 390. The dashed
@@ -11549,7 +11638,9 @@ function heroTrajectorySVG(m, width, panelDate){
   const said = m.highlights.map(mk => mk.dir === "level"
     ? (mk.name + " roughly level")
     : (mk.name + " " + mk.dir + " " + Math.round(Math.abs(mk.lastPct)) + " percent"));
-  const label = "Marker trajectory since " + m.firstMonth + ". " +
+  // Same baseline words as the visible caption. Leaving this at the month alone would have
+  // meant a screen reader hearing "since March" under a caption reading "since Mar 2026".
+  const label = "Marker trajectory since " + (m.firstLabel || m.firstMonth) + ". " +
                 (said.length ? said.join(", ") + "." : "No markers highlighted.");
 
   return '<div class="hero-traj-well"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +

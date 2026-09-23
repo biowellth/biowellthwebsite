@@ -45,15 +45,19 @@ const src = extractConst("SENSITIVE_MARKER_IDS") + "\n" +
             // HERO_TIME_V1: the drawing names the draw month on the tick, so it needs the date helper.
             extractConst("HT_MON_SHORT") + "\n" + extractConst("HT_MON_LONG") + "\n" +
             extract("heroDateParts") + "\n" +
+            // HERO_TICK_YEAR_V1: the tick row's label set is decided by this helper, so the
+            // suite exercises the SHIPPED one rather than a copy of its rules.
+            extract("heroTickLabels") + "\n" +
             extract("esc") + "\n" +
             extract("heroTrajectoryModel") + "\n" +
             extract("heroTrajectorySVG") +
             "\n;globalThis.__model = heroTrajectoryModel;" +
+            "\n;globalThis.__ticks = heroTickLabels;" +
             "\n;globalThis.__svg = heroTrajectorySVG;" +
             "\n;globalThis.__SENS_MK = SENSITIVE_MARKER_IDS;" +
             "\n;globalThis.__SENS_SYS = SENSITIVE_SYSTEMS;";
 new Function(src)();
-const model = globalThis.__model, draw = globalThis.__svg;
+const model = globalThis.__model, draw = globalThis.__svg, ticks = globalThis.__ticks;
 const SENS_MK = globalThis.__SENS_MK, SENS_SYS = globalThis.__SENS_SYS;
 
 let pass = 0, fail = 0;
@@ -183,8 +187,11 @@ console.log("SINGLE PANEL -- detection and caption");
 {
   const r = model({ ferritin: mk("iron", [10, 12]) }, []);
   eq(r.mode, "multi", "MULTI-1: two dated points is the multi-panel state");
-  eq(r.caption, "Each line is one marker. Height shows how far it moved since March, not whether that is good.",
-     "MULTI-2: multi-panel caption is exact, naming the first panel month");
+  eq(r.caption, "Each line is one marker. Height shows how far it moved since Mar 2026, not whether that is good.",
+     "MULTI-2: multi-panel caption is exact, naming the first panel month AND YEAR");
+  ok(/\b20\d\d\b/.test(r.caption), "MULTI-2b: the caption carries the baseline YEAR");
+  eq(r.firstLabel, "Mar 2026", "MULTI-2c: firstLabel is the short form with the year");
+  eq(r.firstMonth, "March", "MULTI-2d CONTROL: firstMonth is untouched, so this is an addition not a rename");
   ok(!r.caption.includes(":"), "MULTI-3: no colon in the caption");
   ok(!r.caption.includes("—"), "MULTI-4: and no em dash");
 }
@@ -433,6 +440,10 @@ console.log("PANEL-COUNT GUARD -- two panels must never see the one-panel captio
   globalThis.window = {};
   new Function([extractConst("SENSITIVE_MARKER_IDS"), extractConst("SENSITIVE_SYSTEMS"),
                 extractConst("HT_MON_SHORT"), extractConst("HT_MON_LONG"), extract("heroDateParts"),
+                // HERO_TICK_YEAR_V1: heroTrajectorySVG calls this, so this SECOND sandbox needs it
+                // too. It is a separate module from the one built at the top of the file and the
+                // two lists have to be kept in step by hand.
+                extract("heroTickLabels"),
                 extract("esc"), extract("markerSeriesInfo"), extract("markerHistory"),
                 extract("heroTrajectoryModel"), extract("heroTrajectorySVG"), lets,
                 extract("heroTrajWidth"), extract("heroTrajPanelCount"),
@@ -510,6 +521,130 @@ console.log("KNOWN-POSITIVE CONTROLS -- the harness can actually fail");
   const empty = model({}, []);
   eq(empty.mode, "none", "CTRL-3: an empty series is the none state, not a drawn plot");
   eq(model(null, []).mode, "none", "CTRL-4: and a null series does not throw");
+}
+
+// ── HERO_TICK_YEAR_V1 ─────────────────────────────────────────────────────────
+// The multi-panel ticks used to print a bare month. Every assertion below is paired with a
+// control that can fire, because "the tick carries a year" is the kind of claim a broken
+// extractor answers with a comfortable silence.
+console.log("TICK YEAR -- multi-panel ticks name the year");
+const tickTextOf = (svg) =>
+  [...svg.matchAll(/<text class="ht-tick"[^>]*>([^<]*)<\/text>/g)].map(x => x[1]).filter(t => t !== "next");
+
+// A three-panel model on the D1/D2/D3 fixture, drawn wide.
+const threePanel = model({
+  ferritin: mk("iron_status", [10, 12, 15], [D1, D2, D3], { name: "Ferritin" }),
+  tsh:      mk("thyroid",     [2, 2.4, 2.8], [D1, D2, D3], { name: "TSH" }),
+}, ["ferritin", "tsh"]);
+
+{
+  const svg = draw(threePanel, 680, D3);
+  const t = tickTextOf(svg);
+  eq(t.length, 3, "TY-1: the D1/D2/D3 fixture draws three ticks  (" + JSON.stringify(t) + ")");
+  ok(t.every(x => /\b20\d\d\b/.test(x)), "TY-2: every tick carries a four-digit year  (" + JSON.stringify(t) + ")");
+  eq(new Set(t).size, 3, "TY-3: and all three labels are DISTINCT");
+  eq(t[0], "Mar 2026", "TY-4: the first tick reads as the short form with the year");
+  // CONTROL. A bare month is exactly what this change removes, so a run where the ticks are
+  // still bare months must be visible here rather than passing on the year assertion alone.
+  ok(!t.some(x => /^[A-Z][a-z]{2}$/.test(x)), "TY-5 CONTROL: no tick is a bare three-letter month");
+}
+
+console.log("TICK YEAR -- the narrow fallback, and uniqueness beating width");
+{
+  // THREE TICKS AT 360px STILL FIT THE FULL FORM, and that is measured rather than assumed:
+  // the gap there is 91.5px and "Mar 2026" needs 8 chars x 6px + 6 = 54px. A first draft of
+  // this block asserted the fallback fired here and passed for the wrong reason. The fallback
+  // is exercised below, at a width and panel count where the arithmetic really does bite.
+  const svg = draw(threePanel, 360, D3);
+  const t = tickTextOf(svg);
+  eq(t.length, 3, "TY-6: still three ticks at 360px  (" + JSON.stringify(t) + ")");
+  eq(JSON.stringify(t), JSON.stringify(["Mar 2026", "Jun 2026", "Aug 2026"]),
+     "TY-7: three ticks fit the FULL form even on a phone, so the fallback is not eager");
+  eq(new Set(t).size, 3, "TY-8: and they stay distinct at narrow width");
+}
+{
+  // SIX PANELS AT 360px is where the gap genuinely cannot carry the full form: 36.6px against
+  // the 54px "Mar 2026" needs. Driven through draw(), so the fallback is proven on the real
+  // geometry and not only through the helper's gap argument.
+  const sixDates = ["2026-01-05","2026-03-05","2026-05-05","2026-07-05","2026-09-05","2026-11-05"];
+  const six = model({
+    ferritin: mk("iron_status", [10, 11, 12, 13, 14, 15], sixDates, { name: "Ferritin" }),
+  }, ["ferritin"]);
+  const svg = draw(six, 360, sixDates[5]);
+  const t = tickTextOf(svg);
+  eq(t.length, 6, "TY-6b: six ticks drawn  (" + JSON.stringify(t) + ")");
+  ok(t.every(x => /^[A-Z][a-z]{2} \d\d$/.test(x)),
+     "TY-6c: the crowded row falls back to the two-digit year  (" + JSON.stringify(t) + ")");
+  ok(t.every(x => /\d\d$/.test(x)), "TY-6d: and every one of them still carries a year");
+  // CONTROL: the SAME six panels drawn wide keep the full form, so TY-6c is the gap doing the
+  // work and not something about six panels.
+  const wideSix = tickTextOf(draw(six, 900, sixDates[5]));
+  ok(wideSix.every(x => /\b20\d\d\b/.test(x)),
+     "TY-6e CONTROL: the same six panels drawn wide keep the four-digit year  (" + JSON.stringify(wideSix) + ")");
+}
+{
+  // The helper directly, which is where the three forms are decided.
+  const wide = ticks([D1, D2, D3], 200);
+  eq(JSON.stringify(wide), JSON.stringify(["Mar 2026", "Jun 2026", "Aug 2026"]),
+     "TY-9: a roomy gap gets the full form");
+  const tight = ticks([D1, D2, D3], 45);
+  eq(JSON.stringify(tight), JSON.stringify(["Mar 26", "Jun 26", "Aug 26"]),
+     "TY-10: a gap too small for the full form falls back to the two-digit year");
+  // CONTROL for TY-10: the two forms really are different, so TY-9 is not passing on the
+  // fallback and TY-10 is not passing on the full form.
+  ok(JSON.stringify(wide) !== JSON.stringify(tight),
+     "TY-11 CONTROL: the roomy and tight label sets differ, so the gap argument does something");
+}
+{
+  // TWO DRAWS IN THE SAME MONTH OF THE SAME YEAR. Both would read "Jun 2026", which is the
+  // one thing the row may never do, so the day is added even though it is wider.
+  const same = ticks(["2026-06-05", "2026-06-20"], 200);
+  eq(new Set(same).size, 2, "TY-12: two draws in one month never share a tick label  (" + JSON.stringify(same) + ")");
+  ok(same.every(x => /\b20\d\d\b/.test(x)), "TY-13: and both still carry the year");
+  // CONTROL: the escalation is conditional, not always on. Distinct months keep the plain form.
+  const diff = ticks(["2026-06-05", "2026-08-20"], 200);
+  eq(JSON.stringify(diff), JSON.stringify(["Jun 2026", "Aug 2026"]),
+     "TY-14 CONTROL: distinct months do NOT get a day, so TY-12 is a rule and not the default");
+  // Same month, DIFFERENT years, at the narrow form. "Jun 25" and "Jun 26" already differ.
+  const yrs = ticks(["2025-06-05", "2026-06-05"], 45);
+  eq(JSON.stringify(yrs), JSON.stringify(["Jun 25", "Jun 26"]),
+     "TY-15: same month in different years is separated by the year alone");
+}
+{
+  // An unparseable date draws no tick, which is the behaviour before this change.
+  const t = ticks(["not-a-date", D2], 200);
+  eq(t[0], "", "TY-16: an unparseable date yields no label");
+  eq(t[1], "Jun 2026", "TY-17 CONTROL: and its neighbour is unaffected");
+  eq(JSON.stringify(ticks([], 200)), "[]", "TY-18: an empty date list is not an error");
+}
+
+// ── THE MUTANT. Valid JavaScript that restores the bare-month tick. ───────────
+// heroTickLabels is replaced with one that returns HT_MON_SHORT only, which is exactly what
+// the multi-panel row printed before HERO_TICK_YEAR_V1. TY-2 and TY-5 must both go red.
+console.log("MUTANT -- heroTickLabels returns a bare month again");
+{
+  const MUT = 'function heroTickLabels(dates, gapPx){ return (Array.isArray(dates)?dates:[]).map(function(d){ ' +
+              'var dt = new Date(d); return isNaN(dt) ? "" : HT_MON_SHORT[dt.getUTCMonth()]; }); }';
+  const mutSrc = extractConst("HT_MON_SHORT") + "\n" + extractConst("HT_MON_LONG") + "\n" +
+                 extract("heroDateParts") + "\n" + MUT + "\n" + extract("esc") + "\n" +
+                 extractConst("SENSITIVE_MARKER_IDS") + "\n" + extractConst("SENSITIVE_SYSTEMS") + "\n" +
+                 extract("heroTrajectoryModel") + "\n" + extract("heroTrajectorySVG") +
+                 "\n;return { svg: heroTrajectorySVG, model: heroTrajectoryModel };";
+  let built = null, valid = true;
+  try { built = new Function(mutSrc)(); } catch (e) { valid = false; }
+  ok(valid, "MUT-1: the mutant is valid JavaScript, so its red is about behaviour not syntax");
+  if (valid) {
+    const mSvg = built.svg(built.model({
+      ferritin: mk("iron_status", [10, 12, 15], [D1, D2, D3], { name: "Ferritin" }),
+      tsh:      mk("thyroid",     [2, 2.4, 2.8], [D1, D2, D3], { name: "TSH" }),
+    }, ["ferritin", "tsh"]), 680, D3);
+    const mt = tickTextOf(mSvg);
+    eq(mt.length, 3, "MUT-2: the mutant still draws three ticks, so the comparison is like for like");
+    ok(!mt.some(x => /\b20\d\d\b/.test(x)),
+       "MUT-3: with the guard removed NO tick carries a year, so TY-2 can fail  (" + JSON.stringify(mt) + ")");
+    ok(mt.every(x => /^[A-Z][a-z]{2}$/.test(x)),
+       "MUT-4: and every tick is a bare month again, so TY-5 can fail  (" + JSON.stringify(mt) + ")");
+  }
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");
