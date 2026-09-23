@@ -39,8 +39,9 @@ if (!existsSync(RANGES)) { console.log("  FAIL DS-0: " + RANGES + " is not in th
 // ferritin IS in ranges-slim (control: its cell must hold a digit).
 // zz_not_a_real_marker is NOT (assertion: its cell must be "not ranged" and hold no digit).
 // lead is a SAFETY CLASS marker (assertion: never a range, never a green word).
-const mk = (id, name, sys, v, unit, status, band) =>
-  ({ marker_id: id, display_name: name, system_id: sys, value: v, unit, canonical_unit: unit,
+const mk = (id, name, sys, v, unit, status, band, canonical) =>
+  ({ marker_id: id, display_name: name, system_id: sys, value: v, unit,
+     canonical_unit: canonical === undefined ? unit : canonical,
      normalized_value: v, status, band, is_cycle_gated: false });
 const PAYLOAD = {
   panel_date: "2026-04-01",
@@ -60,6 +61,15 @@ const PAYLOAD = {
     { system_id: "sex_hormones", display_name: "Sex hormones", status: "not_scored", markers: [
       Object.assign(mk("progesterone", "Progesterone", "sex_hormones", 1, "ng/mL", "cycle_gated", null), { is_cycle_gated: true }),
     ]},
+    // homocysteine is a PRIORITY marker and carries the micro-sign mismatch FIX 4 folds:
+    // the lab printed "\u00b5mol/L", the library's canonical spelling is "umol/L".
+    { system_id: "vitamins", display_name: "Vitamins", status: "watch", markers: [
+      mk("homocysteine", "Homocysteine", "vitamins", 12, "\u00b5mol/L", "watch", "suboptimal_high", "umol/L"),
+    ]},
+    // tsh is measured and is NOT a priority, so a question naming it must be dropped.
+    { system_id: "thyroid", display_name: "Thyroid", status: "normal", markers: [
+      mk("tsh", "TSH", "thyroid", 2, "mIU/L", "normal", "optimal"),
+    ]},
   ],
   priorities: [
     { rank: 1, priority_id: "p1", system_id: "iron_status", severity: "moderate",
@@ -73,17 +83,26 @@ const PAYLOAD = {
       the_connection: "c", provider_followup_urgency: "routine",
       primary_markers: [{ marker_id: "lead", display_name: "Lead", band: "optimal", position: "optimal", flag_status: "none" }],
       action_layer: { primary_lever: "lever" } },
+    { rank: 3, priority_id: "p3", system_id: "vitamins", severity: "moderate",
+      headline: "One B vitamin marker is running high", why_this_matters: "This is the row FIX 4 is measured on.",
+      the_connection: "c", provider_followup_urgency: "routine",
+      primary_markers: [{ marker_id: "homocysteine", display_name: "Homocysteine", band: "suboptimal_high", position: "high", flag_status: "user_facing" }],
+      action_layer: { primary_lever: "lever" } },
   ],
-  // Two planted points the guard MUST drop, and one it must keep.
+  // FIVE planted points the guard MUST drop, and ONE it must keep. The keeper names only
+  // ferritin, which IS one of her priorities, so it survives the marker rule too.
   provider_discussion_points: [
-    { point: "A clean question about how the iron picture is read over time.", supporting_markers: ["ferritin"], urgency: "prompt" },
+    { point: "Is my ferritin worth looking into further, given how I have been feeling?", supporting_markers: ["ferritin"], urgency: "prompt" },
     { point: "This is commonly seen and so should be dropped by the guard.", supporting_markers: ["ferritin"], urgency: "routine" },
-    { point: "Ask whether to order a repeat panel in three months.", supporting_markers: ["ferritin"], urgency: "routine" },
+    { point: "Can you order something for my ferritin?", supporting_markers: ["ferritin"], urgency: "routine" },
+    { point: "Should I request another look at my ferritin?", supporting_markers: ["ferritin"], urgency: "routine" },
+    { point: "Is my ferritin \u2013 in your view \u2013 worth a closer look?", supporting_markers: ["ferritin"], urgency: "routine" },
+    { point: "Is my TSH worth looking into further?", supporting_markers: ["tsh"], urgency: "routine" },
   ],
   quietly_working: [], coverage_gap: null,
 };
 const WANT_HEADINGS = ["Reason for this visit", "Findings to discuss", "Questions for today",
-                       "What I take and what I have noticed", "Not read on this panel"];
+                       "What I take and what I have noticed", "Read with these in mind"];
 
 const STUB = `<script>
 window.__errs = []; addEventListener("error", e => window.__errs.push(String(e.message)));
@@ -99,12 +118,12 @@ window.supabase = { createClient: () => ({
   rpc: async () => one }) };
 <\/script>`;
 
-const DRIVER = `<script>
+const driverFor = (payload) => `<script>
 (async () => {
   await new Promise(r => setTimeout(r, 900));
   const res = { threw: false };
   try {
-    window.__rdPayload = ${JSON.stringify(PAYLOAD)};
+    window.__rdPayload = ${JSON.stringify(payload)};
     window.__rdReport = "rpt"; window.__rdReportConf = {};
     if (window.loadProfile) { try { await window.loadProfile(); } catch (e) {} }
     window.openDoctor();
@@ -126,7 +145,7 @@ const DRIVER = `<script>
              range: td[3].innerText.trim(), status: td[4].innerText.trim(), prev: td[5].innerText.trim() };
   });
   res.questions = qa("#doctor-doc .doc-q .doc-q-txt").map(e => e.innerText.trim());
-  res.noteRows = qa("#doctor-doc .doc-tbl-note td").map(e => e.innerText.trim());
+  res.noteRows = qa("#doctor-doc .doc-tbl-note").map(e => e.innerText.trim());
   res.notRead = qa("#doctor-doc .doc-line").map(e => e.innerText.trim());
   res.rules = qa("#doctor-doc .doc-rule").length;
   res.editable = qa("#doctor-doc .doc-rule[contenteditable='true']").length;
@@ -177,8 +196,8 @@ const ev = async (expr) => {
   const v = await send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true }, sessionId);
   return v.result ? v.result.value : null;
 };
-async function run(pageHtml) {
-  SERVE = pageHtml.replace(CDN, STUB).replace("</body>", DRIVER + "</body>");
+async function run(pageHtml, payload) {
+  SERVE = pageHtml.replace(CDN, STUB).replace("</body>", driverFor(payload || PAYLOAD) + "</body>");
   await send("Emulation.setEmulatedMedia", { media: "screen" }, sessionId);
   await send("Page.navigate", { url: "http://127.0.0.1:" + PORT + "/page?t=" + Date.now() }, sessionId);
   for (let i = 0; i < 40; i++) {
@@ -190,7 +209,7 @@ async function run(pageHtml) {
 }
 
 console.log("DOCTOR SUMMARY -- the real page, a synthetic payload");
-const r = await run(html);
+const r = await run(html, PAYLOAD);
 if (!r) { console.log("  FAIL DS-1: the page never finished; the harness itself is broken"); fail++; }
 else {
   ok(!r.threw, "DS-1: openDoctor threw nothing" + (r.threw ? "  -> " + r.name + ": " + r.message : ""));
@@ -226,25 +245,61 @@ else {
   }
   ok(r.cells.every(c => c.prev === "-"), "DS-4g: with no prior panel every Previous cell is a dash");
   ok(r.chips === 0, "DS-4h: no chips, tags or badges on this document");
-  ok(r.noteRows.length > 0 && r.noteRows[0].indexOf("A second sentence") === -1,
-     "DS-4i: the note row carries only the FIRST sentence of why_this_matters");
 
-  // 4. the guard drops a planted point containing "commonly" and one containing "order"
+  // FIX 2. The note row is GONE. This assertion replaces DS-4i, which pinned the row's
+  // content; a removed row needs an assertion that it is absent, against a control proving
+  // the table it sat in still rendered.
+  eq(r.noteRows.length, 0, "DS-4i: no why_this_matters note row renders");
+  ok(r.cells.length > 0, "DS-4j CONTROL: the table still rendered rows, so DS-4i means something");
+
+  // FIX 4. One row, one spelling of the unit. homocysteine is planted with the lab's
+  // "\u00b5mol/L" and the library's "umol/L", which is the exact mismatch the founder found.
+  const hcy = r.cells.find(c => c.marker === "Homocysteine");
+  ok(!!hcy, "DS-11a: the homocysteine row reached the table");
+  if (hcy) {
+    ok(hcy.range.endsWith(hcy.unit),
+       "DS-11b: the range cell ends with the SAME unit string the value column prints" +
+       "  (unit " + JSON.stringify(hcy.unit) + ", range " + JSON.stringify(hcy.range) + ")");
+    ok(/\d/.test(hcy.range), "DS-11c CONTROL: that range cell holds a number, so DS-11b is not comparing two blanks");
+  }
+  // CONTROL for the fold's NARROWNESS. lead is planted with matching units, so it must be
+  // untouched; a fold that rewrote every cell would still pass DS-11b on its own.
+  const leadRow = r.cells.find(c => c.marker === "Lead");
+  if (leadRow) ok(leadRow.range === "not ranged",
+    "DS-11d CONTROL: a safety-class row is still 'not ranged', so the fold did not rewrite every cell");
+
+  // 4. the guard drops every planted point and keeps the one clean question.
   const joined = r.questions.join(" || ");
   ok(!/\bcommonly\b/i.test(joined), "DS-5a: the planted 'commonly' point was dropped");
   ok(!/\border\b/i.test(joined), "DS-5b: the planted 'order' point was dropped");
-  // CONTROL: a clean point must survive, or DS-5a/b would pass on an empty list.
+  // FIX 1, the widened word list.
+  ok(!/\brequest\b/i.test(joined), "DS-5e: the planted 'request' point was dropped");
+  // FIX 1, the en dash.
+  ok(joined.indexOf("\u2013") === -1, "DS-5f: the planted en-dash point was dropped");
+  // FIX 1, a marker she has no priority for. tsh IS measured on this panel and is NOT one of
+  // her priorities, so the point naming it goes.
+  ok(!/\bTSH\b/i.test(joined), "DS-5g: the planted point naming a non-priority marker was dropped");
+  // CONTROL: a clean point must survive, or every assertion above would pass on an empty list.
   eq(r.questions.length, 1, "DS-5c CONTROL: exactly the one clean point survived");
-  ok(joined.indexOf("iron picture is read over time") !== -1, "DS-5d CONTROL: and it is the clean one");
+  ok(joined.indexOf("worth looking into further") !== -1, "DS-5d CONTROL: and it is the clean one");
+  ok(/\bferritin\b/i.test(joined),
+     "DS-5h CONTROL: the surviving question DOES name a marker, so DS-5g is not passing because every marker name is dropped");
 
   // 5. section 5 renders three editable lines plus the reason line
   eq(r.rules, 4, "DS-6: four editable rules  (reason, medications, supplements, noticed)");
   eq(r.editable, 4, "DS-6b: and every one of them is contenteditable");
 
-  // 6. section 6 says what was not read
-  ok(r.notRead.some(l => l.indexOf("cycle") !== -1), "DS-7a: the deferred system carries its plain reason");
+  // 6. FIX 3. The section is "Read with these in mind" and carries ONLY what changes how a
+  // result reads. Every system-level "not read" line is gone; DS-7a used to pin one.
   ok(r.notRead.some(l => l === "Hormone results are held until phase-specific ranges have been reviewed."),
      "DS-7b: a cycle-gated marker adds the hormone line");
+  ok(!r.notRead.some(l => /not scored|Sex hormones\./i.test(l)),
+     "DS-7a: no system-level 'not read' line survives  (" + JSON.stringify(r.notRead) + ")");
+  // FIX 3. This payload carries NO glucose, insulin or triglyceride marker, so no fasting
+  // line may render even though fasting is not recorded.
+  ok(!r.notRead.some(l => /Fasting was/.test(l)),
+     "DS-7c: a payload with no fasting-sensitive markers renders no fasting line");
+  ok(r.notRead.length > 0, "DS-7d CONTROL: the section rendered at least one line, so DS-7a and DS-7c mean something");
 }
 
 // ── Print-media assertions. These cannot be made from source text. ─────────────────────────────
@@ -292,16 +347,46 @@ const foot = await ev(`(() => {
   ok(f.doctorFooterText.indexOf("Functional ranges") === 0, "DS-9d: and it is the summary's own sentence");
 }
 
+// ── FIX 3, the other half. A payload that DOES carry a fasting-sensitive marker must render
+// the fasting line. Without this run DS-7c is an absence with nothing behind it: it would pass
+// just as happily on a build where the fasting line can never render at all.
+console.log("\nFASTING FIXTURE -- same page, a payload carrying fasting-sensitive markers");
+const FASTING_PAYLOAD = JSON.parse(JSON.stringify(PAYLOAD));
+FASTING_PAYLOAD.systems.push({
+  system_id: "metabolic", display_name: "Metabolic", status: "watch",
+  markers: [
+    { marker_id: "fasting_glucose", display_name: "Fasting Glucose", system_id: "metabolic",
+      value: 95, unit: "mg/dL", canonical_unit: "mg/dL", normalized_value: 95,
+      status: "normal", band: "optimal", is_cycle_gated: false },
+  ],
+});
+const fx = await run(html, FASTING_PAYLOAD);
+if (!fx) { console.log("  FAIL DS-12: the fasting fixture never finished"); fail++; }
+else {
+  ok(!fx.threw, "DS-12: openDoctor threw nothing on the fasting fixture");
+  const line = fx.notRead.find(l => /^Fasting was /.test(l));
+  ok(!!line, "DS-12a CONTROL: with a fasting-sensitive marker present, the fasting line DOES render");
+  if (line) {
+    eq(line, "Fasting was not recorded for this draw, so glucose, insulin and triglyceride results are read with that in mind.",
+       "DS-12b: and it reads exactly as briefed");
+    ok(!/lipid/i.test(line), "DS-12c: it never says lipids, because ApoA1 and ApoB do not depend on fasting");
+  }
+  ok(fx.headings[fx.headings.length - 1] === "Read with these in mind",
+     "DS-12d: the section heading reads 'Read with these in mind'");
+}
+
 // ── The mutant. The guard is removed; DS-5a/DS-5b must go RED. ─────────────────────────────────
 console.log("\nMUTANT -- doctorPointBlocked always returns null");
-const m = await run(mutantHtml);
+const m = await run(mutantHtml, PAYLOAD);
 if (!m) { console.log("  FAIL DS-10: the mutant page never finished"); fail++; }
 else {
   const mj = m.questions.join(" || ");
   const caught = /\bcommonly\b/i.test(mj) || /\border\b/i.test(mj);
   ok(caught, "DS-10: removing the guard lets a banned point through, so DS-5a/DS-5b can fail  (" +
      m.questions.length + " points rendered, was 1)");
-  ok(m.questions.length === 3, "DS-10b: and all three planted points render  (got " + m.questions.length + ")");
+  ok(m.questions.length === PAYLOAD.provider_discussion_points.length,
+     "DS-10b: and EVERY planted point renders once the guard is gone  (got " + m.questions.length +
+     " of " + PAYLOAD.provider_discussion_points.length + ")");
 }
 
 chrome.kill(); server.close();
