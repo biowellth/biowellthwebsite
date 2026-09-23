@@ -2269,6 +2269,14 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       </div>
       <div class="reveal-head-text">
         <div class="band" id="band">Your results</div>
+        <!-- RETIRED IN THE HERO 2026-09-23, at the founder's ruling. This carried the
+             "Based on N of the 7 systems ..." sentence; that sentence now opens the
+             "What's this?" popover, beside the paragraph explaining the score it qualifies.
+
+             THE ELEMENT AND ITS ID STAY so every reader and test still resolves, and
+             renderDashboard clears and hides it on each render rather than trusting that
+             nothing writes to it. It is empty and hidden on every path; there is no payload
+             that fills it. -->
         <div class="coverage-line hidden" id="coverage-line"></div>
         <div class="headline" id="headline"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
