@@ -388,6 +388,79 @@ else {
      "DS-10b: and EVERY planted point renders once the guard is gone  (got " + m.questions.length +
      " of " + PAYLOAD.provider_discussion_points.length + ")");
 }
+console.log("\nDIAGNOSIS SHAPES -- each dropped, each with a kept control");
+{
+  // RE-RENDER THE CLEAN PAGE FIRST. Every probe here runs against whatever run() last served, and
+  // that is not always this build: in the commit that shipped these rules alone, the previous
+  // run() was the GUARD-REMOVED mutant, so all six shape checks read null and went red against a
+  // correct file. The probe has to say which page it is asking.
+  await run(html, PAYLOAD);
+  const shapes = `(() => {
+    const P = window.__rdPayload;
+    const vocab = doctorBuildMarkerVocab(P);
+    const ids = new Set(["ferritin"]);
+    const b = (t) => doctorPointBlocked(t, ids, vocab);
+    return JSON.stringify({
+      couldIHave:   b("Could I have something going on with my ferritin?"),
+      doIHave:      b("Do I have a problem with my ferritin?"),
+      isThisSign:   b("Is this a sign of something with my ferritin?"),
+      couldBeSign:  b("Could this be a sign that my ferritin matters?"),
+      signOf:       b("Are these a sign of anything for my ferritin?"),
+      signsOf:      b("Are these signs of anything for my ferritin?"),
+      keptCouldMy:  b("Could my ferritin be part of the same picture?"),
+      keptDoMy:     b("Do my ferritin results fit together?"),
+      keptDesign:   b("Does the design of this panel cover my ferritin?"),
+      keptSignal:   b("Is my ferritin reading a signal worth watching?"),
+    });
+  })()`;
+  const d = JSON.parse(await ev(shapes));
+  eq(d.couldIHave,  "shape_could_i_have",         "DS-21: could i have is dropped");
+  eq(d.doIHave,     "shape_do_i_have",            "DS-22: do i have is dropped");
+  eq(d.isThisSign,  "shape_is_this_a_sign_of",    "DS-23: is this a sign of is dropped, with its own code");
+  eq(d.couldBeSign, "shape_could_this_be_a_sign", "DS-24: could this be a sign is dropped");
+  eq(d.signOf,      "shape_sign_of",              "DS-25: a bare sign of is dropped");
+  eq(d.signsOf,     "shape_sign_of",              "DS-25b: and its plural");
+  eq(d.keptCouldMy, null, "DS-26 CONTROL: could my is KEPT");
+  eq(d.keptDoMy,    null, "DS-26b CONTROL: do my is KEPT");
+  eq(d.keptDesign,  null, "DS-26c CONTROL: design of is KEPT, so the boundary is real");
+  eq(d.keptSignal,  null, "DS-26d CONTROL: a bare signal is KEPT");
+}
+
+console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its own pin red");
+{
+  const MUT = {
+    fix1: [["  for(const sh of DOCTOR_BANNED_SHAPES) if(sh.re.test(text)) return sh.code;\n", ""]],
+  };
+  for (const name of Object.keys(MUT)) {
+    let src = html, located = true;
+    for (const [from, to] of MUT[name]) {
+      if (src.indexOf(from) === -1) { located = false; break; }
+      src = src.replace(from, to);
+    }
+    ok(located, "DS-29." + name + ": the mutant anchor was LOCATED, so it is a real change");
+    if (!located) continue;
+    try { new Function(extractApp(src, "mutant " + name)); }
+    catch (e) { ok(false, "DS-29b." + name + ": the mutant is valid JavaScript (" + e.message + ")"); continue; }
+    ok(true, "DS-29b." + name + ": the mutant parses, so its result means something");
+    const mr = await run(src, name === "fix1" ? PAYLOAD : withPoints(0));
+    if (!mr) { ok(false, "DS-30." + name + ": the mutant page never finished"); continue; }
+    if (name === "fix1") {
+      const g = JSON.parse(await ev(`(() => {
+        const vocab = doctorBuildMarkerVocab(window.__rdPayload);
+        return JSON.stringify(doctorPointBlocked("Could I have something with my ferritin?", new Set(["ferritin"]), vocab));
+      })()`));
+      eq(g, null, "DS-30.fix1: without the shapes loop a diagnosis question passes, so DS-21 can fail");
+    }
+    if (name === "fix2") {
+      eq(mr.questions.length, 0, "DS-30.fix2: without the floor the section renders nothing, so DS-12.0 can fail");
+      eq(mr.qEmpty, 1, "DS-30b.fix2: and the empty state comes back");
+    }
+    if (name === "fix3") {
+      ok(JSON.stringify(mr.headings) !== JSON.stringify(WANT_HEADINGS),
+         "DS-30.fix3: the old order fails the heading pin, so DS-3 can fail  (" + JSON.stringify(mr.headings) + ")");
+    }
+  }
+}
 
 chrome.kill(); server.close();
 done(fail ? 1 : 0);

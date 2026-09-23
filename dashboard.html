@@ -6571,6 +6571,31 @@ const DOCTOR_BANNED_STEMS = [
   "diagnos", "medicat", "dose", "including",
 ];
 
+// DIAGNOSIS-SHAPED OPENINGS, mirroring QUESTION_TYPES_V1 in the worker
+// (biowellth-backend-supa provider-point-guard.ts, BANNED_POINT_SHAPES). A blood panel does not
+// answer "do I have X", and a question that asks it invites a yes or a no about a condition from
+// a doctor holding one panel. The four question types the prompt now asks for all ask what a
+// RESULT MEANS; these ask what she HAS.
+//
+// THE RULE IS ON THE ASKING, not on what is asked about. A rule keyed on conditions would need a
+// list of every condition, which cannot be complete. The opening is short, closed and matchable.
+//
+// BOTH BOUNDARIES here, unlike DOCTOR_BANNED_STEMS above. A stem wants its inflections; a fixed
+// phrase does not, and an unbounded "sign of" would take "design of" with it.
+//
+// "signs of" is matched alongside "sign of" for the same reason the worker matches it: a plural
+// is the same question, and the singular alone would pass "Are these signs of something?"
+//
+// MORE SPECIFIC FIRST, so a drop reports the shape that fired rather than the generic one inside
+// it -- "is this a sign of" contains "sign of".
+const DOCTOR_BANNED_SHAPES = [
+  { code: "shape_could_i_have",         re: /\bcould\s+i\s+have\b/i },
+  { code: "shape_do_i_have",            re: /\bdo\s+i\s+have\b/i },
+  { code: "shape_is_this_a_sign_of",    re: /\bis\s+this\s+a\s+signs?\s+of\b/i },
+  { code: "shape_could_this_be_a_sign", re: /\bcould\s+this\s+be\s+a\s+signs?\b/i },
+  { code: "shape_sign_of",              re: /\bsigns?\s+of\b/i },
+];
+
 function doctorEscapeForRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 const DOCTOR_PREVALENCE_MATCHERS = DOCTOR_BANNED_PREVALENCE.map(function(phrase){
   return { phrase: phrase, re: new RegExp("\\b" + doctorEscapeForRegex(phrase) + "\\b", "i") };
@@ -6660,6 +6685,10 @@ function doctorPointBlocked(text, priorityIds, vocab){
   const folded = doctorFoldWords(text);
   for(const m of DOCTOR_PREVALENCE_MATCHERS) if(m.re.test(text)) return "prevalence_" + m.phrase.replace(/\s+/g, "_");
   for(const m of DOCTOR_STEM_MATCHERS) if(m.re.test(folded)) return "word_" + m.phrase;
+  // AFTER the stems, deliberately, exactly as the worker orders its own. A question carrying both
+  // a banned stem and a diagnosis shape keeps the code it already reported, so this is a pure
+  // addition and no existing drop changes its reason.
+  for(const sh of DOCTOR_BANNED_SHAPES) if(sh.re.test(text)) return sh.code;
   if(text.indexOf(":") !== -1) return "colon";
   if(text.indexOf("\u2014") !== -1) return "em_dash";
   if(text.indexOf("\u2013") !== -1) return "en_dash";
