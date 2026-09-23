@@ -6651,12 +6651,33 @@ function doctorBuildMarkerVocab(p){
     }
   const names = new Set();
   for(const k of nameToId.keys()) names.add(k);
+  // RANGE_ID_V1 — ranges-slim now carries the marker_id on every alias and display-name entry, so
+  // a name from THIS source resolves to an id instead of to undefined.
+  //
+  // WHAT IT FIXES, measured on a real stored panel before the id existed: all four marker-shaped
+  // drops were names this map could not resolve, and all four questions the floor generates for
+  // the page were dropped the same way, leaving the questions section empty. The guard was not
+  // refusing markers she has no priority for; it was refusing every name it could not look up,
+  // which is most of the vocabulary.
+  //
+  // THE PAYLOAD STILL WINS. `add` keeps the FIRST id set for a name, and the systems[].markers[]
+  // walk above runs first, so a name this panel actually carries resolves to the id on HER panel.
+  // ranges-slim fills in only the names the payload never mentions, which is exactly the set that
+  // used to resolve to nothing. An alias shared by two library markers resolves to whichever the
+  // build wrote last; there are four such aliases and the build prints them.
+  //
+  // AN ENTRY WITH NO id STILL ADDS ITS NAME AND NO MAPPING, which is the old behaviour, so a
+  // ranges-slim built before this field degrades to exactly what it did before rather than
+  // throwing. The build asserts the count is zero.
   const R = (typeof RANGES_LOOKUP !== "undefined") ? RANGES_LOOKUP : null;
   for(const map of [R && R.by_alias_lc, R && R.by_display_name_lc]){
     if(!map) continue;
     for(const k of Object.keys(map)){
       const t = String(k).toLowerCase().trim();
-      if(t.length >= DOCTOR_NAME_MIN_LEN) names.add(t);
+      if(t.length < DOCTOR_NAME_MIN_LEN) continue;
+      names.add(t);
+      const entry = map[k];
+      if(entry && typeof entry.id === "string" && entry.id && !nameToId.has(t)) nameToId.set(t, entry.id);
     }
   }
   return { nameToId: nameToId, names: [...names].sort(function(a, b){ return b.length - a.length; }) };

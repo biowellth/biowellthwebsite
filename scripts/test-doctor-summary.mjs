@@ -673,5 +673,71 @@ console.log("\nMUTANTS -- one per fix, each valid JavaScript, each turning its o
   }
 }
 
+console.log("\nRANGE_ID_V1 -- an alias of a priority marker resolves, one of a non-priority marker does not");
+{
+  // ranges-slim.json now carries the marker_id on every alias and display-name entry. Before it
+  // did, a name taken from that map resolved to undefined and the guard read it as a marker she
+  // has no priority for -- so an ALIAS of a marker she genuinely has a priority for was dropped.
+  //
+  // THE FIXTURE USES A REAL ALIAS, not the display name and not the id. "Ferritin" and "ferritin"
+  // both reach nameToId from the payload's own systems[].markers[] walk and always resolved; only
+  // a name this panel never mentions had nothing to resolve against, which is the case under test.
+  await run(html, PAYLOAD);
+  const probe = `(() => {
+    const P = window.__rdPayload;
+    const vocab = doctorBuildMarkerVocab(P);
+    const ids = new Set(["ferritin"]);            // ferritin IS one of hers; tsh is not
+    const b = (t) => doctorPointBlocked(t, ids, vocab);
+    const R = (typeof RANGES_LOOKUP !== "undefined") ? RANGES_LOOKUP : null;
+    const withId = R ? Object.values(R.by_alias_lc || {}).filter(v => v && typeof v.id === "string").length : 0;
+    const total  = R ? Object.keys(R.by_alias_lc || {}).length : 0;
+    return JSON.stringify({
+      aliasOfPriority:    b("Is my serum ferritin result worth looking into further?"),
+      aliasOfNonPriority: b("Is my thyrotropin result worth looking into further?"),
+      displayNameKept:    b("Is my ferritin result worth looking into further?"),
+      aliasResolves:      vocab.nameToId.get("serum ferritin") || null,
+      nonPriorityResolves: vocab.nameToId.get("thyrotropin") || null,
+      aliasesWithId: withId, aliasesTotal: total,
+      knownPositive: b("Please order a repeat panel."),
+    });
+  })()`;
+  const g = JSON.parse(await ev(probe));
+  ok(g.aliasesTotal > 500, "DS-31 CONTROL: ranges-slim really loaded  (" + g.aliasesTotal + " aliases)");
+  eq(g.aliasesWithId, g.aliasesTotal, "DS-31b CONTROL: every alias entry carries an id");
+  ok(g.knownPositive !== null, "DS-31c CONTROL: the guard still refuses a point that must go  (" + JSON.stringify(g.knownPositive) + ")");
+  eq(g.aliasResolves, "ferritin", "DS-32: an alias of a priority marker resolves to its marker_id");
+  eq(g.aliasOfPriority, null, "DS-33: so a question using that alias is KEPT");
+  eq(g.displayNameKept, null, "DS-33b CONTROL: the display-name form was already kept, so DS-33 is the alias case");
+  eq(g.nonPriorityResolves, "tsh", "DS-34: an alias of a NON-priority marker also resolves");
+  eq(g.aliasOfNonPriority, "marker_not_in_priorities",
+     "DS-35: and a question using it is still DROPPED, so resolving names did not widen the gate");
+}
+
+console.log("\nMUTANT -- the id lookup removed");
+{
+  const ID_LINE = '      if(entry && typeof entry.id === "string" && entry.id && !nameToId.has(t)) nameToId.set(t, entry.id);\n';
+  ok(html.indexOf(ID_LINE) !== -1, "DS-36: the id-lookup line was LOCATED, so the mutant is a real change");
+  if (html.indexOf(ID_LINE) !== -1) {
+    const mut = html.replace(ID_LINE, "");
+    try { new Function(extractApp(mut, "the id mutant")); ok(true, "DS-36b: the mutant parses"); }
+    catch (e) { ok(false, "DS-36b: the mutant is valid JavaScript (" + e.message + ")"); }
+    const mr = await run(mut, PAYLOAD);
+    if (!mr) { ok(false, "DS-37: the mutant page never finished"); }
+    else {
+      const g2 = JSON.parse(await ev(`(() => {
+        const vocab = doctorBuildMarkerVocab(window.__rdPayload);
+        const ids = new Set(["ferritin"]);
+        return JSON.stringify({
+          alias: doctorPointBlocked("Is my serum ferritin result worth looking into further?", ids, vocab),
+          resolves: vocab.nameToId.get("serum ferritin") || null,
+        });
+      })()`));
+      eq(g2.resolves, null, "DS-37: without the lookup the alias resolves to nothing");
+      eq(g2.alias, "marker_not_in_priorities",
+         "DS-38: and the alias question is dropped again, so DS-33 can fail");
+    }
+  }
+}
+
 chrome.kill(); server.close();
 done(fail ? 1 : 0);
