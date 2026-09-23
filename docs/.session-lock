@@ -1,4 +1,0 @@
-session: 89e62d58
-taken: 2026-09-23T00:41:54Z
-scope: dashboard.html (HERO_TRAJ_ENABLED, hero counts move), scripts/test-hero-trajectory.mjs
-note: Simplify the hero. Flag the trajectory strip off, move the four counts out.
