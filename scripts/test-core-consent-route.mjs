@@ -31,15 +31,37 @@ ok(s != null && e != null, "REACHABILITY: the app script block was located");
 const SRC = lines.slice(s + 1, e).join("\n");
 
 // ── 1. the CORE call carries consent_type "core" ─────────────────────────────
-const CORE_CALL = 'sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: "v1" } })';
-ok(SRC.includes(CORE_CALL), "the core call sends consent_type 'core' and consent_version 'v1'");
+// CONSENT_V2_V4_DARK, amended 2026-09-24. The version is no longer a literal in the call: it is
+// CORE_CONSENT_VERSION, which is "v1" while CORE_CONSENT_V2_ENABLED is false. So the property
+// "the core call sends consent_type core and v1" is asserted in two halves: the call's shape, and
+// the flag-off VALUE of the constant, evaluated from the shipped source rather than read by eye.
+const CORE_CALL = 'sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: CORE_CONSENT_VERSION } })';
+ok(SRC.includes(CORE_CALL), "the core call sends consent_type 'core' and consent_version CORE_CONSENT_VERSION");
+const constSrc = (name) => { const m = new RegExp("^const " + name + " = [^\\n]*;$", "m").exec(SRC); return m ? m[0] : null; };
+const fnSrc = (name) => {
+  const at = SRC.indexOf("function " + name + "(");
+  if (at < 0) return null;
+  let d = 0, j = SRC.indexOf("{", at);
+  for (; j < SRC.length; j++) { if (SRC[j] === "{") d++; else if (SRC[j] === "}" && --d === 0) break; }
+  return SRC.slice(at, j + 1);
+};
+const FLAGS_SRC = ["CORE_CONSENT_V2_ENABLED", "CORE_CONSENT_VERSION", "SANA_CONSENT_VERSION", "SANA_CONSENT_V4_ENABLED"]
+  .map(constSrc);
+ok(FLAGS_SRC.every(Boolean), "REACHABILITY: the four consent version constants were located");
+const flagOff = new Function(FLAGS_SRC.join("\n") + "\n" + fnSrc("consentVersionFor") +
+  "\nreturn { v2: CORE_CONSENT_V2_ENABLED, v4: SANA_CONSENT_V4_ENABLED, core: CORE_CONSENT_VERSION, " +
+  "forCore: consentVersionFor('core'), forSana: consentVersionFor('sana') };")();
+eq(JSON.stringify([flagOff.v2, flagOff.v4]), "[false,false]", "both new consent flags are false in the committed file");
+eq(flagOff.core, "v1", "with the flags off the core call sends v1");
 eq((SRC.match(/invoke\("consent-accept"/g) || []).length, 1,
    "there is exactly ONE sb.functions.invoke of consent-accept");
 // the legacy body shape must be gone, or the call silently takes the legacy path
 eq((SRC.match(/body:\{ consent_version: "v1" \}/g) || []).length, 0,
    "the legacy body shape (no consent_type) appears nowhere");
 // CONTROL: the matcher can fire -- the same search against the shape that IS present
-eq((SRC.match(/body:\{ consent_type: "core", consent_version: "v1" \}/g) || []).length, 1,
+// CONSENT_V2_V4_DARK, amended 2026-09-24: the shape now names CORE_CONSENT_VERSION, whose flag-off
+// value is asserted "v1" above.
+eq((SRC.match(/body:\{ consent_type: "core", consent_version: CORE_CONSENT_VERSION \}/g) || []).length, 1,
    "CONTROL: the same matcher finds the new shape, so its zero above is a real zero");
 
 // the version must stay v1: v3 core is NOT approved and the server refuses it with 409
@@ -48,8 +70,16 @@ ok(!/consent_type: "core", consent_version: "v3"/.test(SRC),
 
 // ── 2. the Sana call is unchanged ────────────────────────────────────────────
 // Sana posts with fetch(), not functions.invoke, and names its own version constant.
-ok(SRC.includes('consent_type: type, consent_version: SANA_CONSENT_VERSION'),
-   "the Sana call still sends its own consent_type and SANA_CONSENT_VERSION");
+// CONSENT_V2_V4_DARK, amended 2026-09-24. consentPost used to send SANA_CONSENT_VERSION for EVERY
+// type, which broke the Account panel's core withdrawal. It now sends the version its caller
+// chose with consentVersionFor(type). The property kept: with the flags off, Sana sends v3.1.
+ok(SRC.includes("consent_type: type, consent_version: version"),
+   "consentPost sends the version its caller chose");
+eq((SRC.match(/consentPost\((?:[^()]|\([^()]*\))*\)/g) || []).filter((c) => !c.startsWith("consentPost(type, action, version")).sort().join(" | "),
+   ["consentPost(\"sana\", action, consentVersionFor(\"sana\"))", "consentPost(type, \"withdrawn\", consentVersionFor(type))"].sort().join(" | "),
+   "every consentPost caller passes consentVersionFor for its own type");
+eq(flagOff.forSana, "v3.1", "with the flags off the Sana call sends v3.1");
+eq(flagOff.forCore, "v1", "with the flags off a core withdrawal sends v1, not the Sana version");
 ok(/const SANA_CONSENT_VERSION\s*=/.test(SRC), "SANA_CONSENT_VERSION is still defined");
 eq((SRC.match(/functions\/v1\/consent-accept/g) || []).length, 1,
    "the Sana fetch to consent-accept is still present, exactly once");
@@ -91,8 +121,17 @@ eq((between.match(/catch\(_\)\{[\s\S]*?uploadRowFail\(CONSENT_FALLBACK_COPY\); r
 // she read. Pinned verbatim.
 ok(HTML.includes("I agree to BioWellth reading my report to prepare my wellness interpretation. I have read the "),
    "the consent checkbox text is unchanged");
-eq((HTML.match(/I agree to BioWellth reading my report/g) || []).length, 1,
-   "it appears exactly once");
+// CONSENT_V2_V4_DARK, amended 2026-09-24. The file now also carries CORE_CONSENT_V2_TEXT, whose
+// opening words are the same, in the SCRIPT. What she sees with the flag off is the markup, so the
+// once-only property is asserted on the markup with every <script> block removed. The v2 string's
+// own once-only and hash checks live in test-consent-v2-v4.mjs.
+const MARKUP = HTML.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "");
+ok(MARKUP.length > 10000 && MARKUP.includes('id="consent-row"'),
+   "REACHABILITY: the flag-off markup was located and holds the consent row");
+eq((MARKUP.match(/I agree to BioWellth reading my report/g) || []).length, 1,
+   "it appears exactly once in the flag-off markup");
+ok(MARKUP.includes("I agree to BioWellth reading my report to prepare my wellness interpretation. I have read the "),
+   "and that one occurrence is the v1 text");
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

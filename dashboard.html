@@ -3613,6 +3613,36 @@ function applyConsentUI(){
   if(row) row.style.display = "";
   dz.classList.toggle("locked", CONSENT_PENDING || !(c && c.checked));
 }
+// CONSENT_V2_V4_DARK — core consent v2, built DARK. While CORE_CONSENT_V2_ENABLED is false the
+// checkbox markup above is untouched and core consent is recorded as v1, exactly as before.
+//
+// CORE_CONSENT_V2_TEXT is the server's core v2 notice VERBATIM (supa consent-versions.ts, sha256
+// 069c1bfe69b4fb01cb84b8d82db6f4c719ef6d353efdf584d4537a5ec55e67cd). consent-accept stores the
+// sha256 of ITS copy, so a one-character drift here would certify words she never read. When the
+// flag is on, applyCoreConsentText rebuilds the checkbox label from it with the privacy link kept
+// as today, so the label's rendered text equals the server's string exactly.
+//
+// Declared HERE, above the checkbox binding that runs at load, because a const read before its
+// declaration line throws. The server still refuses a v2 grant until counsel approves it
+// (approved:false), so flipping only this flag would make every tick fail, not stamp.
+const CORE_CONSENT_V2_ENABLED = false;
+const CORE_CONSENT_V2_TEXT = "I agree to BioWellth reading my report, and the health details I choose to share (conditions, symptoms, medicines, supplements, hormonal contraception or hormone therapy, and any notes I add), to prepare my wellness interpretation. These are processed by Anthropic to write it. I have read the privacy page.";
+const CORE_CONSENT_VERSION = CORE_CONSENT_V2_ENABLED ? "v2" : "v1";
+
+function applyCoreConsentText(){
+  if(!CORE_CONSENT_V2_ENABLED) return;
+  const row = $("consent-row");
+  const span = row && row.querySelector("span");
+  if(!span) return;
+  const LINK = "privacy page";
+  const at = CORE_CONSENT_V2_TEXT.lastIndexOf(LINK);
+  const a = document.createElement("a");
+  a.href = "/privacy"; a.target = "_blank"; a.rel = "noopener"; a.textContent = LINK;
+  span.textContent = "";
+  span.append(CORE_CONSENT_V2_TEXT.slice(0, at), a, CORE_CONSENT_V2_TEXT.slice(at + LINK.length));
+}
+applyCoreConsentText();
+
 { const c = $("consent-check"); if(c) c.onchange = onConsentTick; }
 applyConsentUI();
 
@@ -4161,7 +4191,8 @@ function isConsentRefusal(err){
  * no insert, no re-stamp), but both callers still guard on CONSENTED so it is not relied on.
  */
 async function recordCoreConsent(){
-  const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: "v1" } });
+  // CONSENT_V2_V4_DARK: "v1" while CORE_CONSENT_V2_ENABLED is false, "v2" when it is on.
+  const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: CORE_CONSENT_VERSION } });
   if(consentRes.error) throw consentRes.error;
   CONSENTED = true;
   applyConsentUI();
@@ -9922,6 +9953,32 @@ const SANA_COPY = {
 const SANA_CONSENT_TEXT_APPROVED = true;
 const SANA_CONSENT_VERSION = "v3.1";
 
+// CONSENT_V2_V4_DARK — Sana consent v4, built DARK. While SANA_CONSENT_V4_ENABLED is false the
+// card shows consentBody (v3.1) and v3.1 is what is sent, exactly as before.
+//
+// SANA_CONSENT_V4_TEXT is the server's sana v4 notice VERBATIM (supa consent-versions.ts, sha256
+// 98e8c45ca85d7ef334675584464cfb02fd0b25babeb0cba26486f2087e39d640). When the flag is on it is the
+// card body, v4 is the version sent, and sanaConsentGranted reads the VERSION as well as the
+// action, so a woman whose latest Sana grant is v3.1 is asked again before she chats. The server
+// refuses a v4 grant until counsel approves it (approved:false).
+const SANA_CONSENT_V4_ENABLED = false;
+const SANA_CONSENT_V4_TEXT = "I understand and agree that when I use Sana, my questions and relevant BioWellth information, including my results and the health details I have shared (conditions, symptoms, medicines, supplements, hormonal contraception or hormone therapy, cycle and period details, and any notes I add), are processed by Microsoft Azure AI Foundry to generate her responses. Sana keeps a short AI-generated profile of what you have told her so she can remember between conversations. Deleting your Sana history removes it.";
+
+function sanaConsentBody(){
+  return SANA_CONSENT_V4_ENABLED ? SANA_CONSENT_V4_TEXT : SANA_COPY.consentBody;
+}
+
+// CONSENT_V2_V4_DARK — THE ONE PLACE a consent version is chosen for a post, by TYPE.
+//
+// FIXES A LIVE DEFECT. consentPost sent SANA_CONSENT_VERSION ("v3.1") for EVERY type, so the
+// Account panel's core withdrawal posted core/v3.1, which the server has no notice for: it
+// answered 400 and she read "We could not record that". Core now sends the core version in force.
+function consentVersionFor(type){
+  if(type === "core") return CORE_CONSENT_VERSION;
+  if(type === "sana") return SANA_CONSENT_V4_ENABLED ? "v4" : SANA_CONSENT_VERSION;
+  return null;
+}
+
 // SANA_SSE_PARSER_V1 START
 // Frame parser for the agent SSE stream. Pure apart from its own buffer, and
 // extracted by scripts/test-sse-parser.mjs from THIS file so the test exercises
@@ -10128,13 +10185,15 @@ let SANA_CONSENT_STATE = null;   // null unknown, true granted, false not grante
 async function sanaConsentGranted(){
   if(SANA_CONSENT_STATE !== null) return SANA_CONSENT_STATE;
   try{
+    // CONSENT_V2_V4_DARK: with v4 on, the version is read too and only a v4 grant counts.
     const { data, error } = await sb.from("consent_events")
-      .select("action, occurred_at")
+      .select(SANA_CONSENT_V4_ENABLED ? "action, occurred_at, consent_version" : "action, occurred_at")
       .eq("consent_type", "sana")
       .order("occurred_at", { ascending: false })
       .limit(1);
     if(error) throw error;
-    SANA_CONSENT_STATE = !!(data && data[0] && data[0].action === "granted");
+    SANA_CONSENT_STATE = !!(data && data[0] && data[0].action === "granted" &&
+      (!SANA_CONSENT_V4_ENABLED || data[0].consent_version === "v4"));
   }catch(e){
     // Unknown, not granted. The screen is shown again rather than skipped.
     SANA_CONSENT_STATE = false;
@@ -10280,7 +10339,7 @@ function sanaAskConsent(){
     mount.innerHTML =
       '<div class="sana-consent-card">' +
         '<div class="sana-consent-h">' + esc(SANA_COPY.consentTitle) + '</div>' +
-        '<p class="sana-consent-b">' + esc(SANA_COPY.consentBody) + '</p>' +
+        '<p class="sana-consent-b">' + esc(sanaConsentBody()) + '</p>' +
         '<div class="sana-consent-actions">' +
           '<button class="sana-send" id="sana-consent-yes" type="button">' + esc(SANA_COPY.consentAgree) + '</button>' +
           '<button class="btn-ghost" id="sana-consent-no" type="button">' + esc(SANA_COPY.consentDecline) + '</button>' +
@@ -10308,7 +10367,10 @@ function sanaAskConsent(){
 // the notice text is still with counsel would trap a user inside a consent she
 // wants out of, which is the opposite of what the gate is for. The server takes
 // the same position in handleV3.
-async function consentPost(type, action){
+//
+// CONSENT_V2_V4_DARK: the VERSION is the caller's, chosen by consentVersionFor(type). It used to be
+// SANA_CONSENT_VERSION for every type, which is the core-withdrawal defect described there.
+async function consentPost(type, action, version){
   if(action === "granted" && !SANA_CONSENT_TEXT_APPROVED) return false;
   try{
     const { data: sess } = await sb.auth.getSession();
@@ -10317,7 +10379,7 @@ async function consentPost(type, action){
     const res = await fetch(SUPABASE_URL + "/functions/v1/consent-accept", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": SUPABASE_ANON_KEY },
-      body: JSON.stringify({ consent_type: type, consent_version: SANA_CONSENT_VERSION,
+      body: JSON.stringify({ consent_type: type, consent_version: version,
                              action: action, source_surface: "web" }),
     });
     return res.ok;
@@ -10367,7 +10429,7 @@ async function renderConsentControls(){
     const b = $(id); if(!b) return;
     b.onclick = async ()=>{
       b.disabled = true;
-      const ok = await consentPost(type, "withdrawn");
+      const ok = await consentPost(type, "withdrawn", consentVersionFor(type));
       const m = $("wd-msg");
       if(m) m.textContent = ok ? SANA_COPY.wdDone : SANA_COPY.wdFailed;
       if(ok){ if(type === "sana") SANA_CONSENT_STATE = false; await renderConsentControls(); }
@@ -10381,7 +10443,7 @@ async function renderConsentControls(){
 // The grant path. Kept as its own name because the consent screen reads better
 // calling it, but it is the same poster underneath.
 async function sanaStampConsent(action){
-  return await consentPost("sana", action);
+  return await consentPost("sana", action, consentVersionFor("sana"));
 }
 
 async function sanaSend(){

@@ -574,6 +574,10 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
   const CONSENT_SRC = [extract("onb2GatesClear"), extract("onb2Open"), extract("recordCoreConsent"),
                        extract("onConsentTick"), extract("applyConsentUI"), extract("consentReady")].join("\n");
   const FALLBACK = run(extractConst("CONSENT_FALLBACK_COPY"), {}, "CONSENT_FALLBACK_COPY");
+  // CONSENT_V2_V4_DARK, 2026-09-24: recordCoreConsent reads CORE_CONSENT_VERSION. Supplied from the
+  // SHIPPED source, not a literal, so CT-1's "core v1" below still measures the page's flag-off value.
+  const CORE_VERSION = run(extractConst("CORE_CONSENT_V2_ENABLED") + "\n" + extractConst("CORE_CONSENT_VERSION"),
+                           {}, "CORE_CONSENT_VERSION");
   function consentWith({ dobGate = false, invoke }) {
     const modal = el(), track = el(), tg = el(["hidden"]), am = el([]), dz = el(["locked"]);
     const check = { checked: true, disabled: false }, row = { style: {} }, msg = { className: "msg", textContent: "" };
@@ -586,7 +590,7 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
       onb2: { idx: 0, ans: {}, stored: {}, open: false, cards: [], hist: [], firstIdx: 0 },
       onb2Prefill: () => ({}), onb2BuildTrack: () => { log.opened++; }, requestAnimationFrame: () => {},
       document: { getElementById: (id) => ids[id] || null }, $: (id) => ids[id] || null, dz,
-      CONSENT_FALLBACK_COPY: FALLBACK, console: { error() {} },
+      CONSENT_FALLBACK_COPY: FALLBACK, CORE_CONSENT_VERSION: CORE_VERSION, console: { error() {} },
       sb: { functions: { invoke: (name, o) => { log.invokes.push({ name, body: o && o.body }); return invoke(); } },
             from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { about_you_status: null }, error: null }) }) }) }) },
     };
