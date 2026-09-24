@@ -1,4 +1,0 @@
-session: 739b9382
-taken: 2026-09-24T20:41:43Z
-scope: dashboard.html (CONSENT_V2_V4_DARK: CORE_CONSENT_V2_ENABLED + SANA_CONSENT_V4_ENABLED, both false; consentPost version per type = live core-withdrawal fix; sanaConsentGranted reads the version when v4 is on), scripts/test-core-consent-route.mjs, scripts/test-consent-gate.mjs, scripts/test-about-you.mjs (sandbox), scripts/test-consent-v2-v4.mjs (new)
-repos: biowellth-website (supa half pushed as a006cda)
