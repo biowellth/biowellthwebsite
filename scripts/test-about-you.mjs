@@ -10,6 +10,21 @@
 //      close write 'skipped'; finishing writes 'completed'; a completed status is never
 //      downgraded by a later close; never reopens on the next boot or after an upload;
 //      no dob screen; the resume chip never shows.
+//   2  screens in order; the amenorrhea reason; postmenopause writes hormone therapy
+//      and no contraception column; each chip group's exclusive None and Add your own;
+//      B12, folate and Biotin derived from the supplements chosen; an untouched screen
+//      writes nothing; every screen prefilled from stored values.
+//   3  the draw card carries only the per-test questions; its submit body names neither
+//      supplements nor context_note; the lens from stored values; the Tell us about you
+//      link for null and skipped and not completed, opening the same pop-up.
+//   4  Account's Update your health details reopens the pop-up whatever the status.
+//
+// MUTANTS, one per change, each run against a scratch copy via DASH, each valid JS
+// (the mutated function passes node --check), observed 2026-09-23:
+//   1  onb2Open `const force = true;`                     30 -> 26 passed, 4 failed
+//   2  None of these not cleared when another chip is chosen  101 -> 97 passed, 4 failed
+//   3  the link hidden for 'skipped'                        141 -> 140 passed, 1 failed
+//   4  Account's Update reopens without force               150 -> 149 passed, 1 failed
 //
 //   node scripts/test-about-you.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
@@ -511,6 +526,45 @@ function drawWith(profile, { active = true } = {}) {
 // answers saved before Start my reading reach the reading: they are on her profile row
 // before submit, and onb2Write keeps PROFILE in step so the card reflects them.
 t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Object\.assign\(PROFILE \|\| \{\}, patch\);/.test(extract("onb2Write")));
+
+// ── CHANGE 4: Account settings ──────────────────────────────────────────────
+{
+  const ACCT_SRC = [extractConst("ONB2_AMEN_REASONS"), extract("onb2Esc"), extract("onb2FindGroup"),
+                    extract("onb2RenderAccount")].join("\n");
+  async function acctWith(row, { consented = true } = {}) {
+    const host = el(["hidden"]); host.innerHTML = "";
+    const btn = { onclick: null }; const acct = el([]); const log = { opened: [] };
+    const ctx = {
+      ONBOARDING_ENABLED: true, CONSENTED: consented, USER: { id: "u" }, ONB2_SCREENS: SCREENS,
+      ONB2_STORED_COLS: "x", onb2Open: (o) => log.opened.push(o),
+      document: { getElementById: (id) => ({ "acct-onb": host, "acct-onb-edit": btn, "account-modal": acct })[id] || null },
+      sb: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }) }) },
+    };
+    await run(ACCT_SRC, ctx, "onb2RenderAccount")();
+    return { host, btn, acct, log };
+  }
+  const a = await acctWith({ about_you_status: "completed", life_stage: "postmenopause", hormone_therapy_status: "not_sure",
+    known_conditions: ["PCOS", "typed one"], supplements: ["b12"], confounders: { biotin_supplementation: true },
+    medications: ["Steroids"], cycle_status: "amenorrheic", amenorrhea_reason: "medical" });
+  t("C4-PANEL-1: the answers panel renders", !a.host.classList.contains("hidden") && a.host.innerHTML.length > 200);
+  t("C4-PANEL-2: its control reads Update your health details", /Update your health details<\/button>/.test(a.host.innerHTML));
+  t("C4-PANEL-3: rows use the flow's own labels, typed entries as she typed them, Biotin from confounders",
+    a.host.innerHTML.includes("My periods stopped over a year ago") && a.host.innerHTML.includes("Not sure") &&
+    a.host.innerHTML.includes("PCOS, typed one") && a.host.innerHTML.includes("Vitamin B12, Biotin") &&
+    a.host.innerHTML.includes("Steroids") && a.host.innerHTML.includes("A medical reason or treatment"));
+  t("C4-PANEL-4: no date of birth or goals row", !/Date of birth|What brings you here/.test(a.host.innerHTML));
+  a.btn.onclick();
+  t("C4-EDIT-1: Update reopens About-you, forced, whatever the status (here completed)",
+    a.log.opened.length === 1 && a.log.opened[0] && a.log.opened[0].force === true);
+  t("C4-EDIT-2: and closes the Account panel first so the two never stack", a.acct.classList.contains("hidden"));
+  const b = await acctWith({}, { consented: false });
+  t("C4-CONSENT: without consent the panel stays hidden", b.host.classList.contains("hidden"));
+  // the forced open ignores a completed status, and finishing it writes completed again
+  const c = await openWith({ status: "completed", force: true });
+  t("C4-EDIT-3: a forced open ignores a completed status", c.shown);
+  t("C4-FINISH: finishing a reopened flow writes completed (onb2Finish writes it unconditionally)",
+    /const ok = await onb2Write\(\{ about_you_status: "completed"/.test(extract("onb2Finish")));
+}
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

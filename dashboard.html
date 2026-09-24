@@ -9656,8 +9656,10 @@ window.addEventListener("resize", ()=>{ if(onb2.open){ onb2Pan(); onb2PlaceOrb()
 /**
  * ONBOARDING_V2 — account settings shows the current answers, editable per
  * field. Reads the same columns the flow writes and nothing else, so settings
- * never becomes a second asker with its own vocabulary; "Edit" reopens the one
- * flow. Renders nothing while dark.
+ * never becomes a second asker with its own vocabulary; "Update your health
+ * details" reopens the one flow. Live since ABOUT_YOU_V1 turned the flag on; it
+ * still renders nothing without consent. Re-rendered by aboutYouAfterClose, so it
+ * shows what was just saved.
  */
 async function onb2RenderAccount(){
   const host = document.getElementById("acct-onb");
@@ -9666,41 +9668,56 @@ async function onb2RenderAccount(){
   let d = {};
   try{
     const { data } = await sb.from("profiles")
-      .select("dob, life_stage, cycle_status, vegetarian_status, hormonal_contraception, typical_cycle_length_days, typical_period_duration_days, health_goals, known_conditions, symptoms, context_note, pregnant_or_postpartum_within_6_months")
+      .select(ONB2_STORED_COLS)
       .eq("id", USER.id).maybeSingle();
     d = data || {};
   }catch(_){ d = {}; }
-  const LS = { premenopause:"Periods come fairly predictably", perimenopause:"Periods have become unpredictable",
-               postmenopause:"Periods stopped over a year ago", pregnant:"Pregnant" };
-  const CS = { regular:"Regular", irregular:"Irregular", pcos:"I have PCOS",
-               amenorrheic:"I don't get periods right now", none:"Doesn't apply to me" };
-  const HC = { current:"Yes, currently", ceased_within_12_months:"Stopped within the last year", none:"No" };
-  const list = v => Array.isArray(v) && v.length ? v.join(", ") : null;
+  // ABOUT_YOU_ACCOUNT_V1 — the rows are About-you's screens, labelled from the SAME
+  // tables the pop-up renders from, so settings cannot grow a second vocabulary. Date of
+  // birth and goals are gone: the DOB gate owns dob, and the goals screen was dropped.
+  const optLabel = (id, v)=>{ const sc = ONB2_SCREENS.find(s=> s.id === id);
+    const o = sc && (sc.opts || []).find(x=> x[1] === v); return o ? o[0] : null; };
+  const reason = (ONB2_AMEN_REASONS.find(x=> x[1] === d.amenorrhea_reason) || [null])[0];
+  const groupList = (key, v)=>{
+    if(!Array.isArray(v) || !v.length) return null;
+    const g = onb2FindGroup(key);
+    return v.map(x=>{ const o = g && g.opts.find(p=> p[1] === x); return o ? o[0] : x; }).join(", ");
+  };
+  const supp = (Array.isArray(d.supplements) ? d.supplements.filter(x=> x !== "biotin") : [])
+    .concat(d.confounders && d.confounders.biotin_supplementation === true ? ["biotin"] : []);
   const rows = [
-    ["Date of birth", d.dob || null],
     ["Pregnant or recently pregnant", d.pregnant_or_postpartum_within_6_months == null ? null : (d.pregnant_or_postpartum_within_6_months ? "Yes" : "No")],
-    ["Where you are right now", LS[d.life_stage] || null],
-    ["Your cycle", CS[d.cycle_status] || null],
+    ["Where you are right now", optLabel("life", d.life_stage)],
+    ["Your cycle", optLabel("cyc", d.cycle_status)],
+    ["A reason for no periods", reason],
     ["Usual cycle length", d.typical_cycle_length_days ? d.typical_cycle_length_days + " days" : null],
     ["Period length", d.typical_period_duration_days ? d.typical_period_duration_days + " days" : null],
-    ["Hormonal birth control", HC[d.hormonal_contraception] || null],
+    ["Hormonal birth control", optLabel("hbc", d.hormonal_contraception)],
+    ["Hormone therapy", optLabel("hbc-ht", d.hormone_therapy_status)],
     ["Diet", d.vegetarian_status || null],
-    ["What brings you here", list(d.health_goals)],
-    ["Things to keep in mind", list(d.known_conditions)],
-    ["Symptoms you mentioned", list(d.symptoms)],
+    ["Conditions", groupList("known_conditions", d.known_conditions)],
+    ["Symptoms", groupList("symptoms", d.symptoms)],
+    ["Medicines", groupList("medications", d.medications)],
+    ["Supplements", groupList("supplements", supp.length ? supp : null)],
     ["Your note", d.context_note || null],
   ];
-  let h = '<div class="acct-onb-h">Your answers</div>';
+  let h = '<div class="acct-onb-h">Your health details</div>';
   rows.forEach(r=>{
     // Unanswered reads as "Not answered", never as a value we invented.
     h += '<div class="acct-onb-row"><span class="acct-onb-k">' + onb2Esc(r[0]) + "</span>" +
          '<span class="acct-onb-v">' + onb2Esc(r[1] == null ? "Not answered" : r[1]) + "</span></div>";
   });
-  h += '<button type="button" class="acct-onb-edit" id="acct-onb-edit">Edit your answers</button>';
+  h += '<button type="button" class="acct-onb-edit" id="acct-onb-edit">Update your health details</button>';
   host.innerHTML = h;
   host.classList.remove("hidden");
   const b = document.getElementById("acct-onb-edit");
-  if(b) b.onclick = onb2Open;
+  // ABOUT_YOU_ACCOUNT_V1 — reopens About-you whatever her status, prefilled, and
+  // finishing writes 'completed' (onb2Finish). The Account panel closes first so the
+  // two overlays never stack.
+  if(b) b.onclick = ()=>{
+    const acct = document.getElementById("account-modal"); if(acct) acct.classList.add("hidden");
+    onb2Open({ force: true });
+  };
 }
 
 /**
