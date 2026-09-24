@@ -439,5 +439,78 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   t("C2-PREFILL-4: nothing stored prefills nothing", Object.keys(h.api.onb2Prefill({})).length === 0);
 }
 
+// ── CHANGE 3: the draw card keeps only per-test questions ─────────────────────
+{
+  const at = HTML.indexOf('<div id="up-postfile"');
+  const end = HTML.indexOf('id="ad-start"', at);
+  // Comments stripped before any absence check: the comment that records a removal
+  // names what was removed, and would otherwise read as the thing still being there.
+  const cardRaw = at > 0 && end > at ? HTML.slice(at, end) : "";
+  const card = cardRaw.replace(/<!--[\s\S]*?-->/g, "");
+  t("C3-LOCATE: the draw card markup is located and non-empty", card.length > 1000);
+  const keep = ['id="cyc-lmp"', 'id="cyc-forget"', 'id="cyc-alt"', 'id="cyc-cd"',
+    'data-key="true_fasting_at_draw"', 'data-key="recent_illness_within_4_weeks"',
+    'data-key="acute_stress_within_2_weeks"', 'data-key="hard_training_within_72_hours"'];
+  for (const k of keep) t("C3-KEEP " + k + ": the per-test question is still on the card", card.includes(k));
+  const gone = ['id="cyc-questions"', 'id="cq-preg"', 'id="cq-cycle"', 'id="cq-reason"', 'id="cq-ht"',
+    'id="cyc-lengroup"', 'id="cyc-len"', 'id="cyc-dur"', 'id="ad-supplements"', 'id="ad-supp"', 'id="ad-note"',
+    "Anything you take regularly", "Anything else you take regularly"];
+  for (const g of gone) t("C3-GONE " + g + ": removed from the card", !card.includes(g));
+  const qs = [...card.matchAll(/<div class="bc-q-t"[^>]*>([\s\S]*?)<\/div>/g)].map((m) => m[1].trim());
+  t("C3-ONLY: the card's questions are exactly the four per-test ones", qs.join("|") ===
+    "Was this blood test done fasting?|Were you unwell in the four weeks before this test?|" +
+    "Were you under unusual stress in the two weeks before this test?|Did you do hard exercise in the three days before this test?");
+  t("C3-LINK-MARKUP: the About-you line sits at the top of the card, hidden until status says otherwise",
+    /<div class="bc-card">\s*<button type="button" class="bc-about hidden" id="ad-about">Tell us about you \(2 minutes\)<\/button>/.test(card));
+}
+{
+  const src = extract("submitAboutDraw");
+  t("C3-SUBMIT: the submit body builder names neither supplements nor context_note",
+    /mode:"submit", per_draw_confounders: __ad\.conf \}/.test(src) && !/supplements:|context_note:/.test(src));
+  const init = extract("initAboutDraw");
+  t("C3-HANDLERS: the card wires no supplement chip, note box, commit_between_calls or Biotin set_confounder",
+    init.length > 300 && !/ad-supp|ad-note|commit_between_calls|set_confounder"|biotin/.test(init) && /set_report_confounder/.test(init));
+  t("C3-NOCOMMIT: __adCommit is gone from the page", !/function __adCommit/.test(HTML));
+}
+// the lens and the link, run against stubs
+const DRAW_SRC = [extract("deriveMenstrualFrom"), extract("aboutDrawLensStatus"), extract("aboutDrawRefresh"),
+                  extract("aboutYouAfterClose")].join("\n");
+function drawWith(profile, { active = true } = {}) {
+  const link = el(["hidden"]); const log = { lens: [], opened: [], acct: 0 };
+  const ctx = {
+    PROFILE: profile, window: { __drawBlockActive: active },
+    applyCycleLens: (s) => log.lens.push(s), onb2Open: (o) => log.opened.push(o),
+    onb2RenderAccount: () => { log.acct++; },
+    document: { getElementById: (id) => (id === "ad-about" ? link : null) },
+  };
+  const api = run(DRAW_SRC, ctx, "{ aboutDrawLensStatus, aboutDrawRefresh, aboutYouAfterClose }");
+  return { api, link, log };
+}
+{
+  const a = drawWith({ about_you_status: null }); a.api.aboutDrawRefresh();
+  t("C3-LINK-1: the link shows when about_you_status is null", !a.link.classList.contains("hidden"));
+  const b = drawWith({ about_you_status: "skipped" }); b.api.aboutDrawRefresh();
+  t("C3-LINK-2: the link shows when about_you_status is skipped", !b.link.classList.contains("hidden"));
+  const c = drawWith({ about_you_status: "completed" }); c.api.aboutDrawRefresh();
+  t("C3-LINK-3: the link does not show when about_you_status is completed", c.link.classList.contains("hidden"));
+  a.link.onclick();
+  t("C3-LINK-4: the link opens the same pop-up, forced", a.log.opened.length === 1 && a.log.opened[0] && a.log.opened[0].force === true);
+  t("C3-LENS-1: a stored menstrual_status drives the lens", drawWith({ menstrual_status: "regular" }).api.aboutDrawLensStatus() === "regular");
+  t("C3-LENS-2: without it, stored cycle answers derive it", drawWith({ cycle_status: "pcos" }).api.aboutDrawLensStatus() === "irregular");
+  t("C3-LENS-3: a stored no-periods answer gives the no-periods lens", drawWith({ cycle_status: "amenorrheic" }).api.aboutDrawLensStatus() === null);
+  t("C3-LENS-4: nothing stored gives 'unknown', the last-period question and its fallbacks",
+    drawWith({}).api.aboutDrawLensStatus() === "unknown");
+  const d = drawWith({ about_you_status: "completed", menstrual_status: "pregnant" }); d.api.aboutYouAfterClose();
+  t("C3-AFTER-1: closing About-you re-drives the card from what was saved", d.log.lens.join() === "pregnant" && d.link.classList.contains("hidden"));
+  const e = drawWith({ menstrual_status: "regular" }, { active: false }); e.api.aboutYouAfterClose();
+  t("C3-AFTER-2: and leaves the card alone when no draw card is up", e.log.lens.length === 0);
+  t("C3-AFTER-3: onb2Close calls the after-close hook", /aboutYouAfterClose\(\)/.test(extract("onb2Close")));
+  t("C3-MOUNT: mounting the card drives it from the stored profile", /aboutDrawRefresh\(\);/.test(extract("mountAboutDraw")) &&
+    !/initCycleQuestions/.test(extract("mountAboutDraw")));
+}
+// answers saved before Start my reading reach the reading: they are on her profile row
+// before submit, and onb2Write keeps PROFILE in step so the card reflects them.
+t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Object\.assign\(PROFILE \|\| \{\}, patch\);/.test(extract("onb2Write")));
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

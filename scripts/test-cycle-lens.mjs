@@ -160,7 +160,7 @@ const mkTracked = (id) => (lensEls[id] = { id, _hidden: true, textContent: "",
   value: "", getAttribute(){ return null; }, setAttribute(){}, querySelectorAll(){ return []; },
   addEventListener(){}, appendChild(){}, focus(){},
 });
-["cyc-lens","cyc-cdgroup","cyc-lengroup","cyc-hcgroup","cyc-lmp-label","cyc-heading"].forEach(mkTracked);
+["cyc-lens","cyc-cdgroup","cyc-hcgroup","cyc-lmp-label","cyc-heading","ad-about"].forEach(mkTracked);
 const baseGet = documentStub.getElementById;
 documentStub.getElementById = (id) => (id in lensEls ? lensEls[id] : baseGet(id));
 
@@ -168,19 +168,27 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { let v; try { v = !!c; } catch (e) { v = false; m += " [threw: " + e.message + "]"; }
   return v ? (pass++, console.log("  ok   " + m)) : (fail++, console.log("  FAIL " + m)); };
 
+// RE-POINTED 2026-09-23 (ABOUT_YOU_DRAW_V1). The draw card's four cycle questions
+// (cq*, initCycleQuestions) are gone; the same questions are asked once in About-you,
+// and the lens is driven from the STORED profile by aboutDrawRefresh. Hooks follow.
 const WRAPPED = SRC + "\n;globalThis.__T = {" +
   " lens: (s) => applyCycleLens(s), PROFILE: () => PROFILE," +
   " derive: (a, s) => deriveMenstrualFrom(a, s)," +
-  " cq: () => cq, cqCommit: () => cqCommit(), cqRender: () => cqRender()," +
-  " initQ: () => initCycleQuestions(), onb2Derive: () => onb2DeriveMenstrual(), onb2: () => onb2," +
+  " onb2Derive: () => onb2DeriveMenstrual(), onb2: () => onb2," +
+  " setProfile: (o) => { PROFILE = o; }, lensStatus: () => aboutDrawLensStatus(), refresh: () => aboutDrawRefresh()," +
+  " inPath: (id) => onb2InPath(ONB2_SCREENS.find((x) => x.id === id))," +
+  " patch: (id) => onb2Patch(ONB2_SCREENS.find((x) => x.id === id)), screens: () => ONB2_SCREENS," +
+  " card: (id) => onb2CardHtml(ONB2_SCREENS.find((x) => x.id === id), 0)," +
   "};";
 process.on("unhandledRejection", (err) => { if (!bootError) bootError = err; });
 try { new vm.Script(WRAPPED, { filename: "dashboard-inline.js" }).runInContext(sandbox, { timeout: 20000 }); }
 catch (err) { bootError = bootError || err; }
 await new Promise((r) => setTimeout(r, 250));
+// The boot-loaded PROFILE, read BEFORE any assertion below replaces it with setProfile.
+const P_BOOT = sandbox.__T.PROFILE();
 
 const shown = (id) => !lensEls[id]._hidden;
-const reset = () => { ["cyc-lens","cyc-cdgroup","cyc-lengroup","cyc-hcgroup"].forEach((i) => { lensEls[i]._hidden = true; });
+const reset = () => { ["cyc-lens","cyc-cdgroup","cyc-hcgroup"].forEach((i) => { lensEls[i]._hidden = true; });
                       lensEls["cyc-lmp-label"].textContent = ""; };
 const mode = () => (!shown("cyc-lens") ? "hidden" : (shown("cyc-cdgroup") ? "LMP + cycle day" : "LMP only"));
 
@@ -204,6 +212,8 @@ const cases = [
   [null,             "LMP only"],
   [undefined,        "hidden"],
   ["decline",        "hidden"],
+  // ABOUT_YOU_DRAW_V1 — nothing stored: the last-period question with both fallbacks.
+  ["unknown",        "LMP + cycle day"],
 ];
 for (const [status, want] of cases) {
   reset();
@@ -217,18 +227,25 @@ ok(shown("cyc-lens"), "N-1: null SHOWS the lens (the no-periods answer)");
 ok(!shown("cyc-cdgroup"), "N-2: null hides the cycle-day group, so it is LMP only");
 
 // CYCLE_DAY_ORDER_V1. DOM ORDER, checked against the RAW MARKUP and not the stub.
-// The element stubs above are flat objects keyed by id with no parent and no
-// children, so every ordering and containment question is invisible to them: the
-// cycle day control could move anywhere, or inside a permanently hidden parent,
-// and all 110 assertions would stay green. This one reads the file.
+// RE-POINTED: #cyc-questions is gone. The property it protected is that the cycle-day
+// control never renders ABOVE, or INSIDE, the question it is the fallback for. That
+// question is now the last-period lens, so: after #cyc-lens, and outside it.
 {
+  const iLens = HTML.indexOf('id="cyc-lens"');
   const iCd = HTML.indexOf('id="cyc-cdgroup"');
-  const iQs = HTML.indexOf('id="cyc-questions"');
-  ok(iCd > -1 && iQs > -1 && iCd > iQs,
-     "ORDER-1: #cyc-cdgroup renders AFTER #cyc-questions (cdgroup at " + iCd + ", questions at " + iQs + ")");
+  const between = iLens > -1 && iCd > iLens ? HTML.slice(iLens, iCd) : "";
+  const depth = (between.match(/<div\b/g) || []).length - (between.match(/<\/div>/g) || []).length;
+  ok(iLens > -1 && iCd > iLens,
+     "ORDER-1: #cyc-cdgroup renders AFTER #cyc-lens (cdgroup at " + iCd + ", lens at " + iLens + ")");
+  ok(between.length > 0 && depth <= 0, "ORDER-2: and OUTSIDE it, so hiding the lens cannot hide it by inheritance (depth " + depth + ")");
 }
 reset(); sandbox.__T.lens(undefined);
 ok(!shown("cyc-lens"), "N-3: undefined HIDES the lens (unanswered is not an answer)");
+// ABOUT_YOU_DRAW_V1 — the card never passes undefined: nothing stored becomes "unknown".
+sandbox.__T.setProfile({});
+ok(sandbox.__T.lensStatus() === "unknown", "N-4: with nothing stored the card's lens status is 'unknown', not undefined");
+reset(); sandbox.__T.refresh();
+ok(mode() === "LMP + cycle day", "N-5: so nothing stored shows the last-period question with its fallbacks (got " + mode() + ")");
 
 console.log("\nLABEL");
 reset(); sandbox.__T.lens("postmenopausal");
@@ -239,10 +256,8 @@ ok(lensEls["cyc-lmp-label"].textContent === "When did your last period start?",
    "B-2: every other cycling status keeps the default label");
 
 console.log("\nPROFILE IS SELECTED AND CARRIED");
-const P = sandbox.__T.PROFILE();
+const P = P_BOOT;
 const selectStr = selectArgs.join(" | ");
-// CONTROL: the recorder must have seen a select at all, or every check below is
-// satisfied by an empty string and means nothing.
 ok(selectArgs.length > 0, "P-0: CONTROL — a select() call was recorded (" + selectArgs.length + ")");
 ok(/full_name/.test(selectStr), "P-1: CONTROL — the recorded select is the profiles one");
 for (const col of ["menstrual_status","cycle_status","life_stage",
@@ -254,8 +269,6 @@ for (const col of ["menstrual_status","cycle_status","life_stage",
 
 // ── CYCLE_QUESTIONS_V1 ───────────────────────────────────────────────────────
 console.log("\nTHE PURE HELPER IS THE SAME LOGIC");
-// deriveMenstrualFrom replaced the body of onb2DeriveMenstrual. Pin that the
-// extraction did not change a single branch.
 const D = sandbox.__T.derive;
 const dcases = [
   [{ preg: true }, {}, "pregnant"],
@@ -278,9 +291,6 @@ ok(D({}, { pregnant_or_postpartum_within_6_months: true }) === "pregnant",
    "D-stored: the stored row is the fallback when the answer is absent");
 
 console.log("\nTHE WRAPPER STILL DELEGATES");
-// onb2DeriveMenstrual keeps its name and every existing caller. Prove it is not
-// a stub: it must agree with the helper on the same inputs, including a case
-// where the two could plausibly diverge.
 const O = sandbox.__T.onb2();
 for (const [ans, want] of [
   [{ preg: true }, "pregnant"],
@@ -296,103 +306,107 @@ for (const [ans, want] of [
 }
 O.ans = {}; O.stored = {};
 
-console.log("\nEIGHT STATES: payload and lens mode");
-const cqSet = (preg, cycle, reason, ht) => {
-  const c = sandbox.__T.cq();
-  c.preg = preg; c.cycle = cycle; c.reason = reason || null; c.ht = ht || null;
+// RE-POINTED: EIGHT STATES. The same six answers, now given in About-you. For each:
+// the columns the answered screens write (was: the cqCommit payload), the derived
+// menstrual_status, and the lens the draw card shows from the stored result.
+console.log("\nSIX STATES, ANSWERED IN ABOUT-YOU: payload and lens mode");
+const answerAll = (ans) => {
+  O.ans = ans; O.stored = {};
+  const out = {};
+  for (const id of ["preg","life","cyc","hbc","hbc-ht"]) if (sandbox.__T.inPath(id)) Object.assign(out, sandbox.__T.patch(id));
+  return out;
 };
 const states = [
-  ["Q1 Yes",            "yes",  null,             null, null,
-   { pregnant_or_postpartum_within_6_months: true, life_stage: null, cycle_status: null,
-     menstrual_status: "pregnant", amenorrhea_reason: null, hormone_therapy_status: null }, "LMP only"],
-  ["Regular",           "no",   "regular",        null, "yes",
-   { pregnant_or_postpartum_within_6_months: false, life_stage: "premenopause", cycle_status: "regular",
-     menstrual_status: "regular", amenorrhea_reason: null, hormone_therapy_status: "yes" }, "LMP + cycle day"],
-  ["Irregular or PCOS", "no",   "irregular_pcos", null, "no",
-   { pregnant_or_postpartum_within_6_months: false, life_stage: null, cycle_status: "pcos",
-     menstrual_status: "irregular", amenorrhea_reason: null, hormone_therapy_status: "no" }, "LMP + cycle day"],
-  ["No periods",        "no",   "none",           "breastfeeding", "not_sure",
-   { pregnant_or_postpartum_within_6_months: false, life_stage: null, cycle_status: "none",
-     menstrual_status: null, amenorrhea_reason: "breastfeeding", hormone_therapy_status: "not_sure" }, "LMP only"],
-  ["Perimenopause",     "no",   "perimenopause",  null, null,
-   { pregnant_or_postpartum_within_6_months: false, life_stage: "perimenopause", cycle_status: null,
-     menstrual_status: "perimenopausal", amenorrhea_reason: null, hormone_therapy_status: null }, "LMP + cycle day"],
-  ["Postmenopause",     "no",   "postmenopause",  null, "yes",
-   { pregnant_or_postpartum_within_6_months: false, life_stage: "postmenopause", cycle_status: null,
-     menstrual_status: "postmenopausal", amenorrhea_reason: null, hormone_therapy_status: "yes" }, "LMP only"],
+  ["Q1 Yes",            { preg: true },
+   { pregnant_or_postpartum_within_6_months: true, menstrual_status: "pregnant" }, "LMP only"],
+  ["Regular",           { preg: false, life_stage: "premenopause", cycle_status: "regular", hormonal_contraception: "current" },
+   { pregnant_or_postpartum_within_6_months: false, life_stage: "premenopause", cycle_status: "regular", menstrual_status: "regular",
+     amenorrhea_reason: null, hormonal_contraception: "current", on_hormonal_contraception: true }, "LMP + cycle day"],
+  ["Irregular or PCOS", { preg: false, cycle_status: "pcos", hormonal_contraception: "none" },
+   { pregnant_or_postpartum_within_6_months: false, cycle_status: "pcos", menstrual_status: "irregular",
+     amenorrhea_reason: null, hormonal_contraception: "none", on_hormonal_contraception: false }, "LMP + cycle day"],
+  ["No periods",        { preg: false, cycle_status: "amenorrheic", amen_reason: "breastfeeding" },
+   { pregnant_or_postpartum_within_6_months: false, cycle_status: "amenorrheic", menstrual_status: null,
+     amenorrhea_reason: "breastfeeding" }, "LMP only"],
+  ["Perimenopause",     { preg: false, life_stage: "perimenopause" },
+   { pregnant_or_postpartum_within_6_months: false, life_stage: "perimenopause", menstrual_status: "perimenopausal" }, "LMP + cycle day"],
+  ["Postmenopause",     { preg: false, life_stage: "postmenopause", hormone_therapy_status: "yes" },
+   { pregnant_or_postpartum_within_6_months: false, life_stage: "postmenopause", menstrual_status: "postmenopausal",
+     hormone_therapy_status: "yes" }, "LMP only"],
 ];
-for (const [label, preg, cycle, reason, ht, want, wantMode] of states) {
-  updates.length = 0; reset(); cqSet(preg, cycle, reason, ht);
-  await sandbox.__T.cqCommit();
-  ok(updates.length === 1, "S-" + label + ": exactly one profiles update (got " + updates.length + ")");
-  ok(JSON.stringify(updates[0]) === JSON.stringify(want),
-     "S-" + label + ": payload matches\n         got  " + JSON.stringify(updates[0]) +
-     "\n         want " + JSON.stringify(want));
+const sortKeys = (o) => JSON.stringify(Object.keys(o).sort().reduce((a, k) => (a[k] = o[k], a), {}));
+for (const [label, ans, want, wantMode] of states) {
+  const got = answerAll(ans);
+  ok(sortKeys(got) === sortKeys(want),
+     "S-" + label + ": payload matches\n         got  " + sortKeys(got) + "\n         want " + sortKeys(want));
+  ok(got.menstrual_status === want.menstrual_status, "S-" + label + ": menstrual_status " + String(want.menstrual_status));
+  sandbox.__T.setProfile(Object.assign({}, got)); reset(); sandbox.__T.refresh();
   ok(mode() === wantMode, "S-" + label + ": lens " + wantMode + " (got " + mode() + ")");
 }
 
-console.log("\nPREFER NOT TO SAY AND UNANSWERED WRITE NOTHING");
-// Regression: cqRender used to derive against the LIVE PROFILE, which cqCommit
-// mutates. After answering Regular, switching to Prefer not to say still derived
-// "regular" from the value just written and left the lens open on a withdrawn
-// answer. The snapshot fixes it, and these two assertions run AFTER the six
-// successful writes above precisely so they would catch it again.
-updates.length = 0; reset(); cqSet("no", "decline", null, null);
-await sandbox.__T.cqCommit();
-ok(updates.length === 0, "S-decline: NO profiles update (got " + updates.length + ")");
-ok(mode() === "hidden", "S-decline: the lens stays hidden");
-updates.length = 0; reset(); cqSet(null, null, null, null);
-await sandbox.__T.cqCommit();
-ok(updates.length === 0, "S-none: nothing answered writes nothing (got " + updates.length + ")");
-ok(mode() === "hidden", "S-none: the lens stays hidden");
+// RE-POINTED: "Prefer not to say and unanswered write nothing". There is no Prefer not
+// to say option in About-you; its job there is done by leaving a screen unanswered,
+// which must write nothing. The regression the old pair caught was a lens deriving
+// from a value that no longer described her; here the lens is re-read from the STORED
+// profile every time the pop-up closes, so a changed answer changes the lens.
+console.log("\nUNANSWERED WRITES NOTHING, AND THE LENS FOLLOWS WHAT IS STORED");
+O.ans = {};
+ok(["preg","life","cyc"].every((id) => Object.keys(sandbox.__T.patch(id)).length === 0),
+   "S-decline: an unanswered pregnancy, life stage or cycle screen writes nothing");
+ok(Object.keys(answerAll({})).length === 0, "S-none: nothing answered writes nothing");
+sandbox.__T.setProfile({ menstrual_status: "regular" }); reset(); sandbox.__T.refresh();
+const m1 = mode();
+sandbox.__T.setProfile({ menstrual_status: null, cycle_status: "amenorrheic" }); reset(); sandbox.__T.refresh();
+ok(m1 === "LMP + cycle day" && mode() === "LMP only",
+   "S-follow: a changed stored answer changes the lens (regular -> " + m1 + ", no periods -> " + mode() + ")");
 
-console.log("\nVISIBILITY RULES MATCH THE MOCK");
-const vis = (id) => !lensEls[id] && baseGet(id) ? null : null;
-const qEls = {};
-for (const id of ["cq-cycle","cq-reason","cq-ht","cq-ht-t","cyc-questions"]) qEls[id] = mkTracked(id);
-cqSet("yes", null, null, null); sandbox.__T.cqRender();
-ok(qEls["cq-cycle"]._hidden, "V-1: Q1 Yes hides Q2");
-ok(qEls["cq-reason"]._hidden, "V-2: Q1 Yes hides Q3");
-ok(qEls["cq-ht"]._hidden, "V-3: Q1 Yes hides Q4");
-// The UI clears cq.cycle when Q1 becomes Yes, so V-3 alone passes even with the
-// pregnancy guard removed. Set BOTH and prove the guard itself is doing work.
-cqSet("yes", "regular", null, null); sandbox.__T.cqRender();
-ok(qEls["cq-ht"]._hidden, "V-3b: Q1 Yes hides Q4 even with a cycle answer still set");
-cqSet("yes", "postmenopause", null, null); sandbox.__T.cqRender();
-ok(qEls["cq-ht"]._hidden, "V-3c: and with postmenopause set, which would otherwise show Q4");
-cqSet("yes", null, null, null); sandbox.__T.cqRender();
-cqSet("no", "none", null, null); sandbox.__T.cqRender();
-ok(!qEls["cq-reason"]._hidden, "V-4: No periods shows Q3");
-ok(!qEls["cq-ht"]._hidden, "V-5: No periods shows Q4");
-cqSet("no", "regular", null, null); sandbox.__T.cqRender();
-ok(qEls["cq-reason"]._hidden, "V-6: Regular hides Q3");
-ok(!qEls["cq-ht"]._hidden, "V-7: Regular shows Q4");
-cqSet("no", "decline", null, null); sandbox.__T.cqRender();
-ok(qEls["cq-ht"]._hidden, "V-8: Prefer not to say hides Q4");
-cqSet("no", "postmenopause", null, null); sandbox.__T.cqRender();
-ok(qEls["cq-ht-t"].textContent === "Are you using hormone therapy right now?",
+// RE-POINTED: VISIBILITY RULES. Q1 is the pregnancy screen, Q2 the life and cycle
+// screens, Q3 the amenorrhea reason, Q4 the contraception or hormone therapy screen.
+console.log("\nVISIBILITY RULES, ON THE ABOUT-YOU PATH");
+const inPath = sandbox.__T.inPath;
+O.ans = { preg: true };
+ok(!inPath("life") && !inPath("cyc"), "V-1: pregnancy Yes takes the life and cycle screens off the path");
+ok(!inPath("cyc") && !/Is there a reason/.test(sandbox.__T.card("preg")), "V-2: so the amenorrhea reason is never reached");
+ok(!inPath("hbc-ht"), "V-3: pregnancy Yes never shows the hormone therapy question");
+O.ans = { preg: true, cycle_status: "regular" };
+ok(!inPath("hbc-ht"), "V-3b: even with a cycle answer still set");
+O.ans = { preg: true, life_stage: "postmenopause" };
+ok(!inPath("hbc-ht"), "V-3c: and with postmenopause set, which would otherwise show it");
+O.ans = { preg: false, cycle_status: "amenorrheic" };
+ok(/Is there a reason you know of\?/.test(sandbox.__T.card("cyc")), "V-4: No periods shows the reason question");
+ok(inPath("hbc"), "V-5: No periods keeps the contraception question");
+O.ans = { preg: false, cycle_status: "regular" };
+ok(!/Is there a reason you know of\?/.test(sandbox.__T.card("cyc")), "V-6: Regular hides the reason question");
+ok(inPath("hbc"), "V-7: Regular keeps the contraception question");
+O.ans = { preg: false };
+ok(inPath("hbc") && !inPath("hbc-ht"), "V-8: an unanswered life stage keeps the contraception form, never the hormone therapy one");
+O.ans = { preg: false, life_stage: "postmenopause" };
+ok(inPath("hbc-ht") && !inPath("hbc") && /Are you using hormone therapy right now\?/.test(sandbox.__T.card("hbc-ht")),
    "V-9: Postmenopause uses the hormone-therapy-only wording");
-cqSet("no", "regular", null, null); sandbox.__T.cqRender();
-ok(/hormonal contraception or hormone therapy/.test(qEls["cq-ht-t"].textContent),
-   "V-10: every other answer keeps the full wording");
+O.ans = { preg: false, life_stage: "perimenopause" };
+ok(inPath("hbc") && /hormonal birth control/.test(sandbox.__T.card("hbc")), "V-10: every other answer keeps the contraception wording");
+O.ans = {};
 
 
 // ── CYCLE_DEDUPE_V1 ──────────────────────────────────────────────────────────
 console.log("\nEXACTLY ONE CONTRACEPTION QUESTION EXISTS");
-// Counted in the shipped MARKUP, not in the stubbed DOM. The risk this guards is
-// two questions existing, which no runtime visibility check can see if one of
-// them is hidden in the state you happened to test.
+// RE-POINTED: counted across BOTH surfaces that ask, the draw card's shipped markup and
+// About-you's screen table. The risk is still two askers, which no runtime visibility
+// check can see if one of them is hidden in the state you happened to test.
 const questionText = [...HTML.matchAll(/<div class="bc-q-t"[^>]*>([\s\S]*?)<\/div>/g)]
   .map((m) => m[1].replace(/<[^>]+>/g, "").trim());
 const labelText = [...HTML.matchAll(/<label class="cyc-l"[^>]*>([\s\S]*?)<\/label>/g)]
   .map((m) => m[1].replace(/<[^>]+>/g, "").trim());
 const allAsks = questionText.concat(labelText);
-const contraceptionAsks = allAsks.filter((t) => /contracept/i.test(t));
-ok(allAsks.length > 0, "X-0: CONTROL — questions were found to count (" + allAsks.length + ")");
-ok(contraceptionAsks.length === 1,
-   "X-1: exactly ONE contraception question in the markup (got " + contraceptionAsks.length +
-   ": " + JSON.stringify(contraceptionAsks) + ")");
-ok(/hormone therapy/i.test(contraceptionAsks[0] || ""), "X-2: and it is Q4, the one that writes a column");
+const CONTRA = /contracept|birth control/i;
+const cardAsks = allAsks.filter((t) => CONTRA.test(t));
+const aboutAsks = sandbox.__T.screens().filter((s) => CONTRA.test(s.q));
+ok(allAsks.length > 0, "X-0: CONTROL — draw card questions were found to count (" + allAsks.length + ")");
+ok(cardAsks.length + aboutAsks.length === 1,
+   "X-1: exactly ONE contraception question across the draw card and About-you (card " + cardAsks.length +
+   ", About-you " + aboutAsks.length + ")");
+ok(aboutAsks.length === 1 && aboutAsks[0].key === "hormonal_contraception",
+   "X-2: and it is About-you's, the one that writes hormonal_contraception");
 
 console.log("\nTHE LEGACY CONTROLS ARE GONE");
 ok(!/id="cyc-hcgroup"/.test(HTML), "X-3: no cyc-hcgroup element in the markup");
@@ -407,7 +421,7 @@ console.log("\nTHE HEADING FOLLOWS THE LENS");
 for (const [status, wantHidden] of [
   ["regular", false], ["irregular", false], ["perimenopausal", false],
   ["postmenopausal", false], ["pregnant", false], [null, false],
-  [undefined, true], ["decline", true],
+  [undefined, true], ["decline", true], ["unknown", false],
 ]) {
   reset(); lensEls["cyc-heading"]._hidden = true;
   sandbox.__T.lens(status);

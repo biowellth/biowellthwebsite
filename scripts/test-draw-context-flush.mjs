@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 // DRAW_CONTEXT_FLUSH_V1 -- the buffered supplement tap that used to be lost.
 //
+// RE-POINTED 2026-09-23 (ABOUT_YOU_DRAW_V1). The supplement chips and the note box
+// left the draw card; supplements are asked once in About-you. So the supplement
+// half of this file (STEPS 1-4, and C-8) now pins the opposite, deliberately: the
+// card NEVER sends commit_between_calls, and its submit body carries neither
+// `supplements` nor `context_note`, because process-report writes each only when
+// present and a sent [] used to overwrite what she saved. The confounder half
+// (STEPS 5-8) is unchanged behaviour and unchanged assertions. Before -> after for
+// every changed assertion is listed in the About-you commit and report.
+//
 // THE REGRESSION IT CATCHES: dashboard.html's boot IIFE calls onb2Open(),
 // onb2ResumeChip() and onb2RenderAccount() at top level, but those functions
 // were declared INSIDE renderCompanionChips(), so they do not exist in the
@@ -50,6 +59,7 @@ const mkEl = () => {
 
 const calls = [];
 const rpcCalls = [];
+const invokes = [];
 const profileRow = {
   full_name: "Fresh Tester",
   dob: null,                                   // <-- the fresh-signup state
@@ -109,7 +119,7 @@ const sb = {
   },
   rpc: (name, args) => { rpcCalls.push({ name, args }); return thenable(null); },
   storage: { from: () => ({ upload: async () => { await uploadGate; return { error: null }; }, remove: async () => ({ error: null }) }) },
-  functions: { invoke: async () => ({ data: {}, error: null }) },
+  functions: { invoke: async (name, o) => { invokes.push({ name, body: (o && o.body) || {} }); return { data: {}, error: null }; } },
   channel: () => ({ on(){ return this; }, subscribe(){ return this; } }),
   removeChannel: () => {},
 };
@@ -151,7 +161,8 @@ sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-const WRAPPED = SRC + "\n;globalThis.__T = { ad: () => __ad, commit: () => __adCommit(), handleFile: (f) => handleFile(f) };";
+const WRAPPED = SRC + "\n;globalThis.__T = { ad: () => __ad, handleFile: (f) => handleFile(f)," +
+  " submit: () => submitAboutDraw(), hasAdCommit: () => typeof __adCommit !== 'undefined', rpc: (n, a) => sb.rpc(n, a) };";
 
 let pass = 0, fail = 0;
 // An assertion must never THROW. A crash skips the summary line, and a ledger row
@@ -171,50 +182,53 @@ await tick(250);
 console.log("HARNESS");
 if (bootError) console.log("       boot threw -> " + String(bootError && bootError.message || bootError));
 ok(!bootError, "H-1: the script booted (a broken boot makes every result below meaningless)");
-ok(!!sandbox.__T && !!sandbox.__T.ad(), "H-2: __ad and __adCommit are reachable");
+ok(!!sandbox.__T && !!sandbox.__T.ad() && typeof sandbox.__T.submit === "function",
+   "H-2: __ad and submitAboutDraw are reachable");
 
 // KNOWN-POSITIVE CONTROL. If the recorder cannot record, every zero below is a lie.
-sandbox.__T.ad().supp.add("__control__");
-sandbox.window.__drawReportId = "control-id";
-await sandbox.__T.commit();
+// The app no longer has a commit_between_calls sender to drive, so the recorder is fed
+// through the same sb.rpc the app uses and must count it.
+await sandbox.__T.rpc("commit_between_calls", { p_report_id: "control-id" });
 ok(commits().length === 1, "H-3: CONTROL — the rpc stub records commit_between_calls (got " + commits().length + ")");
-rpcCalls.length = 0; sandbox.window.__drawReportId = null; sandbox.__T.ad().supp.clear();
+rpcCalls.length = 0; sandbox.window.__drawReportId = null;
 
-// ── The real sequence. mountAboutDraw(null, file.name) runs INSIDE handleFile and
-//    clears __ad, so the tap must happen after it and before the insert returns.
-console.log("\nSTEP 1 — tap DURING the upload, before the reportId exists");
+// ── The real sequence. mountAboutDraw(null, file.name) runs INSIDE handleFile, so the
+//    window between it and the insert returning is where the old supplement tap was lost.
+console.log("\nSTEP 1 — the pre-id window");
 const inflight = sandbox.__T.handleFile({ name: "panel.pdf", size: 1024, type: "application/pdf" });
 await tick(80);                                  // mount has run, upload is still open
 ok(sandbox.window.__drawBlockActive === true, "F-1: the About-draw block mounted with no report id");
 ok(sandbox.window.__drawReportId == null, "F-2: precondition — __drawReportId is still null");
-
-sandbox.__T.ad().supp.add("b12");                // the tap
-await sandbox.__T.commit();
 ok(commits().length === 0, "F-3: NO commit_between_calls while the id is null (got " + commits().length + ")");
-ok(sandbox.__T.ad().supp.has("b12"), "F-4: the tap is buffered in __ad rather than discarded");
+ok(!("supp" in sandbox.__T.ad()) && !sandbox.__T.hasAdCommit(),
+   "F-4: the card holds no supplement buffer and no commit sender, so there is nothing to lose (was: the tap is buffered)");
 
 console.log("\nSTEP 2 — the reportId lands through the REAL upload path");
 releaseUpload();
 await tick(200);
 ok(sandbox.window.__drawReportId === REPORT_ID,
    "F-5: handleFile assigned __drawReportId from the reports insert");
-ok(commits().length === 1, "F-6: EXACTLY ONE commit_between_calls fired on the flush (got " + commits().length + ")");
-const first = commits()[0];
-ok(!!first && !!first.args && first.args.p_report_id === REPORT_ID, "F-7: the flush carried the real report id");
-ok(!!first && Array.isArray(first.args.p_supplements) && first.args.p_supplements.includes("b12"),
-   "F-8: the flush carried the buffered supplement (" + JSON.stringify(first && first.args.p_supplements) + ")");
+ok(commits().length === 0, "F-6: NO commit_between_calls fires when the id lands (was: exactly one flush)");
 
-console.log("\nSTEP 3 — a second tap after the id exists");
-sandbox.__T.ad().supp.add("folate");
-await sandbox.__T.commit();
+console.log("\nSTEP 3 — Start my reading on an untouched card");
+invokes.length = 0;
+await sandbox.__T.submit();
 await tick(60);
-ok(commits().length === 2, "F-9: the second tap sends its own call (got " + commits().length + ")");
-const second = commits()[1];
-ok(!!second && second.args.p_supplements.includes("b12") && second.args.p_supplements.includes("folate"),
-   "F-10: the second call carries BOTH supplements, so nothing was dropped");
-ok(commits().length === 2, "F-11: NO duplicate flush — the flush ran once, not once per later tap");
+const sub = invokes.filter((i) => i.name === "process-report" && i.body.mode === "submit");
+ok(sub.length === 1 && sub[0].body.report_id === REPORT_ID, "F-7: the submit carried the real report id (" + sub.length + " submit)");
+ok(!!sub[0] && !("supplements" in sub[0].body) && !("context_note" in sub[0].body),
+   "F-8: the submit body has NO supplements and NO context_note key (keys: " + JSON.stringify(sub[0] && Object.keys(sub[0].body)) + ")");
+ok(!!sub[0] && "per_draw_confounders" in sub[0].body, "F-8 control: the body is the real submit body, it carries per_draw_confounders");
+invokes.length = 0;
+await sandbox.__T.submit();
+await tick(60);
+const sub2 = invokes.filter((i) => i.name === "process-report" && i.body.mode === "submit");
+ok(sub2.length === 1, "F-9: a second submit sends its own call (got " + sub2.length + ")");
+ok(!!sub2[0] && !("supplements" in sub2[0].body) && !("context_note" in sub2[0].body),
+   "F-10: and it carries neither key either");
+ok(commits().length === 0, "F-11: NO commit_between_calls at any point in the session (got " + commits().length + ")");
 
-console.log("\nSTEP 4 — the flush is conditional, not unconditional");
+console.log("\nSTEP 4 — a second upload");
 rpcCalls.length = 0;
 sandbox.window.__drawReportId = null;
 uploadGate = Promise.resolve();
@@ -232,7 +246,6 @@ await inflight.catch(() => {});
 console.log("\nSTEP 5 — a CONFOUNDER tapped in the pre-id window");
 rpcCalls.length = 0;
 sandbox.window.__drawReportId = null;
-sandbox.__T.ad().supp.clear();
 sandbox.__T.ad().conf = {};
 uploadGate = new Promise((r) => { releaseUpload = r; });
 
@@ -254,17 +267,16 @@ ok(!!c1 && c1.args.p_report_id === REPORT_ID, "C-6: the flush carried the real r
 ok(!!c1 && c1.args.p_key === "fasting" && c1.args.p_value === true,
    "C-7: the flush carried the buffered key and value (" + JSON.stringify(c1 && c1.args) + ")");
 
-console.log("\nSTEP 6 — a supplement AND a confounder together");
+console.log("\nSTEP 6 — a confounder alone, where a supplement used to ride with it");
 rpcCalls.length = 0;
 sandbox.window.__drawReportId = null;
 uploadGate = new Promise((r) => { releaseUpload = r; });
 const inflight3 = sandbox.__T.handleFile({ name: "panel4.pdf", size: 1024, type: "application/pdf" });
 await tick(80);
-sandbox.__T.ad().supp.add("b12");
 sandbox.__T.ad().conf["recent_illness"] = false;
 releaseUpload();
 await tick(220);
-ok(commits().length === 1, "C-8: exactly ONE commit_between_calls (got " + commits().length + ")");
+ok(commits().length === 0, "C-8: NO commit_between_calls rides with the confounder flush (was: exactly one) (got " + commits().length + ")");
 ok(confs().length === 1, "C-9: exactly ONE set_report_confounder (got " + confs().length + ")");
 ok(!!confs()[0] && confs()[0].args.p_key === "recent_illness" && confs()[0].args.p_value === false,
    "C-10: the confounder call carries the key and its false value, not a truthiness collapse");

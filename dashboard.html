@@ -283,6 +283,9 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .bc-lead{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);margin-bottom:3px}
 .bc-sublead{font-size:13.5px;color:var(--brown-mid);margin-bottom:16px}
 .bc-card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px 20px 8px;box-shadow:var(--shadow)}
+/* ABOUT_YOU_DRAW_V1 — one plain line at the top of the card, not a second card. */
+.bc-about{display:block;width:100%;text-align:left;font-family:inherit;font-size:14px;font-weight:600;color:var(--teal-dark);background:none;border:0;border-bottom:1px solid var(--brown-light);padding:0 0 12px;margin:0 0 14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.bc-about.hidden{display:none}
 .bc-q{margin-bottom:18px}
 .bc-q-t{font-size:15px;font-weight:600;color:var(--brown);line-height:1.4;margin-bottom:10px}
 .bc-opts{display:flex;gap:9px;flex-wrap:wrap}
@@ -2181,6 +2184,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="bc-lead">A few quick things about this draw</div>
         <div class="bc-sublead">We have started reading your file. Answer these while we do.</div>
         <div class="bc-card">
+          <!-- ABOUT_YOU_DRAW_V1. The one way into About-you from this card, shown only while
+               about_you_status is null or 'skipped'. It opens the same pop-up; answers saved
+               there are on her profile before "Start my reading" releases the reading. -->
+          <button type="button" class="bc-about hidden" id="ad-about">Tell us about you (2 minutes)</button>
           <!-- CYCLE_CAPTURE_V1 (relocated into the DRAW_CONTEXT_SUBMIT_V1 consolidated block) -->
           <div class="cyc-block" style="border-top:none;padding-top:0;margin-top:0">
             <div class="cyc-h" id="cyc-heading">Your cycle</div>
@@ -2191,42 +2198,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
                 <div class="lmp-row"><input class="cyc-date" id="cyc-lmp" type="date"/><button type="button" class="bc-opt" id="cyc-forget">Don't remember</button></div>
                 <div class="cyc-guidance" style="margin-top:5px">Your best guess is fine.</div>
               </div>
-            </div>
-          </div>
-          <div class="cyc-block hidden" id="cyc-questions">
-            <div class="bc-q" id="cq-preg">
-              <div class="bc-q-t">Are you currently pregnant, or have you been pregnant in the last 6 months?</div>
-              <div class="bc-opts" data-cq="preg"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button></div>
-            </div>
-            <div class="bc-q" id="cq-cycle">
-              <div class="bc-q-t">Where are you with your cycle right now?</div>
-              <div class="bc-opts" data-cq="cycle"><button class="bc-opt" type="button" data-val="regular">Regular cycles</button><button class="bc-opt" type="button" data-val="irregular_pcos">Irregular cycles or PCOS</button><button class="bc-opt" type="button" data-val="none">No periods at the moment</button><button class="bc-opt" type="button" data-val="perimenopause">Perimenopause</button><button class="bc-opt" type="button" data-val="postmenopause">Postmenopause</button><button class="bc-opt" type="button" data-val="decline">Prefer not to say</button></div>
-            </div>
-            <div class="bc-q hidden" id="cq-reason">
-              <div class="bc-q-t">Is there a reason you know of?</div>
-              <div class="bc-opts" data-cq="reason"><button class="bc-opt" type="button" data-val="hormonal_contraception">Hormonal contraception</button><button class="bc-opt" type="button" data-val="breastfeeding">Breastfeeding</button><button class="bc-opt" type="button" data-val="medical">A medical reason or treatment</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
-            </div>
-            <div class="bc-q hidden" id="cq-ht" style="margin-bottom:2px">
-              <div class="bc-q-t" id="cq-ht-t">Are you using hormonal contraception or hormone therapy right now?</div>
-              <div class="bc-opts" data-cq="ht"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="not_sure">Not sure</button></div>
-            </div>
-          </div>
-          <!-- CYCLE_CAPTURE_V2. The group applyCycleUI already toggles on `cycling` and
-               which, until now, did not exist in the markup at all, so that line was
-               inert. Both questions are OPTIONAL and blank means skip: collectCycle
-               omits the key entirely rather than sending null or a default.
-
-               Each one renders only when we do not already hold a valid integer, so a
-               woman who has answered is never asked twice. The bounds match supa
-               migration 0015, which CHECKs 15 to 90 and 1 to 15. -->
-          <div id="cyc-lengroup" class="hidden">
-            <div class="cyc-cd" id="cyc-len-q">
-              <label class="cyc-l" for="cyc-len">About how long is your usual cycle?</label>
-              <input class="cyc-num" id="cyc-len" type="number" inputmode="numeric" min="15" max="90"/>
-            </div>
-            <div class="cyc-cd" id="cyc-dur-q">
-              <label class="cyc-l" for="cyc-dur">About how many days does your period last?</label>
-              <input class="cyc-num" id="cyc-dur" type="number" inputmode="numeric" min="1" max="15"/>
             </div>
           </div>
           <!-- CYCLE_DAY_ORDER_V1. Lifted out of #cyc-lens and placed AFTER #cyc-questions,
@@ -2247,26 +2218,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
             <div class="bc-q"><div class="bc-q-t">Were you under unusual stress in the two weeks before this test?</div><div class="bc-opts" data-key="acute_stress_within_2_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
             <div class="bc-q" style="margin-bottom:2px"><div class="bc-q-t">Did you do hard exercise in the three days before this test?</div><div class="bc-opts" data-key="hard_training_within_72_hours"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
           </div>
-          <div class="cyc-block" id="ad-supplements">
-            <div class="bc-extra" style="margin-top:2px">
-              <div class="bc-extra-h">Anything you take regularly? A quick tap helps us read your vitamins right.</div>
-              <div class="bc-supp" id="ad-supp">
-                <button class="bc-sp" type="button" data-v="iron">Iron</button>
-                <button class="bc-sp" type="button" data-v="b12">Vitamin B12</button>
-                <button class="bc-sp" type="button" data-v="folate">Folate</button>
-                <button class="bc-sp" type="button" data-v="vitamin_d">Vitamin D</button>
-                <button class="bc-sp" type="button" data-v="omega3">Omega 3</button>
-                <button class="bc-sp" type="button" data-v="multivitamin">Multivitamin</button>
-                <button class="bc-sp" type="button" data-v="probiotic">Probiotic</button>
-                <button class="bc-sp bc-biotin" type="button" data-v="biotin" data-confounder="1">Biotin</button>
-                <button class="bc-sp" type="button" data-v="thyroid medication">Thyroid medication</button>
-                <button class="bc-sp" type="button" data-v="hormonal contraception or HRT">Contraception or HRT</button>
-                <button class="bc-sp" type="button" data-v="none of these" data-sentinel="1">None of these</button>
-              </div>
-              <div class="bc-note-l">Anything else you take regularly?</div>
-              <input class="bc-note" id="ad-note" type="text" maxlength="500" placeholder="A brand or medicine name is fine"/>
-            </div>
-          </div>
+          <!-- ABOUT_YOU_DRAW_V1. The supplement chips and the "Anything else you take regularly?" box
+               that stood here are gone. Supplements and medicines are properties of HER, asked once
+               in About-you; this card keeps only what describes THIS test. -->
           <div class="ad-submit">
             <div class="bc-err-card hidden" id="ad-error"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><div class="bc-err-t">We could not save your answers. Tap to try again.</div></div>
             <button class="bc-start" type="button" id="ad-start">Start my reading</button>
@@ -3710,18 +3664,15 @@ function applyCycleLens(status){
     // return, or a declined status would leave the cycle day control on screen.
     const cdOut = document.getElementById("cyc-cdgroup");
     if(cdOut) cdOut.classList.add("hidden");
-    // CYCLE_CAPTURE_V2. #cyc-lengroup sits outside #cyc-lens for the same reason
-    // #cyc-cdgroup does, so it needs the same explicit hide before the early
-    // return. Without it a declined status leaves both cycle questions on screen,
-    // which is precisely the bug CYCLE_DAY_ORDER_V1 fixed for its sibling.
-    const lenOut = document.getElementById("cyc-lengroup");
-    if(lenOut) lenOut.classList.add("hidden");
+    // The #cyc-lengroup hide that stood here went with the group (ABOUT_YOU_DRAW_V1):
+    // typical cycle and period length are asked once, in About-you.
     return;
   }
-  const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal");
+  // ABOUT_YOU_DRAW_V1 — "unknown" is aboutDrawLensStatus's NOTHING STORED. She may well
+  // be cycling, so she gets the last-period question with both fallbacks, the cycle-day
+  // alternative included, rather than the narrower lens a known status would earn.
+  const cycling = (status === "regular" || status === "irregular" || status === "perimenopausal" || status === "unknown");
   const cd = document.getElementById("cyc-cdgroup"); if(cd) cd.classList.toggle("hidden", !cycling);
-  const len = document.getElementById("cyc-lengroup"); if(len) len.classList.toggle("hidden", !cycling);
-  applyCycleLenGate();   // CYCLE_CAPTURE_V2, per question, on top of the group toggle
   const lbl = document.getElementById("cyc-lmp-label");
   if(lbl) lbl.textContent = (status === "postmenopausal") ? "When did your last period start, if you remember" : "When did your last period start?";
 }
@@ -3765,17 +3716,9 @@ function clientTimeZone(){
 // comes back null and the question renders. `!v` would have done the same thing here
 // by accident and the wrong thing the day a bound starts at 0.
 const cycInRange = (v,lo,hi)=>{ const n=parseInt(((v==null?"":v)+"").trim(),10); return (Number.isInteger(n)&&n>=lo&&n<=hi)?n:null; };
-// Bounds are supa migration 0015's CHECK constraints, not numbers chosen here.
-const CYC_LEN_MIN = 15, CYC_LEN_MAX = 90, CYC_DUR_MIN = 1, CYC_DUR_MAX = 15;
-
-// Each question renders only when we do NOT already hold a valid integer for it.
-// PROFILE is the boot read, widened by CYCLE_READ_V1 to carry both columns.
-function cycNeedsLen(){ return cycInRange((PROFILE||{}).typical_cycle_length_days, CYC_LEN_MIN, CYC_LEN_MAX) == null; }
-function cycNeedsDur(){ return cycInRange((PROFILE||{}).typical_period_duration_days, CYC_DUR_MIN, CYC_DUR_MAX) == null; }
-function applyCycleLenGate(){
-  const q1 = document.getElementById("cyc-len-q"); if(q1) q1.classList.toggle("hidden", !cycNeedsLen());
-  const q2 = document.getElementById("cyc-dur-q"); if(q2) q2.classList.toggle("hidden", !cycNeedsDur());
-}
+// ABOUT_YOU_DRAW_V1 — cycNeedsLen, cycNeedsDur, applyCycleLenGate and the length bounds
+// went with the two length questions. About-you asks them once, with the same 15 to 90
+// and 1 to 15 bounds (onb2Int in onb2Patch), which are supa migration 0015's CHECKs.
 
 function collectCycle(){
   const out = {};
@@ -3795,12 +3738,10 @@ function collectCycle(){
   // asker per column is the rule. process-report still accepts them, so nothing
   // server side changed; this client simply stops sending them.
   //
-  // CORRECTED 2026-09-13. Two of the five came BACK, above: the onboarding flow
-  // that was going to ask them is behind ONBOARDING_ENABLED, which is false, so
-  // between 2026-09-02 and today NOTHING asked, and both columns are null for
-  // every user. One asker per column still holds; this card is now that asker for
-  // the two, and it only asks when we do not already hold an answer, so it cannot
-  // become a second asker if onboarding is ever switched on.
+  // CORRECTED 2026-09-13, and SUPERSEDED 2026-09-23. Two of the five, the typical
+  // cycle and period lengths, came back to this card on 2026-09-13 because the flow
+  // meant to ask them was dark. It is live now (ABOUT_YOU_V1) and asks them once, so
+  // they have left this card again. One asker per column.
   //
   // WHAT REMAINS HERE IS GENUINELY PER-DRAW and cannot move: lmp_date_before_draw,
   // cycle_day_at_draw and cycle_context_declined describe THIS blood draw, not
@@ -3810,23 +3751,9 @@ function collectCycle(){
     const lmpV = (document.getElementById("cyc-lmp")||{}).value; const today = new Date().toISOString().slice(0,10);
     if(lmpV && lmpV <= today) out.lmp_date_before_draw = lmpV;
     const cd = inRange((document.getElementById("cyc-cd")||{}).value, 1, 120); if(cd!=null) out.cycle_day_at_draw = cd;
-    // CYCLE_CAPTURE_V2. The two durable columns, asked here because nothing else
-    // asks them: ONBOARDING_ENABLED is false and the per-draw card stopped sending
-    // them on 2026-09-02, so they are null for every user. bb derives period_end_date
-    // from the duration, and without it phaseForDay falls back to Menstrual being
-    // days 1 to 5 for everyone, so a woman who bleeds seven days is told Follicular
-    // on day 6.
-    //
-    // ONLY WHEN ASKED. A hidden question is a question we did not put to her, so its
-    // input is not read: sending the stored value back would be a write we invented.
-    if(cycNeedsLen()){
-      const cl = inRange((document.getElementById("cyc-len")||{}).value, CYC_LEN_MIN, CYC_LEN_MAX);
-      if(cl!=null) out.typical_cycle_length_days = cl;   // blank or invalid: key omitted, never null
-    }
-    if(cycNeedsDur()){
-      const du = inRange((document.getElementById("cyc-dur")||{}).value, CYC_DUR_MIN, CYC_DUR_MAX);
-      if(du!=null) out.typical_period_duration_days = du;
-    }
+    // ABOUT_YOU_DRAW_V1 — typical_cycle_length_days and typical_period_duration_days are
+    // no longer collected here. They describe HER and About-you asks them once (the cyc
+    // screen's steppers). This card no longer has the inputs, so it never sends the keys.
   }
   return out;
 }
@@ -3838,14 +3765,11 @@ initCycleCapture();
 // my reading" sends ONE process-report submit-mode invoke with the complete final state, which wins per
 // key via Brief A's jsonb-merge, stamps draw_context_submitted_at, and flips the interpretation window.
 // The reveal poll is HELD while this block is up + unsubmitted (amendment 1) — submit is the only door.
-const __ad = { conf:{}, supp:new Set(), biotin:false, noteTimer:null, wired:false };
-async function __adCommit(){
-  // DRAW_CONTEXT_SUBMIT_V1 — report-scoped; skipped until the reportId lands (buffered in __ad, resent
-  // by submit's complete state). Pre-reportId taps not captured for abandoners; window is seconds.
-  if(!window.__drawReportId) return;
-  try{ await sb.rpc("commit_between_calls", { p_report_id: window.__drawReportId, p_supplements: [...__ad.supp], p_context_note: (document.getElementById("ad-note")||{}).value || null }); }
-  catch(e){ console.error("[about] commit_between_calls (non-fatal):", e); }
-}
+// ABOUT_YOU_DRAW_V1 — the card's own state is the four per-test confounders and nothing
+// else. The supplement set, the Biotin flag, the note timer and __adCommit (the
+// commit_between_calls sender) went with the supplement chips and the free-text box.
+// Supplements, Biotin and the note are asked once in About-you and written there.
+const __ad = { conf:{}, wired:false };
 function initAboutDraw(){
   if(__ad.wired) return; __ad.wired = true;
   document.querySelectorAll("#ad-confounders .bc-opts").forEach(grp=>{
@@ -3867,31 +3791,6 @@ function initAboutDraw(){
       };
     });
   });
-  document.querySelectorAll("#ad-supp .bc-sp").forEach(btn=>{
-    btn.onclick = async ()=>{
-      const v = btn.getAttribute("data-v");
-      if(btn.getAttribute("data-confounder")){
-        const on = !btn.classList.contains("sel"); btn.classList.toggle("sel", on); __ad.biotin = on;
-        // biotin is profile-scoped (set_confounder, no report_id) and NOT carried by submit's body, so it
-        // fires immediately regardless of reportId — gating it would silently drop a completer's answer.
-        try{ await sb.rpc("set_confounder", { p_key:"biotin_supplementation", p_value:on }); }catch(e){ console.error("[about] biotin (non-fatal):", e); }
-        return;
-      }
-      if(btn.getAttribute("data-sentinel")){
-        const on = !btn.classList.contains("sel");
-        if(on){ __ad.supp.clear(); document.querySelectorAll("#ad-supp .bc-sp").forEach(b=>{ if(b!==btn) b.classList.remove("sel"); }); btn.classList.add("sel"); }
-        else { btn.classList.remove("sel"); }
-        __adCommit(); return;
-      }
-      const none = document.querySelector('#ad-supp .bc-sp[data-sentinel]');
-      const on = !btn.classList.contains("sel");
-      if(on){ if(none) none.classList.remove("sel"); __ad.supp.add(v); btn.classList.add("sel"); }
-      else { __ad.supp.delete(v); btn.classList.remove("sel"); }
-      __adCommit();
-    };
-  });
-  const note = document.getElementById("ad-note");
-  if(note) note.oninput = ()=>{ if(__ad.noteTimer) clearTimeout(__ad.noteTimer); __ad.noteTimer = setTimeout(__adCommit, 700); };
   const start = document.getElementById("ad-start");
   if(start) start.onclick = submitAboutDraw;
 }
@@ -3931,155 +3830,57 @@ function resetToPreFile(){
   const fi = document.getElementById("file"); if(fi) fi.value = "";
 }
 
-// ── CYCLE_QUESTIONS_V1 ───────────────────────────────────────────────────────
-// Four questions, asked once, only when the profile has no menstrual_status.
-//
-// They live on the upload card because that is where she already is and the
-// answers change how THIS panel reads. Each answer writes immediately rather
-// than at submit, because an abandoner's answer is still true.
-//
-// All six columns move together on every write. `menstrual_status` is DERIVED
-// and the engine PREFERS it over cycle_status, so writing one without the other
-// would let a stale value outrank the fresh answer. Lockstep, or not at all.
-const cq = { preg:null, cycle:null, reason:null, ht:null };
-// The profile AS IT WAS when the questions mounted. Deriving against the live
-// PROFILE is wrong: cqCommit writes into it, so answering Regular and then
-// changing to "Prefer not to say" would still derive "regular" from the value we
-// had just stored, and the lens would stay open on an answer she withdrew. The
-// snapshot makes the session's answers the only moving part.
-let cqStored = {};
-
-const CQ_WRITES = {
-  regular:        { life_stage: "premenopause", cycle_status: "regular" },
-  irregular_pcos: { cycle_status: "pcos" },
-  none:           { cycle_status: "none" },
-  perimenopause:  { life_stage: "perimenopause" },
-  postmenopause:  { life_stage: "postmenopause" },
-  decline:        {},
-};
-
-// Q4 is asked for every cycle answer except "Prefer not to say", and never when
-// Q1 is Yes. Pregnancy is its own hormonal state.
-function cqShowHormone(){
-  if(cq.preg === "yes") return false;
-  return !!cq.cycle && cq.cycle !== "decline";
-}
-
-function cqAns(){
-  const a = {};
-  if(cq.preg === "yes") a.preg = true;
-  else if(cq.preg === "no") a.preg = false;
-  if(cq.preg !== "yes") Object.assign(a, CQ_WRITES[cq.cycle] || {});
-  return a;
-}
-
-function cqPayload(derived){
-  const p = {
-    pregnant_or_postpartum_within_6_months: null,
-    life_stage: null,
-    cycle_status: null,
-    menstrual_status: (derived === undefined) ? null : derived,
-    amenorrhea_reason: null,
-    hormone_therapy_status: null,
-  };
-  if(cq.preg === "yes") p.pregnant_or_postpartum_within_6_months = true;
-  else {
-    if(cq.preg === "no") p.pregnant_or_postpartum_within_6_months = false;
-    Object.assign(p, CQ_WRITES[cq.cycle] || {});
-  }
-  if(cq.cycle === "none" && cq.reason) p.amenorrhea_reason = cq.reason;
-  if(cqShowHormone() && cq.ht) p.hormone_therapy_status = cq.ht;
-  return p;
-}
-
-// "Prefer not to say" writes nothing. Nothing answered writes nothing either.
-function cqShouldWrite(){
-  return cq.preg === "yes" || (!!cq.cycle && cq.cycle !== "decline");
-}
-
-function cqRender(){
-  const pregYes = cq.preg === "yes";
-  const el = (id)=>document.getElementById(id);
-  const t = (id, hide)=>{ const e = el(id); if(e) e.classList.toggle("hidden", hide); };
-  t("cq-cycle", pregYes);
-  t("cq-reason", pregYes || cq.cycle !== "none");
-  t("cq-ht", !cqShowHormone());
-  const ht = el("cq-ht-t");
-  if(ht) ht.textContent = (cq.cycle === "postmenopause" && !pregYes)
-    ? "Are you using hormone therapy right now?"
-    : "Are you using hormonal contraception or hormone therapy right now?";
-  return deriveMenstrualFrom(cqAns(), cqStored);
-}
-
-async function cqCommit(){
-  const derived = cqRender();
-  applyCycleLens(derived);
-  if(!cqShouldWrite()) return null;
-  const payload = cqPayload(derived);
-  try{
-    await sb.from("profiles").update(payload).eq("id", USER.id);
-    PROFILE = Object.assign(PROFILE || {}, payload);
-  }catch(e){ console.error("[cycle] profile update (non-fatal):", e); }
-  return payload;
-}
-
-function cqClear(group){
-  document.querySelectorAll('.bc-opts[data-cq="' + group + '"] .bc-opt').forEach(b=>b.classList.remove("sel"));
-}
-
-function initCycleQuestions(){
-  const block = document.getElementById("cyc-questions");
-  if(!block) return;
-  // Asked once. A profile that already carries a status never sees these.
-  const unknown = !PROFILE || PROFILE.menstrual_status == null;
-  block.classList.toggle("hidden", !unknown);
-  if(!unknown) return;
-  cqStored = Object.assign({}, PROFILE || {});
-  if(block.getAttribute("data-wired")) return;
-  block.setAttribute("data-wired", "1");
-  document.querySelectorAll('#cyc-questions .bc-opts[data-cq]').forEach(grp=>{
-    const g = grp.getAttribute("data-cq");
-    grp.querySelectorAll(".bc-opt").forEach(btn=>{
-      btn.onclick = ()=>{
-        const val = btn.getAttribute("data-val");
-        grp.querySelectorAll(".bc-opt").forEach(b=>b.classList.toggle("sel", b===btn));
-        if(g === "preg"){
-          cq.preg = val;
-          if(val === "yes"){ cq.cycle = null; cq.reason = null; cq.ht = null;
-            cqClear("cycle"); cqClear("reason"); cqClear("ht"); }
-        } else if(g === "cycle"){
-          cq.cycle = val;
-          if(val !== "none"){ cq.reason = null; cqClear("reason"); }
-          if(val === "decline"){ cq.ht = null; cqClear("ht"); }
-        } else if(g === "reason"){ cq.reason = val; }
-        else if(g === "ht"){ cq.ht = val; }
-        cqCommit();
-      };
-    });
-  });
-  cqRender();
-}
+// ── CYCLE_QUESTIONS_V1 — REMOVED 2026-09-23 (ABOUT_YOU_DRAW_V1) ─────────────────
+// The four questions that stood here (pregnancy, cycle status, amenorrhea reason,
+// contraception or hormone therapy) describe HER, not this test, and are asked once in
+// About-you. deriveMenstrualFrom, which they shared with onboarding, stays: About-you
+// and the last-period lens below both use it.
 
 async function mountAboutDraw(reportId, fileName){
   window.__drawReportId = reportId; window.__drawBlockActive = true; window.__drawReady = null;
-  __ad.conf = {}; __ad.supp = new Set(); __ad.biotin = false;
+  __ad.conf = {};
   const fn = document.getElementById("up-fname"); if(fn) fn.textContent = fileName || "your file";
   const pre = document.getElementById("up-prefile"); if(pre) pre.classList.add("hidden");
   const post = document.getElementById("up-postfile"); if(post) post.classList.remove("hidden");
   initAboutDraw();
-  // LENS_FROM_PROFILE_V2 — drive the lens from the profile we already loaded.
-  //
-  // CORRECTING THE NOTE THAT WAS HERE. It said the lens is driven "by
-  // LENS_FROM_PROFILE_V1 in initCycleCapture, which does its own read". There is
-  // no such thing. `applyCycleLens` had ZERO callers, so the lens was permanently
-  // hidden for every user since the prefill was retired on 2026-09-02. A comment
-  // naming a mechanism that does not exist is worse than no comment, because it
-  // stops the next person looking.
-  //
-  // No extra read: loadProfile already selects menstrual_status. A null status
-  // means we have never asked, and the questions handle that case.
-  if(PROFILE && PROFILE.menstrual_status != null) applyCycleLens(PROFILE.menstrual_status);
-  initCycleQuestions();
+  aboutDrawRefresh();
+}
+
+/**
+ * ABOUT_YOU_DRAW_V1 — the two things on this card that depend on who she is, driven
+ * from the STORED profile and re-run whenever About-you closes, so an answer saved in
+ * the pop-up shows here at once.
+ *
+ * THE LAST-PERIOD LENS. menstrual_status when stored; otherwise derived from the other
+ * stored cycle answers, with the same deriveMenstrualFrom About-you writes through. Its
+ * three results each mean something different to the lens:
+ *   a status             -> the lens for that status, exactly as before
+ *   null                 -> she has no periods: the LMP-only lens (LENS_FROM_PROFILE_V2)
+ *   undefined (nothing)  -> NOTHING STORED: the last-period question with both of its
+ *                           fallbacks, "Don't remember" and the cycle-day alternative
+ *
+ * THE LINK. "Tell us about you (2 minutes)" shows while about_you_status is null or
+ * 'skipped', and never once it is 'completed'.
+ */
+function aboutDrawLensStatus(){
+  const p = PROFILE || {};
+  if(p.menstrual_status != null) return p.menstrual_status;
+  const d = deriveMenstrualFrom({}, p);
+  return d === undefined ? "unknown" : d;
+}
+function aboutDrawRefresh(){
+  applyCycleLens(aboutDrawLensStatus());
+  const link = document.getElementById("ad-about");
+  if(link){
+    const st = PROFILE && PROFILE.about_you_status;
+    link.classList.toggle("hidden", !(st == null || st === "skipped"));
+    link.onclick = ()=> onb2Open({ force: true });
+  }
+}
+/** Called by onb2Close. Re-render what reads the answers, only while the card is up. */
+function aboutYouAfterClose(){
+  if(window.__drawBlockActive) aboutDrawRefresh();
+  if(typeof onb2RenderAccount === "function") onb2RenderAccount();
 }
 function drawReadyAck(kind){
   window.__drawReady = { kind };
@@ -4309,21 +4110,18 @@ async function submitAboutDraw(){
   if(err) err.classList.add("hidden");
   btn.disabled = true; btn.classList.remove("retry"); btn.textContent = "Starting your reading";
   const cyc = collectCycle();
-  const body = Object.assign({ report_id: window.__drawReportId, mode:"submit", per_draw_confounders: __ad.conf, supplements: [...__ad.supp], context_note: (document.getElementById("ad-note")||{}).value || null }, cyc);
+  // ABOUT_YOU_DRAW_V1 — the body carries the per-test answers only. supplements and
+  // context_note are NOT sent: process-report's submit mode writes each only when it is
+  // present (supa process-report/index.ts:234, :241), so omitting them leaves what
+  // About-you saved on her profile untouched. Sending [] used to overwrite it.
+  const body = Object.assign({ report_id: window.__drawReportId, mode:"submit", per_draw_confounders: __ad.conf }, cyc);
   try{
     const r = await sb.functions.invoke("process-report", { body });
     if(r && r.error) throw r.error;
     // DRAW_CONTEXT_SUBMIT_V1 — mirror the just-submitted draw context into the client caches the
-    // clarify dedup reads. submit-mode writes the DB (supp_b12/folate via commit, per-draw confounders
-    // via merge), but supplementAnswered() reads PROFILE.supp_* and renderClarify reads
-    // window.__rdReportConf / PROFILE.confounders — both loaded at page init, hence STALE relative to
-    // this submit. Mirroring here closes the stale-cache asymmetry so the reveal's clarify does not
-    // re-ask what this draw already answered (flow2 B12 re-ask, diagnosis case (c)).
-    const __subSupp = [...__ad.supp];
-    if(__subSupp.includes("b12")) PROFILE.supp_b12 = true;
-    if(__subSupp.includes("folate")) PROFILE.supp_folate = true;
-    PROFILE.supp_status_updated_at = new Date().toISOString();
-    PROFILE.supplements = __subSupp;
+    // clarify dedup reads, which were loaded at page init and are stale relative to this submit.
+    // Only the per-draw confounders are mirrored now; the supplement answers are About-you's and
+    // onb2Write already keeps PROFILE in step with them.
     window.__rdReportConf = Object.assign({}, window.__rdReportConf || {}, __ad.conf);
     window.__drawBlockActive = false;
     const post = document.getElementById("up-postfile");
@@ -4353,7 +4151,7 @@ async function handleFile(file){
   // DRAW_CONTEXT_SUBMIT_V1 — collapse the dropzone into the file row (uploading) and mount the About
   // block IMMEDIATELY on file-pick, before consent + storage upload + report insert resolve, so there
   // is no silent gap. The block mounts with a null reportId; taps buffer into __ad and report-scoped
-  // per-tap RPCs are skipped until the reportId lands (see initAboutDraw / __adCommit). Submit is held
+  // per-tap RPCs are skipped until the reportId lands (see initAboutDraw). Submit is held
   // disabled with a quiet "Preparing your file" until then.
   mountAboutDraw(null, file.name);
   setUploadRowState("uploading");
@@ -4389,19 +4187,9 @@ async function handleFile(file){
     if(ins.error) throw ins.error;
     const reportId = ins.data.id;
     window.__drawReportId = reportId;   // reportId is durable — per-tap RPCs go live, submit unlocks
-    // B12_DEFERRED_FLUSH_V1 — the buffered taps, sent once the id exists.
-    //
-    // The block mounts on file-pick, BEFORE the reports insert, so a supplement tap
-    // made in that window hit __adCommit's `if(!window.__drawReportId) return;` and
-    // was dropped. It sat in __ad until submit, and an abandoner never submitted, so
-    // the tap was lost. The window is seconds but it is the FIRST thing a user
-    // touches on that screen.
-    //
-    // The guard in __adCommit is UNCHANGED and is still the only thing deciding
-    // whether the RPC is safe to make. This just calls it once at the moment the
-    // condition it guards on becomes true.
-    if(__ad.supp.size || (((document.getElementById("ad-note")||{}).value)||"").trim()){ __adCommit(); }
-    // CONFOUNDER_DEFERRED_FLUSH_V1 — the same hole, the other field.
+    // B12_DEFERRED_FLUSH_V1 — REMOVED 2026-09-23 (ABOUT_YOU_DRAW_V1) with the supplement
+    // chips and note box it flushed. There is nothing supplement-shaped left to buffer.
+    // CONFOUNDER_DEFERRED_FLUSH_V1 — the buffered per-test taps, sent once the id exists.
     //
     // Confounders go through set_report_confounder, a SEPARATE per-tap path with its
     // own `if(window.__drawReportId)` guard in the click handler. That guard is
@@ -4411,7 +4199,7 @@ async function handleFile(file){
     // any other rather than skipped. Object.entries({}) is empty, so an untouched
     // block sends nothing and needs no extra condition.
     //
-    // Not awaited, matching __adCommit above, so the upload pipeline is not held on
+    // Not awaited, so the upload pipeline is not held on
     // N round trips. Sequential inside the IIFE so the calls cannot interleave.
     (async ()=>{ for(const [k,v] of Object.entries(__ad.conf)){
       try{ await sb.rpc("set_report_confounder", { p_report_id: reportId, p_key:k, p_value:v }); }
@@ -9048,8 +8836,12 @@ function onb2Prefill(s){
     a.preg = s.pregnant_or_postpartum_within_6_months;
   if(["premenopause","perimenopause","postmenopause"].indexOf(s.life_stage) >= 0) a.life_stage = s.life_stage;
   if(s.cycle_status != null) a.cycle_status = s.cycle_status;
-  if(s.typical_cycle_length_days != null) a.cycle_len = String(s.typical_cycle_length_days);
-  if(s.typical_period_duration_days != null) a.period_dur = String(s.typical_period_duration_days);
+  // Only a VALID stored integer prefills, by the same explicit parse and the same 0015
+  // bounds onb2Patch writes with. A stored 0 or a non-integer is not an answer, so the
+  // stepper opens empty and she is asked, which is what CYCLE_CAPTURE_V2 pinned on the
+  // draw card before these questions moved here.
+  const cl = onb2Int(s.typical_cycle_length_days, 15, 90); if(cl != null) a.cycle_len = String(cl);
+  const du = onb2Int(s.typical_period_duration_days, 1, 15); if(du != null) a.period_dur = String(du);
   if(s.amenorrhea_reason != null) a.amen_reason = s.amenorrhea_reason;
   if(s.hormonal_contraception != null) a.hormonal_contraception = s.hormonal_contraception;
   if(typeof s.hormonal_contraception_ceased_at === "string" && s.hormonal_contraception_ceased_at.length >= 7)
