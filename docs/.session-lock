@@ -1,5 +1,0 @@
-session: eee06945
-taken: 2026-09-23T23:38:15Z
-scope: dashboard.html (ONBOARDING_V2 -> About-you once-only pop-up, screens, draw card per-test only, account panel), scripts/test-about-you.mjs, existing draw-card/onb2 test scripts re-pointed
-repos: biowellth-website only
-note: four commits, then push (= deploy).
