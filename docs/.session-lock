@@ -1,5 +1,0 @@
-session: eee06945
-taken: 2026-09-24T00:14:10Z
-scope: dashboard.html (record core consent on tick, then open About-you; shared recordCoreConsent), scripts/test-about-you.mjs
-repos: biowellth-website only
-note: one commit, then push (= deploy).
