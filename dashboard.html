@@ -3601,15 +3601,19 @@ async function dobGateContinue(){
 
 { const b = $("dob-gate-go"); if(b) b.onclick = dobGateContinue; }
 
-function consentReady(){ if(DOB_GATE_OPEN) return false; const c = $("consent-check"); return !!(CONSENTED || (c && c.checked)); }
+// CONSENT_ON_TICK_V1 — while the tick's consent write is in flight nothing may start an upload.
+// Declared HERE, above applyConsentUI's first top-level call, not beside onConsentTick: a `let`
+// read before its line runs is a ReferenceError, and that call runs during boot.
+let CONSENT_PENDING = false;
+function consentReady(){ if(DOB_GATE_OPEN || CONSENT_PENDING) return false; const c = $("consent-check"); return !!(CONSENTED || (c && c.checked)); }
 function applyConsentUI(){
   const row = $("consent-row"), c = $("consent-check");
   if(DOB_GATE_OPEN){ if(row) row.style.display = "none"; dz.classList.add("locked"); return; }
   if(CONSENTED){ if(row) row.style.display = "none"; dz.classList.remove("locked"); return; }
   if(row) row.style.display = "";
-  dz.classList.toggle("locked", !(c && c.checked));
+  dz.classList.toggle("locked", CONSENT_PENDING || !(c && c.checked));
 }
-{ const c = $("consent-check"); if(c) c.onchange = applyConsentUI; }
+{ const c = $("consent-check"); if(c) c.onchange = onConsentTick; }
 applyConsentUI();
 
 dz.onclick = ()=>{ if(!consentReady()) return; fileInput.click(); };
@@ -4143,6 +4147,63 @@ function isConsentRefusal(err){
   return code === "403" || code === "42501" || m.includes("row-level security") || m.includes("row level security");
 }
 
+/**
+ * The ONE place core consent is recorded. Throws on refusal; sets CONSENTED only on success.
+ *
+ * CORE_CONSENT_V3_ROUTE. Sending consent_type selects consent-accept's v3 path, which writes an
+ * APPEND-ONLY row to consent_events carrying notice_sha256 of the exact text she agreed to, and
+ * THEN mirrors profiles.consent_accepted_at for core, which is what the four-layer upload gate
+ * reads. Without consent_type the call takes the legacy path, which updates that mutable column
+ * and records nothing else. The version is unchanged: core v1 is the approved notice and its text
+ * is byte-identical to the checkbox above, so no wording moves and nothing goes to counsel.
+ *
+ * A repeat grant of the same version is a no-op server side (stampPlanV3 -> noop_same_version,
+ * no insert, no re-stamp), but both callers still guard on CONSENTED so it is not relied on.
+ */
+async function recordCoreConsent(){
+  const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: "v1" } });
+  if(consentRes.error) throw consentRes.error;
+  CONSENTED = true;
+  applyConsentUI();
+}
+
+/**
+ * CONSENT_ON_TICK_V1 — ticking the box RECORDS consent, then opens About-you, so a new user
+ * answers About-you before her first upload rather than after it.
+ *
+ * Held while in flight: the checkbox is disabled and the dropzone stays locked (CONSENT_PENDING,
+ * read by consentReady and applyConsentUI), so no file can be picked mid-write. About-you opens
+ * only AFTER the write resolves, because onb2Open requires CONSENTED and a pop-up that saves
+ * health details must not open on a consent that has not been recorded.
+ *
+ * On refusal the box is unticked and the existing fallback copy shows in the pre-file message
+ * line (#upload-msg, which handleFile already uses for its own messages; #up-ferr lives in the
+ * post-file block and is not on screen yet). Nothing opens.
+ *
+ * Unticking after consent is recorded does nothing new: the row is hidden once CONSENTED, and
+ * withdrawal lives in Account.
+ */
+async function onConsentTick(){
+  const c = $("consent-check");
+  if(CONSENTED || CONSENT_PENDING || !c || !c.checked){ applyConsentUI(); return; }
+  const msg = $("upload-msg");
+  if(msg){ msg.className = "msg"; msg.textContent = ""; }
+  CONSENT_PENDING = true; c.disabled = true;
+  applyConsentUI();
+  let recorded = false;
+  try{ await recordCoreConsent(); recorded = true; }
+  catch(e){ console.error("[consent] core consent not recorded:", e); }
+  finally{ CONSENT_PENDING = false; c.disabled = false; }
+  if(!recorded){
+    c.checked = false;
+    applyConsentUI();
+    if(msg){ msg.className = "msg err"; msg.textContent = CONSENT_FALLBACK_COPY; }
+    return;
+  }
+  applyConsentUI();
+  onb2Open();
+}
+
 async function handleFile(file){
   const msg = $("upload-msg"); msg.className="msg"; msg.textContent="";
   if(file.type!=="application/pdf"){ msg.className="msg err"; msg.textContent="Please upload a PDF."; return; }
@@ -4157,23 +4218,18 @@ async function handleFile(file){
   setUploadRowState("uploading");
   setSubmitPending(true);
 
-  // Consent gate: record consent BEFORE any storage upload or DB write. consent-accept is idempotent,
-  // so a consented profile gets a no-op success. On failure nothing is stored and no model call is made;
-  // roll the row back to the coral error state (Try again -> pre-file).
+  // Consent gate: record consent BEFORE any storage upload or DB write. On failure nothing is stored
+  // and no model call is made; roll the row back to the coral error state (Try again -> pre-file).
   //
-  // CORE_CONSENT_V3_ROUTE. Sending consent_type selects consent-accept's v3 path, which writes an
-  // APPEND-ONLY row to consent_events carrying notice_sha256 of the exact text she agreed to, and
-  // THEN mirrors profiles.consent_accepted_at for core, which is what the four-layer upload gate
-  // reads. Without consent_type the call takes the legacy path, which updates that mutable column
-  // and records nothing else. The version is unchanged: core v1 is the approved notice and its text
-  // is byte-identical to the checkbox above, so no wording moves and nothing goes to counsel.
-  try{
-    const consentRes = await sb.functions.invoke("consent-accept", { body:{ consent_type: "core", consent_version: "v1" } });
-    if(consentRes.error) throw consentRes.error;
-    CONSENTED = true;
-    applyConsentUI();
-  }catch(_){
-    uploadRowFail(CONSENT_FALLBACK_COPY); return;
+  // CONSENT_ON_TICK_V1. Consent is normally recorded when she ticks the box (onConsentTick), so by
+  // the time a file is picked CONSENTED is already true and this block is skipped. It stays for the
+  // one path where it is not: a file picked before the tick's write resolved. Same shared function,
+  // so there is still exactly one consent-accept caller for core.
+  if(!CONSENTED){
+    try{ await recordCoreConsent(); }
+    catch(_){
+      uploadRowFail(CONSENT_FALLBACK_COPY); return;
+    }
   }
 
   $("proc-file").innerHTML = "Reading <strong>"+esc(file.name)+"</strong>";

@@ -25,6 +25,9 @@
 //   2  None of these not cleared when another chip is chosen  101 -> 97 passed, 4 failed
 //   3  the link hidden for 'skipped'                        141 -> 140 passed, 1 failed
 //   4  Account's Update reopens without force               150 -> 149 passed, 1 failed
+//   CONSENT_ON_TICK_V1 (2026-09-24): consent recorded on the tick, then About-you.
+//      mutant: `CONSENTED = true; onb2Open();` before the write resolves
+//                                                          174 -> 168 passed, 6 failed
 //
 //   node scripts/test-about-you.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
@@ -564,6 +567,94 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
   t("C4-EDIT-3: a forced open ignores a completed status", c.shown);
   t("C4-FINISH: finishing a reopened flow writes completed (onb2Finish writes it unconditionally)",
     /const ok = await onb2Write\(\{ about_you_status: "completed"/.test(extract("onb2Finish")));
+}
+
+// ── CONSENT_ON_TICK_V1: consent recorded on the tick, About-you right after ─────────
+{
+  const CONSENT_SRC = [extract("onb2GatesClear"), extract("onb2Open"), extract("recordCoreConsent"),
+                       extract("onConsentTick"), extract("applyConsentUI"), extract("consentReady")].join("\n");
+  const FALLBACK = run(extractConst("CONSENT_FALLBACK_COPY"), {}, "CONSENT_FALLBACK_COPY");
+  function consentWith({ dobGate = false, invoke }) {
+    const modal = el(), track = el(), tg = el(["hidden"]), am = el([]), dz = el(["locked"]);
+    const check = { checked: true, disabled: false }, row = { style: {} }, msg = { className: "msg", textContent: "" };
+    const log = { invokes: [], opened: 0 };
+    const ids = { "onb2-modal": modal, "onb2-track": track, "tester-gate": tg, "age-modal": am,
+                  "consent-check": check, "consent-row": row, "upload-msg": msg };
+    const ctx = {
+      ONBOARDING_ENABLED: true, CONSENTED: false, CONSENT_PENDING: false, DOB_GATE_OPEN: dobGate,
+      PROFILE: { about_you_status: null }, USER: { id: "u" }, ONB2_SCREENS: SCREENS, ONB2_STORED_COLS: "x",
+      onb2: { idx: 0, ans: {}, stored: {}, open: false, cards: [], hist: [], firstIdx: 0 },
+      onb2Prefill: () => ({}), onb2BuildTrack: () => { log.opened++; }, requestAnimationFrame: () => {},
+      document: { getElementById: (id) => ids[id] || null }, $: (id) => ids[id] || null, dz,
+      CONSENT_FALLBACK_COPY: FALLBACK, console: { error() {} },
+      sb: { functions: { invoke: (name, o) => { log.invokes.push({ name, body: o && o.body }); return invoke(); } },
+            from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { about_you_status: null }, error: null }) }) }) }) },
+    };
+    const api = run(CONSENT_SRC, ctx,
+      "{ onConsentTick, consentReady, get CONSENTED(){ return CONSENTED; }, get PENDING(){ return CONSENT_PENDING; } }");
+    return { api, ctx, modal, dz, check, msg, log };
+  }
+  const ok200 = () => Promise.resolve({ data: { ok: true }, error: null });
+
+  // tick records consent once, then opens About-you
+  {
+    const h = consentWith({ invoke: ok200 });
+    await h.api.onConsentTick();
+    t("CT-1: the tick calls consent-accept once, core v1",
+      h.log.invokes.length === 1 && h.log.invokes[0].name === "consent-accept" &&
+      JSON.stringify(h.log.invokes[0].body) === '{"consent_type":"core","consent_version":"v1"}');
+    t("CT-2: and sets CONSENTED", h.api.CONSENTED === true);
+    t("CT-3: then opens About-you", h.modal.classList.contains("show") && h.log.opened === 1);
+    t("CT-4: the dropzone is unlocked once consent is recorded", !h.dz.classList.contains("locked"));
+    await h.api.onConsentTick();
+    t("CT-5: ticking again once consented calls consent-accept no second time", h.log.invokes.length === 1);
+  }
+  // held while in flight, and About-you only after the write resolves
+  {
+    let release; const pending = new Promise((r) => { release = r; });
+    const h = consentWith({ invoke: () => pending.then(() => ({ data: { ok: true }, error: null })) });
+    const p = h.api.onConsentTick();
+    await new Promise((r) => setTimeout(r, 5));
+    t("CT-HOLD-1: while the write is in flight the checkbox is disabled", h.check.disabled === true && h.api.PENDING === true);
+    t("CT-HOLD-2: the dropzone stays locked and no file can be picked", h.dz.classList.contains("locked") && h.api.consentReady() === false);
+    t("CT-ORDER-1: About-you has NOT opened before the consent write resolves",
+      !h.modal.classList.contains("show") && h.log.opened === 0 && h.api.CONSENTED === false);
+    release(); await p;
+    t("CT-ORDER-2: it opens once the write resolves", h.modal.classList.contains("show") && h.log.opened === 1);
+    t("CT-HOLD-3: and the hold is released", h.check.disabled === false && h.api.PENDING === false);
+  }
+  // a refused consent-accept: untick, fallback copy, nothing opens
+  for (const [label, invoke] of [
+    ["error", () => Promise.resolve({ data: null, error: { message: "refused" } })],
+    ["throw", () => Promise.reject(new Error("network"))],
+  ]) {
+    const h = consentWith({ invoke });
+    await h.api.onConsentTick();
+    t(`CT-FAIL-${label}-1: the box is unticked`, h.check.checked === false);
+    t(`CT-FAIL-${label}-2: the existing fallback copy shows in the pre-file message line`,
+      h.msg.textContent === FALLBACK && h.msg.className === "msg err" && FALLBACK.length > 20);
+    t(`CT-FAIL-${label}-3: nothing opens`, !h.modal.classList.contains("show") && h.log.opened === 0);
+    t(`CT-FAIL-${label}-4: CONSENTED stays false and the dropzone stays locked`, h.api.CONSENTED === false && h.dz.classList.contains("locked"));
+  }
+  // the DOB gate still comes first
+  {
+    const h = consentWith({ dobGate: true, invoke: ok200 });
+    await h.api.onConsentTick();
+    t("CT-DOB: with the DOB gate open, About-you does not open even after consent", !h.modal.classList.contains("show") && h.log.opened === 0);
+  }
+  // handleFile calls the shared function only while CONSENTED is still false
+  {
+    const hf = extract("handleFile");
+    t("CT-HF-1: handleFile records consent only inside if(!CONSENTED)",
+      /if\(!CONSENTED\)\{\s*try\{ await recordCoreConsent\(\); \}/.test(hf));
+    t("CT-HF-2: and never invokes consent-accept itself", hf.length > 1000 && !/invoke\("consent-accept"/.test(hf));
+    t("CT-HF-3: the page has exactly one core consent-accept invoke, inside recordCoreConsent",
+      (HTML.match(/invoke\("consent-accept"/g) || []).length === 1 && /invoke\("consent-accept"/.test(extract("recordCoreConsent")));
+    t("CT-BIND: the checkbox is bound to onConsentTick", /\$\("consent-check"\); if\(c\) c\.onchange = onConsentTick;/.test(HTML));
+    t("CT-TDZ: CONSENT_PENDING is declared before applyConsentUI's first top-level call",
+      HTML.indexOf("let CONSENT_PENDING = false;") > 0 &&
+      HTML.indexOf("let CONSENT_PENDING = false;") < HTML.indexOf("\napplyConsentUI();\n"));
+  }
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
