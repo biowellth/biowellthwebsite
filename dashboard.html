@@ -5432,7 +5432,7 @@ function priorityTitle(x, i){
   const pm = (x && Array.isArray(x.primary_markers) && x.primary_markers[0]) ? x.primary_markers[0] : null;
   const nm = markerName(pm);
   if(nm) return nm;
-  return "Priority " + ((x && typeof x.rank === "number") ? x.rank : (i + 1));
+  return "Priority " + (i + 1);   // PRIORITY_POSITION_V1: display position, never the stored rank
 }
 function gapName(id){ return GAP_MARKER_NAME[id] || id; }
 function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
@@ -6375,7 +6375,7 @@ function priorityCards(p){
     if(!x) return;
     const prompt = reportUrgencyPrompt(x);
     const chip = '<span class="report-tag '+(prompt?"prompt":"routine")+'">'+(prompt?"Raise soon":"Routine")+'</span>';
-    const fallbackName = "Priority "+(typeof x.rank==="number"?x.rank:(i+1));
+    const fallbackName = "Priority "+(i+1);   // PRIORITY_POSITION_V1: display position, never the stored rank
     // EMPTY_PROSE_V1 — reportProse stays on MODEL PROSE ONLY. A derived title is a marker name or
     // the "Priority N" label, neither of which is prose, so it takes a plain esc instead of the
     // dash-rewriting pass. fallbackName is kept as priorityTitle's own last resort, not dropped.
@@ -7572,10 +7572,12 @@ function renderFoundations(p){
   if(!f || !(f.lead || levers.length)){ wrap.classList.add("hidden"); return; }
   wrap.classList.remove("hidden");
 
-  // priority id -> rank (rank field when present, else 1-based order)
+  // priority id -> the number she sees on that card. PRIORITY_POSITION_V1: display position (1-based
+  // order of p.priorities, which renderDashboard has already partitioned), never the stored rank, so
+  // "relates to priority N" names the card she can actually find.
   const rankById = {};
   (Array.isArray(p.priorities)?p.priorities:[]).forEach((x,i)=>{
-    if(x && x.priority_id) rankById[x.priority_id] = (typeof x.rank==="number" ? x.rank : (i+1));
+    if(x && x.priority_id) rankById[x.priority_id] = i + 1;
   });
 
   const leadEl = $("found-lead");
@@ -7717,6 +7719,33 @@ function dropSuppressedQW(list, payload){
     const mk = Array.isArray(x.markers)?x.markers:[];
     if(!mk.length) return true;                 // no class info -> keep (can't classify)
     return !mk.every(id => qwSuppIds.has(id));    // drop iff ALL markers are sensitive-class
+  });
+}
+
+// STRENGTH_CONCERN_V1 (supa docs/followups-2026-09-25.md, item 3). A system cannot be both a concern
+// and a strength on the same page. Measured on a real panel: the headline said her kidneys showed an
+// early strain signal while "What's already strong" said her kidney filtration was working
+// efficiently. Drop any quietly_working entry that cites a marker in the SAME SYSTEM as any primary
+// marker of a RENDERED priority (p.priorities, which renderDashboard has already partitioned).
+//
+// THE MAPPING IS THE ENGINE'S, never invented here: marker_id -> system_id from p.systems[].markers[],
+// the same map chipSysByMarker builds for the priority chips. A marker the map does not know is not
+// guessed: an unmapped priority marker names no system, and an unmapped strength marker cannot
+// collide, so the entry is kept (the same "can't classify -> keep" rule dropSuppressedQW uses).
+function dropConcernSystemQW(list, payload){
+  const sysOf = {};
+  for(const s of (Array.isArray(payload && payload.systems) ? payload.systems : []))
+    for(const m of (Array.isArray(s && s.markers) ? s.markers : [])) if(m && m.marker_id) sysOf[m.marker_id] = s.system_id;
+  const concern = new Set();
+  for(const pr of (Array.isArray(payload && payload.priorities) ? payload.priorities : []))
+    for(const pm of (Array.isArray(pr && pr.primary_markers) ? pr.primary_markers : [])){
+      const sid = pm && sysOf[pm.marker_id];
+      if(sid) concern.add(sid);
+    }
+  if(!concern.size) return Array.isArray(list) ? list : [];
+  return (Array.isArray(list) ? list : []).filter(x => {
+    const mk = Array.isArray(x && x.markers) ? x.markers : [];
+    return !mk.some(id => { const sid = sysOf[id]; return !!sid && concern.has(sid); });
   });
 }
 
@@ -8493,7 +8522,11 @@ async function renderDashboard(p, reportId){
   const pr = Array.isArray(p.priorities)?p.priorities:[];
   $("prios-wrap").classList.toggle("hidden", pr.length===0);
   $("prios").innerHTML = pr.map((x,i)=>{
-    const rank = (typeof x.rank === "number" ? x.rank : (i+1));
+    // PRIORITY_POSITION_V1 (supa docs/followups-2026-09-25.md, item 2). The number she sees is the
+    // card's DISPLAY POSITION, never the stored rank. The worker's PRIORITY_BAND_RECONCILE_V1 drops a
+    // priority after ranking without renumbering, and the sensitive partition above removes more,
+    // so stored ranks can skip (1,2,3,4,6,7 was measured). Order is unchanged: the array order.
+    const rank = i + 1;
     const pm = Array.isArray(x.primary_markers) && x.primary_markers[0] ? x.primary_markers[0] : null;
     const markerLine = pm
       ? [markerName(pm), pm.value, pm.unit].filter(v=>v!==null && v!==undefined && v!=="").join(" ")
@@ -8633,7 +8666,10 @@ async function renderDashboard(p, reportId){
   // up the section's closing-line duty and the section hides on an all-empty list exactly the
   // way it already hides on an empty one. With every finding populated this filter removes
   // nothing and every count below is unchanged.
-  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p)
+  // STRENGTH_CONCERN_V1: a strength in a system a rendered priority names is dropped here, BEFORE
+  // the empty-finding filter and the section toggle, so an all-dropped list hides the section
+  // (heading included) exactly as an empty one already does.
+  const q = dropConcernSystemQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p)
     .filter(x => x && typeof x.finding === "string" && x.finding.trim() !== "");
   $("quiet-wrap").classList.toggle("hidden", q.length===0);
   // Generic verdict intro — names NO systems, so it is leak-proof by construction
@@ -13832,7 +13868,7 @@ function buildDeck(p, reportId, faceScanConsented){
   // OMITTED when ids are absent or unmatched, never a wrong number.
   const b5Rank = {};
   (Array.isArray(p.priorities) ? p.priorities : []).forEach((x, i) => {
-    if(x && x.priority_id) b5Rank[x.priority_id] = (typeof x.rank === "number" ? x.rank : (i + 1));
+    if(x && x.priority_id) b5Rank[x.priority_id] = i + 1;   // PRIORITY_POSITION_V1: the deck's own pnum is i+1 too
   });
   beats.push(
     '<section class="card">' +

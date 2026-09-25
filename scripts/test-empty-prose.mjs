@@ -125,9 +125,11 @@ const MUTANTS = {
     const more = qw.length>1 ? (" "+(qw.length-1)+" more system"+(qw.length-1===1?" is":"s are")+" quietly steady too.") : "";
     qwHtml = '<ul class="report-bullets"><li>'+reportProse(qw[0].finding || "MUTANT STAND IN SENTENCE.")+more+'</li></ul>';
   } else if(!pr.length`]],
-  fix2: [[`  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p)
+  // STRENGTH_CONCERN_V1 wrapped this line in dropConcernSystemQW. The mutant still reverts ONLY the
+  // empty-finding filter (fix 2); the new system filter stays, so the mutant means what it meant.
+  fix2: [[`  const q = dropConcernSystemQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p)
     .filter(x => x && typeof x.finding === "string" && x.finding.trim() !== "");`,
-           `  const q = dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p);`]],
+           `  const q = dropConcernSystemQW(dropSuppressedQW(Array.isArray(p.quietly_working)?p.quietly_working:[], p), p);`]],
   fix3: [[`'<span class="prio-title">'+esc(priorityTitle(x, i))+'</span></div>'+`,
            `'<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+`]],
   fix4: [[`    .filter(lv => lv && (foundPipe(lv.action || "") || foundPipe(lv.connection || "")));`,
