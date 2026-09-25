@@ -65,5 +65,36 @@ ok(JSON.stringify(now) === JSON.stringify(before), "P-5: every PC_ copy and thre
 { const f = fnSrc(HTML, "pcRenderFailure"); const m = f.replace("Try this report again", "Try again now");
   ok(m !== f && m !== fnSrc(BASE, "pcRenderFailure"), "P-5-MUTANT: a one-word change inside the failure screen is caught"); }
 
+console.log("P-6  the chip tail (Step 6): gated -> being prepared, never a silent timeout; ungated -> unchanged");
+{
+  const grab = (name, kw = "function ") => { const a = HTML.indexOf(kw + name + "("); const e = HTML.indexOf("\n}\n", a); return a < 0 || e < 0 ? "" : HTML.slice(a, e + 2); };
+  const src = grab("esc") + "\n" + (HTML.match(/^const RESCORE_PREPARING = [^\n]+$/m) || [""])[0] + "\n" + grab("rescoreAfterAnswer", "async function ");
+  ok(src.includes("async function rescoreAfterAnswer(") && src.includes("function esc("), "P-6-CONTROL: rescoreAfterAnswer and esc extracted");
+  const { default: vm } = await import("node:vm");
+  async function run(invokeResult, landsAfterMs = null) {
+    const log = { invoked: 0, loads: 0, renders: [], ack: "" };
+    const t0 = Date.now();
+    const ctx = {
+      window: { __rdPayload: { rescored_at: "t0" } },
+      sb: { functions: { invoke: async () => { log.invoked++; if (invokeResult === "throw") throw new Error("x"); return invokeResult; } } },
+      loadPayload: async () => { log.loads++; return landsAfterMs !== null && Date.now() - t0 >= landsAfterMs ? { rescored_at: "t1" } : { rescored_at: "t0" }; },
+      renderDashboard: async (p) => { log.renders.push(p && p.rescored_at); },
+      setTimeout: (f) => setTimeout(f, 0), Date, Promise, String, RegExp, Object,
+    };
+    vm.createContext(ctx);
+    vm.runInContext(src + "\n;globalThis.__f = rescoreAfterAnswer;", ctx);
+    await ctx.__f("r1", { insertAdjacentHTML: (_, h) => { log.ack += h; } });
+    return log;
+  }
+  const g = await run({ data: { ok: true, queued: true, review_gate: true }, error: null });
+  ok(g.invoked === 1 && g.loads === 0 && g.renders.length === 0, "P-6: gated, no poll and no re-render (loads " + g.loads + ", renders " + g.renders.length + ")");
+  ok(g.ack.includes("being prepared") && g.ack.includes("clarify-ack"), "P-6: gated, the being prepared line is added beside her answer");
+  const u = await run({ data: { ok: true, queued: true, review_gate: false }, error: null }, 0);
+  ok(u.loads >= 1 && u.renders.length === 1 && u.renders[0] === "t1" && u.ack === "", "P-6: ungated, the old poll-and-re-render runs and lands the fresh reading");
+  const x = await run("throw", 0);
+  ok(x.loads >= 1 && x.renders.length === 1 && x.ack === "", "P-6: a failed enqueue falls back to the old behaviour, never to a false being prepared");
+  ok(!/—|–/.test((HTML.match(/^const RESCORE_PREPARING = ([^\n]+)$/m) || ["", "—"])[1]), "P-6: the being prepared line has no em dash");
+}
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

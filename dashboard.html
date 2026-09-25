@@ -5694,6 +5694,35 @@ function renderClarify(reportId){
     });
   });
 }
+// REVIEW_GATE_V1 (supa docs/review-gate-phase2-spec.md, Step 6). The shared tail of both chip taps.
+// enqueue-rescore answers review_gate:true when the rescore of this RELEASED report will be HELD for
+// review (the worker stages it and leaves results untouched). Polling for a change that will not come
+// would end in a silent 20-second timeout, so instead she is told the update is being prepared, beside
+// her answer, and keeps seeing the approved reading. Without the flag (the gate off, or the read
+// failed) this is exactly the poll-and-re-render both taps ran before.
+const RESCORE_PREPARING = "Thank you. Your updated reading is being prepared, and you'll see it here once it's ready.";
+async function rescoreAfterAnswer(reportId, ackHost){
+  const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
+  let gated = false;
+  try{
+    const { data } = await sb.functions.invoke("enqueue-rescore", { body: { report_id: reportId } });
+    gated = !!(data && data.review_gate === true);
+  }catch(_){}
+  if(gated){
+    if(ackHost && ackHost.insertAdjacentHTML) ackHost.insertAdjacentHTML("beforeend", '<div class="clarify-ack">'+esc(RESCORE_PREPARING)+'</div>');
+    return;
+  }
+  const deadline = Date.now() + 20000;
+  let fresh = null;
+  while(Date.now() < deadline){
+    await new Promise(r=>setTimeout(r, 1500));
+    const p2 = await loadPayload(reportId);
+    if(p2 && ((p2.rescored_at || null) !== before)){ fresh = p2; break; }
+  }
+  // On success re-render the sharpened read (escalated_soft fades in on a "No"); on timeout,
+  // re-render the current payload so the chip stays cleared and nothing hangs.
+  await renderDashboard(fresh || window.__rdPayload, reportId);
+}
 async function onClarifyTap(marker_id, ans, card, reportId, confounder_id){
   if(confounder_id){ return onConfounderTap(confounder_id, ans, card, reportId); }
   const col = CLARIFY_COL[marker_id];
@@ -5703,6 +5732,7 @@ async function onClarifyTap(marker_id, ans, card, reportId, confounder_id){
   // Captured BEFORE the profiles write below flips it non-null.
   const wasFirst = (PROFILE.supp_status_updated_at == null);
   window.__clarifyAck.set(marker_id, { ans, wasFirst });
+  const __ackHost = card && card.parentNode;   // REVIEW_GATE_V1: captured before the card is replaced
   // 1. immediate voice ack in place of the chip — byte-identical to what renderClarify re-renders
   card.outerHTML = clarifyAckHTML(marker_id, ans, wasFirst);
   // 2. persist to the user's OWN profiles row (RLS own-row update). Reflect locally for suppress.
@@ -5715,18 +5745,8 @@ async function onClarifyTap(marker_id, ans, card, reportId, confounder_id){
   if(!definitive) return;
   // Definitive -> invoke the live enqueue-rescore edge fn (JWT auto-attached), then poll for the
   // sharpened read. The worker claims within seconds (D1 instant-feel trigger); poll covers it.
-  const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
-  try{ await sb.functions.invoke("enqueue-rescore", { body: { report_id: reportId } }); }catch(_){}
-  const deadline = Date.now() + 20000;
-  let fresh = null;
-  while(Date.now() < deadline){
-    await new Promise(r=>setTimeout(r, 1500));
-    const p2 = await loadPayload(reportId);
-    if(p2 && ((p2.rescored_at || null) !== before)){ fresh = p2; break; }
-  }
-  // On success re-render the sharpened read (escalated_soft fades in on a "No"); on timeout,
-  // re-render the current payload so the chip stays cleared and nothing hangs.
-  await renderDashboard(fresh || window.__rdPayload, reportId);
+  // REVIEW_GATE_V1 (Phase 2 Step 6): the enqueue, the poll and the re-render live in rescoreAfterAnswer.
+  await rescoreAfterAnswer(reportId, __ackHost);
 }
 // Confounder chip tap (fasting, this build). COPY RULE: promise COMPLETENESS, never IMPROVEMENT.
 // The score can DROP when she answers (her held-out markers may be elevated) and that must read as
@@ -5741,6 +5761,7 @@ async function onConfounderTap(confounder_id, ans, card, reportId){
     : ans === "no"
       ? "Thanks. A fasting retest would let us read those properly."
       : "No problem. We will leave those out for now.";
+  const __ackHost = card && card.parentNode;   // REVIEW_GATE_V1: captured before the card is replaced
   card.outerHTML = '<div class="clarify-ack">'+esc(ackMsg)+'</div>';
   // Reflect locally so the re-render suppresses the chip (key now present).
   // Per-draw keys (0013) persist to THIS report and reflect in the report-scoped store so the chip
@@ -5755,16 +5776,7 @@ async function onConfounderTap(confounder_id, ans, card, reportId){
   }
   if(!definitive) return; // "not sure" -> answered, chip gone, systems stay deferred, no rescore.
   // Definitive -> same rescore tail as the marker chip. "yes" un-defers and completes the picture.
-  const before = (window.__rdPayload && window.__rdPayload.rescored_at) || null;
-  try{ await sb.functions.invoke("enqueue-rescore", { body: { report_id: reportId } }); }catch(_){}
-  const deadline = Date.now() + 20000;
-  let fresh = null;
-  while(Date.now() < deadline){
-    await new Promise(r=>setTimeout(r, 1500));
-    const p2 = await loadPayload(reportId);
-    if(p2 && ((p2.rescored_at || null) !== before)){ fresh = p2; break; }
-  }
-  await renderDashboard(fresh || window.__rdPayload, reportId);
+  await rescoreAfterAnswer(reportId, __ackHost);   // REVIEW_GATE_V1 (Phase 2 Step 6)
 }
 // AMH reveal beat (PCOS safety, Option B). Deterministic from the engine's AMH band, ONLY when
 // flagged (amh_high_pcos = >5 PCOS-pattern, deficient = <0.5 low reserve). AMH is cycle-independent
