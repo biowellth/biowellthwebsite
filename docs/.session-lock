@@ -1,0 +1,4 @@
+session: 739b9382
+taken: 2026-09-25T19:33:14Z
+scope: JOB 1 deploy pending-from-upload (dashboard.html); JOB 2 branch review-flags (review.html, not deployed)
+repos: biowellth-website, biowellth-backend-supa
