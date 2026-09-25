@@ -1,0 +1,4 @@
+session: 65fe5dd4
+taken: 2026-09-25T21:32:11Z
+scope: review-gate copy (dashboard.html #view-pending, PFU_SAVED_H/B, any "checks every report" copy) and the tests that pin it; push to main
+repos: biowellth-website
