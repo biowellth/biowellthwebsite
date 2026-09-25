@@ -227,6 +227,10 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 @keyframes spin{to{transform:rotate(360deg)}}
 #view-processing h1{font-size:22px;margin-bottom:10px}
 #view-processing p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
+/* REVIEW_GATE_V1 (Phase 2 Step 5): the pending view reuses the processing view's layout and tokens. */
+#view-pending{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 140px);text-align:center}
+#view-pending h1{font-size:22px;margin-bottom:10px}
+#view-pending p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
 .proc-err{color:var(--coral-dark)}
 /* PROCESSING_COPY_V1 — terminal failure state. ZERO motion, ZERO reading-language: the spinner is
    removed from the DOM (not hidden) and the headline is REPLACED. The retired render left the
@@ -1154,6 +1158,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .rv-view svg{width:14px;height:14px}
 .rv-status{flex:none;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.04em;padding:6px 12px;border-radius:20px}
 .rv-status.proc{background:rgba(222,160,74,.15);color:#A06F24}
+.rv-status.prep{background:var(--teal-light);color:var(--teal-dark)}   /* REVIEW_GATE_V1: "being prepared" */
 .rv-status.fail{background:rgba(212,124,101,.14);color:#B4593F}
 /* FAILURE_REVISIT_V1 — the failed pill is a real button now (it routes to the failure state), so it
    needs the chrome reset the span never did. Appearance is unchanged. */
@@ -2271,6 +2276,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div id="proc-ask"></div>
   </div>
 
+  <!-- REVIEW_GATE_V1 (supa docs/review-gate-phase2-spec.md, decision 5). Shown ONLY for a report whose
+       status is awaiting_review. Copy is exact from the spec; do not reword it. -->
+  <div id="view-pending" class="hidden">
+    <h1>Your report is being prepared</h1>
+    <p>Our team checks every report before you see it during early access. You'll have it within 24 hours, and we'll email you the moment it's ready.</p>
+  </div>
+
   <div id="view-interim" class="hidden">
     <div class="interim-status"><span class="interim-dot"></span><span class="interim-status-t">Still reading your full results</span></div>
     <div class="interim-sweep"><span></span></div>
@@ -2679,7 +2691,8 @@ function showView(name){
   // companion view would leave the chat behind in a hidden view, and the consent card
   // would render into that hidden view too.
   if(name === "dashboard"){ SANA_MOUNT_ID = "sana-mount"; SANA_CONSENT_MOUNT_ID = "sana-consent"; }
-  ["upload","processing","reveal","dashboard","interim","companion"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
+  // REVIEW_GATE_V1: "pending" is the awaiting_review view (Phase 2 Step 5).
+  ["upload","processing","pending","reveal","dashboard","interim","companion"].forEach(v=>$("view-"+v).classList.toggle("hidden", v!==name));
   ddcPlace(name);   // DDC_AT_REVEAL_V1: the draw-date beat follows her into and out of the reveal
   // "New upload" is a topbar action visible on the main dashboard, hidden during the reveal deck.
   $("btn-new").classList.toggle("hidden", name!=="dashboard");
@@ -2756,9 +2769,13 @@ function renderReportVault(reports){
     }
     // FAILURE_REVISIT_V1: a failed row is TAPPABLE and routes to the same failure state the boot fork
     // renders, so the pill explains itself instead of being a dead label in Account.
+    // REVIEW_GATE_V1 (Phase 2 Step 5): a report held for review reads "being prepared", never
+    // "processing", which would say it is still being read.
     const pill = failed
       ? '<button class="rv-status fail" type="button" data-fail-report="'+esc(r.id)+'">could not be processed</button>'
-      : '<span class="rv-status proc">processing</span>';
+      : (r.status === "awaiting_review"
+          ? '<span class="rv-status prep">being prepared</span>'
+          : '<span class="rv-status proc">processing</span>');
     return '<div class="rv-row muted">'+icon+meta+pill+'</div>';
   }).join("");
   host.innerHTML = '<section class="rv"><div class="rv-head">Your reports</div>'+
@@ -3255,6 +3272,15 @@ async function testerGate(){
   // ONE POLL PER REPORT. pollForResult clears any interval already armed, and the guard skips the
   // call entirely when this report is already the one being watched.
   const __newest = (window.__allReports || [])[0];
+  // REVIEW_GATE_V1 (Phase 2 Step 5): a newest report held for review boots to the pending view and
+  // resumes the poll, which pollTick slows. Held means no results row is readable (supa 0062), so
+  // the doneReportIds guard is the same one the in-flight case uses.
+  if(__newest && __newest.status === "awaiting_review" &&
+     !(window.__doneReportIds || new Set()).has(__newest.id)){
+    showView("pending");
+    if(__pcPollReportId !== __newest.id) pollForResult(__newest.id);
+    return;
+  }
   if(__newest && (__newest.status === "uploaded" || __newest.status === "processing") &&
      !(window.__doneReportIds || new Set()).has(__newest.id)){
     pcRestoreProcessing();
@@ -3933,7 +3959,10 @@ function aboutYouAfterClose(){
 function drawReadyAck(kind){
   window.__drawReady = { kind };
   const q = document.getElementById("ad-quiet");
-  if(q) q.textContent = "Your reading is ready. Press start when you are done.";
+  // REVIEW_GATE_V1: a report held for review is NOT ready, so it must never be told it is.
+  if(q) q.textContent = kind === "pending"
+    ? "Your report is being prepared. Press start when you are done."
+    : "Your reading is ready. Press start when you are done.";
 }
 // ── DRAW_DATE_CONFIRM_V1 ───────────────────────────────────────────────────────────────────────
 // reports.lmp_date_before_draw is NAMED for the draw, but the upload card asks a present-tense
@@ -4149,6 +4178,7 @@ function navigateAfterSubmit(){
   mountDrawDateConfirm();
   const rd = window.__drawReady;
   if(rd && rd.kind === "reveal") showView("reveal");
+  else if(rd && rd.kind === "pending") showView("pending");   // REVIEW_GATE_V1
   else if(rd && rd.kind === "interim") showView("interim");
   else showView("processing");
 }
@@ -4683,6 +4713,17 @@ async function pollTick(reportId){
     // `transcribed` is the flag the worker sets beside it; it is read for the retry decision only.
     const { data: rep } = await sb.from("reports")
       .select("status, transcribed, created_at").eq("id", reportId).limit(1).maybeSingle();
+    // REVIEW_GATE_V1 (Phase 2 Step 5). Held for review: the pending view, and NEVER the overdue state.
+    // This branch runs BEFORE the overdue bail below, so the 25-minute timer cannot fire on a report
+    // the team is checking. The poll stays alive, slowed to PC_PENDING_POLL_MS, so the release lands
+    // in an open tab: once released, results become readable and the first branch above renders it.
+    // While the draw-context form is mounted and unsubmitted, she keeps it; submit then lands here.
+    if(rep && rep.status === "awaiting_review"){
+      if(window.__drawBlockActive){ drawReadyAck("pending"); }
+      else showView("pending");
+      pcSlowPollForPending(reportId);
+      return false;
+    }
     if(rep && rep.status === "error"){
       // PROCESSING_COPY_V1: terminal. The retired render kept the spinner turning under a
       // "Reading your report" headline and appended a coral line saying it had failed, so she was
@@ -4739,7 +4780,23 @@ async function pollTick(reportId){
   }
 }
 
+// REVIEW_GATE_V1 (Phase 2 Step 5). A held report can wait up to a day, so its poll drops from every
+// 3 seconds to once a minute. Idempotent: re-arming only when the running interval is the fast one.
+// pcResumePoll still ticks immediately on focus, which is when a release is most likely to be seen.
+const PC_PENDING_POLL_MS = 60 * 1000;
+let __pcPollIsSlow = false;
+function pcSlowPollForPending(reportId){
+  if(__pcPollIsSlow && __pcPollReportId === reportId) return;
+  if(pollTimer) clearInterval(pollTimer);
+  __pcPollReportId = reportId;
+  __pcPollIsSlow = true;
+  pollTimer = setInterval(async ()=>{
+    if(await pollTick(reportId)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; __pcPollIsSlow = false; }
+  }, PC_PENDING_POLL_MS);
+}
+
 function pollForResult(reportId){
+  __pcPollIsSlow = false;   // REVIEW_GATE_V1: a fresh poll starts fast
   if(pollTimer) clearInterval(pollTimer);
   __pcPollReportId = reportId;
   __pcPollStart = Date.now();   // PROCESSING_COPY_V1 fallback clock; created_at is preferred
@@ -4768,6 +4825,7 @@ async function pcResumePoll(){
   // Still in flight: replace the (possibly throttled) timer with a fresh one.
   if(__pcPollReportId === rid){
     if(pollTimer) clearInterval(pollTimer);
+    __pcPollIsSlow = false;   // REVIEW_GATE_V1: the fresh timer is fast; a pending tick re-slows it
     pollTimer = setInterval(async ()=>{
       if(await pollTick(rid)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; }
     }, 3000);

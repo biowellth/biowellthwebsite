@@ -29,7 +29,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => (c ? (pass++, console.log("  ok   " + m)) : (fail++, console.log("  FAIL " + m)));
 const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", want " + JSON.stringify(b) + ")");
 
-const VIEWS = ["upload", "processing", "reveal", "dashboard", "interim", "companion"];
+const VIEWS = ["upload", "processing", "pending", "reveal", "dashboard", "interim", "companion"];   // REVIEW_GATE_V1 adds pending
 const BEAT = "Your panel was from";
 
 // ── DOM ────────────────────────────────────────────────────────────────────────────────────────
@@ -127,6 +127,7 @@ async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
   };
 
   const active = new Set();
+  const slow = new Set();   // REVIEW_GATE_V1: the 60s pending poll
   let nextId = 1;
   let bootError = null;
   const document = new Proxy({
@@ -147,8 +148,8 @@ async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
     matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }),
     fetch: async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => "" }),
     setTimeout: (f, ms) => setTimeout(f, Math.min(ms || 0, 50)), clearTimeout,
-    setInterval: (f, ms) => { const id = nextId++; if (ms === 3000) active.add(id); return id; },
-    clearInterval: (id) => { active.delete(id); },
+    setInterval: (f, ms) => { const id = nextId++; if (ms === 3000) active.add(id); if (ms === 60000) slow.add(id); return id; },
+    clearInterval: (id) => { active.delete(id); slow.delete(id); },
     requestAnimationFrame: (f) => setTimeout(f, 0), cancelAnimationFrame() {},
     IntersectionObserver: class { observe() {} disconnect() {} unobserve() {} },
     ResizeObserver: class { observe() {} disconnect() {} },
@@ -172,7 +173,7 @@ async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
   const probe = (expr) => new vm.Script(expr).runInContext(ctx);
   const visible = () => VIEWS.filter((v) => !$el("view-" + v).classList.contains("hidden"));
   return {
-    ctx, els, $el, probe, active, ddcReads, bootError, visible,
+    ctx, els, $el, probe, active, slow, ddcReads, bootError, visible,
     pollId: () => probe("__pcPollReportId"),
     settle: () => new Promise((r) => setTimeout(r, 100)),
   };
@@ -305,6 +306,47 @@ for (const [label, patch] of [["collected_on", { collected_on: null }], ["lmp_da
   await b.settle();
   eq(b.ddcReads.length, 2, "B7: the reveal reads again, because the submit mount found nothing to ask");
   ok(b.$el("ddc").innerHTML.includes(BEAT), "B7: and the beat now renders at the reveal");
+}
+
+// ── (C) REVIEW_GATE_V1, Phase 2 Step 5: a report held for review ─────────────────────────────────
+console.log("REVIEW_GATE_V1");
+const LONG_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();   // 3h, past the 25-minute bail
+{
+  const b = await boot({ reports: [R("r-held", "awaiting_review")], inflight: { status: "awaiting_review", transcribed: true, created_at: LONG_AGO } });
+  ok(!b.bootError, "C1: boot with a held report completes without throwing" + (b.bootError ? " -> " + b.bootError : ""));
+  eq(b.visible().join(","), "pending", "C1: a held newest report boots to the pending view");
+  eq(b.pollId(), "r-held", "C1: and the poll watches it");
+  await b.probe('pollTick("r-held")');
+  await b.settle();
+  eq(b.visible().join(","), "pending", "C2: three hours in, a tick still shows pending, NOT the overdue failure");
+  ok(!String(b.$el("view-processing").innerHTML || "").includes(b.probe("PC_OVERDUE")), "C2: and the overdue copy was never rendered");
+  eq(b.slow.size, 1, "C3: the poll is slowed to once a minute");
+  eq(b.active.size, 0, "C3: and no 3-second poll is left running");
+  await b.probe('pollTick("r-held")');
+  await b.settle();
+  eq(b.slow.size, 1, "C4: a second pending tick does not arm a second slow poll");
+}
+{
+  // CONTROL for C2: the same three-hour report NOT held does hit the overdue bail, so C2 is not vacuous.
+  const b = await boot({ reports: [R("r-proc", "processing")], inflight: { status: "processing", transcribed: true, created_at: LONG_AGO } });
+  await b.probe('pollTick("r-proc")');
+  await b.settle();
+  ok(b.probe('PC_OVERDUE_MS') < 3 * 60 * 60 * 1000, "C5-CONTROL: three hours is past PC_OVERDUE_MS");
+  eq(b.visible().join(","), "processing", "C5-CONTROL: an unheld report that old renders the overdue state on the processing view");
+  ok(String(b.$el("view-processing").innerHTML || "").includes(b.probe("PC_OVERDUE")), "C5-CONTROL: the overdue copy IS rendered there, so C2's absence check can fire");
+}
+{
+  // The draw-context form is not pulled out from under her: the held state waits for her submit.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "awaiting_review", transcribed: true, created_at: NOW } });
+  b.probe('showView("upload"); window.__drawBlockActive = true; window.__drawReady = null;');
+  await b.probe('pollTick("r-new")');
+  await b.settle();
+  eq(b.probe('window.__drawReady && window.__drawReady.kind'), "pending", "C6: with the form mounted, the held state is acknowledged as pending");
+  eq(b.visible().join(","), "upload", "C6: and she stays on the form");
+  b.probe('window.__drawBlockActive = false; navigateAfterSubmit();');
+  await b.settle();
+  eq(b.visible().join(","), "pending", "C7: after submit she lands on the pending view");
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");
