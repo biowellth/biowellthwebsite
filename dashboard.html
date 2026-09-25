@@ -2277,10 +2277,15 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   </div>
 
   <!-- REVIEW_GATE_V1 (supa docs/review-gate-phase2-spec.md, decision 5). Shown ONLY for a report whose
-       status is awaiting_review. Copy is exact from the spec; do not reword it. -->
+       status is awaiting_review. Copy is exact; do not reword it.
+       REVIEW_GATE_COPY_V2 (2026-09-25, founder copy): the body is REPLACED, superseding the spec's
+       "Our team checks every report before you see it during early access. You'll have it within 24
+       hours, and we'll email you the moment it's ready." It now says what the check is for (accuracy)
+       and who does it. The confidentiality sentence is deliberately withheld until the reviewer
+       agreement is signed; it waits as REVIEW_CONFIDENTIALITY_LINE in the script. -->
   <div id="view-pending" class="hidden">
     <h1>Your report is being prepared</h1>
-    <p>Our team checks every report before you see it during early access. You'll have it within 24 hours, and we'll email you the moment it's ready.</p>
+    <p>During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.</p>
   </div>
 
   <div id="view-interim" class="hidden">
@@ -4821,8 +4826,15 @@ function pcSlowPollForPending(reportId){
 // screen within one tick, exactly as it replaced the processing view. It slows to once a minute only
 // when the worker has actually written awaiting_review. The failure and retry screens are untouched.
 window.__pcGate = null;
+// REVIEW_GATE_COPY_V2 (2026-09-25, founder copy). PFU_SAVED_B was "Our team checks every report
+// before you see it during early access.", the pending view's first sentence verbatim. It is now its
+// own shorter line and no longer a substring of the pending body; both still make the same promise.
 const PFU_SAVED_H = "Saved. Your report is being prepared.";
-const PFU_SAVED_B = "Our team checks every report before you see it during early access.";
+const PFU_SAVED_B = "Every report is reviewed for accuracy before it's released to you.";
+// REVIEW_GATE_COPY_V2. NOT SHIPPED. Add this sentence (to the pending view body and, if wanted, after
+// PFU_SAVED_B) only AFTER the reviewer confidentiality agreement is signed. Until then it would be a
+// promise nothing backs. Held back on the founder's instruction, 2026-09-25.
+// const REVIEW_CONFIDENTIALITY_LINE = "Reviewers work under a confidentiality agreement and see only what they need to check your report.";
 function pcGateFromUpload(reportId, res){
   window.__pcGate = { reportId, held: !!(res && res.data && res.data.review_gate === true) };
 }

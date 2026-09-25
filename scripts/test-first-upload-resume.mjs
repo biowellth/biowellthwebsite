@@ -435,7 +435,14 @@ const FAILED_H = "We could not finish this reading";
   eq(b.visible().join(","), "pending", "F6: after Start my reading she lands on the pending view");
   ok(!/—|–/.test(b.probe("PFU_SAVED_H + PFU_SAVED_B")), "F6: no em or en dash in the new copy");
   const view = (readFileSync(FILE, "utf8").match(/<div id="view-pending" class="hidden">([\s\S]*?)<\/div>/) || [])[1] || "";
-  ok(view.includes(b.probe("PFU_SAVED_B")), "F6: the confirmation body is the pending view's own first sentence");
+  // REVIEW_GATE_COPY_V2 (2026-09-25): PFU_SAVED_B is no longer the pending view's first sentence
+  // verbatim. What must still hold is that the two surfaces make the SAME promise and neither keeps
+  // the old "checks every report" wording.
+  const savedB = String(b.probe("PFU_SAVED_B"));
+  const promise = (t) => /reviewed for accuracy/.test(t) && /before it's released to you/.test(t);
+  ok(promise(savedB) && promise(view), "F6: the confirmation and the pending view make the same accuracy-review promise");
+  ok(!/checks every report/i.test(savedB + " " + view), "F6: neither keeps the old \"checks every report\" wording");
+  ok(!promise("Our team checks every report before you see it during early access."), "F6-MUTANT: the old sentence would fail the promise check");
 }
 {
   // F7: the draw-context form stays on the upload card and is still offered under the gate: an

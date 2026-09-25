@@ -20,15 +20,28 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log("  ok   " + m); } else { fail++; console.log("  FAIL " + m); } };
 
 const HEAD = "Your report is being prepared";
-const BODY = "Our team checks every report before you see it during early access. You'll have it within 24 hours, and we'll email you the moment it's ready.";
+// REVIEW_GATE_COPY_V2 (2026-09-25, founder copy) replaced the spec's body. OLD_BODY is kept so P-1 can
+// prove the old wording is gone rather than merely that the new wording is present somewhere.
+const BODY = "During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.";
+const OLD_BODY = "Our team checks every report before you see it during early access. You'll have it within 24 hours, and we'll email you the moment it's ready.";
+const CONFIDENTIALITY = "Reviewers work under a confidentiality agreement";
 
 console.log("P-1  the pending copy, exact");
 const view = (HTML.match(/<div id="view-pending" class="hidden">([\s\S]*?)<\/div>/) || [])[1] || "";
 ok(view.length > 50, "P-1-CONTROL: #view-pending located");
 ok(view.includes("<h1>" + HEAD + "</h1>"), "P-1: headline is exactly the spec's");
-ok(view.includes("<p>" + BODY + "</p>"), "P-1: body is exactly the spec's");
+ok(view.includes("<p>" + BODY + "</p>"), "P-1: body is exactly the founder's REVIEW_GATE_COPY_V2 copy");
+ok(!view.includes(OLD_BODY) && !/checks every report/.test(view), "P-1: the old \"checks every report\" body is gone from the view");
+ok(!view.includes(CONFIDENTIALITY), "P-1: the confidentiality sentence is NOT shown (held until the reviewer agreement is signed)");
+ok(/^\/\/ const REVIEW_CONFIDENTIALITY_LINE = "Reviewers work under a confidentiality agreement and see only what they need to check your report\.";$/m.test(HTML),
+   "P-1: the confidentiality sentence waits as a COMMENTED-OUT constant");
+ok(!/^const REVIEW_CONFIDENTIALITY_LINE/m.test(HTML), "P-1: and is not live code");
+ok(/You'll have it/.test(BODY) && /it's released/.test(BODY), "P-1: contractions kept (You'll, it's)");
 ok(!/—|–/.test(view), "P-1: no em or en dash in the view");
 ok(!view.includes("<p>" + BODY.replace("24 hours", "a day") + "</p>"), "P-1-MUTANT: a reworded body would not match");
+ok(("<p>" + OLD_BODY + "</p>").includes("checks every report"), "P-1-MUTANT: the old-copy check would fire on the old body");
+{ const live = HTML.replace("// const REVIEW_CONFIDENTIALITY_LINE", "const REVIEW_CONFIDENTIALITY_LINE");
+  ok(/^const REVIEW_CONFIDENTIALITY_LINE/m.test(live), "P-1-MUTANT: an uncommented confidentiality constant would be caught"); }
 
 console.log("P-2  the vault pill");
 ok(/r\.status === "awaiting_review"\s*\?\s*'<span class="rv-status prep">being prepared<\/span>'/.test(HTML), "P-2: awaiting_review renders the being prepared pill");
