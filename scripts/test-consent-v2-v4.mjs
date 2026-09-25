@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// CONSENT_V2_V4_DARK -- core consent v2 and Sana consent v4, built dark.
+// CONSENT_V2_V4_DARK -- core consent v2 and Sana consent v4.
 //
-// FLAG OFF is tested against the committed file. FLAG ON is tested against an IN-MEMORY COPY of
-// the shipped source with the one flag line flipped, so what runs is the real code, never a
-// re-implementation, and nothing on disk changes. Every flag-on string is hashed and compared
-// with the server's digest from supa consent-versions.ts; a one-character mutant of each must fail
-// that comparison, and a mutant that sends the Sana version for core must fail the withdrawal
-// check, so each check is proven able to fire. Every mutant is parsed first, so it is valid JS.
+// AMENDED 2026-09-24, controls.md flip step 3: both flags are ON in the committed file. The
+// COMMITTED state is tested as shipped. FLAGS OFF is kept as a SCRATCH COPY: the committed source
+// with both flag values flipped to false IN MEMORY, and core-only / Sana-only copies are derived
+// from it, so what runs is always the real code and nothing on disk changes. Every string is
+// hashed against the server's digest from supa consent-versions.ts; a one-character mutant of
+// each must fail that comparison, a mutant that sends the Sana version for core must fail the
+// withdrawal check, and a re-ask that ignores the version must be caught. Every mutant is parsed
+// first, so it is valid JS.
 //
 //   node scripts/test-consent-v2-v4.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
@@ -50,42 +52,42 @@ const objSrc = (src, name) => {
 
 const CONSTS = ["CORE_CONSENT_V2_ENABLED", "CORE_CONSENT_V2_TEXT", "CORE_CONSENT_VERSION",
   "SANA_CONSENT_VERSION", "SANA_CONSENT_V4_ENABLED", "SANA_CONSENT_V4_TEXT", "SANA_CONSENT_TEXT_APPROVED"];
+const FNS = ["esc", "applyCoreConsentText", "sanaConsentBody", "consentVersionFor", "consentPost", "sanaConsentGranted"];
 
 // Build a sandbox from a source string: the constants, SANA_COPY, and the real functions.
 function load(src, extra = {}) {
   const parts = CONSTS.map((n) => constLine(src, n));
   if (parts.some((p) => !p)) throw new Error("constant not located: " + CONSTS[parts.findIndex((p) => !p)]);
   const body = [...parts, objSrc(src, "SANA_COPY"),
-    ...["applyCoreConsentText", "sanaConsentBody", "consentVersionFor", "consentPost", "sanaConsentGranted"]
-      .map((n) => { const f = fnSrc(src, n); if (!f) throw new Error("function not located: " + n); return f; }),
+    ...FNS.map((n) => { const f = fnSrc(src, n); if (!f) throw new Error("function not located: " + n); return f; }),
   ].join("\n");
   const names = Object.keys(extra);
   return new Function(...names, body + "\nreturn { " + CONSTS.join(", ") +
-    ", SANA_COPY, applyCoreConsentText, sanaConsentBody, consentVersionFor, consentPost, sanaConsentGranted };")(
-    ...names.map((n) => extra[n]));
+    ", SANA_COPY, " + FNS.join(", ") + " };")(...names.map((n) => extra[n]));
 }
-const flip = (src, name) => {
-  const line = `const ${name} = false;`;
-  if ((src.split(line).length - 1) !== 1) throw new Error("flag line not found exactly once: " + name);
-  return src.replace(line, `const ${name} = true;`);
+const setFlag = (src, name, to) => {
+  const from = `const ${name} = ${!to};`;
+  if ((src.split(from).length - 1) !== 1) throw new Error("flag line not found exactly once: " + from);
+  return src.replace(from, `const ${name} = ${to};`);
 };
+// The scratch copies. OFF is both flags false; CORE_ONLY and SANA_ONLY switch one back on.
+const OFF_SRC = setFlag(setFlag(APP, "CORE_CONSENT_V2_ENABLED", false), "SANA_CONSENT_V4_ENABLED", false);
+const CORE_ONLY_SRC = setFlag(OFF_SRC, "CORE_CONSENT_V2_ENABLED", true);
+const SANA_ONLY_SRC = setFlag(OFF_SRC, "SANA_CONSENT_V4_ENABLED", true);
 
-// A fake DOM just rich enough for applyCoreConsentText: a span that records what is appended.
+// A fake DOM just rich enough for applyCoreConsentText, which writes span.innerHTML. The rendered
+// text is the innerHTML with tags removed and the entities esc() can produce decoded.
 function fakeDom({ throwIfTouched = false } = {}) {
-  const span = {
-    parts: [],
-    set textContent(v) { this.parts = v ? [v] : []; },
-    get textContent() { return this.parts.map((p) => (typeof p === "string" ? p : p.textContent)).join(""); },
-    append(...xs) { this.parts.push(...xs); },
-  };
+  const span = { innerHTML: null };
   const row = { querySelector: (q) => (q === "span" ? span : null) };
   const guard = (f) => (...a) => { if (throwIfTouched) throw new Error("DOM touched with the flag off"); return f(...a); };
-  return {
-    span,
-    $: guard((id) => (id === "consent-row" ? row : null)),
-    document: { createElement: guard(() => ({ href: "", target: "", rel: "", textContent: "" })) },
-  };
+  return { span, $: guard((id) => (id === "consent-row" ? row : null)), document: {} };
 }
+const renderedText = (h) => String(h).replace(/<[^>]*>/g, "")
+  .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+const linkOf = (h) => { const m = /<a ([^>]*)>([^<]*)<\/a>/.exec(String(h)); if (!m) return null;
+  const at = (k) => (new RegExp(k + '="([^"]*)"').exec(m[1]) || [])[1]; return [at("href"), at("target"), at("rel"), m[2]]; };
+
 // A fetch spy and a consent_events reader for consentPost and sanaConsentGranted.
 function net(latest) {
   const log = { posts: [], selects: [] };
@@ -100,78 +102,77 @@ function net(latest) {
   const fetch = async (_u, o) => { log.posts.push(JSON.parse(o.body)); return { ok: true }; };
   return { log, extra: { sb, fetch, SUPABASE_URL: "https://example.invalid", SUPABASE_ANON_KEY: "k", SANA_CONSENT_STATE: null } };
 }
+async function withdrawVersions(src) {
+  const n = net(null); const m = load(src, n.extra);
+  await m.consentPost("core", "withdrawn", m.consentVersionFor("core"));
+  await m.consentPost("sana", "withdrawn", m.consentVersionFor("sana"));
+  return n.log.posts.map((p) => `${p.consent_type}/${p.consent_version}/${p.action}`);
+}
+async function granted(src, latest) {
+  const n = net(latest); const m = load(src, n.extra);
+  return { granted: await m.sanaConsentGranted(), selects: n.log.selects };
+}
+const GRANT = (v) => ({ action: "granted", occurred_at: "t", consent_version: v });
+const WITHDRAW = (v) => ({ action: "withdrawn", occurred_at: "t", consent_version: v });
 
-console.log("CONSENT_V2_V4_DARK");
+console.log("CONSENT_V2_V4 (flags ON in the committed file since 2026-09-24)");
 
 // ── the strings: once each in the file, hashing to the server's digests ──────
-const OFF = load(APP);
-eq([OFF.CORE_CONSENT_V2_ENABLED, OFF.SANA_CONSENT_V4_ENABLED], [false, false], "both flags are false in the committed file");
-eq(HTML.split(OFF.CORE_CONSENT_V2_TEXT).length - 1, 1, "the core v2 string exists exactly once in the file");
-eq(HTML.split(OFF.SANA_CONSENT_V4_TEXT).length - 1, 1, "the sana v4 string exists exactly once in the file");
-eq(sha(OFF.CORE_CONSENT_V2_TEXT), CORE_V2_SHA, "the core v2 string hashes to the server's core v2 sha256");
-eq(sha(OFF.SANA_CONSENT_V4_TEXT), SANA_V4_SHA, "the sana v4 string hashes to the server's sana v4 sha256");
+const ON = load(APP);
+eq([ON.CORE_CONSENT_V2_ENABLED, ON.SANA_CONSENT_V4_ENABLED], [true, true], "both flags are true in the committed file");
+eq(HTML.split(ON.CORE_CONSENT_V2_TEXT).length - 1, 1, "the core v2 string exists exactly once in the file");
+eq(HTML.split(ON.SANA_CONSENT_V4_TEXT).length - 1, 1, "the sana v4 string exists exactly once in the file");
+eq(sha(ON.CORE_CONSENT_V2_TEXT), CORE_V2_SHA, "the core v2 string hashes to the server's core v2 sha256");
+eq(sha(ON.SANA_CONSENT_V4_TEXT), SANA_V4_SHA, "the sana v4 string hashes to the server's sana v4 sha256");
 
-// ── FLAG OFF: today's behaviour, plus the withdrawal fix ─────────────────────
+// ── COMMITTED: both flags on ─────────────────────────────────────────────────
+{
+  const dom = fakeDom();
+  const m = load(APP, { $: dom.$, document: dom.document });
+  m.applyCoreConsentText();
+  eq(sha(renderedText(dom.span.innerHTML)), CORE_V2_SHA, "ON: the rendered checkbox text hashes to the server's core v2 sha256");
+  eq(linkOf(dom.span.innerHTML), ["/privacy", "_blank", "noopener", "privacy page"], "ON: the privacy link is kept as today");
+  eq(m.CORE_CONSENT_VERSION, "v2", "ON: core consent is recorded as v2");
+  eq(sha(m.sanaConsentBody()), SANA_V4_SHA, "ON: the Sana card body hashes to the server's sana v4 sha256");
+  eq(m.consentVersionFor("sana"), "v4", "ON: the Sana version sent is v4");
+}
+for (const [latest, want, label] of [
+  [GRANT("v3.1"), false, "a v3.1 grant is asked again"],
+  [GRANT("v4"), true, "a v4 grant counts"],
+  [WITHDRAW("v4"), false, "a v4 withdrawal does not"],
+  [null, false, "no row does not"],
+]) {
+  const r = await granted(APP, latest);
+  eq(r.granted, want, "ON: sanaConsentGranted, " + label);
+  eq(r.selects, ["action, occurred_at, consent_version"], "ON: and it reads the version");
+}
+eq(await withdrawVersions(APP), ["core/v2/withdrawn", "sana/v4/withdrawn"],
+   "ON: withdrawing core sends core's version (v2), withdrawing Sana sends Sana's (v4)");
+
+// ── SCRATCH COPY, both flags off: the pre-flip behaviour ────────────────────
 {
   const dom = fakeDom({ throwIfTouched: true });
-  const m = load(APP, { $: dom.$, document: dom.document });
+  const m = load(OFF_SRC, { $: dom.$, document: dom.document });
   let threw = null; try { m.applyCoreConsentText(); } catch (x) { threw = x.message; }
   eq(threw, null, "OFF: applyCoreConsentText leaves the checkbox markup untouched");
   eq(m.CORE_CONSENT_VERSION, "v1", "OFF: core consent is recorded as v1");
   eq(sha(m.sanaConsentBody()), SANA_V31_SHA, "OFF: the Sana card body is the v3.1 notice");
 }
 for (const [latest, want, label] of [
-  [{ action: "granted", occurred_at: "t", consent_version: "v3.1" }, true, "a v3.1 grant counts"],
-  [{ action: "withdrawn", occurred_at: "t", consent_version: "v3.1" }, false, "a withdrawal does not"],
+  [GRANT("v3.1"), true, "a v3.1 grant counts"],
+  [WITHDRAW("v3.1"), false, "a withdrawal does not"],
   [null, false, "no row does not"],
 ]) {
-  const n = net(latest); const m = load(APP, n.extra);
-  eq(await m.sanaConsentGranted(), want, "OFF: sanaConsentGranted, " + label);
-  eq(n.log.selects, ["action, occurred_at"], "OFF: and it selects exactly what it selected before");
+  const r = await granted(OFF_SRC, latest);
+  eq(r.granted, want, "OFF: sanaConsentGranted, " + label);
+  eq(r.selects, ["action, occurred_at"], "OFF: and it selects exactly what it selected before the flip");
 }
-async function withdrawVersions(src, extraFlags = []) {
-  let code = src; for (const f of extraFlags) code = flip(code, f);
-  const n = net(null); const m = load(code, n.extra);
-  await m.consentPost("core", "withdrawn", m.consentVersionFor("core"));
-  await m.consentPost("sana", "withdrawn", m.consentVersionFor("sana"));
-  return n.log.posts.map((p) => `${p.consent_type}/${p.consent_version}/${p.action}`);
-}
-eq(await withdrawVersions(APP), ["core/v1/withdrawn", "sana/v3.1/withdrawn"],
+eq(await withdrawVersions(OFF_SRC), ["core/v1/withdrawn", "sana/v3.1/withdrawn"],
    "OFF: withdrawing core sends core's version (v1), withdrawing Sana sends Sana's (v3.1)");
 
-// ── FLAG ON, core, in an in-memory copy ──────────────────────────────────────
-{
-  const code = flip(APP, "CORE_CONSENT_V2_ENABLED");
-  const dom = fakeDom();
-  const m = load(code, { $: dom.$, document: dom.document });
-  m.applyCoreConsentText();
-  eq(sha(dom.span.textContent), CORE_V2_SHA, "ON core: the rendered checkbox text hashes to the server's core v2 sha256");
-  const link = dom.span.parts.find((p) => typeof p !== "string");
-  eq(link && [link.href, link.target, link.rel, link.textContent], ["/privacy", "_blank", "noopener", "privacy page"],
-     "ON core: the privacy link is kept as today");
-  eq(m.CORE_CONSENT_VERSION, "v2", "ON core: core consent is recorded as v2");
-}
-eq(await withdrawVersions(APP, ["CORE_CONSENT_V2_ENABLED"]), ["core/v2/withdrawn", "sana/v3.1/withdrawn"],
-   "ON core: a core withdrawal sends v2, Sana is unaffected");
-
-// ── FLAG ON, Sana, in an in-memory copy ──────────────────────────────────────
-{
-  const code = flip(APP, "SANA_CONSENT_V4_ENABLED");
-  const m = load(code, net(null).extra);
-  eq(sha(m.sanaConsentBody()), SANA_V4_SHA, "ON sana: the card body hashes to the server's sana v4 sha256");
-  eq(m.consentVersionFor("sana"), "v4", "ON sana: the version sent is v4");
-  for (const [latest, want, label] of [
-    [{ action: "granted", occurred_at: "t", consent_version: "v3.1" }, false, "a v3.1 grant is asked again"],
-    [{ action: "granted", occurred_at: "t", consent_version: "v4" }, true, "a v4 grant counts"],
-    [{ action: "withdrawn", occurred_at: "t", consent_version: "v4" }, false, "a v4 withdrawal does not"],
-  ]) {
-    const n = net(latest); const mm = load(code, n.extra);
-    eq(await mm.sanaConsentGranted(), want, "ON sana: sanaConsentGranted, " + label);
-    eq(n.log.selects, ["action, occurred_at, consent_version"], "ON sana: and it reads the version");
-  }
-}
-eq(await withdrawVersions(APP, ["SANA_CONSENT_V4_ENABLED"]), ["core/v1/withdrawn", "sana/v4/withdrawn"],
-   "ON sana: a Sana withdrawal sends v4, core is unaffected");
+// ── SCRATCH COPIES, one flag each: the two flags are independent ────────────
+eq(await withdrawVersions(CORE_ONLY_SRC), ["core/v2/withdrawn", "sana/v3.1/withdrawn"], "CORE ONLY: core sends v2, Sana is unaffected");
+eq(await withdrawVersions(SANA_ONLY_SRC), ["core/v1/withdrawn", "sana/v4/withdrawn"], "SANA ONLY: Sana sends v4, core is unaffected");
 
 // ── MUTANTS: each check above must be able to fail ───────────────────────────
 const mutate = (src, from, to) => {
@@ -181,30 +182,26 @@ const mutate = (src, from, to) => {
   return out;
 };
 {
-  const t = OFF.CORE_CONSENT_V2_TEXT;
+  const t = ON.CORE_CONSENT_V2_TEXT;
   const mut = mutate(APP, t, t.replace("privacy page.", "privacy page!"));
   const dom = fakeDom();
-  const m = load(flip(mut, "CORE_CONSENT_V2_ENABLED"), { $: dom.$, document: dom.document });
-  m.applyCoreConsentText();
-  ok(sha(dom.span.textContent) !== CORE_V2_SHA, "MUTANT: a one-character change to the core v2 text fails the hash check");
+  load(mut, { $: dom.$, document: dom.document }).applyCoreConsentText();
+  ok(sha(renderedText(dom.span.innerHTML)) !== CORE_V2_SHA, "MUTANT: a one-character change to the core v2 text fails the hash check");
 }
 {
-  const t = OFF.SANA_CONSENT_V4_TEXT;
+  const t = ON.SANA_CONSENT_V4_TEXT;
   const mut = mutate(APP, t, t.replace("removes it.", "removes it!"));
-  const m = load(flip(mut, "SANA_CONSENT_V4_ENABLED"), net(null).extra);
-  ok(sha(m.sanaConsentBody()) !== SANA_V4_SHA, "MUTANT: a one-character change to the sana v4 text fails the hash check");
+  ok(sha(load(mut, net(null).extra).sanaConsentBody()) !== SANA_V4_SHA, "MUTANT: a one-character change to the sana v4 text fails the hash check");
 }
 {
   const mut = mutate(APP, 'if(type === "core") return CORE_CONSENT_VERSION;', 'if(type === "core") return SANA_CONSENT_VERSION;');
   const got = await withdrawVersions(mut);
-  ok(JSON.stringify(got) !== JSON.stringify(["core/v1/withdrawn", "sana/v3.1/withdrawn"]),
+  ok(JSON.stringify(got) !== JSON.stringify(["core/v2/withdrawn", "sana/v4/withdrawn"]),
      "MUTANT: sending SANA_CONSENT_VERSION for core fails the withdrawal check (got " + JSON.stringify(got) + ")");
 }
 {
   const mut = mutate(APP, '(!SANA_CONSENT_V4_ENABLED || data[0].consent_version === "v4")', "true");
-  const n = net({ action: "granted", occurred_at: "t", consent_version: "v3.1" });
-  const m = load(flip(mut, "SANA_CONSENT_V4_ENABLED"), n.extra);
-  ok((await m.sanaConsentGranted()) === true, "MUTANT: ignoring the version lets a v3.1 grant through, which the re-ask check above rejects");
+  ok((await granted(mut, GRANT("v3.1"))).granted === true, "MUTANT: ignoring the version lets a v3.1 grant through, which the ON re-ask check above rejects");
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

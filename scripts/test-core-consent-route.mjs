@@ -48,11 +48,18 @@ const fnSrc = (name) => {
 const FLAGS_SRC = ["CORE_CONSENT_V2_ENABLED", "CORE_CONSENT_VERSION", "SANA_CONSENT_VERSION", "SANA_CONSENT_V4_ENABLED"]
   .map(constSrc);
 ok(FLAGS_SRC.every(Boolean), "REACHABILITY: the four consent version constants were located");
-const flagOff = new Function(FLAGS_SRC.join("\n") + "\n" + fnSrc("consentVersionFor") +
+const evalFlags = (lines) => new Function(lines.join("\n") + "\n" + fnSrc("consentVersionFor") +
   "\nreturn { v2: CORE_CONSENT_V2_ENABLED, v4: SANA_CONSENT_V4_ENABLED, core: CORE_CONSENT_VERSION, " +
   "forCore: consentVersionFor('core'), forSana: consentVersionFor('sana') };")();
-eq(JSON.stringify([flagOff.v2, flagOff.v4]), "[false,false]", "both new consent flags are false in the committed file");
-eq(flagOff.core, "v1", "with the flags off the core call sends v1");
+// AMENDED 2026-09-24, controls.md flip step 3: both flags are ON in the committed file. The
+// committed state is asserted, and the flags-off state is kept as a SCRATCH COPY: the same lines
+// with the two flag values flipped to false in memory, so the off path stays pinned too.
+const flagOn = evalFlags(FLAGS_SRC);
+const flagOff = evalFlags(FLAGS_SRC.map((l) => l.replace(/^(const (?:CORE_CONSENT_V2|SANA_CONSENT_V4)_ENABLED = )true;$/, "$1false;")));
+eq(JSON.stringify([flagOn.v2, flagOn.v4]), "[true,true]", "both new consent flags are true in the committed file");
+eq(flagOn.core, "v2", "with the flags on (committed) the core call sends v2");
+eq(JSON.stringify([flagOff.v2, flagOff.v4]), "[false,false]", "CONTROL: the scratch copy really has both flags off");
+eq(flagOff.core, "v1", "with the flags off (scratch copy) the core call sends v1");
 eq((SRC.match(/invoke\("consent-accept"/g) || []).length, 1,
    "there is exactly ONE sb.functions.invoke of consent-accept");
 // the legacy body shape must be gone, or the call silently takes the legacy path
@@ -78,8 +85,10 @@ ok(SRC.includes("consent_type: type, consent_version: version"),
 eq((SRC.match(/consentPost\((?:[^()]|\([^()]*\))*\)/g) || []).filter((c) => !c.startsWith("consentPost(type, action, version")).sort().join(" | "),
    ["consentPost(\"sana\", action, consentVersionFor(\"sana\"))", "consentPost(type, \"withdrawn\", consentVersionFor(type))"].sort().join(" | "),
    "every consentPost caller passes consentVersionFor for its own type");
-eq(flagOff.forSana, "v3.1", "with the flags off the Sana call sends v3.1");
-eq(flagOff.forCore, "v1", "with the flags off a core withdrawal sends v1, not the Sana version");
+eq(flagOn.forSana, "v4", "with the flags on (committed) the Sana call sends v4");
+eq(flagOn.forCore, "v2", "with the flags on (committed) a core withdrawal sends v2, not the Sana version");
+eq(flagOff.forSana, "v3.1", "with the flags off (scratch copy) the Sana call sends v3.1");
+eq(flagOff.forCore, "v1", "with the flags off (scratch copy) a core withdrawal sends v1, not the Sana version");
 ok(/const SANA_CONSENT_VERSION\s*=/.test(SRC), "SANA_CONSENT_VERSION is still defined");
 eq((SRC.match(/functions\/v1\/consent-accept/g) || []).length, 1,
    "the Sana fetch to consent-accept is still present, exactly once");

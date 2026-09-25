@@ -604,9 +604,11 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
   {
     const h = consentWith({ invoke: ok200 });
     await h.api.onConsentTick();
-    t("CT-1: the tick calls consent-accept once, core v1",
+    // AMENDED 2026-09-24, controls.md flip step 3: CORE_CONSENT_V2_ENABLED is now true in the shipped
+    // page, and CORE_VERSION above is read from it, so the tick records core v2. It read "core v1".
+    t("CT-1: the tick calls consent-accept once, core v2",
       h.log.invokes.length === 1 && h.log.invokes[0].name === "consent-accept" &&
-      JSON.stringify(h.log.invokes[0].body) === '{"consent_type":"core","consent_version":"v1"}');
+      JSON.stringify(h.log.invokes[0].body) === '{"consent_type":"core","consent_version":"v2"}');
     t("CT-2: and sets CONSENTED", h.api.CONSENTED === true);
     t("CT-3: then opens About-you", h.modal.classList.contains("show") && h.log.opened === 1);
     t("CT-4: the dropzone is unlocked once consent is recorded", !h.dz.classList.contains("locked"));

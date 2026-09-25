@@ -134,8 +134,11 @@ check("there is exactly ONE poster to consent-accept", (src.match(/functions\/v1
   check("NOTICE-1a: the consent card body is present", !!m, true);
   const card = m ? JSON.parse('"' + m[1] + '"') : "";
   const sha = createHash("sha256").update(card, "utf8").digest("hex");
-  check("NOTICE-1b: rendered card text hashes to the counsel-approved v3.1 notice", sha, V31_SHA);
-  check("NOTICE-1c: and is the expected length", card.length, 311);
+  // AMENDED 2026-09-24, controls.md flip step 3: SANA_CONSENT_V4_ENABLED is on, so the card now renders
+  // sanaConsentBody(), the v4 text (hash-checked in test-consent-v2-v4.mjs). consentBody below is the v3.1
+  // notice, shown only with the flag off. Labels corrected; the values asserted are unchanged.
+  check("NOTICE-1b: consentBody, the flag-off card text, hashes to the counsel-approved v3.1 notice", sha, V31_SHA);
+  check("NOTICE-1c: and is the v3.1 length", card.length, 311);
 
   // Known-positive control. Without it a broken extractor hashing "" would look like a pass
   // only if "" happened to match, and a silently-empty card would be indistinguishable.
@@ -145,7 +148,7 @@ check("there is exactly ONE poster to consent-accept", (src.match(/functions\/v1
   // The stamped version and the hashed notice are one artifact. Asserting only the hash
   // would pass while the client sent a version the server refuses.
   const VER = /const SANA_CONSENT_VERSION = "([^"]+)";/.exec(src)?.[1];
-  check("NOTICE-1e: the version sent is the version whose text was hashed", VER, "v3.1");
+  check("NOTICE-1e: SANA_CONSENT_VERSION, the flag-off version sent, is the v3.1 whose text was hashed", VER, "v3.1");
 
   // The accept control must be an affirmative act, not a dismissal.
   const AGREE = /consentAgree:\s*"([^"]*)"/.exec(src)?.[1];

@@ -3625,21 +3625,27 @@ function applyConsentUI(){
 // Declared HERE, above the checkbox binding that runs at load, because a const read before its
 // declaration line throws. The server still refuses a v2 grant until counsel approves it
 // (approved:false), so flipping only this flag would make every tick fail, not stamp.
-const CORE_CONSENT_V2_ENABLED = false;
+// SWITCHED ON 2026-09-24, controls.md flip step 3, after counsel's reply C approved core v2 and the
+// server began accepting it (consent-accept v9, verified live). The paragraph above describes the
+// dark build and is kept as its record.
+const CORE_CONSENT_V2_ENABLED = true;
 const CORE_CONSENT_V2_TEXT = "I agree to BioWellth reading my report, and the health details I choose to share (conditions, symptoms, medicines, supplements, hormonal contraception or hormone therapy, and any notes I add), to prepare my wellness interpretation. These are processed by Anthropic to write it. I have read the privacy page.";
 const CORE_CONSENT_VERSION = CORE_CONSENT_V2_ENABLED ? "v2" : "v1";
 
+// Built with innerHTML and esc(), the page's own idiom, rather than DOM node methods. It runs at
+// LOAD, where a throw aborts the whole app script; the harnesses load this block against minimal
+// stub elements, and switching the flag on first used span.append, which aborted 15 of them. esc
+// changes none of the characters in this text, so the label's rendered text is the server's string.
 function applyCoreConsentText(){
   if(!CORE_CONSENT_V2_ENABLED) return;
   const row = $("consent-row");
-  const span = row && row.querySelector("span");
+  const span = row && typeof row.querySelector === "function" ? row.querySelector("span") : null;
   if(!span) return;
   const LINK = "privacy page";
   const at = CORE_CONSENT_V2_TEXT.lastIndexOf(LINK);
-  const a = document.createElement("a");
-  a.href = "/privacy"; a.target = "_blank"; a.rel = "noopener"; a.textContent = LINK;
-  span.textContent = "";
-  span.append(CORE_CONSENT_V2_TEXT.slice(0, at), a, CORE_CONSENT_V2_TEXT.slice(at + LINK.length));
+  span.innerHTML = esc(CORE_CONSENT_V2_TEXT.slice(0, at)) +
+    '<a href="/privacy" target="_blank" rel="noopener">' + LINK + '</a>' +
+    esc(CORE_CONSENT_V2_TEXT.slice(at + LINK.length));
 }
 applyCoreConsentText();
 
@@ -9961,7 +9967,9 @@ const SANA_CONSENT_VERSION = "v3.1";
 // card body, v4 is the version sent, and sanaConsentGranted reads the VERSION as well as the
 // action, so a woman whose latest Sana grant is v3.1 is asked again before she chats. The server
 // refuses a v4 grant until counsel approves it (approved:false).
-const SANA_CONSENT_V4_ENABLED = false;
+// SWITCHED ON 2026-09-24, controls.md flip step 3, after counsel's reply C approved Sana v4 and
+// consent-accept v9 began accepting it. The paragraph above describes the dark build.
+const SANA_CONSENT_V4_ENABLED = true;
 const SANA_CONSENT_V4_TEXT = "I understand and agree that when I use Sana, my questions and relevant BioWellth information, including my results and the health details I have shared (conditions, symptoms, medicines, supplements, hormonal contraception or hormone therapy, cycle and period details, and any notes I add), are processed by Microsoft Azure AI Foundry to generate her responses. Sana keeps a short AI-generated profile of what you have told her so she can remember between conversations. Deleting your Sana history removes it.";
 
 function sanaConsentBody(){
