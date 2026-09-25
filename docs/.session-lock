@@ -1,0 +1,4 @@
+session: 739b9382
+taken: 2026-09-25T19:14:11Z
+scope: PENDING_FROM_UPLOAD_V1, built on branch pending-from-upload, NOT deployed; main carries only this lock
+repos: biowellth-website, biowellth-backend-supa (lock held there too)
