@@ -72,7 +72,7 @@ function detach(n) { if (n.parentNode) n.parentNode._children = n.parentNode._ch
 // ── one boot ───────────────────────────────────────────────────────────────────────────────────
 // reports: the rows buildPicker reads, newest first. done: report ids that have a results row.
 // ddcRow: what the beat's mount read returns. inflight: what pollTick's reports read returns.
-async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
+async function boot({ reports, done = [], ddcRow = null, inflight = null, src = SRC }) {
   const els = {};
   const $el = (id) => (els[id] = els[id] || mkEl(id));
   for (const v of VIEWS) $el("view-" + v).classList.add("hidden");
@@ -165,7 +165,7 @@ async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
   vm.createContext(ctx);
   const onRej = (e) => { if (!bootError) bootError = e; };
   process.on("unhandledRejection", onRej);
-  try { new vm.Script(SRC, { filename: "dashboard-inline.js" }).runInContext(ctx, { timeout: 20000 }); }
+  try { new vm.Script(src, { filename: "dashboard-inline.js" }).runInContext(ctx, { timeout: 20000 }); }
   catch (e) { bootError = bootError || e; }
   await new Promise((r) => setTimeout(r, 400));
   process.off("unhandledRejection", onRej);
@@ -347,6 +347,163 @@ const LONG_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();   // 3
   b.probe('window.__drawBlockActive = false; navigateAfterSubmit();');
   await b.settle();
   eq(b.visible().join(","), "pending", "C7: after submit she lands on the pending view");
+}
+
+console.log("PENDING_FROM_UPLOAD_V1");
+// process-report's upload reply carries review_gate. true -> pending from the start, with the fast
+// poll kept so a failure still surfaces in one tick. false or missing -> today's flow, proved below by
+// running the SAME scenarios against the dashboard as it was at 15be94b and requiring identical views.
+const { execSync } = await import("node:child_process");
+let BEFORE_SRC = "";
+try { BEFORE_SRC = extractApp(execSync("git show 15be94b:dashboard.html", { encoding: "utf8", maxBuffer: 64 << 20 }), "15be94b"); } catch (_) {}
+ok(BEFORE_SRC.length > 100000 && !BEFORE_SRC.includes("pcGateHeld"), "F0-CONTROL: the pre-change app (15be94b) was read and has no gate flag (" + BEFORE_SRC.length + " chars)");
+const HELD = { data: { ok: true, accepted: true, review_gate: true }, error: null };
+const REL = { data: { ok: true, accepted: true, review_gate: false }, error: null };
+const OLD = { data: { ok: true, accepted: true }, error: null };   // an older process-report, no flag
+const setGate = (b, id, res) => b.probe("pcGateFromUpload(" + JSON.stringify(id) + ", " + JSON.stringify(res) + ")");
+const FAILED_H = "We could not finish this reading";
+{
+  // F1: held from upload, still in flight: pending at once, fast poll kept, never slowed.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "processing", transcribed: false, created_at: NOW } });
+  setGate(b, "r-up", HELD);
+  b.probe('pollForResult("r-up")');
+  await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(b.visible().join(","), "pending", "F1: a held upload in flight shows the pending view, not Reading your report");
+  eq(b.slow.size, 0, "F1: the poll is NOT slowed while the report is only in flight");
+  eq(b.active.size, 1, "F1: the 3-second poll is still running");
+  ok(!String(b.$el("view-processing").innerHTML || "").includes(FAILED_H), "F1: and no failure was rendered");
+}
+{
+  // F2: the honest failure path. Held from upload, then the pipeline errors: one tick replaces pending
+  // with the failure screen.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "error", transcribed: true, created_at: NOW } });
+  setGate(b, "r-up", HELD);
+  b.probe('showView("pending"); pollForResult("r-up")');
+  const terminal = await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(terminal, true, "F2: an error tick is terminal");
+  eq(b.visible().join(","), "processing", "F2: the failure screen replaces pending on the FIRST tick");
+  ok(String(b.$el("view-processing").innerHTML || "").includes(FAILED_H), "F2: and it is the failure copy, not the spinner");
+}
+{
+  // F3: the overdue bail still fires under the gate (25 minutes in flight, never held).
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "processing", transcribed: true, created_at: LONG_AGO } });
+  setGate(b, "r-up", HELD);
+  b.probe('showView("pending"); pollForResult("r-up")');
+  await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(b.visible().join(","), "processing", "F3: a held-from-upload report stuck in flight past 25 minutes reaches the overdue state");
+  ok(String(b.$el("view-processing").innerHTML || "").includes(b.probe("PC_OVERDUE")), "F3: with the overdue copy");
+}
+{
+  // F4: once the worker really holds it, the existing branch takes over: pending and the slow poll.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "awaiting_review", transcribed: true, created_at: NOW } });
+  setGate(b, "r-up", HELD);
+  b.probe('pollForResult("r-up")');
+  await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(b.visible().join(","), "pending", "F4: awaiting_review is still pending");
+  eq(b.slow.size, 1, "F4: and only now is the poll slowed to once a minute");
+}
+{
+  // F5: a prediction that turns out wrong cannot strand her. Flag said held, the worker released it.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done", "r-up"],
+                         inflight: { status: "done", transcribed: true, created_at: NOW } });
+  setGate(b, "r-up", HELD);
+  b.probe('showView("pending")');
+  await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(b.visible().join(","), "reveal", "F5: a released report reaches the reveal even though the flag said held");
+}
+{
+  // F6: "Start my reading" goes straight to pending, and the confirmation says prepared, not reading.
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "processing", transcribed: false, created_at: NOW } });
+  b.$el("ad-start"); b.$el("up-postfile");
+  setGate(b, "r-up", HELD);
+  b.probe('showView("upload"); window.__drawReportId = "r-up"; window.__drawBlockActive = true; window.__drawReady = null;');
+  await b.probe("submitAboutDraw()");
+  const conf = String(b.$el("up-postfile").innerHTML || "");
+  ok(conf.includes(b.probe("PFU_SAVED_H")) && conf.includes(b.probe("PFU_SAVED_B")), "F6: the confirmation says the report is being prepared");
+  ok(!conf.includes("We are reading your report now"), "F6: and does NOT say we are reading it now");
+  await new Promise((r) => setTimeout(r, 150));
+  eq(b.visible().join(","), "pending", "F6: after Start my reading she lands on the pending view");
+  ok(!/—|–/.test(b.probe("PFU_SAVED_H + PFU_SAVED_B")), "F6: no em or en dash in the new copy");
+  const view = (readFileSync(FILE, "utf8").match(/<div id="view-pending" class="hidden">([\s\S]*?)<\/div>/) || [])[1] || "";
+  ok(view.includes(b.probe("PFU_SAVED_B")), "F6: the confirmation body is the pending view's own first sentence");
+}
+{
+  // F7: the draw-context form stays on the upload card and is still offered under the gate: an
+  // in-flight tick with the form mounted keeps her on it (the form is not pulled into another view).
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                         inflight: { status: "processing", transcribed: false, created_at: NOW } });
+  setGate(b, "r-up", HELD);
+  b.probe('showView("upload"); window.__drawBlockActive = true; window.__drawReady = null;');
+  await b.probe('pollTick("r-up")');
+  await b.settle();
+  eq(b.visible().join(","), "upload", "F7: with the form mounted she stays on the upload card, gate on");
+}
+
+// ── GATE OFF: today's flow, proved differentially against 15be94b ─────────────────────────────
+// Each scenario runs on the pre-change app and on this app with a false flag, a missing flag and no
+// upload reply at all. The visible view and the processing view's markup must be identical.
+const SCEN = [
+  ["in flight", { status: "processing", transcribed: false, created_at: NOW }, 'pollTick("r-up")'],
+  ["error", { status: "error", transcribed: true, created_at: NOW }, 'pollTick("r-up")'],
+  ["overdue", { status: "processing", transcribed: true, created_at: LONG_AGO }, 'pollTick("r-up")'],
+  ["held by the worker", { status: "awaiting_review", transcribed: true, created_at: NOW }, 'pollTick("r-up")'],
+  ["after submit", { status: "processing", transcribed: false, created_at: NOW },
+    'window.__drawReportId = "r-up"; window.__drawBlockActive = false; window.__drawReady = null; navigateAfterSubmit()'],
+];
+async function runScenario(src, gateRes, inflight, act) {
+  const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"], inflight, src });
+  if (gateRes !== undefined) setGate(b, "r-up", gateRes);
+  b.probe('pollForResult("r-up")');
+  await b.probe(act);
+  await b.settle();
+  return { view: b.visible().join(","), proc: String(b.$el("view-processing").innerHTML || ""), slow: b.slow.size, fast: b.active.size, err: b.bootError };
+}
+let diffs = 0, runs = 0;
+for (const [name, inflight, act] of SCEN) {
+  const before = await runScenario(BEFORE_SRC, undefined, inflight, act);
+  ok(!before.err, "F8-CONTROL: the pre-change app booted for " + name);
+  for (const [label, res] of [["review_gate false", REL], ["no flag", OLD], ["no upload reply", undefined]]) {
+    const now = await runScenario(SRC, res, inflight, act);
+    runs++;
+    const same = now.view === before.view && now.proc === before.proc && now.slow === before.slow && now.fast === before.fast;
+    if (!same) diffs++;
+    ok(same, "F8: gate off (" + label + "), " + name + ": view " + now.view + " / polls " + now.fast + "+" + now.slow + " identical to 15be94b (" + before.view + ")");
+  }
+}
+eq(diffs + "/" + runs, "0/15", "F8: no difference in any of the fifteen gate-off runs");
+{
+  // F8-MUTANT: the same differential DOES see the held flag, so F8 is not blind.
+  const before = await runScenario(BEFORE_SRC, undefined, SCEN[0][1], SCEN[0][2]);
+  const held = await runScenario(SRC, HELD, SCEN[0][1], SCEN[0][2]);
+  ok(before.view !== held.view, "F8-MUTANT: with review_gate true the same scenario differs (" + before.view + " vs " + held.view + ")");
+}
+
+{
+  // F9: gate off, the confirmation after "Start my reading" is byte-identical to 15be94b.
+  const submitOn = async (src, gateRes) => {
+    const b = await boot({ reports: [R("r-done", "done", { reveal_seen_at: NOW })], done: ["r-done"],
+                           inflight: { status: "processing", transcribed: false, created_at: NOW }, src });
+    b.$el("ad-start"); b.$el("up-postfile");
+    if (gateRes !== undefined) setGate(b, "r-up", gateRes);
+    b.probe('showView("upload"); window.__drawReportId = "r-up"; window.__drawBlockActive = true; window.__drawReady = null;');
+    await b.probe("submitAboutDraw()");
+    return String(b.$el("up-postfile").innerHTML || "");
+  };
+  const before = await submitOn(BEFORE_SRC, undefined);
+  ok(before.includes("Saved. Your reading is underway."), "F9-CONTROL: the pre-change confirmation was captured");
+  for (const [label, res] of [["review_gate false", REL], ["no flag", OLD], ["no upload reply", undefined]])
+    eq(await submitOn(SRC, res), before, "F9: gate off (" + label + "), the confirmation markup is identical to 15be94b");
+  ok((await submitOn(SRC, HELD)) !== before, "F9-MUTANT: with review_gate true it differs, so F9 can fail");
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");
