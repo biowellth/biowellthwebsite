@@ -4180,6 +4180,7 @@ function navigateAfterSubmit(){
   if(rd && rd.kind === "reveal") showView("reveal");
   else if(rd && rd.kind === "pending") showView("pending");   // REVIEW_GATE_V1
   else if(rd && rd.kind === "interim") showView("interim");
+  else if(pcGateHeld(window.__drawReportId)) showView("pending");   // PENDING_FROM_UPLOAD_V1: held from upload
   else showView("processing");
 }
 async function submitAboutDraw(){
@@ -4203,7 +4204,11 @@ async function submitAboutDraw(){
     window.__rdReportConf = Object.assign({}, window.__rdReportConf || {}, __ad.conf);
     window.__drawBlockActive = false;
     const post = document.getElementById("up-postfile");
-    if(post) post.innerHTML = '<div class="bc-calm"><div class="bc-calm-h">Saved. Your reading is underway.</div><div class="bc-calm-b">We are reading your report now. This takes a few minutes.</div></div>';
+    // PENDING_FROM_UPLOAD_V1: a held upload is not "being read now" from her side; it is being prepared.
+    // The body is the first sentence of the pending view's own copy, so the two screens agree.
+    if(post) post.innerHTML = pcGateHeld(window.__drawReportId)
+      ? '<div class="bc-calm"><div class="bc-calm-h">' + esc(PFU_SAVED_H) + '</div><div class="bc-calm-b">' + esc(PFU_SAVED_B) + '</div></div>'
+      : '<div class="bc-calm"><div class="bc-calm-h">Saved. Your reading is underway.</div><div class="bc-calm-b">We are reading your report now. This takes a few minutes.</div></div>';
     setTimeout(navigateAfterSubmit, 1400);
   }catch(e){
     console.error("[about] submit failed:", e);
@@ -4383,6 +4388,7 @@ async function handleFile(file){
     // this card no longer asks anything profile-level, so there is nothing to
     // suppress on a second upload.
 
+    pcGateFromUpload(reportId, __prRes);   // PENDING_FROM_UPLOAD_V1: read only once the upload was accepted
     pollForResult(reportId);
     // ABOUT_YOU_V1 — the after-upload auto-open that stood here is REMOVED. The
     // pop-up is once only and opens after the gates at boot; during an upload the
@@ -4771,7 +4777,12 @@ async function pollTick(reportId){
     }
     // Still in flight, transcribed or not. DRAW_CONTEXT_SUBMIT_V1: while the About block is mounted we
     // stay on it (degraded/revisit with no block -> the processing screen).
-    if(!window.__drawBlockActive) showView("processing");
+    // PENDING_FROM_UPLOAD_V1: an upload process-report said will be held shows pending instead, and
+    // the poll is NOT slowed here, so the error and overdue branches above still fire on the next tick.
+    if(!window.__drawBlockActive){
+      if(pcGateHeld(reportId)) showView("pending");
+      else showView("processing");
+    }
     return false;
   }catch(_e){
     // STALE_TAB_POLL_V1: a transient fetch failure must not kill the loop. Stay non-terminal so the
@@ -4793,6 +4804,30 @@ function pcSlowPollForPending(reportId){
   pollTimer = setInterval(async ()=>{
     if(await pollTick(reportId)) { clearInterval(pollTimer); pollTimer = null; __pcPollReportId = null; __pcPollIsSlow = false; }
   }, PC_PENDING_POLL_MS);
+}
+
+// PENDING_FROM_UPLOAD_V1. With the review gate on, she should see "Your report is being prepared"
+// the moment her upload is accepted, not "Reading your report ... up to about ten minutes" followed
+// by pending once the worker holds it. The dashboard cannot read app_config, so process-report says
+// so in its upload reply: review_gate true means THIS upload will be held (the worker's own rule,
+// which never holds the keeper and never holds anything with the gate off).
+//
+// Kept per report, and only true on an explicit true. A missing flag (an older process-report, or a
+// gate read that failed server-side) is false, which is today's flow exactly. A page reload loses it,
+// which is also today's flow: processing until the worker's status says awaiting_review.
+//
+// WHAT IT DOES NOT CHANGE. The poll stays FAST (3 s) while the report is only in flight, so a
+// pipeline error or the 25-minute overdue bail still replaces the pending view with the failure
+// screen within one tick, exactly as it replaced the processing view. It slows to once a minute only
+// when the worker has actually written awaiting_review. The failure and retry screens are untouched.
+window.__pcGate = null;
+const PFU_SAVED_H = "Saved. Your report is being prepared.";
+const PFU_SAVED_B = "Our team checks every report before you see it during early access.";
+function pcGateFromUpload(reportId, res){
+  window.__pcGate = { reportId, held: !!(res && res.data && res.data.review_gate === true) };
+}
+function pcGateHeld(reportId){
+  return !!(reportId && window.__pcGate && window.__pcGate.reportId === reportId && window.__pcGate.held === true);
 }
 
 function pollForResult(reportId){

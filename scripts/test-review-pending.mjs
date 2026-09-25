@@ -36,8 +36,12 @@ ok(/\.rv-status\.prep\{background:var\(--teal-light\);color:var\(--teal-dark\)\}
 
 console.log("P-3  the pending view is reachable ONLY for awaiting_review");
 const sites = [...HTML.matchAll(/showView\("pending"\)/g)].map((m) => HTML.slice(Math.max(0, m.index - 400), m.index));
-ok(sites.length === 3, "P-3-CONTROL: three call sites located (boot, pollTick, navigateAfterSubmit): " + sites.length);
-const guarded = (pre) => /status === "awaiting_review"/.test(pre) || /rd\.kind === "pending"/.test(pre);
+// PENDING_FROM_UPLOAD_V1 (approved 2026-09-25) widens decision 4 by ONE guard: process-report's
+// statement that THIS upload will be held (pcGateHeld). Two sites use it, pollTick's in-flight branch
+// and navigateAfterSubmit's default, so five sites in all. Nothing else may show pending.
+ok(sites.length === 5, "P-3-CONTROL: five call sites located (boot, pollTick held + in-flight, navigateAfterSubmit kind + default): " + sites.length);
+const guarded = (pre) => /status === "awaiting_review"/.test(pre) || /rd\.kind === "pending"/.test(pre) ||
+  /pcGateHeld\((reportId|window\.__drawReportId)\)\) showView\("pending"\)$/.test(pre + 'showView("pending")');
 ok(sites.every(guarded), "P-3: every showView(\"pending\") sits behind an awaiting_review or pending-kind check");
 const kinds = [...HTML.matchAll(/drawReadyAck\("pending"\)/g)].map((m) => HTML.slice(Math.max(0, m.index - 300), m.index));
 ok(kinds.length === 1 && /status === "awaiting_review"/.test(kinds[0]), "P-3: the pending kind is set only inside the awaiting_review branch");

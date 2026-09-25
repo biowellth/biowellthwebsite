@@ -68,7 +68,8 @@ ok(POLL.length > 1000 && POLL.includes('from("results")'), "RH-2-CONTROL: pollTi
 ok(!/renderInterim\(/.test(POLL) && !/showView\(["']interim["']\)/.test(POLL), "RH-2: no renderInterim call and no interim view in pollTick");
 ok(/\.select\("status, transcribed, created_at"\)/.test(POLL), "RH-2: pollTick selects status, transcribed, created_at");
 {
-  const mut = POLL.replace('if(!window.__drawBlockActive) showView("processing");', 'renderInterim(x, 0); showView("interim");');
+  // PENDING_FROM_UPLOAD_V1 restructured the in-flight fallback into a block; the mutant targets its processing arm.
+  const mut = POLL.replace('else showView("processing");', 'else { renderInterim(x, 0); showView("interim"); }');
   ok(mut !== POLL && /renderInterim\(/.test(mut), "RH-2-MUTANT: re-adding the interim render is caught");
 }
 
