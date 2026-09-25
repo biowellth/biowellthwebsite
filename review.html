@@ -60,6 +60,20 @@ pre{font-family:'JetBrains Mono',monospace;font-size:12px;white-space:pre-wrap;w
 .msg.err{color:var(--coral-dark)}
 .msg.ok{color:var(--teal-dark)}
 .changed textarea{border-color:var(--amber);background:var(--amber-light)}
+/* REVIEW_FLAGS_V1 (supa docs/followups-2026-09-25.md item 7). Existing tokens only. */
+.count{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700}
+.count.none{color:var(--teal-dark)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{font-size:12px;border-radius:999px;padding:2px 8px;background:var(--teal-light);color:var(--teal-dark);white-space:nowrap}
+.chip.out{background:var(--coral-light);color:var(--coral-dark)}
+.chip.edge{background:var(--amber-light);color:var(--amber-dark)}
+.chip.unscored{background:var(--brown-soft);color:var(--brown-mid)}
+.chip.sens{outline:1px solid var(--brown-mid)}
+.sents{font-size:14px;line-height:1.6;margin:4px 0 6px;padding:8px 10px;border-radius:8px;background:var(--off-white);border:1px solid var(--brown-light)}
+.sent.flagged{background:var(--coral-soft);box-shadow:inset 0 -2px 0 var(--coral)}
+.fcode{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--coral-dark);background:var(--coral-light);border-radius:6px;padding:0 6px;margin:0 4px}
+.flagrow{font-size:13px;padding:6px 0;border-bottom:1px solid var(--brown-light)}
+details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -92,11 +106,17 @@ pre{font-family:'JetBrains Mono',monospace;font-size:12px;white-space:pre-wrap;w
   <div class="hidden" id="view-detail">
     <div class="actions" style="margin:0 0 12px"><button class="btn alt" id="back" type="button">Back to the queue</button></div>
     <div class="card" style="margin-bottom:14px"><div id="detail-head"></div></div>
+    <div class="card" style="margin-bottom:14px" id="flag-card">
+      <div class="count" id="flag-count"></div>
+      <div class="chips" id="flag-codes"></div>
+      <div id="flag-list"></div>
+    </div>
     <div class="grid">
       <div class="card"><h2>Markers</h2><div id="markers"></div></div>
       <div class="card"><h2>Interpretation</h2><p class="muted">Edit means narrative text only. Changed fields are highlighted.</p><div id="narrative"></div></div>
     </div>
-    <div class="card" style="margin-top:14px"><h2>Review flags, as stored</h2><pre id="flags"></pre></div>
+    <div class="card" style="margin-top:14px"><h2>Engine notes</h2><div id="free-flags"></div>
+      <details><summary>Review flags exactly as stored</summary><pre id="flags"></pre></details></div>
     <div class="card" style="margin-top:14px"><h2>History</h2><div id="history"></div></div>
     <div class="card" style="margin-top:14px">
       <h2>Your review</h2>
@@ -139,6 +159,102 @@ async function call(body){
 
 let CURRENT = null;   // { report_id, narrative: [{path,text}] }
 
+// REVIEW_FLAGS_V1 (followups item 7). review-action's detail now sends markers ordered out-of-range
+// first with a rank, each prose field's named markers with their bands and its sentences with the
+// coded flags aimed at each, and a flag summary. Every piece degrades to what the page showed before
+// when a field is absent, so the page never breaks against an older review-action.
+const CODE_LABEL = { prose_band_conflict: "Prose and band disagree", diagnostic_claim: "Rules a condition in or out" };
+// Mirrors review-annotate.ts bandRank, used only when the server did not send a rank.
+function bandRank(band){
+  if(band == null || band === "") return 3;
+  const b = String(band).toLowerCase();
+  if(b.indexOf("critical") === 0) return 0;
+  if(/^(optimal|normal|negative|negative_or_trace|trace|in_range)$/.test(b)) return 4;
+  if(b.indexOf("suboptimal") === 0 || b.indexOf("borderline") === 0) return 2;
+  return 1;
+}
+function rankOf(m){ return typeof m.rank === "number" ? m.rank : bandRank(m.band); }
+function chipClass(band){ const r = bandRank(band); return "chip" + (r <= 1 ? " out" : r === 2 ? " edge" : r === 3 ? " unscored" : ""); }
+function flagWords(x){
+  if(x.code === "prose_band_conflict"){
+    return [x.marker_id, "band " + (x.band || "unscored"), "prose says " + x.claimed_class + (x.claim ? " (" + x.claim + ")" : ""), x.sensitive_system ? "safety class, never substitute a band word" : null].filter(Boolean).join(", ");
+  }
+  if(x.code === "diagnostic_claim") return x.kind === "rule_in" ? "rules a condition in" : "rules a condition out";
+  return String(x.code || "flag");
+}
+
+function renderFlagSummary(sum){
+  const c = $("flag-count"), codes = $("flag-codes"), list = $("flag-list");
+  c.textContent = ""; codes.textContent = ""; list.textContent = "";
+  if(!sum){ c.textContent = "Flags not summarised by this version of review-action"; c.className = "count"; return; }
+  c.textContent = sum.open === 1 ? "1 open flag" : (sum.open + " open flags");
+  c.className = "count" + (sum.open === 0 ? " none" : "");
+  const by = sum.by_code || {};
+  codes.appendChild(el("span", "chip" + (by.prose_band_conflict ? " out" : ""), (by.prose_band_conflict || 0) + " prose and band"));
+  codes.appendChild(el("span", "chip" + (by.diagnostic_claim ? " out" : ""), (by.diagnostic_claim || 0) + " diagnostic claim"));
+  codes.appendChild(el("span", "chip unscored", (by.free_text || 0) + " engine note" + (by.free_text === 1 ? "" : "s")));
+  for(const x of (sum.coded || [])){
+    const row = el("div", "flagrow");
+    row.appendChild(el("span", "fcode", x.code));
+    row.appendChild(el("span", "mono", x.field_path));
+    row.appendChild(el("div", "muted", flagWords(x)));
+    list.appendChild(row);
+  }
+  const free = $("free-flags"); free.textContent = "";
+  if(!(sum.free_text || []).length) free.appendChild(el("p", "muted", "No engine notes."));
+  for(const t of (sum.free_text || [])) free.appendChild(el("p", "muted", t));
+}
+
+function markerTable(rows){
+  const t = el("table"); const hr = el("tr");
+  ["Marker","Value","Unit","Band"].forEach(h => hr.appendChild(el("th", null, h))); t.appendChild(hr);
+  for(const m of rows){
+    const tr = el("tr");
+    tr.appendChild(el("td", null, (m.display_name || m.marker_key) + (m.sensitive_system ? " (safety class)" : "")));
+    tr.appendChild(el("td", "mono", m.value != null ? m.value : (m.value_text || "")));
+    tr.appendChild(el("td", null, m.unit || ""));
+    const td = el("td"); td.appendChild(el("span", chipClass(m.band), m.band || "unscored")); tr.appendChild(td);
+    t.appendChild(tr);
+  }
+  return t;
+}
+function renderMarkers(markers){
+  const all = (markers || []).slice().sort((a, b) => rankOf(a) - rankOf(b));
+  const shown = all.filter(m => rankOf(m) <= 2), folded = all.filter(m => rankOf(m) >= 3);
+  const host = $("markers"); host.textContent = "";
+  host.appendChild(el("p", "muted", shown.length + " out of range or borderline, " + folded.length + " in range or unscored"));
+  if(shown.length) host.appendChild(markerTable(shown));
+  if(folded.length){
+    const d = el("details"); d.appendChild(el("summary", null, folded.length + " in range or unscored"));
+    d.appendChild(markerTable(folded)); host.appendChild(d);
+  }
+}
+
+function renderNarrative(fields){
+  const nar = $("narrative"); nar.textContent = "";
+  fields.forEach((f, i) => {
+    const box = el("div");
+    box.appendChild(el("div", "path", f.path));
+    if((f.named || []).length){
+      const chips = el("div", "chips");
+      for(const m of f.named) chips.appendChild(el("span", chipClass(m.band) + (m.sensitive_system ? " sens" : ""), (m.display_name || m.marker_id) + " \u00b7 " + (m.band || "unscored")));
+      box.appendChild(chips);
+    }
+    if((f.sentences || []).some(s => (s.flags || []).length)){
+      const pv = el("div", "sents");
+      for(const s of f.sentences){
+        const flagged = (s.flags || []).length > 0;
+        pv.appendChild(el("span", "sent" + (flagged ? " flagged" : ""), s.text));
+        for(const x of (s.flags || [])) pv.appendChild(el("span", "fcode", x.code + " " + flagWords(x)));
+      }
+      box.appendChild(pv);
+    }
+    const ta = el("textarea"); ta.value = f.text; ta.dataset.idx = String(i);
+    ta.addEventListener("input", () => box.classList.toggle("changed", ta.value !== f.text));
+    box.appendChild(ta); nar.appendChild(box);
+  });
+}
+
 async function loadQueue(){
   const r = await call({ action: "queue" });
   if(r.status === 403){ show("view-denied"); return; }
@@ -178,27 +294,9 @@ async function openDetail(it){
   head.appendChild(el("div", "mono", d.report.report_id));
   head.appendChild(el("div", "muted", [d.report.lab_name, d.report.collected_on, d.report.hours_waiting != null ? d.report.hours_waiting + "h waiting" : null, it.kind === "rescore" ? "updated reading after her answer" : null].filter(Boolean).join(" · ")));
 
-  const t = el("table"); const hr = el("tr");
-  ["Marker","Value","Unit","Band"].forEach(h => hr.appendChild(el("th", null, h))); t.appendChild(hr);
-  for(const m of (d.markers || [])){
-    const tr = el("tr");
-    tr.appendChild(el("td", null, m.display_name || m.marker_key));
-    tr.appendChild(el("td", "mono", m.value != null ? m.value : (m.value_text || "")));
-    tr.appendChild(el("td", null, m.unit || ""));
-    tr.appendChild(el("td", null, m.band || "unscored"));
-    t.appendChild(tr);
-  }
-  $("markers").textContent = ""; $("markers").appendChild(t);
-
-  const nar = $("narrative"); nar.textContent = "";
-  CURRENT.narrative.forEach((f, i) => {
-    const box = el("div");
-    box.appendChild(el("div", "path", f.path));
-    const ta = el("textarea"); ta.value = f.text; ta.dataset.idx = String(i);
-    ta.addEventListener("input", () => box.classList.toggle("changed", ta.value !== f.text));
-    box.appendChild(ta); nar.appendChild(box);
-  });
-
+  renderFlagSummary(d.flag_summary || null);
+  renderMarkers(d.markers || []);
+  renderNarrative(CURRENT.narrative);
   $("flags").textContent = JSON.stringify(d.review_flags, null, 2);   // AS STORED, not summarised
   const h = $("history"); h.textContent = "";
   if(!(d.history || []).length) h.appendChild(el("p", "muted", "No earlier review."));
