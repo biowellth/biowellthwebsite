@@ -115,7 +115,9 @@ ok(clearIdx < renderIdx, "d: the interval is cleared BEFORE the render, so no ti
 // a spacing-shaped assertion has produced a false red in this file. What matters
 // is that the return comes after the render and before the next branch.
 const bailReturnIdx = POLL_TICK.indexOf("return true;", renderIdx);
-const nextBranchIdx = POLL_TICK.indexOf("if(rep && rep.transcription_json)", renderIdx);
+// RELEASE_HARDENING_V1: the next branch was the interim view (`if(rep && rep.transcription_json)`),
+// removed with supa 0062. The next statement is now the in-flight processing fallback.
+const nextBranchIdx = POLL_TICK.indexOf('if(!window.__drawBlockActive) showView("processing");', renderIdx);
 ok(bailReturnIdx > renderIdx, "d: the bail returns after rendering");
 ok(nextBranchIdx > bailReturnIdx,
    "d: it returns true BEFORE the next branch, so the ONE terminal path in pollForResult clears the poll");

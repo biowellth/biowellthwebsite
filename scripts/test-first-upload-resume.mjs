@@ -93,7 +93,7 @@ async function boot({ reports, done = [], ddcRow = null, inflight = null }) {
       return { data: typeof ddcRow === "function" ? ddcRow(st.filters.id) : ddcRow, error: null };
     }
     if (st.table === "reports" && cols.includes("file_path")) return { data: reports, error: null };
-    if (st.table === "reports" && cols.includes("transcription_json")) return { data: inflight, error: null };
+    if (st.table === "reports" && cols.includes("transcribed")) return { data: inflight, error: null };   // RELEASE_HARDENING_V1: pollTick selects transcribed, never transcription_json
     if (st.table === "results" && cols.includes("report_id")) {
       return { data: done.map((id) => ({ report_id: id, payload: PAYLOAD })), error: null };
     }
@@ -187,27 +187,27 @@ const QUALIFY = (id) => ({ id, collected_on: "2024-07-25", lmp_date_before_draw:
 // ── (A) boot ──────────────────────────────────────────────────────────────────────────────────
 console.log("BOOT_RESUME_POLL_V1");
 {
-  const b = await boot({ reports: [R("r-proc", "processing")], inflight: { status: "processing", transcription_json: null, created_at: NOW } });
+  const b = await boot({ reports: [R("r-proc", "processing")], inflight: { status: "processing", transcribed: false, created_at: NOW } });
   ok(!b.bootError, "A1: boot with a processing report completes without throwing" + (b.bootError ? " -> " + b.bootError : ""));
   eq(b.visible().join(","), "processing", "A1: a processing report shows the processing screen");
   eq(b.active.size, 1, "A1: exactly one poll is armed");
   eq(b.pollId(), "r-proc", "A1: and it watches that report");
 }
 {
-  const b = await boot({ reports: [R("r-up", "uploaded")], inflight: { status: "uploaded", transcription_json: null, created_at: NOW } });
+  const b = await boot({ reports: [R("r-up", "uploaded")], inflight: { status: "uploaded", transcribed: false, created_at: NOW } });
   eq(b.visible().join(","), "processing", "A2: an uploaded report shows the processing screen too");
   eq(b.active.size, 1, "A2: exactly one poll is armed");
 }
 {
   // Newest in flight, an older panel done: the ruling is her MOST RECENT report.
   const b = await boot({ reports: [R("r-new", "processing"), R("r-old", "done", { reveal_seen_at: NOW })], done: ["r-old"],
-                         inflight: { status: "processing", transcription_json: null, created_at: NOW } });
+                         inflight: { status: "processing", transcribed: false, created_at: NOW } });
   eq(b.visible().join(","), "processing", "A3: newest in flight beats an older finished panel");
   eq(b.pollId(), "r-new", "A3: and the poll watches the newest report");
 }
 {
   // A second resume attempt for the same report must not arm a second poll.
-  const b = await boot({ reports: [R("r-proc", "processing")], inflight: { status: "processing", transcription_json: null, created_at: NOW } });
+  const b = await boot({ reports: [R("r-proc", "processing")], inflight: { status: "processing", transcribed: false, created_at: NOW } });
   b.probe("pcResumePoll()");
   await b.settle();
   eq(b.active.size, 1, "A4: a focus resume on top of the boot poll still leaves exactly one poll");

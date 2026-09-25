@@ -2814,7 +2814,7 @@ async function refreshReportVault(){
 // Returns the list of completed panels (newest first) so the caller can pick a default.
 async function buildPicker(selectedId){
   const { data: reports } = await sb.from("reports")
-    .select("id, collected_on, created_at, lab_name, reveal_seen_at, clarify_prompts, file_path, status")
+    .select("id, collected_on, created_at, lab_name, reveal_seen_at, file_path, status")
     .eq("user_id", USER.id)
     .is("archived_at", null)
     .order("created_at",{ascending:false});
@@ -2823,10 +2823,18 @@ async function buildPicker(selectedId){
   // that failed with no results row can be routed to the failure state instead of the upload screen.
   window.__allReports = reports || [];
   if(!reports || !reports.length) return [];
-  // Clarify chip source (Deploy D2): reports.clarify_prompts per report_id, read by
-  // renderDashboard for the open panel. Column-listed above (was missing it) so the chip
-  // has data to render.
-  window.__clarifyByReport = new Map(reports.map(r=>[r.id, r.clarify_prompts]));
+  // Clarify chip source (Deploy D2), read by renderDashboard for the open panel.
+  // RELEASE_HARDENING_V1 (supa migration 0062): reports.clarify_prompts is withheld from the
+  // signed-in role, so naming it in the select above would fail the WHOLE statement and take the
+  // picker down with it. The prompts now come from my_released_clarify_prompts(), which returns
+  // them for her own RELEASED reports only. A failed or absent call leaves the chip empty, never
+  // the picker: every report still maps, to null.
+  const __clarify = new Map(reports.map(r=>[r.id, null]));
+  try{
+    const { data: __cp, error: __cpErr } = await sb.rpc("my_released_clarify_prompts");
+    if(!__cpErr && Array.isArray(__cp)) for(const row of __cp){ if(__clarify.has(row.report_id)) __clarify.set(row.report_id, row.clarify_prompts); }
+  }catch(_){}
+  window.__clarifyByReport = __clarify;
 
   const ids = reports.map(r=>r.id);
   const { data: doneRows } = await sb.from("results")
@@ -4455,16 +4463,17 @@ async function pcRetrySpentFromError(error, data){
 // FAIL6_V1 — true ONLY when the server refused because there is no transcription to re-read. Same
 // shape as pcRetrySpentFromError: a network failure carries no body and must never be read as a
 // capability refusal.
-// FAIL6_V1 — of the given report ids, which have NO transcription_json (so FAIL-6 applies).
-// Selects "id" ONLY and filters server-side: transcription_json is ~27KB per report and we never
-// need its contents here, only whether it exists. Returns a Set; on query failure returns an EMPTY
+// FAIL6_V1 — of the given report ids, which were never transcribed (so FAIL-6 applies).
+// RELEASE_HARDENING_V1: filters on reports.transcribed, the flag the worker writes beside
+// transcription_json. That column is withheld from the signed-in role (supa 0062), and a filter
+// on a withheld column fails the whole query. Returns a Set; on query failure returns an EMPTY
 // set, which degrades to FAIL-2 rather than wrongly telling her a retry cannot help.
 async function pcUnretryableIds(ids){
   const out = new Set();
   if(!ids || !ids.length) return out;
   try{
     const { data, error } = await sb.from("reports")
-      .select("id").in("id", ids).not("transcription_json", "is", null);
+      .select("id").in("id", ids).eq("transcribed", true);   // RELEASE_HARDENING_V1: never transcription_json
     if(error) return out;
     const withTj = new Set((data || []).map(r => r.id));
     ids.forEach(id => { if(!withTj.has(id)) out.add(id); });
@@ -4668,22 +4677,22 @@ async function pollTick(reportId){
       showView("reveal");
       return true;
     }
-    // Not done yet — surface the interim value view as soon as Call A's
-    // transcription_json lands ('awaiting_interpretation') so the user sees
-    // their numbers ~3 min in instead of a ~9 min blank wait. Authoritative
-    // banding / colour / verdict come ONLY with Call B (above), never here.
+    // Not done yet. RELEASE_HARDENING_V1 (supa migration 0062): the interim value view that
+    // rendered Call A's transcription_json before release is REMOVED. That column is withheld
+    // from the signed-in role, and nothing she sees before release may come from the model.
+    // `transcribed` is the flag the worker sets beside it; it is read for the retry decision only.
     const { data: rep } = await sb.from("reports")
-      .select("status, transcription_json, created_at").eq("id", reportId).limit(1).maybeSingle();
+      .select("status, transcribed, created_at").eq("id", reportId).limit(1).maybeSingle();
     if(rep && rep.status === "error"){
       // PROCESSING_COPY_V1: terminal. The retired render kept the spinner turning under a
       // "Reading your report" headline and appended a coral line saying it had failed, so she was
       // told it was working and that it had failed at the same time, with no control to act on.
       clearInterval(pollTimer);
       window.__drawBlockActive = false;
-      // FAIL6_V1 (proactive). This select already carries transcription_json, so the unretryable case
+      // FAIL6_V1 (proactive). This select already carries `transcribed`, so the unretryable case
       // is free here. A failure with no transcription can never be rescued by a re-enqueue, so she is
       // never shown a retry control that the backend would refuse.
-      pcRenderFailure(reportId, !rep.transcription_json ? "unretryable" : (__pcRetrySpent ? "spent" : "retryable"));
+      pcRenderFailure(reportId, !rep.transcribed ? "unretryable" : (__pcRetrySpent ? "spent" : "retryable"));
       __pcRetrySpent = true;   // any FURTHER failure this session is the second one
       showView("processing");
       return true;
@@ -4719,16 +4728,9 @@ async function pollTick(reportId){
       // land, and if it does the draw-context gate should still apply to it.
       return true;
     }
-    if(rep && rep.transcription_json){
-      // Interim numbers are prepared; while the About block is mounted the reveal is HELD (amendment 1).
-      renderInterim(rep.transcription_json, pcElapsedMs(rep));   // PROCESSING_COPY_V1
-      if(window.__drawBlockActive){ drawReadyAck("interim"); return false; }
-      showView("interim");
-    } else {
-      // Call A still running. DRAW_CONTEXT_SUBMIT_V1: the old processing-screen ask is retired; while the
-      // About block is mounted we stay on it (degraded/revisit with no block -> the processing screen).
-      if(!window.__drawBlockActive) showView("processing");
-    }
+    // Still in flight, transcribed or not. DRAW_CONTEXT_SUBMIT_V1: while the About block is mounted we
+    // stay on it (degraded/revisit with no block -> the processing screen).
+    if(!window.__drawBlockActive) showView("processing");
     return false;
   }catch(_e){
     // STALE_TAB_POLL_V1: a transient fetch failure must not kill the loop. Stay non-terminal so the
