@@ -1,0 +1,4 @@
+session: 739b9382
+taken: 2026-09-25T00:51:13Z
+scope: controls.md step 2 (privacy.html v1.3) then step 3 (CORE_CONSENT_V2_ENABLED + SANA_CONSENT_V4_ENABLED on, consent tests), each deployed and verified before the next
+repos: biowellth-website (supa holds its own lock)
