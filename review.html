@@ -7,6 +7,11 @@
      Every read and every write goes through the review-action edge function; this page makes no
      table read of its own. review-action checks reviewers membership before reading anything. -->
 <meta name="robots" content="noindex,nofollow"/>
+<!-- REVIEW_NO_STORE_V1. GitHub Pages cannot send response headers, so the page asks browsers not to cache
+     it. The data itself comes from review-action, whose every response carries Cache-Control: no-store. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>Review</title>
 <link rel="icon" href="/favicon.ico"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -106,6 +111,16 @@ details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:
   <div class="hidden" id="view-detail">
     <div class="actions" style="margin:0 0 12px"><button class="btn alt" id="back" type="button">Back to the queue</button></div>
     <div class="card" style="margin-bottom:14px"><div id="detail-head"></div></div>
+    <!-- REVIEWER_CONTEXT_V1: what Call B was told about her, from the snapshot stored in the run that built it. -->
+    <div class="card" style="margin-bottom:14px" id="context-card">
+      <h2>What the report was based on</h2>
+      <p class="muted" id="context-source"></p>
+      <div id="context"></div>
+      <div class="hidden" id="own-words-block" style="margin-top:12px;border-top:1px solid var(--line, #ddd);padding-top:10px">
+        <h3 style="margin:0 0 6px">Her own words (may include personal details)</h3>
+        <p id="own-words" style="white-space:pre-wrap"></p>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:14px" id="flag-card">
       <div class="count" id="flag-count"></div>
       <div class="chips" id="flag-codes"></div>
@@ -137,7 +152,31 @@ details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:
 // REVIEW_GATE_V1. The URL and publishable key are the same values login.html and dashboard.html carry.
 const SUPABASE_URL      = "https://clacgutnrktdwhglvyua.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_xz9DWu30oFQhiZt8kWV77A_xU2uhLPU";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// REVIEW_SESSION_V1. The reviewer's session lives in sessionStorage, not localStorage, so closing the tab
+// ends it on this device. After 30 minutes with no pointer, key, scroll or touch activity the page signs
+// out and reloads, which also clears any report it was showing. Guarded so a browser that blocks storage
+// (or a test sandbox) still loads the page.
+const SESSION_STORE = (() => { try { return window.sessionStorage; } catch (_) { return undefined; } })();
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+  { auth: { storage: SESSION_STORE, persistSession: true, autoRefreshToken: true } });
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
+let LAST_ACTIVITY = Date.now();
+let SIGNED_IN = false;
+function noteActivity(){ LAST_ACTIVITY = Date.now(); }
+async function signOutIfIdle(now){
+  if(!SIGNED_IN || (now - LAST_ACTIVITY) < IDLE_LIMIT_MS) return false;
+  SIGNED_IN = false;
+  try { await sb.auth.signOut(); } catch (_) {}
+  try { window.location.replace(window.location.pathname + "?signed_out=idle"); } catch (_) {}
+  return true;
+}
+if (typeof window.addEventListener === "function") {
+  ["pointerdown", "keydown", "scroll", "touchstart"].forEach((ev) => window.addEventListener(ev, noteActivity, { passive: true }));
+}
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) signOutIfIdle(Date.now()); });
+}
+if (typeof setInterval === "function") setInterval(() => { signOutIfIdle(Date.now()); }, 30000);
 
 // The spec's six error tags, in the spec's order. review-action refuses anything else.
 const ERROR_TAGS = ["wrong_fact","wrong_tone","missed_flag","diagnostic_overreach","extraction_error","other"];
@@ -284,6 +323,38 @@ async function loadQueue(){
   }
 }
 
+// REVIEWER_CONTEXT_V1. Renders review-action's call_b_context: every value is set as TEXT (never markup),
+// withheld keys read "Not shared", unanswered ones "Not answered", a period date after the draw its own
+// state. The context note is shown as-is in its own labelled block. Nothing here is rebuilt from the profile.
+const CONTEXT_NEVER = new Set(["dob", "date_of_birth", "birth_date", "full_name", "name", "email", "phone"]);
+const CONTEXT_STATE = { not_shared: "Not shared", not_answered: "Not answered", withheld_date_after_draw: "Withheld (date after the draw)" };
+function contextValue(v){
+  if (v === true) return "Yes";
+  if (v === false) return "No";
+  if (Array.isArray(v)) return v.length ? v.map(String).join(", ") : "None";
+  if (v && typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+function renderContext(c){
+  const box = $("context"), src = $("context-source"), ow = $("own-words-block");
+  box.textContent = ""; src.textContent = ""; ow.classList.add("hidden"); $("own-words").textContent = "";
+  if (!c || c.status !== "recorded") { box.appendChild(el("p", "muted", "Not recorded for this report.")); return; }
+  src.textContent = c.source === "original_interpretation_carried_forward"
+    ? "From the original interpretation. This rescore reuses its wording, so this is what the model was told then."
+    : "Exactly what the model was told when it wrote this report.";
+  if (c.no_profile) box.appendChild(el("p", "muted", "No profile information was available to the model."));
+  const tbl = el("table", "ctx");
+  for (const f of (c.fields || [])) {
+    if (CONTEXT_NEVER.has(f.key)) continue;   // defence in depth: review-action already strips these
+    const tr = el("tr");
+    tr.appendChild(el("th", null, f.label));
+    tr.appendChild(el("td", f.state === "value" ? null : "muted", f.state === "value" ? contextValue(f.value) : (CONTEXT_STATE[f.state] || f.state)));
+    tbl.appendChild(tr);
+  }
+  box.appendChild(tbl);
+  if (typeof c.own_words === "string" && c.own_words !== "") { $("own-words").textContent = c.own_words; ow.classList.remove("hidden"); }
+}
+
 async function openDetail(it){
   const r = await call({ action: "detail", report_id: it.report_id, ...(it.staging_id ? { staging_id: it.staging_id } : {}) });
   if(r.status !== 200 || !r.data || !r.data.ok){ alertMsg("Could not open this report (" + ((r.data && r.data.error) || r.status) + ")."); return; }
@@ -294,6 +365,7 @@ async function openDetail(it){
   head.appendChild(el("div", "mono", d.report.report_id));
   head.appendChild(el("div", "muted", [d.report.lab_name, d.report.collected_on, d.report.hours_waiting != null ? d.report.hours_waiting + "h waiting" : null, it.kind === "rescore" ? "updated reading after her answer" : null].filter(Boolean).join(" · ")));
 
+  renderContext(d.call_b_context);
   renderFlagSummary(d.flag_summary || null);
   renderMarkers(d.markers || []);
   renderNarrative(CURRENT.narrative);
@@ -355,13 +427,17 @@ $("signin").addEventListener("click", async () => {
   $("login-msg").textContent = "";
   const { error } = await sb.auth.signInWithPassword({ email: $("em").value.trim(), password: $("pw").value });
   if(error){ $("login-msg").textContent = "Could not sign in. Check the email and password."; return; }
+  SIGNED_IN = true; noteActivity();
   $("signout").classList.remove("hidden"); loadQueue();
 });
-$("signout").addEventListener("click", async () => { await sb.auth.signOut(); $("signout").classList.add("hidden"); show("view-login"); });
+$("signout").addEventListener("click", async () => { SIGNED_IN = false; await sb.auth.signOut(); $("signout").classList.add("hidden"); show("view-login"); });
 
 sb.auth.getSession().then(({ data }) => {
-  if(data && data.session){ $("signout").classList.remove("hidden"); loadQueue(); }
-  else show("view-login");
+  if(data && data.session){ SIGNED_IN = true; noteActivity(); $("signout").classList.remove("hidden"); loadQueue(); }
+  else {
+    show("view-login");
+    try { if (/[?&]signed_out=idle\b/.test(window.location.search)) $("login-msg").textContent = "Signed out after 30 minutes without activity."; } catch (_) {}
+  }
 });
 </script>
 </body>
