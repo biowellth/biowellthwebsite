@@ -1,0 +1,4 @@
+session: 739b9382
+taken: 2026-09-26T04:02:33Z
+scope: supa: cherry-pick dry-run harness a5f469e to main (tools only) + handoff line; website: CLAUDE.md test-suite line. No deploy.
+repos: biowellth-backend-supa, biowellth-website
