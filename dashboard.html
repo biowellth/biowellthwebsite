@@ -2282,7 +2282,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
        "Our team checks every report before you see it during early access. You'll have it within 24
        hours, and we'll email you the moment it's ready." It now says what the check is for (accuracy)
        and who does it. The confidentiality sentence is deliberately withheld until the reviewer
-       agreement is signed; it waits as REVIEW_CONFIDENTIALITY_LINE in the script. -->
+       agreement is signed; its wording is held in docs/review-confidentiality-line.md, not here. -->
   <div id="view-pending" class="hidden">
     <h1>Your report is being prepared</h1>
     <p>During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.</p>
@@ -4831,10 +4831,8 @@ window.__pcGate = null;
 // own shorter line and no longer a substring of the pending body; both still make the same promise.
 const PFU_SAVED_H = "Saved. Your report is being prepared.";
 const PFU_SAVED_B = "Every report is reviewed for accuracy before it's released to you.";
-// REVIEW_GATE_COPY_V2. NOT SHIPPED. Add this sentence (to the pending view body and, if wanted, after
-// PFU_SAVED_B) only AFTER the reviewer confidentiality agreement is signed. Until then it would be a
-// promise nothing backs. Held back on the founder's instruction, 2026-09-25.
-// const REVIEW_CONFIDENTIALITY_LINE = "Reviewers work under a confidentiality agreement and see only what they need to check your report.";
+// REVIEW_GATE_COPY_V2. The held-back reviewer confidentiality sentence is NOT in this file. Its wording and
+// the rule for when it may ship live in docs/review-confidentiality-line.md (not served).
 function pcGateFromUpload(reportId, res){
   window.__pcGate = { reportId, held: !!(res && res.data && res.data.review_gate === true) };
 }

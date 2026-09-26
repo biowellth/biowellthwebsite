@@ -33,15 +33,19 @@ ok(view.includes("<h1>" + HEAD + "</h1>"), "P-1: headline is exactly the spec's"
 ok(view.includes("<p>" + BODY + "</p>"), "P-1: body is exactly the founder's REVIEW_GATE_COPY_V2 copy");
 ok(!view.includes(OLD_BODY) && !/checks every report/.test(view), "P-1: the old \"checks every report\" body is gone from the view");
 ok(!view.includes(CONFIDENTIALITY), "P-1: the confidentiality sentence is NOT shown (held until the reviewer agreement is signed)");
-ok(/^\/\/ const REVIEW_CONFIDENTIALITY_LINE = "Reviewers work under a confidentiality agreement and see only what they need to check your report\.";$/m.test(HTML),
-   "P-1: the confidentiality sentence waits as a COMMENTED-OUT constant");
-ok(!/^const REVIEW_CONFIDENTIALITY_LINE/m.test(HTML), "P-1: and is not live code");
+// 2026-09-26: the held-back sentence moved OUT of dashboard.html (not even in a comment) into
+// docs/review-confidentiality-line.md, which the Pages build excludes.
+const HELD = readFileSync("docs/review-confidentiality-line.md", "utf8");
+ok(HELD.includes("> Reviewers work under a confidentiality agreement and see only what they need to check your report."),
+   "P-1: the confidentiality sentence waits, exact, in docs/review-confidentiality-line.md");
+ok(!HTML.includes(CONFIDENTIALITY) && !/REVIEW_CONFIDENTIALITY_LINE/.test(HTML), "P-1: and is nowhere in dashboard.html, not even commented out");
+ok(/^\s*- docs\/\s*$/m.test(readFileSync("_config.yml", "utf8")), "P-1: docs/ is excluded from the Pages build, so the held copy is not served");
 ok(/You'll have it/.test(BODY) && /it's released/.test(BODY), "P-1: contractions kept (You'll, it's)");
 ok(!/—|–/.test(view), "P-1: no em or en dash in the view");
 ok(!view.includes("<p>" + BODY.replace("24 hours", "a day") + "</p>"), "P-1-MUTANT: a reworded body would not match");
 ok(("<p>" + OLD_BODY + "</p>").includes("checks every report"), "P-1-MUTANT: the old-copy check would fire on the old body");
-{ const live = HTML.replace("// const REVIEW_CONFIDENTIALITY_LINE", "const REVIEW_CONFIDENTIALITY_LINE");
-  ok(/^const REVIEW_CONFIDENTIALITY_LINE/m.test(live), "P-1-MUTANT: an uncommented confidentiality constant would be caught"); }
+{ const back = HTML + '\n// const REVIEW_CONFIDENTIALITY_LINE = "' + CONFIDENTIALITY + ' and see only what they need to check your report.";';
+  ok(back.includes(CONFIDENTIALITY) || /REVIEW_CONFIDENTIALITY_LINE/.test(back), "P-1-MUTANT: the sentence put back into dashboard.html, even commented, would be caught"); }
 
 console.log("P-2  the vault pill");
 ok(/r\.status === "awaiting_review"\s*\?\s*'<span class="rv-status prep">being prepared<\/span>'/.test(HTML), "P-2: awaiting_review renders the being prepared pill");
