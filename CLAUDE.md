@@ -2,6 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## State as of 2026-09-26
+
+**The single source of truth is the backend repo's `docs/handoff-2026-09-26.md`.** Read it before
+touching the review flow. What it means for this repo:
+
+- **`/review` (`review.html`)** is the human-review page. It is unlinked and noindex, and it makes no
+  table read of its own: every call goes through the `review-action` edge function.
+  - **Two-factor is required.** The server refuses any session without a verified TOTP factor
+    (`aal2`) with 403 `mfa_required`. The page shows a setup screen (QR code plus the key as text) or
+    a code screen, and never removes a verified factor.
+  - **The context panel** ("What the report was based on") renders what the server sends, as text.
+    Never use `innerHTML`, and never show date of birth, name, email or phone.
+  - **Session rules:** the sign-in is kept in `sessionStorage`, so closing the tab ends it, and the
+    page signs out after 30 minutes without activity. It also carries no-cache meta tags.
+  - **Tests** pin all of this: `scripts/test-review-mfa.mjs`, `test-review-context-panel.mjs`,
+    `test-review-page.mjs` and `test-review-flags-page.mjs`.
+- **The pending-screen copy in `dashboard.html` (`#view-pending`) is counsel-approved. Do not reword
+  it.** It is pinned by `scripts/test-review-pending.mjs`:
+  > "During early access, every report is reviewed for accuracy by our health team before it's
+  > released to you. Your reviewer may see your report and the health information used to prepare
+  > it. You'll have it within 24 hours, and we'll email you as soon as it's ready."
+- **Say "our health team".** Never "doctor review", "medically reviewed", "medical clearance" or
+  "medical team". The review must never read as medical.
+  - The Vitality ring caveat reads "...are still being reviewed by our health team".
+  - "clinician" is used only for her own clinician.
+- **The reviewer-confidentiality sentence is HELD BACK** in `docs/review-confidentiality-line.md`
+  until the reviewer agreement is signed. It is not on the site.
+- **`review_gate_mode` is `'off'`.** It stays off for external participants until the backend
+  go-live checklist is complete and Aditi confirms.
+
 ## What this repo is
 
 The BioWellth front end: hand-written static HTML/CSS/JS with **no build step, no package manager, no test suite, and no lint config**. Every page is a single self-contained file with its CSS in a `<style>` block and its JS in a `<script>` block. The only external runtime dependency is `@supabase/supabase-js@2` from jsDelivr (plus Google Fonts and a Typeform embed on the marketing page).
