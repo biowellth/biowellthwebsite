@@ -1,0 +1,4 @@
+session: 739b9382
+taken: 2026-09-26T02:46:51Z
+scope: reviewer-2fa: require aal2 (Supabase TOTP) on every review-action call, enrolment screen on /review, counsel summary line. Build only on branch reviewer-2fa, no deploy.
+repos: biowellth-backend-supa, biowellth-website
