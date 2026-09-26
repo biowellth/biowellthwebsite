@@ -2282,10 +2282,12 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
        "Our team checks every report before you see it during early access. You'll have it within 24
        hours, and we'll email you the moment it's ready." It now says what the check is for (accuracy)
        and who does it. The confidentiality sentence is deliberately withheld until the reviewer
-       agreement is signed; its wording is held in docs/review-confidentiality-line.md, not here. -->
+       agreement is signed; its wording is held in docs/review-confidentiality-line.md, not here.
+       REVIEW_GATE_COPY_V3 (2026-09-26, counsel-approved): adds "Your reviewer may see your report and the
+       health information used to prepare it." between the two V2 sentences. Exact; do not reword it. -->
   <div id="view-pending" class="hidden">
     <h1>Your report is being prepared</h1>
-    <p>During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.</p>
+    <p>During early access, every report is reviewed for accuracy by our health team before it's released to you. Your reviewer may see your report and the health information used to prepare it. You'll have it within 24 hours, and we'll email you as soon as it's ready.</p>
   </div>
 
   <div id="view-interim" class="hidden">
@@ -13829,7 +13831,7 @@ function buildDeck(p, reportId, faceScanConsented){
             ? '<div class="vischip stag"><i id="rd-vischipDot"></i><span>Seeing ' + visibility + '% of your full picture</span></div>'
             : '') +
           visBridge +
-          '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our medical team.</p>' +
+          '<p class="caveat stag">The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our health team.</p>' +
         '</div>' +
       '</section>'
     );

@@ -22,7 +22,10 @@ const ok = (c, m) => { if (c) { pass++; console.log("  ok   " + m); } else { fai
 const HEAD = "Your report is being prepared";
 // REVIEW_GATE_COPY_V2 (2026-09-25, founder copy) replaced the spec's body. OLD_BODY is kept so P-1 can
 // prove the old wording is gone rather than merely that the new wording is present somewhere.
-const BODY = "During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.";
+// REVIEW_GATE_COPY_V3 (2026-09-26, counsel-approved) adds the reviewer sentence. V2_BODY is kept so P-1 proves
+// the V2 wording is gone, not merely that V3 is present somewhere.
+const BODY = "During early access, every report is reviewed for accuracy by our health team before it's released to you. Your reviewer may see your report and the health information used to prepare it. You'll have it within 24 hours, and we'll email you as soon as it's ready.";
+const V2_BODY = "During early access, every report is reviewed for accuracy by our health team before it's released to you. You'll have it within 24 hours, and we'll email you as soon as it's ready.";
 const OLD_BODY = "Our team checks every report before you see it during early access. You'll have it within 24 hours, and we'll email you the moment it's ready.";
 const CONFIDENTIALITY = "Reviewers work under a confidentiality agreement";
 
@@ -30,7 +33,9 @@ console.log("P-1  the pending copy, exact");
 const view = (HTML.match(/<div id="view-pending" class="hidden">([\s\S]*?)<\/div>/) || [])[1] || "";
 ok(view.length > 50, "P-1-CONTROL: #view-pending located");
 ok(view.includes("<h1>" + HEAD + "</h1>"), "P-1: headline is exactly the spec's");
-ok(view.includes("<p>" + BODY + "</p>"), "P-1: body is exactly the founder's REVIEW_GATE_COPY_V2 copy");
+ok(view.includes("<p>" + BODY + "</p>"), "P-1: body is exactly counsel's REVIEW_GATE_COPY_V3 copy");
+ok(!view.includes("<p>" + V2_BODY + "</p>"), "P-1: the V2 body (without the reviewer sentence) is gone");
+ok(("<p>" + V2_BODY + "</p>") !== ("<p>" + BODY + "</p>") && view.includes("Your reviewer may see your report and the health information used to prepare it."), "P-1-CONTROL: V2 and V3 differ, and the reviewer sentence is present");
 ok(!view.includes(OLD_BODY) && !/checks every report/.test(view), "P-1: the old \"checks every report\" body is gone from the view");
 ok(!view.includes(CONFIDENTIALITY), "P-1: the confidentiality sentence is NOT shown (held until the reviewer agreement is signed)");
 // 2026-09-26: the held-back sentence moved OUT of dashboard.html (not even in a comment) into
@@ -115,6 +120,21 @@ console.log("P-6  the chip tail (Step 6): gated -> being prepared, never a silen
   const x = await run("throw", 0);
   ok(x.loads >= 1 && x.renders.length === 1 && x.ack === "", "P-6: a failed enqueue falls back to the old behaviour, never to a false being prepared");
   ok(!/—|–/.test((HTML.match(/^const RESCORE_PREPARING = ([^\n]+)$/m) || ["", "—"])[1]), "P-6: the being prepared line has no em dash");
+}
+
+console.log("P-7  the Vitality ring caveat credits our health team, never a medical team");
+{
+  const CAVEAT = "The more often you test, the clearer this gets. This is an early preview, and the healthy ranges we compare against are still being reviewed by our health team.";
+  const hasCaveat = (h) => h.includes("<p class=\"caveat stag\">" + CAVEAT + "</p>");
+  const noMedicalTeam = (h) => !/medical team/i.test(h);
+  ok(HTML.includes("<p class=\"caveat stag\">The more often you test"), "P-7-CONTROL: the ring caveat is located");
+  ok(hasCaveat(HTML), "P-7: the caveat reads exactly '...still being reviewed by our health team.'");
+  ok(noMedicalTeam(HTML), "P-7: 'medical team' appears nowhere in dashboard.html");
+  ok(!/—|–/.test(CAVEAT), "P-7: no em or en dash in the caveat");
+  const mutant = HTML.replace("still being reviewed by our health team.", "still being reviewed by our medical team.");
+  ok(mutant !== HTML && !hasCaveat(mutant) && !noMedicalTeam(mutant), "P-7-MUTANT: re-adding 'medical team' fails both checks");
+  const dashed = HTML.replace("This is an early preview, and the healthy", "This is an early preview — the healthy");
+  ok(dashed !== HTML && !hasCaveat(dashed), "P-7-MUTANT: an em dash in the caveat fails the exact check");
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");
