@@ -34,7 +34,7 @@ touching the review flow. What it means for this repo:
 
 ## What this repo is
 
-The BioWellth front end: hand-written static HTML/CSS/JS with **no build step, no package manager, no test suite, and no lint config**. Every page is a single self-contained file with its CSS in a `<style>` block and its JS in a `<script>` block. The only external runtime dependency is `@supabase/supabase-js@2` from jsDelivr (plus Google Fonts and a Typeform embed on the marketing page).
+The BioWellth front end: hand-written static HTML/CSS/JS with **no build step, no package manager, and no lint config**. Tests are standalone node scripts, `scripts/test-*.mjs`, each run from the repo root with `node scripts/test-<name>.mjs` (**50 scripts, 50 of 50 passing, measured 2026-09-26**). Every page is a single self-contained file with its CSS in a `<style>` block and its JS in a `<script>` block. The only external runtime dependency is `@supabase/supabase-js@2` from jsDelivr (plus Google Fonts and a Typeform embed on the marketing page).
 
 Deployed to GitHub Pages from `main` (`CNAME` → biowellth.ai). Pushing to `main` is the deploy — there is no staging environment.
 
