@@ -96,6 +96,20 @@ details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:
     <div class="msg err" id="login-msg"></div>
   </div>
 
+  <!-- REVIEWER_MFA_V1: review-action refuses any session without a verified TOTP second factor (aal2). -->
+  <div class="card hidden" id="view-mfa" style="max-width:460px">
+    <h2 id="mfa-title">Set up a second step</h2>
+    <p class="muted" id="mfa-intro"></p>
+    <div class="hidden" id="mfa-enrol">
+      <img id="mfa-qr" alt="QR code for your authenticator app" width="180" height="180"/>
+      <p class="muted">If you cannot scan it, type this key into the app instead.</p>
+      <p class="mono" id="mfa-secret"></p>
+    </div>
+    <label for="mfa-code">Six-digit code from the app</label><input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"/>
+    <div class="actions"><button class="btn" id="mfa-verify" type="button">Verify</button></div>
+    <div class="msg err" id="mfa-msg"></div>
+  </div>
+
   <div class="hidden" id="view-denied"><div class="card"><p>This account is not a reviewer.</p></div></div>
 
   <div class="hidden" id="view-queue">
@@ -185,7 +199,61 @@ const TAG_LABEL = { wrong_fact:"Wrong fact", wrong_tone:"Wrong tone", missed_fla
 
 const $ = (id) => document.getElementById(id);
 function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = String(text); return e; }
-function show(id){ ["view-login","view-denied","view-queue","view-detail"].forEach(v => $(v).classList.toggle("hidden", v !== id)); }
+function show(id){ ["view-login","view-mfa","view-denied","view-queue","view-detail"].forEach(v => $(v).classList.toggle("hidden", v !== id)); }
+
+// REVIEWER_MFA_V1. review-action answers 403 mfa_required to any session that has not passed a TOTP second
+// factor, so nothing is shown until this is done. The server is the gate; this screen only gets the
+// reviewer through it. A reviewer with no verified factor enrols one (QR code plus the key as text);
+// one who has a factor enters the current code. The page never removes a VERIFIED factor, and Supabase
+// Auth would refuse that at aal1 anyway, so a stolen password cannot take the second step off.
+const MFA_INTRO_ENROL = "Review needs a code from an authenticator app as well as your password. Scan this with the app, then enter the code it shows.";
+const MFA_INTRO_CODE = "Open your authenticator app and enter the current code for BioWellth review.";
+let MFA_FACTOR = null;
+function mfaMsg(t){ $("mfa-msg").textContent = t; }
+function clearMfa(){ MFA_FACTOR = null; $("mfa-secret").textContent = ""; $("mfa-qr").src = ""; $("mfa-code").value = ""; mfaMsg(""); }
+function qrSrc(q){ q = String(q || ""); return q.startsWith("data:") ? q : "data:image/svg+xml;utf-8," + encodeURIComponent(q); }
+// true when the session is already aal2; otherwise shows the right screen and returns false.
+async function startMfa(){
+  clearMfa();
+  let level = null, factors = null;
+  try { level = (await sb.auth.mfa.getAuthenticatorAssuranceLevel()).data; } catch (_) {}
+  if(level && level.currentLevel === "aal2") return true;
+  try { factors = (await sb.auth.mfa.listFactors()).data; } catch (_) {}
+  show("view-mfa");
+  if(!factors){ mfaMsg("Could not check your second step. Refresh the page and try again."); return false; }
+  const verified = (factors.totp || []).filter(f => f.status === "verified");
+  if(verified.length){
+    MFA_FACTOR = verified[0].id;
+    $("mfa-title").textContent = "Enter your code"; $("mfa-intro").textContent = MFA_INTRO_CODE;
+    $("mfa-enrol").classList.add("hidden");
+    return false;
+  }
+  // No verified factor. A setup abandoned earlier leaves an unverified one; clear it so enrol starts clean.
+  for(const f of (factors.all || [])){
+    if(f.factor_type === "totp" && f.status !== "verified"){ try { await sb.auth.mfa.unenroll({ factorId: f.id }); } catch (_) {} }
+  }
+  let res = null;
+  try { res = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "BioWellth review" }); } catch (_) {}
+  if(!res || res.error || !res.data || !res.data.totp){ mfaMsg("Could not start setup. Refresh the page and try again."); return false; }
+  MFA_FACTOR = res.data.id;
+  $("mfa-title").textContent = "Set up a second step"; $("mfa-intro").textContent = MFA_INTRO_ENROL;
+  $("mfa-qr").src = qrSrc(res.data.totp.qr_code);
+  $("mfa-secret").textContent = res.data.totp.secret || "";
+  $("mfa-enrol").classList.remove("hidden");
+  return false;
+}
+async function verifyMfa(){
+  const code = $("mfa-code").value.trim();
+  if(!/^\d{6}$/.test(code)){ mfaMsg("Enter the six digits the app shows."); return; }
+  if(!MFA_FACTOR){ await startMfa(); return; }
+  let res = null;
+  try { res = await sb.auth.mfa.challengeAndVerify({ factorId: MFA_FACTOR, code }); } catch (_) {}
+  if(!res || res.error){ $("mfa-code").value = ""; mfaMsg("That code did not work. Codes change every 30 seconds, so try the one showing now."); return; }
+  clearMfa(); noteActivity(); loadQueue();
+}
+async function enterReview(){ if(await startMfa()) loadQueue(); }
+// A 403 mfa_required from any call (a session that lost aal2) goes back to the code screen.
+async function mfaRefused(r){ if(r.status === 403 && r.data && r.data.error === "mfa_required"){ await startMfa(); return true; } return false; }
 
 // Every call goes through review-action. A non-2xx response carries its JSON body on error.context.
 async function call(body){
@@ -296,6 +364,7 @@ function renderNarrative(fields){
 
 async function loadQueue(){
   const r = await call({ action: "queue" });
+  if(await mfaRefused(r)) return;
   if(r.status === 403){ show("view-denied"); return; }
   if(r.status === 401){ show("view-login"); return; }
   show("view-queue");
@@ -357,6 +426,7 @@ function renderContext(c){
 
 async function openDetail(it){
   const r = await call({ action: "detail", report_id: it.report_id, ...(it.staging_id ? { staging_id: it.staging_id } : {}) });
+  if(await mfaRefused(r)) return;
   if(r.status !== 200 || !r.data || !r.data.ok){ alertMsg("Could not open this report (" + ((r.data && r.data.error) || r.status) + ")."); return; }
   const d = r.data;
   CURRENT = { report_id: it.report_id, staging_id: it.staging_id || null, narrative: d.narrative || [] };
@@ -409,6 +479,7 @@ async function act(action){
   ["approve","edit-approve","escalate"].forEach(id => $(id).disabled = true);
   const r = await call(body);
   ["approve","edit-approve","escalate"].forEach(id => $(id).disabled = false);
+  if(await mfaRefused(r)) return;
   if(r.status === 200 && r.data && r.data.ok){
     const warn = r.data.email === "email_skipped" ? " Released, and no email was sent because RESEND_API_KEY is not set." : "";
     setMsg((action === "escalate" ? "Escalated. The report stays held." : "Released.") + warn, "ok");
@@ -428,12 +499,13 @@ $("signin").addEventListener("click", async () => {
   const { error } = await sb.auth.signInWithPassword({ email: $("em").value.trim(), password: $("pw").value });
   if(error){ $("login-msg").textContent = "Could not sign in. Check the email and password."; return; }
   SIGNED_IN = true; noteActivity();
-  $("signout").classList.remove("hidden"); loadQueue();
+  $("signout").classList.remove("hidden"); enterReview();
 });
-$("signout").addEventListener("click", async () => { SIGNED_IN = false; await sb.auth.signOut(); $("signout").classList.add("hidden"); show("view-login"); });
+$("mfa-verify").addEventListener("click", verifyMfa);
+$("signout").addEventListener("click", async () => { SIGNED_IN = false; clearMfa(); await sb.auth.signOut(); $("signout").classList.add("hidden"); show("view-login"); });
 
 sb.auth.getSession().then(({ data }) => {
-  if(data && data.session){ SIGNED_IN = true; noteActivity(); $("signout").classList.remove("hidden"); loadQueue(); }
+  if(data && data.session){ SIGNED_IN = true; noteActivity(); $("signout").classList.remove("hidden"); enterReview(); }
   else {
     show("view-login");
     try { if (/[?&]signed_out=idle\b/.test(window.location.search)) $("login-msg").textContent = "Signed out after 30 minutes without activity."; } catch (_) {}
