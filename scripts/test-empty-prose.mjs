@@ -339,6 +339,17 @@ else {
     // test quietly stops asserting anything.
     const surfaces = [["dashboard", "dashHtml"], ["health report", "reportHtml"],
                       ["reveal deck", "deckHtml"]];
+    // REVIEW_GATE_COPY_V3 (2026-09-26) changed ONE sentence on purpose: the Vitality ring caveat now credits
+    // "our health team" instead of "our medical team" (pinned exactly by test-review-pending.mjs P-7). That
+    // sentence is mapped back before the byte comparison, and ONLY that sentence: it must occur exactly once in
+    // the reveal deck and nowhere else, so every other byte of every surface is still compared.
+    const V3_NEW = "still being reviewed by our health team.", V3_OLD = "still being reviewed by our medical team.";
+    const EXPECT_V3 = { dashHtml: 0, reportHtml: 0, deckHtml: 1 };
+    for (const [label, key] of surfaces) {
+      const n = (CTL[key] || "").split(V3_NEW).length - 1;
+      ok(n === EXPECT_V3[key], "EP-27." + label + " V3 CONTROL: the deliberate caveat change occurs " + EXPECT_V3[key] + " time(s) here  (" + n + ")");
+      if (n === EXPECT_V3[key] && n > 0) CTL[key] = CTL[key].split(V3_NEW).join(V3_OLD);
+    }
     for (const [label, key] of surfaces) {
       const a = md5(B[key] || ""), b = md5(CTL[key] || "");
       ok((B[key] || "").length > 0, "EP-26." + label + " CONTROL: the BEFORE surface is non-empty  (" + (B[key] || "").length + " chars)");
