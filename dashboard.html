@@ -3985,10 +3985,10 @@ function drawReadyAck(kind){
 // it. Answering happens on the reading, not in front of it. If she navigates away mid-beat nothing
 // is lost: the column still holds reported_at_upload, so the next render asks again.
 //
-// THE DATES ARE RENDERED WITH rvFmtDate, NEVER fmtDrawDate. fmtDrawDate calls toLocaleDateString on
-// a date-only string, which parses as UTC midnight and renders a day early in any negative offset;
-// measured under America/New_York it turns a stored 2024-07-25 into "July 24, 2024". On a beat whose
-// whole job is comparing two dates, a formatter that is off by one is disqualifying.
+// THE DATES ARE RENDERED WITH rvFmtDate. When this was written fmtDrawDate called toLocaleDateString
+// on a date-only string, which parses as UTC midnight and renders a day early in any negative offset;
+// measured under America/New_York it turned a stored 2024-07-25 into "July 24, 2024". fmtDrawDate
+// formats a bare date in UTC since DRAW_DATE_UTC_V1 (2026-09-29); this beat keeps rvFmtDate.
 const DDC_OPTS = [
   { label: "The one before this draw", value: "confirmed_before_draw" },
   { label: "My most recent one",       value: "confirmed_after_draw" },
@@ -6075,10 +6075,21 @@ function reportCoverageCount(p){
     }
   return { n: scored.size, unread: unread.size };
 }
+// DRAW_DATE_UTC_V1 (2026-09-29). A bare "YYYY-MM-DD" is a calendar day, not an instant. new Date()
+// parses it as UTC midnight, and formatting that in local time printed the day BEFORE the draw
+// anywhere west of UTC (a stored 2024-07-25 read "July 24, 2024" under America/New_York). So a bare
+// date is formatted in UTC, which prints the stored day in every time zone. Anything else (a full
+// timestamp, a Date) keeps the old local-time path unchanged; no caller passes one today, since
+// every caller passes payload.panel_date and every stored panel_date is a bare date.
 function fmtDrawDate(d){
   if(!d) return "";
+  const opts = {day:"numeric",month:"long",year:"numeric"};
+  if(typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)){
+    const u = new Date(d + "T00:00:00Z");
+    if(!isNaN(u)) return u.toLocaleDateString(undefined, Object.assign({timeZone:"UTC"}, opts));
+  }
   const dt = new Date(d);
-  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"});
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, opts);
 }
 
 // Deferred systems render honestly (never absent, never all-clear).
@@ -7036,21 +7047,10 @@ function doctorSafetyMarkers(p){
   }
   return out;
 }
-// The draw date as STORED. fmtDrawDate parses a bare "YYYY-MM-DD" as UTC midnight and formats it
-// in local time, so west of UTC it prints the day before the draw. Pinning the format to UTC keeps
-// the stored day. fmtDrawDate itself is left alone here: it has other callers.
-function doctorSafetyDate(d){
-  if(!d) return "";
-  if(/^\d{4}-\d{2}-\d{2}$/.test(String(d))){
-    const dt = new Date(String(d) + "T00:00:00Z");
-    if(!isNaN(dt)) return dt.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-  }
-  return fmtDrawDate(d);
-}
 function doctorSafetyChecks(p){
   const list = doctorSafetyMarkers(p);
   if(!list.length) return "";
-  const d = doctorSafetyDate(p.panel_date);
+  const d = fmtDrawDate(p.panel_date);            // DRAW_DATE_UTC_V1: the stored day, in every zone
   return '<div class="report-sec doc-sec doc-safety"><div class="report-sec-h">For a clinician to review</div>' +
     list.map(function(x){
       return '<div class="doc-line doc-safety-line" data-marker-id="' + esc(x.marker_id) + '">' +

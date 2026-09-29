@@ -119,6 +119,7 @@ const driverFor = (payload) => `<script>
   const fd = find("Findings to discuss");
   res.findingsText = fd ? fd.innerText : "";
   const hm = document.querySelector("#doctor-doc .report-doc-meta"); res.headMeta = hm ? hm.innerText : "";
+  res.tsLocal = fmtDrawDate("2026-04-01T02:00:00Z");
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -191,7 +192,11 @@ else {
   // The stored draw day, never the day before. A bare ISO date parsed as UTC and shown in local
   // time slips back a day west of UTC; this run pins TZ so that case is exercised.
   ok(/\b1\b/.test(ab || "") && /April/.test(ab || "") && !/March|31/.test(ab || ""), "SC-1e: the draw date is the stored day (1 April), not the day before  (" + JSON.stringify(ab) + ")");
-  ok(/March 31/.test(r.headMeta), "SC-1f CONTROL: the timezone override is live, the head's existing fmtDrawDate line shows the day before  (" + JSON.stringify(r.headMeta.split("\n").find(l => /Blood draw/.test(l)) || "") + ")");
+  // RE-POINTED 2026-09-29 with DRAW_DATE_UTC_V1. This control used the head's "Blood draw" line,
+  // which showed the day before until fmtDrawDate was fixed. A full timestamp still formats in local
+  // time, so it is the control now: 02:00Z on 1 April is 31 March in New York.
+  ok(r.tsLocal === "March 31, 2026", "SC-1f CONTROL: the timezone override is live, a full timestamp reads 31 March in New York  (" + JSON.stringify(r.tsLocal) + ")");
+  ok(/Blood draw April 1, 2026/.test(r.headMeta), "SC-1g: the head's Blood draw line and this section print the same stored day  (" + JSON.stringify(r.headMeta.split("\n").find(l => /Blood draw/.test(l)) || "") + ")");
   ok(r.ids.includes("zz_metal"), "SC-2: a safety marker out of range but NOT a ranked priority is listed");
   ok(r.ids.includes("aso"), "SC-2b: a safety marker filed under a non-safety system is listed by its id");
   ok(!r.ids.includes("zz_ferritin") && r.text.indexOf("Invented Iron Store") === -1, "SC-3a: the out-of-range NON-safety marker is never listed");

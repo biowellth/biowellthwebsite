@@ -350,6 +350,22 @@ else {
       ok(n === EXPECT_V3[key], "EP-27." + label + " V3 CONTROL: the deliberate caveat change occurs " + EXPECT_V3[key] + " time(s) here  (" + n + ")");
       if (n === EXPECT_V3[key] && n > 0) CTL[key] = CTL[key].split(V3_NEW).join(V3_OLD);
     }
+    // DRAW_DATE_UTC_V1 (2026-09-29) changed ONE string on purpose: fmtDrawDate formats a bare
+    // panel_date in UTC, so the health report's "Blood draw" line prints the stored day where the
+    // BEFORE build printed the day before (west of UTC). Mapped back like V3 above, and ONLY that
+    // line: the new form must occur exactly once in the health report and nowhere else. East of UTC
+    // the two forms are the same string and nothing is mapped, so the comparison is unchanged there.
+    const DD_OPTS = { day: "numeric", month: "long", year: "numeric" };
+    const DD_NEW = "Blood draw " + new Date(base().panel_date + "T00:00:00Z").toLocaleDateString(undefined, Object.assign({ timeZone: "UTC" }, DD_OPTS));
+    const DD_OLD = "Blood draw " + new Date(base().panel_date).toLocaleDateString(undefined, DD_OPTS);
+    if (DD_NEW !== DD_OLD) {
+      const EXPECT_DD = { dashHtml: 0, reportHtml: 1, deckHtml: 0 };
+      for (const [label, key] of surfaces) {
+        const n = (CTL[key] || "").split(DD_NEW).length - 1;
+        ok(n === EXPECT_DD[key], "EP-27." + label + " DATE CONTROL: the deliberate draw-date change occurs " + EXPECT_DD[key] + " time(s) here  (" + n + ")");
+        if (n === EXPECT_DD[key] && n > 0) CTL[key] = CTL[key].split(DD_NEW).join(DD_OLD);
+      }
+    }
     for (const [label, key] of surfaces) {
       const a = md5(B[key] || ""), b = md5(CTL[key] || "");
       ok((B[key] || "").length > 0, "EP-26." + label + " CONTROL: the BEFORE surface is non-empty  (" + (B[key] || "").length + " chars)");
