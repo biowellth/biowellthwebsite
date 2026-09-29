@@ -15,7 +15,7 @@
 //   the mutant run re-checks the guard with the guard removed and must go RED.
 //
 //   node scripts/test-doctor-summary.mjs
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { spawn, execSync } from "node:child_process";
 import { extractApp } from "./lib/extract-app.mjs";
@@ -202,14 +202,29 @@ const profile = "/private/tmp/doctor-summary-" + process.pid;
 const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--remote-debugging-port=" + (PORT + 1),
   "--user-data-dir=" + profile, "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// PROFILE_CLEANUP_V1 (2026-09-29). This test used to chrome.kill() and leave its profile behind:
+// 95 doctor-summary-* folders had piled up in /private/tmp. Chrome is now asked to close over the
+// debugging socket, which ends its helper processes too, and the profile is removed only after the
+// browser has exited. A plain kill left helpers writing into a removed profile, which came back.
+let closeBrowser = null;
+const finish = async (code) => {
+  server.close();
+  const exited = new Promise(r => { if (chrome.exitCode !== null || chrome.signalCode !== null) r(); else chrome.once("exit", r); });
+  try { if (closeBrowser) await Promise.race([closeBrowser(), sleep(2000)]); } catch (e) {}
+  await Promise.race([exited, sleep(4000)]);
+  if (chrome.exitCode === null && chrome.signalCode === null) { try { chrome.kill("SIGKILL"); } catch (e) {} await Promise.race([exited, sleep(2000)]); }
+  for (let i = 0; i < 3; i++) { try { rmSync(profile, { recursive: true, force: true }); } catch (e) {} await sleep(400); }
+  done(code);
+};
 let wsUrl = null;
 for (let i = 0; i < 40 && !wsUrl; i++) { await sleep(300);
   try { wsUrl = (await (await fetch("http://127.0.0.1:" + (PORT + 1) + "/json/version")).json()).webSocketDebuggerUrl; } catch (e) {} }
-if (!wsUrl) { console.log("  FAIL DS-0: Chrome never opened a debugging port"); fail++; chrome.kill(); server.close(); done(1); }
+if (!wsUrl) { console.log("  FAIL DS-0: Chrome never opened a debugging port"); fail++; await finish(1); }
 const ws = new WebSocket(wsUrl); let msgId = 0; const pend = new Map();
 const send = (method, params = {}, sessionId) => new Promise(r => { const i = ++msgId; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params, sessionId })); });
 ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m.result ?? m); pend.delete(m.id); } };
 await new Promise(r => ws.onopen = r);
+closeBrowser = () => send("Browser.close");
 const { targetId } = await send("Target.createTarget", { url: "about:blank" });
 const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
 await send("Page.enable", {}, sessionId);
@@ -844,5 +859,4 @@ console.log("\nMUTANT -- the span skip removed");
   }
 }
 
-chrome.kill(); server.close();
-done(fail ? 1 : 0);
+await finish(fail ? 1 : 0);
