@@ -1,0 +1,4 @@
+session: e3f232dc
+taken: 2026-09-29T13:39:06Z
+scope: website: bare-date formatters (report picker, vault, fmtPanelDate, fmtDate and any other) print the stored day in every zone; tests. No push without founder approval.
+repos: biowellth-website
