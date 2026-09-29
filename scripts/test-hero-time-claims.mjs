@@ -55,7 +55,8 @@ const src = [
   extractLine("SENSITIVE_MARKER_IDS"), extractLine("SENSITIVE_SYSTEMS"),
   extractBlock("SAFETY_CLASS"), extractBlock("BAND_CLAUSE"), extractBlock("MARKER_PHRASE"),
   extractBlock("HT_MON_SHORT"), extractBlock("HT_MON_LONG"), extractLine("HERO_FRESH_DAYS"),
-  extract("esc"), extract("firstName"), extract("capitalise"), extract("fmtPanelDate"),
+  // fmtCalendarDay is fmtPanelDate's helper since BARE_DATE_UTC_V1 (2026-09-29).
+  extract("esc"), extract("firstName"), extract("capitalise"), extract("fmtCalendarDay"), extract("fmtPanelDate"),
   extract("heroDateParts"), extract("heroPanelAgeDays"), extract("heroLeadClause"),
   extract("heroOpenerClause"), extract("heroOpenerWithName"),
   extract("prioritySensitive"), extract("sensitiveVerdict"), extract("verdictPhrases"),

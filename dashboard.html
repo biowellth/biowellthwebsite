@@ -2710,14 +2710,27 @@ function showView(name){
   pk.classList.toggle("hidden", !(name==="dashboard" && pk.options.length>1));
 }
 
+// BARE_DATE_UTC_V1 (2026-09-29). THE ONE date helper for anything that may be a stored calendar
+// day. A bare "YYYY-MM-DD" (collected_on, panel_date, lmp_date_before_draw, baseline_panel_date) is
+// a day, not an instant: new Date() reads it as UTC midnight, and formatting that in local time
+// printed the day before anywhere west of UTC ("24 Jul 2024" for a stored 2024-07-25). A bare date
+// is therefore formatted in UTC, which prints the stored day in every zone. Anything else (a real
+// timestamp such as created_at, or a Date) is an instant and keeps local time, unchanged.
+// Returns null when the input cannot be read, so each caller keeps its own fallback.
+function fmtCalendarDay(d, locale, opts){
+  if(d == null || d === "") return null;
+  if(typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)){
+    const u = new Date(d + "T00:00:00Z");
+    if(!isNaN(u)) return u.toLocaleDateString(locale, Object.assign({}, opts, { timeZone: "UTC" }));
+  }
+  const dt = new Date(d);
+  return isNaN(dt) ? null : dt.toLocaleDateString(locale, opts);
+}
+
 // Human label for a panel in the switcher. Plain language, no colons or em dashes.
 function panelLabel(r){
   const raw = r.collected_on || r.created_at;
-  let datePart = "Panel";
-  if(raw){
-    const d = new Date(raw);
-    if(!isNaN(d)) datePart = d.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
-  }
+  const datePart = fmtCalendarDay(raw, "en-IN", { day:"numeric", month:"short", year:"numeric" }) || "Panel";
   return r.lab_name ? (datePart + " · " + r.lab_name) : datePart;
 }
 
@@ -6075,21 +6088,13 @@ function reportCoverageCount(p){
     }
   return { n: scored.size, unread: unread.size };
 }
-// DRAW_DATE_UTC_V1 (2026-09-29). A bare "YYYY-MM-DD" is a calendar day, not an instant. new Date()
-// parses it as UTC midnight, and formatting that in local time printed the day BEFORE the draw
-// anywhere west of UTC (a stored 2024-07-25 read "July 24, 2024" under America/New_York). So a bare
-// date is formatted in UTC, which prints the stored day in every time zone. Anything else (a full
-// timestamp, a Date) keeps the old local-time path unchanged; no caller passes one today, since
-// every caller passes payload.panel_date and every stored panel_date is a bare date.
+// DRAW_DATE_UTC_V1 (2026-09-29), now through fmtCalendarDay (BARE_DATE_UTC_V1): a bare panel_date
+// prints the stored day in every zone; a timestamp or Date keeps local time. Every caller passes
+// payload.panel_date, and every stored panel_date is a bare date.
 function fmtDrawDate(d){
   if(!d) return "";
-  const opts = {day:"numeric",month:"long",year:"numeric"};
-  if(typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)){
-    const u = new Date(d + "T00:00:00Z");
-    if(!isNaN(u)) return u.toLocaleDateString(undefined, Object.assign({timeZone:"UTC"}, opts));
-  }
-  const dt = new Date(d);
-  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, opts);
+  const s = fmtCalendarDay(d, undefined, {day:"numeric",month:"long",year:"numeric"});
+  return s == null ? String(d) : s;
 }
 
 // Deferred systems render honestly (never absent, never all-clear).
@@ -11908,8 +11913,10 @@ function closeMarkersView(){ const v=$("view-markers"); if(v) v.classList.add("h
 // was slight. Hidden entirely for first-time users (no prior panel).
 function fmtPanelDate(d){
   if(!d) return "your last panel";
-  const dt = new Date(d);
-  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{month:"long", year:"numeric"});
+  // BARE_DATE_UTC_V1: baseline_panel_date and panel_date are bare dates; a panel drawn on the 1st
+  // read as the previous month west of UTC before this.
+  const s = fmtCalendarDay(d, undefined, {month:"long", year:"numeric"});
+  return s == null ? String(d) : s;
 }
 function longiMove(m){
   // "12 -> 34 ng/mL" with the unit once. Falls back gracefully if a value is qualitative.
@@ -13225,8 +13232,10 @@ const COMPONENT_NOTE = {
 };
 function fmtDate(d){
   if(!d) return '';
-  const dt = new Date(d);
-  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{month:'short', year:'2-digit'});
+  // BARE_DATE_UTC_V1: chart points carry collected_on, a bare date; a draw on the 1st read as the
+  // previous month west of UTC before this.
+  const s = fmtCalendarDay(d, undefined, {month:'short', year:'2-digit'});
+  return s == null ? String(d) : s;
 }
 // hist may contain GAP entries (value == null) for panels where the marker was not
 // scored. The line breaks across gaps (never a fabricated/zero point); each gap

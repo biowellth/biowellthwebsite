@@ -10,6 +10,14 @@
 //   DD-d  openDoctor document.title   "Summary for your doctor - ... - <date>"
 //   DD-e  doctorSafetyChecks line     "... · <date>"
 //
+// BARE_DATE_UTC_V1 (2026-09-29) added the other bare-date paths, all through fmtCalendarDay:
+//   DD-p  panelLabel, the report picker at the top of the dashboard    "1 Apr 2026 · <lab>"
+//   DD-q  fmtPanelDate, "since your <Month YYYY> panel"                "April 2026"
+//   DD-r  fmtDate, the chart axis and point labels                     "Apr 26"
+//   DD-v  the report vault's "Collected <date>" (rvFmtDate, already UTC; pinned so it stays)
+// The stored day is the 1st of a month on purpose, so the month-level formatters are exercised too:
+// the old parse turned 1 April into March west of UTC.
+//
 // Zones: America/New_York and Pacific/Pago_Pago (west of UTC, where the old parse printed the day
 // before), Asia/Kolkata and Pacific/Kiritimati (east). The stored day must print in all four.
 //
@@ -87,6 +95,17 @@ const driver = `<script>
     res.d = document.title.split(" - ").pop();
     const sl = document.querySelector("#doctor-doc .doc-safety-line");
     res.e = sl ? sl.innerText.trim().split(" \\u00b7 ").pop() : null;
+    res.p = panelLabel({ collected_on: "${STORED}", lab_name: "Synthetic Lab" });
+    res.q = fmtPanelDate("${STORED}");
+    res.r = fmtDate("${STORED}");
+    renderReportVault([{ id: "r1", status: "done", collected_on: "${STORED}", created_at: "2026-04-03T10:00:00Z", file_path: "u/1-synthetic.pdf" }]);
+    const vd = document.querySelector("#report-vault .rv-date");
+    res.v = vd ? vd.innerText.trim() : null;
+    // Timestamp controls: an instant keeps local time in every formatter (02:00Z on 1 April).
+    res.tsP = panelLabel({ collected_on: null, created_at: "2026-04-01T02:00:00Z" });
+    res.tsQ = fmtPanelDate("2026-04-01T02:00:00Z");
+    res.tsR = fmtDate("2026-04-01T02:00:00Z");
+    res.noDate = panelLabel({ lab_name: "Synthetic Lab" });
     res.ts = fmtDrawDate("2026-04-01T02:00:00Z");
     res.empty = fmtDrawDate("");
     res.bad = fmtDrawDate("not a date");
@@ -97,10 +116,12 @@ const driver = `<script>
 
 const html = readFileSync(FILE, "utf8");
 if (html.indexOf(CDN) === -1) { console.log("  FAIL DD-0: the Supabase CDN tag was not found"); fail++; done(1); }
-// THE MUTANT: the whole fmtDrawDate function replaced by the pre-2026-09-29 one-line parse.
-const FN = /function fmtDrawDate\(d\)\{[\s\S]*?\n\}\n/;
-const OLD_FN = 'function fmtDrawDate(d){\n  if(!d) return "";\n  const dt = new Date(d);\n  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"});\n}\n';
-if (!FN.test(html)) { console.log("  FAIL DD-0: fmtDrawDate was not located, so the mutant cannot be built"); fail++; done(1); }
+// THE MUTANT: the one helper, fmtCalendarDay, with its bare-date branch removed, which is the old
+// parse (new Date(d) formatted in local time). Every fixed path goes through it, so every one must
+// go red west of UTC.
+const FN = /function fmtCalendarDay\(d, locale, opts\)\{[\s\S]*?\n\}\n/;
+const OLD_FN = 'function fmtCalendarDay(d, locale, opts){\n  if(d == null || d === "") return null;\n  const dt = new Date(d);\n  return isNaN(dt) ? null : dt.toLocaleDateString(locale, opts);\n}\n';
+if (!FN.test(html)) { console.log("  FAIL DD-0: fmtCalendarDay was not located, so the mutant cannot be built"); fail++; done(1); }
 const mutantHtml = html.replace(FN, OLD_FN);
 if (mutantHtml === html) { console.log("  FAIL DD-0: the mutant changed nothing"); fail++; done(1); }
 try { new Function(extractApp(mutantHtml, "the mutant")); } catch (e) { console.log("  FAIL DD-0: the mutant does not parse (" + e.message + ")"); fail++; done(1); }
@@ -146,6 +167,9 @@ async function run(pageHtml, tz) {
   return null;
 }
 const CALLERS = [["a", "report head"], ["b", "report title"], ["c", "doctor head"], ["d", "doctor title"], ["e", "doctor safety line"]];
+const OTHER = [["p", "report picker label", "1 Apr 2026 · Synthetic Lab"], ["q", "fmtPanelDate", "April 2026"],
+               ["r", "fmtDate (chart)", "Apr 26"], ["v", "report vault", "Collected 1 April 2026"]];
+const MUTABLE = ["p", "q", "r"];   // v is rvFmtDate, which never went through the helper
 
 for (const tz of [...WEST, ...EAST]) {
   console.log("\n" + tz);
@@ -154,11 +178,20 @@ for (const tz of [...WEST, ...EAST]) {
   ok(!r.threw && r.errs.length === 0, "DD-1 " + tz + ": nothing threw  (" + JSON.stringify([r.message, r.errs]) + ")");
   for (const [k, label] of CALLERS)
     ok(r[k] === WANT, "DD-" + k + " " + tz + ": " + label + " prints the stored day  (got " + JSON.stringify(r[k]) + ")");
+  for (const [k, label, want] of OTHER)
+    ok(r[k] === want, "DD-" + k + " " + tz + ": " + label + " prints the stored day  (got " + JSON.stringify(r[k]) + ")");
   ok(r.empty === "" && r.bad === "not a date", "DD-f " + tz + ": empty input gives empty, an unparseable one passes through");
-  if (tz === "America/New_York")
+  ok(r.noDate === "Panel · Synthetic Lab", "DD-f2 " + tz + ": a panel with no date keeps the 'Panel' fallback  (got " + JSON.stringify(r.noDate) + ")");
+  if (tz === "America/New_York") {
     ok(r.ts === "March 31, 2026", "DD-g CONTROL " + tz + ": a full timestamp keeps the LOCAL path (02:00Z is 31 March here)  (got " + JSON.stringify(r.ts) + ")");
-  if (tz === "Asia/Kolkata")
+    ok(r.tsP === "31 Mar 2026" && r.tsQ === "March 2026" && r.tsR === "Mar 26",
+       "DD-g2 CONTROL " + tz + ": the picker, fmtPanelDate and fmtDate keep local time for a timestamp  (got " + JSON.stringify([r.tsP, r.tsQ, r.tsR]) + ")");
+  }
+  if (tz === "Asia/Kolkata") {
     ok(r.ts === "April 1, 2026", "DD-h CONTROL " + tz + ": the same timestamp reads 1 April east of UTC, so DD-g is the zone, not a constant  (got " + JSON.stringify(r.ts) + ")");
+    ok(r.tsP === "1 Apr 2026" && r.tsQ === "April 2026" && r.tsR === "Apr 26",
+       "DD-h2 CONTROL " + tz + ": and the same for the other three  (got " + JSON.stringify([r.tsP, r.tsQ, r.tsR]) + ")");
+  }
 }
 
 console.log("\nMUTANT -- the old one-line parse restored; west of UTC must go RED");
@@ -166,6 +199,9 @@ for (const tz of WEST) {
   const m = await run(mutantHtml, tz);
   const wrong = m ? CALLERS.filter(([k]) => m[k] !== WANT).map(([k]) => k) : null;
   ok(!!m && wrong.length === CALLERS.length, "DD-M " + tz + ": every caller prints a different day under the mutant  (wrong: " + JSON.stringify(wrong) + ", sample " + JSON.stringify(m && m.c) + ")");
+  const wrong2 = m ? OTHER.filter(([k, , want]) => MUTABLE.includes(k) && m[k] !== want).map(([k]) => k) : null;
+  ok(!!m && wrong2.length === MUTABLE.length, "DD-M2 " + tz + ": the picker, fmtPanelDate and fmtDate go red under the mutant too  (wrong: " + JSON.stringify(wrong2) + ", sample " + JSON.stringify(m && m.p) + ")");
+  ok(!!m && m.v === "Collected 1 April 2026", "DD-M3 CONTROL " + tz + ": the vault, which never used the helper, stays right under the mutant  (got " + JSON.stringify(m && m.v) + ")");
 }
 
 await finish(fail ? 1 : 0);
