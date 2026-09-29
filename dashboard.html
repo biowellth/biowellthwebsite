@@ -1490,6 +1490,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .doc-sec{margin-bottom:22px}
 .doc-line{font-size:13px;line-height:1.6;color:var(--brown);margin-bottom:5px}
 .doc-empty{font-size:13px;line-height:1.6;color:var(--brown-mid);margin:10px 0 8px}
+.doc-safety .doc-line{overflow-wrap:anywhere}
+.doc-safety .doc-safety-close{color:var(--brown-mid);margin-top:8px}
 /* An editable rule. It prints exactly what she typed, and prints as a blank line
    when she typed nothing, which is why there is no placeholder text and no JS. */
 .doc-rule{min-height:22px;border-bottom:1px solid var(--brown-light);margin:8px 0 12px;
@@ -6993,6 +6995,70 @@ function doctorFindings(p){
   return html + '</tbody></table></div>';
 }
 
+// ── Section 3b, safety checks for a clinician ──────────────────────────────────
+// DOCTOR_SAFETY_CHECKS_V1, founder ruling 2026-09-28: the doctor summary is the home for
+// safety-check results, and Sana shows them only on request. So this page must list every one
+// that is out of range, whether or not it became a ranked priority.
+//
+// THE SOURCE IS payload.systems[].markers[].band, NOT priorities. renderDashboard moves safety
+// priorities into p.__sensitivePriorities, and "Findings to discuss" reads p.priorities only, so a
+// safety finding never reaches that table. Reading __sensitivePriorities instead would still miss
+// a safety marker that is out of range without being ranked. Every scored marker carries its band
+// in systems[].markers[], so that walk sees all of them.
+//
+// "Out of range" is the SAME rule cardStatus and doctorStatusWord apply: a non-empty band outside
+// the class's clean set. A sensitive marker filed under a non-safety system has no clean set, so
+// only optimal and negative count as clean for it; an unknown band lists rather than passing.
+//
+// Each line states the marker, its group, the engine's band and the draw date, as scored. No
+// value, no range, no interpretation, and nothing about any other result.
+const DOCTOR_SAFETY_CLOSE = "These are reported exactly as scored in your results. They are not interpreted here, and this is not a diagnosis. Please review them with a doctor, who can put them in the context of your history and examination.";
+function doctorSafetyMarkers(p){
+  const out = [], seen = new Set();
+  for(const s of (Array.isArray(p && p.systems) ? p.systems : [])){
+    for(const m of (Array.isArray(s && s.markers) ? s.markers : [])){
+      if(!m || !m.marker_id || seen.has(m.marker_id)) continue;
+      const sysId = (m.system_id && SAFETY_CLASS[m.system_id]) ? m.system_id : s.system_id;
+      if(!doctorSensitive(m, sysId)) continue;
+      const b = String(m.band || "").toLowerCase();
+      if(b === "") continue;                           // unscored is not out of range
+      const cfg = SAFETY_CLASS[sysId];
+      const clean = cfg ? cfg.clean : new Set(["optimal", "negative"]);
+      if(clean.has(b)) continue;
+      seen.add(m.marker_id);
+      out.push({
+        marker_id: m.marker_id,
+        name: markerName(m),
+        group: (cfg && CANONICAL_TITLE[sysId]) || reportSysName(p, sysId),
+        band: b.replace(/_/g, " ")
+      });
+    }
+  }
+  return out;
+}
+// The draw date as STORED. fmtDrawDate parses a bare "YYYY-MM-DD" as UTC midnight and formats it
+// in local time, so west of UTC it prints the day before the draw. Pinning the format to UTC keeps
+// the stored day. fmtDrawDate itself is left alone here: it has other callers.
+function doctorSafetyDate(d){
+  if(!d) return "";
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(d))){
+    const dt = new Date(String(d) + "T00:00:00Z");
+    if(!isNaN(dt)) return dt.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  }
+  return fmtDrawDate(d);
+}
+function doctorSafetyChecks(p){
+  const list = doctorSafetyMarkers(p);
+  if(!list.length) return "";
+  const d = doctorSafetyDate(p.panel_date);
+  return '<div class="report-sec doc-sec doc-safety"><div class="report-sec-h">For a clinician to review</div>' +
+    list.map(function(x){
+      return '<div class="doc-line doc-safety-line" data-marker-id="' + esc(x.marker_id) + '">' +
+        esc([x.name, x.group, x.band, d].filter(Boolean).join(" · ")) + '</div>';
+    }).join("") +
+    '<div class="doc-line doc-safety-close">' + esc(DOCTOR_SAFETY_CLOSE) + '</div></div>';
+}
+
 // ── Section 4, the questions ───────────────────────────────────────────────────
 // Every point is guarded before it renders. She can untick any row; an unticked row is
 // hidden in print by the @media print rule, so the printed sheet carries only what she
@@ -7206,7 +7272,7 @@ function doctorReadWith(p){
 // asked her to look. Reading what she is taking and what she has noticed is what makes several of
 // the questions answerable in the room, and the pair now runs in that order. Nothing else moved.
 function doctorDocHtml(p){
-  return '<!-- DOCTOR_SUMMARY_V1 -->' + doctorHead(p) + doctorReason() + doctorFindings(p) +
+  return '<!-- DOCTOR_SUMMARY_V1 -->' + doctorHead(p) + doctorReason() + doctorFindings(p) + doctorSafetyChecks(p) +
     doctorContext() + doctorQuestions(p) + doctorReadWith(p);
 }
 
