@@ -1,4 +1,5 @@
-session: e3f232dc
-taken: 2026-09-29T13:39:06Z
-scope: website: bare-date formatters (report picker, vault, fmtPanelDate, fmtDate and any other) print the stored day in every zone; tests. No push without founder approval.
+session: 3ade3b02
+taken: 2026-10-02T02:06:54Z
+scope: website: push of 8bc2746+c368467 (founder approved); then local-calendar "today" for the period-date picker, dobAgeYears and the vault's "Added" date, one helper, tests. No push of this work without founder approval.
 repos: biowellth-website
+supersedes: e3f232dc, taken 2026-09-29T13:39:06Z in 8bc2746. Taken over, not overwritten: the founder confirmed in this session that e3f232dc has ended and that this session takes its lock. Its work (8bc2746, c368467) was committed, unchanged, and pushed by this session before any write here.
