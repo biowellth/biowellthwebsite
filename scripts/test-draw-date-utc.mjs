@@ -14,7 +14,7 @@
 //   DD-p  panelLabel, the report picker at the top of the dashboard    "1 Apr 2026 · <lab>"
 //   DD-q  fmtPanelDate, "since your <Month YYYY> panel"                "April 2026"
 //   DD-r  fmtDate, the chart axis and point labels                     "Apr 26"
-//   DD-v  the report vault's "Collected <date>" (rvFmtDate, already UTC; pinned so it stays)
+//   DD-v  the report vault's "Collected <date>" (rvFmtDate, through the helper since LOCAL_TODAY_V1)
 // The stored day is the 1st of a month on purpose, so the month-level formatters are exercised too:
 // the old parse turned 1 April into March west of UTC.
 //
@@ -169,7 +169,7 @@ async function run(pageHtml, tz) {
 const CALLERS = [["a", "report head"], ["b", "report title"], ["c", "doctor head"], ["d", "doctor title"], ["e", "doctor safety line"]];
 const OTHER = [["p", "report picker label", "1 Apr 2026 · Synthetic Lab"], ["q", "fmtPanelDate", "April 2026"],
                ["r", "fmtDate (chart)", "Apr 26"], ["v", "report vault", "Collected 1 April 2026"]];
-const MUTABLE = ["p", "q", "r"];   // v is rvFmtDate, which never went through the helper
+const MUTABLE = ["p", "q", "r", "v"];   // v joined 2026-10-02: rvFmtDate now goes through the helper
 
 for (const tz of [...WEST, ...EAST]) {
   console.log("\n" + tz);
@@ -200,8 +200,7 @@ for (const tz of WEST) {
   const wrong = m ? CALLERS.filter(([k]) => m[k] !== WANT).map(([k]) => k) : null;
   ok(!!m && wrong.length === CALLERS.length, "DD-M " + tz + ": every caller prints a different day under the mutant  (wrong: " + JSON.stringify(wrong) + ", sample " + JSON.stringify(m && m.c) + ")");
   const wrong2 = m ? OTHER.filter(([k, , want]) => MUTABLE.includes(k) && m[k] !== want).map(([k]) => k) : null;
-  ok(!!m && wrong2.length === MUTABLE.length, "DD-M2 " + tz + ": the picker, fmtPanelDate and fmtDate go red under the mutant too  (wrong: " + JSON.stringify(wrong2) + ", sample " + JSON.stringify(m && m.p) + ")");
-  ok(!!m && m.v === "Collected 1 April 2026", "DD-M3 CONTROL " + tz + ": the vault, which never used the helper, stays right under the mutant  (got " + JSON.stringify(m && m.v) + ")");
+  ok(!!m && wrong2.length === MUTABLE.length, "DD-M2 " + tz + ": the picker, fmtPanelDate, fmtDate and the vault go red under the mutant too  (wrong: " + JSON.stringify(wrong2) + ", sample " + JSON.stringify(m && m.p) + ")");
 }
 
 await finish(fail ? 1 : 0);

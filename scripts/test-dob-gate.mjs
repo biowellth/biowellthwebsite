@@ -27,7 +27,9 @@ function extract(name) {
   return HTML.slice(m.index, end);
 }
 
-const src = extract("dobAgeYears") + "\n" + extract("dobIsAdult") +
+// localCalendarDay is dobAgeYears' "today" (LOCAL_TODAY_V1); the zone behaviour is pinned in
+// test-local-today.mjs. REF below is noon UTC, the same local day in every zone this runs in.
+const src = extract("localCalendarDay") + "\n" + extract("dobAgeYears") + "\n" + extract("dobIsAdult") +
             "\n;globalThis.__dobAgeYears = dobAgeYears; globalThis.__dobIsAdult = dobIsAdult;";
 new Function(src)();
 const dobAgeYears = globalThis.__dobAgeYears, dobIsAdult = globalThis.__dobIsAdult;
