@@ -13,3 +13,9 @@
 # untracked: CLAUDE.md has said so since before they were briefly committed.
 # The approved copies live outside this repo at ~/biowellth-mocks-approved/.
 mocks/
+
+# Demo video capture and build (never commit)
+.env.demo
+demo-capture/
+video/out/
+vo/
