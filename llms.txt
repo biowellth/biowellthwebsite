@@ -4,13 +4,14 @@
 
 ## What BioWellth does
 - Reads existing blood test results against functional ranges, not just clinical thresholds
-- Connects blood work to cycle phase and symptoms. Wearable data (Apple Health, Health Connect) is coming soon.
+- Reads every panel you upload together, so you can see which markers are steady and which are moving
+- Cycle-phase interpretation and wearable data (Apple Health, Health Connect) are on the roadmap.
 - Flags markers that standard checkups skip: free T3, free T4, ferritin, progesterone, cortisol, hsCRP, DHEA-S
 - Generates a test request list for your doctor showing what was missing
-- AI companion answers health questions using your actual data
+- AI companion that answers from your own reports. Coming in early access.
 
 ## Who it's for
-women who want to understand their blood work beyond "normal." Three groups: women whose symptoms have been dismissed despite normal tests, women who feel fine but want to know what their numbers actually mean, and women who want to catch problems before symptoms start.
+women who want to understand their blood work beyond "normal." Three groups: women whose symptoms have been dismissed despite normal tests, women who feel fine but want to know what their numbers actually mean, and women who feel fine and want to follow how their markers change over time.
 
 ## Current status
 Pre-launch. Early access, by invitation. Free during early access.
