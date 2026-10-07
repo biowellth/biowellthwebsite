@@ -3276,6 +3276,8 @@ async function testerGate(){
   const { data } = await sb.auth.getSession();
   if(!data.session){ location.replace("/login?mode=login"); return; }
   USER = data.session.user;
+  // SANA_FOUNDER_ALLOWLIST_V1 — decided once, before anything can mount the chat.
+  SANA_FOUNDER = await sanaResolveFounder(USER && USER.id);
   document.body.classList.add("ready");
   await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
   // TESTER_GATE_V1 — before the age gate and before any render. A tester who has not
@@ -3362,7 +3364,9 @@ async function testerGate(){
   // The payload-failed case below is a DIFFERENT case and still goes to upload.
   if(!completed.length){
     const dobOnFile = !!(PROFILE && PROFILE.dob);
-    if(SANA_CHAT_ENABLED && dobOnFile){
+    // SANA_FOUNDER: a non-founder would land on a companion view with no chat in it, which
+    // is worse than the upload card, so she goes to upload as an account without a DOB does.
+    if(SANA_CHAT_ENABLED && dobOnFile && SANA_FOUNDER){
       SANA_MOUNT_ID = "sana-mount-nopanel"; SANA_CONSENT_MOUNT_ID = "sana-consent-nopanel";
       showView("companion"); sanaMountChat(); return;
     }
@@ -10081,6 +10085,37 @@ async function onb2ResumeChip(){
 // /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
 // at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
 const SANA_CHAT_ENABLED = true;
+
+// SANA_FOUNDER_ALLOWLIST_V1 — founder accounts only, until the Sana safety bar is met.
+//
+// The bar (backend CLAUDE.md, "THE INVITE BAR: two consecutive clean gates") has never been
+// met, and on 2026-10-07 two non-founder accounts could reach the chat: consent is self-serve, so
+// it decides nothing about WHO. Everyone else sees SANA_GATE_COPY where the chat would be.
+//
+// THIS IS NOT THE BOUNDARY. The backend refuses POST /agent/chat with 403 SANA_CHAT_NOT_AVAILABLE
+// for any id outside SANA_CHAT_ALLOWLIST; this gate only spares a non-founder that 403.
+//
+// HASHES, NOT IDS. This repository is public and a full user id is a lookup key, so the list holds
+// sha256(user.id) in hex. A v4 uuid carries 122 random bits, so the hash does not give the id back.
+// The two entries are the founder test account (1e6eb2cc) and the founder fixture invite
+// (2a0c40a2), the same set supa's expanded-context.ts treats as founder accounts.
+//
+// FAILS CLOSED. SANA_FOUNDER starts false and stays false on any error, a missing session, or a
+// browser with no WebCrypto.
+const SANA_FOUNDER_SHA256 = Object.freeze([
+  "d2d4a591c571bf04d8cc390452f90dd8bcfcc389513af4725aadf3a1143e643e",
+  "98250bcf5ff5e862e2865fb28c98d801dbaf84ff40ecb141f03a9e17e9f33ca7",
+]);
+const SANA_GATE_COPY = "Ask about your results. Coming in early access.";
+let SANA_FOUNDER = false;
+async function sanaResolveFounder(userId, list = SANA_FOUNDER_SHA256){
+  try{
+    if(!userId || typeof crypto === "undefined" || !crypto.subtle || typeof TextEncoder === "undefined") return false;
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(userId)));
+    const hex = Array.from(new Uint8Array(buf)).map((b)=>b.toString(16).padStart(2, "0")).join("");
+    return list.includes(hex);
+  }catch(e){ return false; }
+}
 // SANA_SINGLE_MOUNT_V1. sanaSend resolves sana-input, sana-thread and sana-send
 // with getElementById, which returns the FIRST match, so two live mounts would
 // reproduce the defect recorded at SANA_TURN_IDENTITY_V1. The per node
@@ -10699,6 +10734,7 @@ async function sanaStampConsent(action){
 }
 
 async function sanaSend(){
+  if(!SANA_FOUNDER) return;   // SANA_FOUNDER_ALLOWLIST_V1: never a request for a non-founder
   if(SANA_BUSY) return;
   const input = $("sana-input"), thread = $("sana-thread"), btn = $("sana-send");
   if(!input || !thread) return;
@@ -10863,6 +10899,19 @@ function sanaMountChat(){
   // means an absent container returns BEFORE the global flag is taken, so a view
   // that is not present in this document cannot starve the one that is.
   if(!mount || !mount.dataset) return;
+  // SANA_FOUNDER_ALLOWLIST_V1 — no input, no listener, no request path for a non-founder. The
+  // gate copy is set as text, never parsed as markup.
+  if(!SANA_FOUNDER){
+    if(mount.dataset.gated !== "1"){
+      mount.dataset.gated = "1";
+      mount.textContent = "";
+      const p = document.createElement("p");
+      p.className = "sana-note";
+      p.textContent = SANA_GATE_COPY;
+      mount.appendChild(p);
+    }
+    return;
+  }
   if(SANA_MOUNTED){
     // Already built once. If the live chat is sitting in a different container, MOVE
     // the nodes rather than building a second set. sanaSend resolves sana-input,

@@ -173,6 +173,10 @@ const driver = (payload) => `<script>
   await new Promise(r => setTimeout(r, 350));
   window.__rdSeries = {}; window.__allReports = [{ id: "r1", collected_on: "2026-08-05" }];
   window.__doneReportIds = new Set(["r1"]);
+  // SANA_FOUNDER_ALLOWLIST_V1: these assertions are about WHERE the chat mounts, not WHO may see
+  // it, so the harness user is a founder here. The gate itself is proven in test-sana-founder-gate.
+  // Guarded because the BEFORE build predates the flag.
+  if (typeof SANA_FOUNDER !== "undefined") SANA_FOUNDER = true;
   const P = ${JSON.stringify(payload)};
   const res = { threw: false, errs: [] };
   try { window.showView("dashboard"); await window.renderDashboard(P, "r1"); }

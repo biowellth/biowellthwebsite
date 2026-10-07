@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-// SANA_THREAD_V1 — turn identity, layout and chips, against shipped source.
+// SANA_FOUNDER_ALLOWLIST_V1 — the chat is for founder accounts only until the Sana safety bar is met.
 //
-// THE DEFECT THIS EXISTS FOR: sanaSend used to write id="sana-live" into every
-// new turn and read it back with getElementById, which returns the FIRST match.
-// On turn 2 that resolved to TURN 1's reply element, so turn 2's answer
-// overwrote turn 1's reply and turn 2's own bubble kept spinning forever. One
-// duplicated id, two visible defects, and nothing ever cleared the id.
+// What must hold, against shipped source:
+//   - a non-founder sees the gate copy where the chat would be, gets no input, and sanaSend makes
+//     no request to /agent/chat;
+//   - a founder gets the chat, and the same probe DOES reach /agent/chat (the control, so a zero
+//     above means the gate and not a broken harness);
+//   - the allowlist is hashes, never raw ids, because this repository is public;
+//   - the decision fails closed and is made at boot from the session user.
 //
-// The suite boots the real inline script in node:vm with a stubbed DOM and a
-// mocked stream, the same technique as test-boot-fresh-profile.mjs, then drives
-// two sequential sends and asserts turn 1 is byte-identical afterwards.
+// The harness is test-sana-thread's: the real inline script booted in node:vm with a stubbed DOM and
+// a real SSE stream. Synthetic ids only.
 //
-//   node scripts/test-sana-thread.mjs        (or DASH=path/to/dashboard.html)
+//   node scripts/test-sana-founder-gate.mjs        (or DASH=path/to/dashboard.html)
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { extractApp } from "./lib/extract-app.mjs";
 
 const FILE = process.env.DASH || "dashboard.html";
@@ -23,17 +25,6 @@ const ok = (c, m) => (c ? (pass++, console.log("  ok   " + m))
                         : (fail++, console.log("  FAIL " + m)));
 const eq = (a, b, m) => ok(a === b, m + "  (got " + JSON.stringify(a) + ", want " + JSON.stringify(b) + ")");
 
-// ── STATIC: source-level properties ──────────────────────────────────────────
-console.log("IDENTITY — no shared element id");
-eq((HTML.match(/id="sana-live"/g) || []).length, 0, "TID-1: no element carries the shared live id");
-eq((HTML.match(/\$\("sana-live"\)/g) || []).length, 0, "TID-2: nothing looks that id up");
-ok(/setAttribute\("data-turn"/.test(HTML), "TID-3: turns are tagged with data-turn");
-
-// ── DYNAMIC: boot the real script and drive two sends ────────────────────────
-
-// A minimal HTML parser, enough for the markup this page emits: div, span, p,
-// ul, ol, li, strong, with class and data- attributes. Not a browser; just
-// enough that class selectors and text content are real.
 function parseInto(parent, html) {
   const stack = [parent];
   const re = /<\/?([a-zA-Z][\w-]*)((?:\s+[\w-]+(?:="[^"]*")?)*)\s*\/?>|([^<]+)/g;
@@ -175,122 +166,90 @@ const sandbox = {
 };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 
-const SRC = extractApp(HTML, FILE);
+sandbox.TextEncoder = TextEncoder;
+let chatCalls = 0;
+const realFetch = sandbox.fetch;
+sandbox.fetch = async (url, opts) => { if (String(url).includes("/agent/chat")) chatCalls++; return realFetch(url, opts); };
 
+const SRC = extractApp(HTML, FILE);
 const vm = await import("node:vm");
 vm.createContext(sandbox);
 try {
   new vm.Script(SRC + `
 ;globalThis.__probe = {
-   sanaRender: typeof sanaRender,
-   send: async (text, answer) => {
+   resolve: (id, list) => sanaResolveFounder(id, list),
+   founderNow: () => SANA_FOUNDER,
+   hashes: () => SANA_FOUNDER_SHA256.slice(),
+   gateCopy: () => SANA_GATE_COPY,
+   mount: (founder) => {
+     SANA_FOUNDER = founder; SANA_MOUNTED = false; SANA_MOUNTED_ID = null; SANA_MOUNT_ID = "sana-mount";
+     const m = document.getElementById("sana-mount"); m.dataset = {}; m.innerHTML = "";
+     sanaMountChat();                    // THE REAL FUNCTION
+     return m;
+   },
+   send: async (founder) => {
+     SANA_FOUNDER = founder;
      SANA_CONSENT_STATE = true;          // consent proven separately, in test-consent-gate
      SANA_LINKED = true;                 // linking proven separately
-     SANA_FOUNDER = true;                // founder gate proven separately, in test-sana-founder-gate
      SANA_BUSY = false;
-     globalThis.__nextAnswer = answer;
-     document.getElementById("sana-input").value = text;
+     document.getElementById("sana-input").value = "hello";
      await sanaSend();                   // THE REAL FUNCTION
    },
-   // Count BOTH classes. Counting only .sana-dots meant a mutation that emitted
-   // .comp-dots scored zero and the assertion passed while dots span forever.
-   dots: () => document.getElementById("sana-thread").querySelectorAll(".sana-dots").length
-             + document.getElementById("sana-thread").querySelectorAll(".comp-dots").length,
-   labels: () => document.getElementById("sana-thread").querySelectorAll(".sana-label").length,
-   tagged: () => document.getElementById("sana-thread").querySelectorAll("[data-turn]").length,
-   chip: (q, a) => sanaAppendChipTurn(q, a),
-   hasChipFn: typeof sanaAppendChipTurn,
-   turns: () => document.getElementById("sana-thread").querySelectorAll(".sana-turn"),
-   thread: () => document.getElementById("sana-thread"),
 };`, { filename: "dashboard-inline.js" }).runInContext(sandbox, { timeout: 20000 });
 } catch (err) {
   console.log("  FAIL boot threw: " + err.message);
   fail++;
 }
-
-console.log("LAYOUT — thread before row, and the mock's geometry");
-{
-  const mount = HTML.slice(HTML.indexOf("function sanaMountChat(){"));
-  const body = mount.slice(0, mount.indexOf("\n}"));
-  const iThread = body.indexOf('class="sana-thread"');
-  const iRow = body.indexOf('class="sana-row"');
-  ok(iThread > -1 && iRow > -1, "LAY-1: sanaMountChat emits both nodes");
-  ok(iThread < iRow, "LAY-2: .sana-thread precedes .sana-row in the emitted markup");
-}
-// BASE RULES ONLY. The 420px block repeats .sana-thread and both turn selectors,
-// so a regex over the whole file matches the media-query copy and a mutation that
-// deletes the BASE rule still reads as present. Slice the base stylesheet first.
-const BASE = HTML.slice(0, HTML.indexOf("@media(max-width:420px)"));
-ok(/\.sana-thread\{[^}]*overflow-y:auto/.test(BASE), "LAY-3: the thread scrolls (base rule)");
-ok(/\.sana-thread\{[^}]*max-height:60vh/.test(BASE), "LAY-4: max-height 60vh (base rule)");
-ok(/@media\(max-width:420px\)/.test(HTML), "LAY-5: a 420px rule exists");
-ok(/\.sana-turn\.sana-her\{[^}]*border-left:2px solid var\(--teal\)/.test(BASE),
-   "LAY-6: .sana-her has a real rule with the teal left rule");
-ok(/\.sana-turn\.sana-you\{[^}]*border-radius:14px/.test(BASE),
-   "LAY-7: .sana-you has a real rule with radius 14");
-ok(/\.sana-dots\{[^}]*display:flex/.test(BASE), "LAY-8: .sana-dots has a real rule");
-ok(/function sanaScrollToBottom/.test(HTML), "LAY-9: append scrolls to bottom");
-
-console.log("SEQUENTIAL TURNS — the regression, driven through the real sanaSend");
+await new Promise((r) => setTimeout(r, 100));   // let the boot IIFE resolve the session user
 const P = sandbox.__probe;
-if (!P) { ok(false, "TID-4..8: probe unavailable, boot failed"); }
-else {
-  eq(P.sanaRender, "function", "TID-4: sanaRender is in scope for the thread");
+const sha = (s) => createHash("sha256").update(s).digest("hex");
 
-  await P.send("first question", "first answer");
-  const turnsAfter1 = P.turns().length;
-  const t1 = P.turns()[1];               // [0] you, [1] her
-  const snapshot = t1.innerHTML;
-  ok(/first answer/.test(snapshot), "TID-5: turn 1 rendered its own answer");
-
-  await P.send("second question", "second answer");
-
-  eq(t1.innerHTML, snapshot, "TID-6: turn 1 is BYTE-IDENTICAL after turn 2 completes");
-  const t2 = P.turns()[3];
-  ok(/second answer/.test(t2.innerHTML), "TID-7: turn 2 rendered into its own element");
-  eq(P.dots(), 0, "TID-8: zero .sana-dots remain once both turns resolve");
-  eq(P.turns().length, 4, "TID-9: four turn nodes, two you and two her");
-  eq(turnsAfter1, 2, "TID-10: one send produced exactly two nodes");
-  // The label must survive the render. Writing into `live` instead of its body
-  // node clobbers it, which no before/after comparison of turn 1 can see.
-  eq(P.labels(), 2, "TID-11: both Sana turns still carry their label after rendering");
-  // Static regex on the source cannot tell which of the two setAttribute calls
-  // survived, so assert every turn node carries the attribute at runtime.
-  eq(P.tagged(), 4, "TID-12: every turn node carries data-turn");
-}
-
-console.log("COPY");
-ok(HTML.includes("Your AI companion, reading from your panel"),
-   "COPY-1: sub-header reads 'Your AI companion, reading from your panel'");
-ok(!HTML.includes("Your AI companion \u00b7 reading from your panel"),
-   "COPY-2: the middot form is gone");
-
-console.log("CHIPS — into the thread, no network");
-ok(/function sanaAppendChipTurn/.test(HTML), "CHIP-1: the chip appender exists");
+console.log("STATIC — hashes, never ids, and the decision is made at boot");
 {
-  const h = HTML.slice(HTML.indexOf("chips.forEach((btn,idx)=>{"));
-  const body = h.slice(0, h.indexOf("\n  });"));
-  ok(/sanaAppendChipTurn\(/.test(body), "CHIP-2: the chip handler calls it");
-  ok(/btn\.remove\(\)/.test(body), "CHIP-3: the tapped chip is removed");
-  // Assert the CONDITION, not just the call. Matching classList.add("hidden")
-  // alone passed a mutation that changed the guard to if(false) and left the
-  // call sitting there unreachable.
-  ok(/if\(left === 0\)\s*chipsEl\.classList\.add\("hidden"\)/.test(body),
-     "CHIP-4: the row hides when the last chip goes");
-  ok(!/fetch\(/.test(body), "CHIP-5: the chip handler makes no fetch call");
-}
-if (P) {
-  const before = P.turns().length;
-  const fetchBefore = fetchCalls;
-  P.chip("What does my ferritin mean?", "Your ferritin is **in range**.");
-  eq(P.turns().length - before, 2, "CHIP-6: a chip tap appends exactly one you turn and one her turn");
-  eq(fetchCalls, fetchBefore, "CHIP-7: no fetch was made for the chip answer");
-  const last = P.turns()[P.turns().length - 1];
-  ok(/<strong>in range<\/strong>/.test(last.innerHTML),
-     "CHIP-8: the chip answer went through sanaRender, so its marks render");
-  ok(/sana-label/.test(last.innerHTML), "CHIP-9: the chip answer carries the Sana label");
-  eq(P.dots(), 0, "CHIP-10: a chip turn leaves no dots");
+  const hashes = P.hashes();
+  eq(hashes.length, 2, "FG-1: two founder hashes (test account and fixture invite)");
+  ok(hashes.every((h) => /^[0-9a-f]{64}$/.test(h)), "FG-2: every entry is a 64-hex sha256");
+  eq((HTML.match(/\b(1e6eb2cc|2a0c40a2)-[0-9a-f]{4}-/gi) || []).length, 0,
+     "FG-3: no full founder uuid in this public file");
+  ok(/SANA_FOUNDER = await sanaResolveFounder\(USER && USER\.id\);/.test(HTML),
+     "FG-4: boot decides SANA_FOUNDER from the session user");
+  ok(/if\(SANA_CHAT_ENABLED && dobOnFile && SANA_FOUNDER\)\{/.test(HTML),
+     "FG-5: the no-panel route sends a non-founder to upload, not to an empty companion view");
+  ok(/let SANA_FOUNDER = false;/.test(HTML), "FG-6: SANA_FOUNDER starts false (fail closed)");
 }
 
-console.log("\n  " + pass + " passed, " + fail + " failed");
+console.log("RESOLVE — the real sanaResolveFounder");
+{
+  const A = "00000000-0000-4000-8000-00000000f001", B = "00000000-0000-4000-8000-00000000aaaa";
+  eq(await P.resolve(A, [sha(A)]), true, "FG-7: an id whose hash is listed resolves true");
+  eq(await P.resolve(B, [sha(A)]), false, "FG-8: an id whose hash is not listed resolves false");
+  eq(await P.resolve(null, [sha(A)]), false, "FG-9: no session user resolves false");
+  eq(await P.resolve(A.slice(0, 8), [sha(A)]), false, "FG-10: a prefix of a listed id resolves false");
+  eq(await P.resolve(A), false, "FG-11: a synthetic id is not on the shipped list");
+  eq(P.founderNow(), false, "FG-12: after boot with a non-founder session, SANA_FOUNDER is false");
+}
+
+console.log("MOUNT — the real sanaMountChat");
+{
+  const m = P.mount(false);
+  eq(m.textContent, P.gateCopy(), "FG-13: a non-founder sees the gate copy where the chat would be");
+  eq(P.gateCopy(), "Ask about your results. Coming in early access.", "FG-14: the gate copy is the agreed sentence");
+  ok(!m.innerHTML.includes('id="sana-input"'), "FG-15: a non-founder gets no chat input");
+  const f = P.mount(true);
+  ok(f.innerHTML.includes('id="sana-input"') && f.innerHTML.includes('id="sana-send"'),
+     "FG-16 CONTROL: a founder gets the chat input and send button");
+  ok(!f.textContent.includes(P.gateCopy()), "FG-17: a founder does not see the gate copy");
+}
+
+console.log("SEND — the real sanaSend");
+{
+  chatCalls = 0;
+  await P.send(false);
+  eq(chatCalls, 0, "FG-18: a non-founder send makes no request to /agent/chat");
+  chatCalls = 0;
+  await P.send(true);
+  eq(chatCalls, 1, "FG-19 CONTROL: a founder send reaches /agent/chat, so FG-18 can fail");
+}
+
+console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
