@@ -200,7 +200,13 @@ nav.scrolled .nav-link:hover{color:var(--brown);background:var(--cream-mid)}
 .hero-card .read.bw{background:rgba(12,142,107,0.14);border:1px solid rgba(12,142,107,0.4)}
 .hero-card .read.bw .who{color:var(--teal-mid)}
 .hero-card .read.bw .what{color:#EAF6F0}
-.hero-card .foot{font-size:12px;color:rgba(255,255,255,0.4);font-style:italic;margin-top:6px}
+.hero-card .foot{font-size:12px;color:rgba(255,255,255,0.4);font-style:italic;margin-top:14px}
+/* HERO_NOT_TESTED_CHIPS_V1: the "Not tested on this report" row, ported from mocks/landing-v2.html.
+   Chip and label colours are rgba of --coral (212,124,101) and --coral-light (250,240,237) only. */
+.hero-card .gaps{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1)}
+.hero-card .gaps .who{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(212,124,101,0.95);margin-bottom:10px}
+.hero-card .chips{display:flex;flex-wrap:wrap;gap:7px}
+.hero-card .chip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:100px;background:rgba(212,124,101,0.14);border:1px dashed rgba(212,124,101,0.55);color:rgba(250,240,237,0.92);white-space:nowrap}
 
 /* WHAT YOU GET STRIP */
 .strip{background:var(--teal);padding:0 5%}
@@ -531,7 +537,7 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
         <a href="#how" class="btn-outline">How it works</a>
       </div>
     </div>
-    <div class="hero-card">
+    <div class="hero-card" role="img" aria-label="Example report card. Ferritin 22 ng/mL. The standard report reads it as within range. The BioWellth read says it is in range but low for steady energy. Six markers were not tested on this report: Free T3, Free T4, hsCRP, AM cortisol, DHEA-S and progesterone.">
       <div class="kicker">Same result · two readings</div>
       <div class="marker"><span class="name">Ferritin</span><span class="val">22 <span>ng/mL</span></span></div>
       <div class="read lab">
@@ -541,6 +547,17 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
       <div class="read bw">
         <div class="who">BioWellth read</div>
         <div class="what">In range, but low for steady energy. May be worth raising at your next visit.</div>
+      </div>
+      <div class="gaps">
+        <div class="who">⚑ Not tested on this report</div>
+        <div class="chips">
+          <span class="chip">Free T3</span>
+          <span class="chip">Free T4</span>
+          <span class="chip">hsCRP</span>
+          <span class="chip">AM cortisol</span>
+          <span class="chip">DHEA-S</span>
+          <span class="chip">Progesterone</span>
+        </div>
       </div>
       <div class="foot">Illustrative example. Not medical advice.</div>
     </div>
