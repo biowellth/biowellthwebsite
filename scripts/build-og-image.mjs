@@ -15,7 +15,9 @@ const { chromium } = require('playwright');
 
 const FONT_DIR = process.env.FONT_DIR;
 const font = (pkg, file) => 'data:font/woff2;base64,' + fs.readFileSync(path.join(FONT_DIR, pkg, 'files', file)).toString('base64');
-const mark = fs.readFileSync('favicon.svg', 'utf8').replace('aria-hidden="true"', 'width="46" height="46"');
+// The <style> in favicon.svg (its dark-tab rule) is dropped so the share image is always the
+// brown mark, whatever colour scheme the rendering browser reports.
+const mark = fs.readFileSync('favicon.svg', 'utf8').replace(/<style>[\s\S]*?<\/style>/, '').replace('aria-hidden="true"', 'width="46" height="46"');
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face{font-family:Fraunces;font-weight:400;font-style:normal;src:url(${font('fraunces', 'fraunces-latin-400-normal.woff2')})}

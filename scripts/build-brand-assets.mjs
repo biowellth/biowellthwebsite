@@ -15,7 +15,10 @@ const BROWN = '#47372B';
 const CREAM = '#F8F2EC';
 const src = fs.readFileSync('favicon.svg', 'utf8');
 // The inner geometry of the mark, with the root <svg> wrapper and its fill stripped.
-const inner = src.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+// BRAND_ASSETS_V1: the <style> block is stripped too. favicon.svg carries a
+// prefers-color-scheme rule for browser tabs, and a CSS path fill would override the
+// cream fill these rasters set, so every icon here is coloured only by markSvg and tileSvg.
+const inner = src.replace(/^<svg[^>]*>/, '').replace(/<style>[\s\S]*?<\/style>/, '').replace(/<\/svg>\s*$/, '');
 
 function render(svg, size, out) {
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: size } }).render().asPng();
