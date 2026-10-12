@@ -1332,6 +1332,36 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-move-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);opacity:.75;margin-bottom:4px}
 .dc-move-line{font-size:14px;font-weight:500;color:var(--brown)}
 .dc-move-note{font-size:11px;color:var(--brown-mid);margin-top:4px}
+/* CYCLE_CARD_V1. Built from mocks/cycle-card.html, with the 2026-10-12 rulings: the module's four
+   phase labels only (no ovulation state), the module's own lines, site amber. Two hosts, one
+   render: the rail host above 960px, the main-column host (after Sana) at 960px and below. */
+.cy-host-main{display:none}
+@media(max-width:960px){ .cy-host-rail{display:none} .cy-host-main:not(.hidden){display:block;margin-top:16px} }
+.cy-card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px 22px}
+.cy-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid)}
+.cy-day{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+.cy-day-n{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:40px;line-height:1;color:var(--brown)}
+.cy-day-of{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--brown-mid)}
+.cy-bar{height:6px;border-radius:6px;background:var(--brown-soft);margin:12px 0 14px;overflow:hidden}
+.cy-bar > span{display:block;height:100%;border-radius:6px;background:var(--cy-accent,var(--teal))}
+.cy-phase{display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;color:var(--brown)}
+.cy-dot{width:10px;height:10px;border-radius:50%;background:var(--cy-accent,var(--teal));flex:none}
+.cy-est{font-weight:500;font-size:11px;color:var(--amber-dark);background:var(--amber-light);border-radius:100px;padding:2px 8px}
+.cy-line{font-size:14px;line-height:1.5;color:var(--brown);margin-top:8px}
+.cy-ask{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;line-height:1.35;margin-top:10px;color:var(--brown)}
+.cy-next{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--brown-mid);margin-top:12px;padding-top:12px;border-top:1px dashed var(--brown-light)}
+.cy-next b{font-weight:600;color:var(--brown)}
+.cy-note{font-size:11.5px;color:var(--brown-mid);margin-top:10px}
+.cy-btn{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--teal-dark);background:var(--teal-soft);border:1px solid var(--teal-mid);border-radius:11px;padding:10px 16px;cursor:pointer;margin-top:14px}
+.cy-btn:hover{background:var(--teal-light)}
+.cy-btn.primary{color:var(--white);background:var(--teal);border-color:var(--teal)}
+.cy-btn:disabled{opacity:.6;cursor:default}
+.cy-log{display:none;margin-top:12px;gap:8px;align-items:center;flex-wrap:wrap}
+.cy-log.open{display:flex}
+.cy-log label{font-size:13px;color:var(--brown-mid);width:100%}
+.cy-log input{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--brown);border:1px solid var(--brown-light);border-radius:10px;padding:8px 10px;background:var(--cream)}
+.cy-log .cy-btn{margin-top:0}
+.cy-msg{font-size:12.5px;color:var(--brown-mid);margin-top:8px}
 .comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
 .comp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
@@ -2411,6 +2441,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
          Order here is the ONLY thing that sets it -- no JS moves these three nodes
          (zero insertBefore/appendChild/prepend on any of them) and no CSS order/flex
          trick is involved. Move the markup, not a style. -->
+    <!-- CYCLE_CARD_V1 phone host. Shown only at 960px and below, AFTER Sana (founder ruling
+         2026-10-12), so CARD_ORDER_V1's score, Sana order is kept. One render fills this and
+         #cycle-card-rail; the media query shows exactly one of them. -->
+    <div class="cy-host cy-host-main hidden" id="cycle-card-main"></div>
     <div class="daily-card hidden" id="daily-card"></div>
 
     <div id="prios-wrap" class="hidden">
@@ -2478,6 +2512,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       </div>
 
       <div class="dash-rail">
+    <!-- CYCLE_CARD_V1 desktop host, top of the side rail. Hidden at 960px and below, where the rail
+         stacks after the whole main column and #cycle-card-main shows instead. -->
+    <div class="cy-host cy-host-rail hidden" id="cycle-card-rail"></div>
     <div id="longi-wrap" class="hidden">
       <div class="section-label" id="longi-label">Since your last panel</div>
       <div id="longi-block" class="longi-block gap-card">
@@ -8002,6 +8039,29 @@ function dcLoadCycleMovement(){
 const CM_PROFILE_COLS = 'menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, ' +
   'amenorrhea_reason, hormone_therapy_status, hormonal_contraception, on_hormonal_contraception, ' +
   'typical_cycle_length_days, typical_period_duration_days, last_period_start_date';
+// CYCLE_CARD_V1: the read and the resolve, ONE function for the daily card and the cycle card, so
+// the two can never be fed different inputs. A read error leaves profile null, which resolves to no
+// phase. A supabase-js error is RETURNED, not thrown, so it is checked, not left to the catch.
+// reportId may be null (the cycle card can render with no report): the report's date is then skipped.
+async function cmResolveFor(reportId, todayYMD){
+  if(!USER || !USER.id) return null;
+  let profile = null, lmpRaw = null;
+  try{
+    const { data: prof, error: pe } = await sb.from('profiles')
+      .select(CM_PROFILE_COLS).eq('id', USER.id).maybeSingle();
+    if(pe) throw pe;
+    profile = prof || null;
+    if(reportId){
+      const { data: rep } = await sb.from('reports').select('lmp_date_before_draw').eq('id', reportId).maybeSingle();
+      lmpRaw = rep ? rep.lmp_date_before_draw : null;
+    }
+  } catch(e){ console.error('[cycle] context read failed (unphased):', e); profile = null; }
+  try{
+    const mod = await dcLoadCycleMovement();
+    if(mod && profile) return mod.resolveCycleMovement(profile, { reportLmp: lmpRaw, today: todayYMD || dcYMD(dcTodayLocalDate()) });
+  } catch(e){ console.error('[cycle] resolve failed (unphased):', e); }
+  return null;
+}
 
 // Deterministic rank-weighted pick of k (A-Res weighted sampling; per-item u derived
 // from hash(seed:action_id) so it is order-independent). Rank 1 = largest weight;
@@ -8241,21 +8301,7 @@ async function dcRenderDailyCard(p, reportId, late){
     const three = dcSchedule(pool, reportId, rankMap);
     if(three.length === 0) return false;
     const todayYMD = dcYMD(dcTodayLocalDate());
-    // CYCLE_MOVEMENT_V1: a read error leaves profile null, which the module resolves to no phase.
-    // A supabase-js error is RETURNED, not thrown, so it is checked, not left to the catch.
-    let profile = null, lmpRaw = null, cm = null;
-    try{
-      const { data: prof, error: pe } = await sb.from('profiles')
-        .select(CM_PROFILE_COLS).eq('id', USER.id).maybeSingle();
-      if(pe) throw pe;
-      profile = prof || null;
-      const { data: rep } = await sb.from('reports').select('lmp_date_before_draw').eq('id', reportId).maybeSingle();
-      lmpRaw = rep ? rep.lmp_date_before_draw : null;
-    } catch(e){ console.error('[daily_card] cycle context read failed (unphased):', e); profile = null; }
-    try{
-      const mod = await dcLoadCycleMovement();
-      if(mod && profile) cm = mod.resolveCycleMovement(profile, { reportLmp: lmpRaw, today: todayYMD });
-    } catch(e){ console.error('[daily_card] cycle resolve failed (unphased):', e); cm = null; }
+    const cm = await cmResolveFor(reportId, todayYMD);   // CYCLE_MOVEMENT_V1: one read, shared with the cycle card
     const phase = (cm && cm.status === 'phase') ? cm.dailyCardKey : null;   // null -> every row unphased
     let done = new Set();
     try{
@@ -8272,6 +8318,125 @@ async function dcRenderDailyCard(p, reportId, late){
     host.classList.add('hidden'); host.innerHTML = ''; __dcState = null;
     return false;
   }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CYCLE_CARD_V1 — her cycle day, phase and today's movement line. Built from mocks/cycle-card.html
+// with the founder's 2026-10-12 rulings. EVERYTHING SHOWN COMES FROM THE SHARED MODULE through
+// cmResolveFor, the same read the daily card uses: this card computes no phase, no day and no date.
+//   phase                  -> Day N of ~L, the module's phaseLabel (Menstrual, Follicular, Early
+//                             luteal, Late luteal; no ovulation state, ruled), its movementLine (the
+//                             daily card's movement row says the same), next period "estimated", Log period.
+//   log_period             -> the module's STATUS_LINES.log_period and Log period.
+//   raise_with_clinician   -> the module's line only.
+//   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
+//                             perimenopause, PCOS, unreadable inputs, and a missing cycle length
+//                             (no control here can set one) all render no card and never a reason.
+// "Log period" posts process-report mode log_period (supa LOG_PERIOD_V1) through the page's
+// sb.functions.invoke pattern (onDdcTap, the retry handler), then re-renders this card and the daily card.
+const CY_HOSTS = ['cycle-card-rail', 'cycle-card-main'];
+const CY_ACCENT = { menstrual: 'var(--coral)', follicular: 'var(--teal)', early_luteal: 'var(--brown-mid)', late_luteal: 'var(--brown-mid)' };
+const CY_COPY = {
+  eyebrow: 'Your cycle',
+  note: 'An estimate from the period date you gave us',
+  next: 'Next period around',
+  est: 'estimated',
+  log: 'Log period',
+  ask: 'When did your last period start?',
+  save: 'Save',
+  invalidDate: 'That date is later than today. Choose the day your last period started.',
+  retry: 'That did not save. Try again in a moment.',
+};
+let __cy = null;   // { p, reportId, cm, msg, open }
+
+function cyNiceDate(ymd){
+  const d = dcParseYMD(ymd); if(!d) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function cyLogBlock(open, msg){
+  const today = dcYMD(dcTodayLocalDate());
+  return '<button class="cy-btn" type="button" data-cy="open">' + dcEsc(CY_COPY.log) + '</button>'
+    + '<div class="cy-log' + (open ? ' open' : '') + '">'
+    +   '<label>' + dcEsc(CY_COPY.ask) + '</label>'
+    +   '<input type="date" data-cy="date" max="' + today + '" value="' + today + '"/>'
+    +   '<button class="cy-btn primary" type="button" data-cy="save">' + dcEsc(CY_COPY.save) + '</button>'
+    + '</div>'
+    + (msg ? '<div class="cy-msg" aria-live="polite">' + dcEsc(msg) + '</div>' : '');
+}
+/** The card's HTML for a module result, or null for NO CARD. */
+function cyCardHTML(cm, open, msg){
+  if(!cm) return null;
+  if(cm.status === 'phase' && cm.movementLine && cm.phaseLabel){
+    const pct = Math.max(4, Math.min(100, Math.round((cm.cycleDay / cm.cycleLength) * 100)));
+    return '<div class="cy-card" style="--cy-accent:' + (CY_ACCENT[cm.phase] || 'var(--teal)') + '">'
+      + '<div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+      + '<div class="cy-day"><span class="cy-day-n">Day ' + dcEsc(cm.cycleDay) + '</span><span class="cy-day-of">of ~' + dcEsc(cm.cycleLength) + '</span></div>'
+      + '<div class="cy-bar"><span style="width:' + pct + '%"></span></div>'
+      + '<div class="cy-phase"><span class="cy-dot"></span>' + dcEsc(cm.phaseLabel) + '</div>'
+      + '<div class="cy-line">' + dcEsc(cm.movementLine) + '</div>'
+      + (cm.nextPeriodEstimate ? '<div class="cy-next">' + dcEsc(CY_COPY.next) + ' <b>' + dcEsc(cyNiceDate(cm.nextPeriodEstimate)) + '</b> <span class="cy-est">' + dcEsc(CY_COPY.est) + '</span></div>' : '')
+      + '<div class="cy-note">' + dcEsc(CY_COPY.note) + '</div>'
+      + cyLogBlock(open, msg)
+      + '</div>';
+  }
+  if(cm.status === 'log_period' && cm.statusLine){
+    return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+      + '<div class="cy-ask">' + dcEsc(cm.statusLine) + '</div>' + cyLogBlock(open, msg) + '</div>';
+  }
+  if(cm.status === 'raise_with_clinician' && cm.statusLine){
+    return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+      + '<div class="cy-line">' + dcEsc(cm.statusLine) + '</div></div>';
+  }
+  return null;
+}
+function cyPaint(){
+  const html = __cy ? cyCardHTML(__cy.cm, __cy.open, __cy.msg) : null;
+  for(const id of CY_HOSTS){
+    const host = document.getElementById(id); if(!host) continue;
+    if(html === null){ host.innerHTML = ''; host.classList.add('hidden'); continue; }
+    host.innerHTML = html; host.classList.remove('hidden');
+    const openBtn = host.querySelector('[data-cy="open"]');
+    if(openBtn) openBtn.addEventListener('click', () => { __cy.open = !__cy.open; __cy.msg = null; cyPaint(); });
+    const saveBtn = host.querySelector('[data-cy="save"]');
+    if(saveBtn) saveBtn.addEventListener('click', () => {
+      const input = host.querySelector('[data-cy="date"]');
+      saveBtn.disabled = true;
+      cyLogPeriod(input ? input.value : '');
+    });
+  }
+}
+/** Entry point. Called from renderDashboard beside the daily card. Never throws; any failure hides the card. */
+async function cyRenderCard(p, reportId){
+  try{
+    const cm = await cmResolveFor(reportId || null, dcYMD(dcTodayLocalDate()));
+    __cy = { p, reportId: reportId || null, cm, msg: null, open: false };
+  } catch(e){ console.error('[cycle_card] render failed (card hidden):', e); __cy = null; }
+  cyPaint();
+}
+/** Log period. ONE call, exactly { mode, last_period_start_date }. Returns 'ok' | 'invalid_date' | 'failed'. */
+async function cyLogPeriod(date){
+  let outcome = 'failed';
+  try{
+    const { data, error } = await sb.functions.invoke('process-report', {
+      body: { mode: 'log_period', last_period_start_date: date },
+    });
+    if(!error && data && data.ok === true) outcome = 'ok';
+    else {
+      // A 400 arrives as error.context, the Response (same reading as pcRetrySpentFromError).
+      let body = data;
+      try{ const res = error && error.context; if(res && typeof res.json === 'function') body = await res.json(); }catch(_){}
+      if(body && body.error === 'invalid_date') outcome = 'invalid_date';
+    }
+  } catch(e){ console.error('[cycle_card] log period failed:', e); }
+  if(outcome === 'ok'){
+    const p = __cy ? __cy.p : null, reportId = __cy ? __cy.reportId : null;
+    await cyRenderCard(p, reportId);
+    if(reportId) await dcRenderDailyCard(p, reportId);
+    return outcome;
+  }
+  if(__cy){ __cy.open = true; __cy.msg = outcome === 'invalid_date' ? CY_COPY.invalidDate : CY_COPY.retry; }
+  cyPaint();
+  return outcome;
 }
 
 // DAILY_CARD_LATE_POOL_V1 — bounded secondary poll. Stops on success, stops on exhaustion, and is
@@ -8633,6 +8798,7 @@ async function renderDashboard(p, reportId){
 
   // Sana daily actions card — additive, self-guarded, hides on empty pool or any error.
   dcRenderDailyCard(p, reportId);
+  cyRenderCard(p, reportId);   // CYCLE_CARD_V1
 
   renderFoundations(p);
 

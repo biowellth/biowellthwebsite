@@ -366,6 +366,27 @@ else {
         if (n === EXPECT_DD[key] && n > 0) CTL[key] = CTL[key].split(DD_NEW).join(DD_OLD);
       }
     }
+    // CYCLE_CARD_V1 (2026-10-12) added two EMPTY mount points to the dashboard markup on purpose, the
+    // cycle card's rail host and its phone host, each with its comment. Mapped back like V3 and DD
+    // above, and ONLY those two blocks, read verbatim from the page so an edit to either is seen: each
+    // must occur exactly once on the dashboard surface and nowhere else, so every other byte of every
+    // surface is still compared. The card renders nothing here (no cycle answers on this payload's
+    // profile), which is why the blocks are still empty; a rendered card would fail this control.
+    {
+      const SRC = readFileSync(new URL("../dashboard.html", import.meta.url), "utf8");
+      const blk = (startTxt, endTxt) => { const i = SRC.lastIndexOf("\n", SRC.indexOf(startTxt)) + 1; const j = SRC.indexOf(endTxt, i) + endTxt.length + 1; return SRC.slice(i, j); };
+      const CC_BLOCKS = [blk("<!-- CYCLE_CARD_V1 phone host.", 'id="cycle-card-main"></div>'),
+                         blk("<!-- CYCLE_CARD_V1 desktop host", 'id="cycle-card-rail"></div>')];
+      const EXPECT_CC = { dashHtml: 1, reportHtml: 0, deckHtml: 0 };
+      for (const blockText of CC_BLOCKS) {
+        ok(blockText.length > 80 && blockText.length < 600, "EP-27 CC CONTROL: the cycle card block was read from the page  (" + blockText.length + " chars)");
+        for (const [label, key] of surfaces) {
+          const n = (CTL[key] || "").split(blockText).length - 1;
+          ok(n === EXPECT_CC[key], "EP-27." + label + " CC CONTROL: the deliberate cycle card host occurs " + EXPECT_CC[key] + " time(s) here  (" + n + ")");
+          if (n === EXPECT_CC[key] && n > 0) CTL[key] = CTL[key].split(blockText).join("");
+        }
+      }
+    }
     for (const [label, key] of surfaces) {
       const a = md5(B[key] || ""), b = md5(CTL[key] || "");
       ok((B[key] || "").length > 0, "EP-26." + label + " CONTROL: the BEFORE surface is non-empty  (" + (B[key] || "").length + " chars)");
