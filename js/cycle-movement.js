@@ -57,7 +57,7 @@ export const MOVEMENT_LINES = Object.freeze({
     moderate: "If you have energy today, a moderate session is a fine choice. A walk or a stretch works too.",
   }),
   follicular: Object.freeze({
-    high: "A good day to try strength work, heavier lifts, or short bursts like intervals or sprints.",
+    high: "A good window for strength work, heavier lifts or short intervals, at a level that suits you.",
     gentle: "If your energy is low today, a walk or an easy stretch is plenty. Strength work can wait.",
   }),
   early_luteal: Object.freeze({
@@ -73,7 +73,7 @@ export const STATUS_LINES = Object.freeze({
   log_period: "Log your period to see movement ideas for where you are in your cycle.",
   cycle_length_unknown: "Add your usual cycle length to see movement ideas for your cycle.",
   raise_with_clinician:
-    "If your period has not come for three months or more, it could be worth mentioning to a clinician.",
+    "A period that has stopped for three months or more is worth raising with a clinician.",
 });
 
 export const PHASE_LABELS = Object.freeze({

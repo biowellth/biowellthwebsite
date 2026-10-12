@@ -20,7 +20,7 @@ import { createHash } from "node:crypto";
 import vm from "node:vm";
 import { extractApp } from "./lib/extract-app.mjs";
 
-const MODULE_SHA256 = "e832aa66e6f3ea047c33ab4d29c34e891c95b201f1a1ac10065c8663d0ba911f";
+const MODULE_SHA256 = "6aec9b31075f24b61bd59283e19079868fb3ef1bcbab49f55392b8b326e36487";
 const CORPUS_SHA256 = "d8c449d26c5bdff6a444de4eed3f0bbe615f2bda77475fc4c02d24d9d2245f5e";
 const MODULE_PATH = new URL("../js/cycle-movement.js", import.meta.url);
 const CORPUS_PATH = new URL("./fixtures/cycle-movement-corpus.json", import.meta.url);
