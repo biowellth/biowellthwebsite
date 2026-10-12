@@ -245,6 +245,12 @@ h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(-
 .pc-quota-icon{width:44px;height:44px;border-radius:50%;background:var(--amber-light,#FAF4E6);border:1px solid #EFE0BE;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
 .pc-quota-icon svg{width:22px;height:22px;color:var(--amber,#D4A94A)}
 .pc-quota-actions{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:22px}
+/* ACCESS_COHORTS_V1 — the free-days line in the top bar and the calm access-ended state. Amber
+   register, like QUOTA_429_V1: an ended free period is not a failure, and nothing is broken. */
+.access-line{font-size:12px;color:var(--brown-mid);padding:4px 10px;border:1px solid var(--brown-light);border-radius:999px;white-space:nowrap}
+#up-prefile.ent-ended > *:not(#access-ended){display:none!important}
+.access-ended{padding:8px 0 4px}
+.access-ended h1{font-size:22px}
 .pc-btn{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--white);background:var(--teal);border:none;border-radius:12px;padding:12px 22px;cursor:pointer}
 .pc-btn:hover{background:var(--teal-dark)}
 .pc-btn-quiet{font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--brown-mid);background:none;border:none;text-decoration:underline;cursor:pointer}
@@ -2077,6 +2083,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
            right to: a string sitting in the markup is in the markup whether or not a
            comment wraps it. Quoting it here turned that assertion red, which is the
            check doing its job. -->
+      <!-- ACCESS_COHORTS_V1: free days left, filled by applyEntitlementUI. Hidden when unknown. -->
+      <span class="access-line hidden" id="access-line"></span>
       <button class="btn-ghost hidden" id="btn-new">New Upload</button>
       <!-- CAMERA_READING_NAV_V1. Ships HIDDEN and EMPTY, and both matter.
            HIDDEN because openFaceScan returns false and does nothing visible when
@@ -2156,6 +2164,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div class="upload-card">
       <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): pre-file page has NO questions, no standalone LMP -->
       <div id="up-prefile">
+        <!-- ACCESS_COHORTS_V1: when her free period has ended this is the ONLY child of
+             #up-prefile that shows (the .ent-ended rule), so no consent box or dropzone is
+             offered for an upload the server would refuse. -->
+        <div class="access-ended pc-quota hidden" id="access-ended"></div>
         <div class="eyebrow">Functional health intelligence for South Asian women</div>
         <h1>Upload your blood work. <em>See what your report didn't say.</em></h1>
         <p>Drop in any blood test PDF. Old, recent, or incomplete, we'll work with what you have.</p>
@@ -2663,6 +2675,76 @@ async function loadProfile(){
   CONSENTED = !!(data && data.consent_accepted_at);   // skip re-prompting a consented profile
   applyDobGate();   // DOB_GATE_V1 -- before applyConsentUI, which reads DOB_GATE_OPEN
   applyConsentUI();
+}
+
+/* ACCESS_COHORTS_V1 — free days left, and the calm state when they are gone.
+ *
+ * READ, NEVER DERIVED. The state comes from bw_my_entitlement (migration 0073), which computes it
+ * server-side from her own profile. Nothing here re-implements the rules, so the line she reads and
+ * the refusal process-report makes cannot disagree.
+ *
+ * UNKNOWN MEANS SAY NOTHING AND BLOCK NOTHING. A failed or missing read (including the window
+ * before 0073 is applied, since this page deploys on push) leaves ENTITLEMENT null: no line, no
+ * ended state, upload offered as today. process-report is the authority and refuses for real; the
+ * page never invents a block it cannot prove.
+ *
+ * PLACEHOLDER COPY. Every string below is a placeholder pending sign-off, written to the tone rules
+ * (no colons, no em dashes). The two ended strings are the brief's text verbatim.
+ * "Your founding price is saved for you" promises something no system yet records. */
+let ENTITLEMENT = null;
+const ACCESS_ENDED_COPY = {   // PLACEHOLDER
+  early_access: ["Your founding access has ended.", "Your past reports are still here. Your founding price is saved for you."],
+  standard:     ["Your free trial has ended.", "Your past reports are still here."],
+};
+function accessLineText(ent){   // PLACEHOLDER copy
+  if(!ent) return "";
+  const ea = ent.cohort === "early_access";
+  const n = ent.days_left == null ? NaN : Number(ent.days_left), d = ent.free_days == null ? NaN : Number(ent.free_days);
+  if(ent.state === "trial_active" && Number.isFinite(n)){
+    const days = n === 1 ? "1 day left" : (n + " days left");
+    return (ea ? "Founding access, " : "Free trial, ") + days;
+  }
+  if(ent.state === "trial_not_started" && Number.isFinite(d)){
+    return (ea ? "Founding access, " : "Free trial, ") + d + " days from your first report";
+  }
+  if(ent.state === "expired") return ea ? "Founding access ended" : "Free trial ended";
+  return "";   // active (paid or comped), or anything unrecognised: say nothing
+}
+function entitlementExpired(){ return !!(ENTITLEMENT && ENTITLEMENT.state === "expired"); }
+function accessEndedMarkup(cohort, withBack){
+  const c = ACCESS_ENDED_COPY[cohort === "early_access" ? "early_access" : "standard"];
+  return '<div class="pc-quota-icon">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+        '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' +
+      '</svg>' +
+    '</div>' +
+    '<h1>' + esc(c[0]) + '</h1>' +
+    '<p>' + esc(c[1]) + '</p>' +
+    (withBack ? '<div class="pc-quota-actions"><button class="pc-btn-quiet" id="access-ended-back" type="button">Back to my reports</button></div>' : '');
+}
+function applyEntitlementUI(){
+  const line = $("access-line");
+  if(line){ const t = accessLineText(ENTITLEMENT); line.textContent = t; line.classList.toggle("hidden", !t); }
+  const pre = $("up-prefile"), box = $("access-ended");
+  const ended = entitlementExpired();
+  if(pre) pre.classList.toggle("ent-ended", ended);
+  if(box){
+    box.classList.toggle("hidden", !ended);
+    // "Back" only when a panel is on screen to go back to; otherwise there is nothing behind it.
+    box.innerHTML = ended ? accessEndedMarkup(ENTITLEMENT.cohort, !!window.__rdPayload) : "";
+    const b = $("access-ended-back");
+    if(b) b.onclick = ()=>{ showView("dashboard"); };
+  }
+}
+async function loadEntitlement(){
+  let next = null;
+  try{
+    const { data, error } = await sb.rpc("bw_my_entitlement");
+    if(!error && data && typeof data === "object" && typeof data.state === "string") next = data;
+  }catch(_){ next = null; }
+  ENTITLEMENT = next;
+  applyEntitlementUI();
+  return ENTITLEMENT;
 }
 
 /* CONTRACT: v1.3 payload shape written by process-report-worker:
@@ -3278,6 +3360,7 @@ async function testerGate(){
   USER = data.session.user;
   document.body.classList.add("ready");
   await loadProfile();     // supp_* for clarify-chip suppression (Deploy D2)
+  await loadEntitlement(); // ACCESS_COHORTS_V1: free days line, and the ended state on the upload card
   // TESTER_GATE_V1 — before the age gate and before any render. A tester who has not
   // accepted must not see the product, and loadProfile has already run so USER is set.
   await testerGate();
@@ -4329,6 +4412,13 @@ async function handleFile(file){
   if(file.type!=="application/pdf"){ msg.className="msg err"; msg.textContent="Please upload a PDF."; return; }
   if(file.size > 20*1024*1024){ msg.className="msg err"; msg.textContent="That file is over 20 MB. Try a smaller PDF."; return; }
 
+  // ACCESS_COHORTS_V1 — PREFLIGHT, before consent, storage or any row. A fresh read, not the boot
+  // value, because the free period can end while the page is open. When it has ended the upload
+  // never starts, so nothing is stored that the server would then have to refuse and discard.
+  // An unreadable state does NOT block (see loadEntitlement); process-report still refuses for real.
+  await loadEntitlement();
+  if(entitlementExpired()) return;
+
   // DRAW_CONTEXT_SUBMIT_V1 — collapse the dropzone into the file row (uploading) and mount the About
   // block IMMEDIATELY on file-pick, before consent + storage upload + report insert resolve, so there
   // is no silent gap. The block mounts with a null reportId; taps buffer into __ad and report-scoped
@@ -4406,6 +4496,15 @@ async function handleFile(file){
       pcRenderQuota();
       showView("processing");
       return;                       // never poll: there is nothing queued to poll for
+    }
+    // ACCESS_COHORTS_V1 — 402, her free period ended between the preflight and the server check.
+    // process-report has already discarded this upload, so nothing is queued and nothing is kept.
+    // Re-read so the top bar line agrees, then show the same calm state the upload card shows.
+    if(__prRes && pcIsEntitlementRefusal(__prRes.error)){
+      await loadEntitlement();
+      pcRenderAccessEnded(ENTITLEMENT && ENTITLEMENT.cohort);
+      showView("processing");
+      return;                       // never poll: nothing was enqueued
     }
     // Any other refusal, thrown or returned. supabase-js does NOT throw on a non-2xx,
     // so both shapes have to be read: the thrown case is captured above rather than
@@ -4630,6 +4729,22 @@ function pcRenderQuota(){
 // a FunctionsHttpError carrying the Response on .context, so the status is read from there. Same
 // shape as pcRetrySpentFromError: a network or CORS failure has no .context and must never be
 // read as a quota refusal.
+// ACCESS_COHORTS_V1 — the 402 counterpart of pcIsQuotaRefusal, same shape and same caution: a
+// network or CORS failure has no .context and is never read as an ended free period.
+function pcIsEntitlementRefusal(error){
+  try{
+    const res = error && error.context;
+    return !!(res && res.status === 402);
+  }catch(_){ return false; }
+}
+function pcRenderAccessEnded(cohort){
+  const v = $("view-processing");
+  if(!v) return;
+  if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
+  v.innerHTML = '<div class="pc-quota">' + accessEndedMarkup(cohort, !!window.__rdPayload) + '</div>';
+  const b = $("access-ended-back");
+  if(b) b.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
+}
 function pcIsQuotaRefusal(error){
   try{
     const res = error && error.context;
