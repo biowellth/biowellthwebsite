@@ -16,10 +16,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --cream:#FAF8F4;
-  --teal:#0C8E6B;
-  --teal-dark:#097A5B;
-  --teal-light:#E3F5EE;
+  /* OLIVE_PALETTE_V1: olive accent and the warmer cream, matching the homepage. */
+  --cream:#F8F2EC;
+  --olive:#59663A;
+  --olive-dark:#4A5530;
+  --sage-pale:#F2F4EA;
   --coral:#D47C65;
   --brown:#47372B;
   --brown-mid:#6B5047;
@@ -27,13 +28,13 @@
   --white:#FFFFFF;
 }
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.7}
-a{color:var(--teal);text-decoration:underline}
-a:hover{color:var(--teal-dark)}
+a{color:var(--olive);text-decoration:underline}
+a:hover{color:var(--olive-dark)}
 h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 
 .policy-header{background:var(--brown);padding:100px 5% 48px;text-align:center}
 .policy-header h1{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--white);font-weight:700;margin-bottom:8px}
-.policy-header p{font-size:14px;color:rgba(250,248,244,0.5)}
+.policy-header p{font-size:14px;color:rgba(250,248,244,0.78)}
 
 .policy-body{max-width:720px;margin:0 auto;padding:48px 5% 80px}
 .policy-body h2{font-size:18px;font-weight:700;color:var(--brown);margin-top:40px;margin-bottom:12px;padding-top:24px;border-top:1px solid var(--brown-light)}
@@ -43,18 +44,18 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 .policy-body ul li{font-size:14px;color:var(--brown-mid);line-height:1.7;margin-bottom:6px}
 .policy-body strong{color:var(--brown);font-weight:600}
 
-.policy-callout{background:var(--teal-light);border-radius:12px;padding:20px 24px;margin:24px 0;font-size:14px;color:var(--brown);line-height:1.7}
-.policy-callout strong{color:var(--teal-dark)}
+.policy-callout{background:var(--sage-pale);border-radius:12px;padding:20px 24px;margin:24px 0;font-size:14px;color:var(--brown);line-height:1.7}
+.policy-callout strong{color:var(--olive-dark)}
 
 .policy-nav{background:var(--cream);padding:16px 5%;position:sticky;top:0;z-index:10;border-bottom:1px solid var(--brown-light)}
 .policy-nav-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-.policy-nav a{font-size:14px;font-weight:500;color:var(--teal);text-decoration:none}
+.policy-nav a{font-size:14px;font-weight:500;color:var(--olive);text-decoration:none}
 .policy-nav a:hover{text-decoration:underline}
 .policy-nav span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
 
 .policy-footer{background:var(--brown);padding:32px 5%;text-align:center}
-.policy-footer p{font-size:12px;color:rgba(250,248,244,0.4)}
-.policy-footer a{color:rgba(250,248,244,0.6)}
+.policy-footer p{font-size:12px;color:rgba(250,248,244,0.78)}
+.policy-footer a{color:rgba(250,248,244,0.9)}
 
 @media(max-width:480px){
   .policy-header{padding:80px 5% 32px}
