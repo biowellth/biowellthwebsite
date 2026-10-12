@@ -112,6 +112,12 @@ async function render(profile, extra = {}) {
   eq(typeof b.ctx.cyLogPeriod, "function", "CC-2 REACHABILITY: cyLogPeriod is in the app block");
 }
 
+// ONE JOB PER CARD (2026-10-12): no movement line on this card, ever; the estimate note lives here.
+const ALL_MOVE_LINES = Object.values(CM.MOVEMENT_LINES).flatMap((t) => Object.values(t));
+const ESTIMATE_NOTE = "An estimate from the period date you gave us";
+const moveLinesIn = (h) => ALL_MOVE_LINES.filter((l) => h.includes(l)).length;
+ok(ALL_MOVE_LINES.length >= 7, `CC-44 CONTROL: the module exports ${ALL_MOVE_LINES.length} movement lines to look for`);
+
 // ── each visible state shows the module's own words ──────────────────────────
 const VISIBLE = [
   ["menstrual", { ...REG, last_period_start_date: ago(1) }],
@@ -124,7 +130,9 @@ for (const [name, prof] of VISIBLE) {
   const r = await render(prof);
   const want = CM.resolveCycleMovement(prof, { today: ymd(T) });
   const h = r.rail.innerHTML;
-  ok(h.includes(want.movementLine), `CC-3 ${name}: the module's movement line, verbatim`);
+  eq(moveLinesIn(h), 0, `CC-3 ${name}: no movement line on the cycle card (one job per card)`);
+  ok(h.includes(ESTIMATE_NOTE), `CC-45 ${name}: the estimate note is on the cycle card`);
+  ok(h.includes('<span class="cy-est">estimated</span>'), `CC-46 ${name}: next period marked estimated`);
   ok(h.includes(">" + want.phaseLabel + "<"), `CC-4 ${name}: the module's phase label (${want.phaseLabel})`);
   ok(h.includes("Day " + want.cycleDay + "<") && h.includes("of ~" + want.cycleLength), `CC-5 ${name}: Day ${want.cycleDay} of ~${want.cycleLength}`);
   ok(h.includes('data-cy="open"'), `CC-6 ${name}: a Log period control`);
@@ -149,6 +157,7 @@ for (const [name, prof] of VISIBLE) {
   ok(r2.rail.innerHTML.includes(CM.STATUS_LINES.log_period), "CC-15 no date: the module's log-period line");
   const r3 = await render({ ...REG, cycle_status: "amenorrheic" });
   ok(r3.rail.innerHTML.includes(CM.STATUS_LINES.raise_with_clinician), "CC-16 period stopped: the module's clinician line");
+  eq(moveLinesIn(r1.rail.innerHTML + r2.rail.innerHTML + r3.rail.innerHTML), 0, "CC-47 overdue, no date, period stopped: no movement line either");
   eq(r3.rail.innerHTML.includes('data-cy="open"'), false, "CC-17 period stopped: no Log period control, no plan");
 }
 

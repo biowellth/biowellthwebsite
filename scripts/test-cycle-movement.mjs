@@ -181,6 +181,9 @@ async function render(profile, opts = {}) {
   return { rendered: r, html: b.host.innerHTML, calls: b.calls, st: b.ctx.__getDc() };
 }
 const flavors = (h) => [...h.matchAll(/class="dc-flavor">([^<]*)</g)].map((m) => m[1]);
+// ONE JOB PER CARD (2026-10-12): the daily card never shows line 10 or the estimate note.
+const ESTIMATE_NOTE = "An estimate from the period date you gave us";
+const offJob = (h) => (h.includes(CM.STATUS_LINES.raise_with_clinician) ? 1 : 0) + (h.includes(ESTIMATE_NOTE) ? 1 : 0);
 
 eq(typeof boot({}).ctx.dcRenderDailyCard, "function", "CM-W12: REACHABILITY, dcRenderDailyCard is in the app block");
 eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is gone, so there is ONE phase calculation");
@@ -191,7 +194,7 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
   eq(JSON.stringify(flavors(r.html)), JSON.stringify(["F note."]), "CM-W15: cd 6 from the later profile date shows the follicular flavor");
   ok(r.html.includes('<div class="dc-move-label">Movement for today</div>'), "CM-W16: the movement row renders");
   ok(r.html.includes(CM.MOVEMENT_LINES.follicular.high), "CM-W17: with the module's own follicular line, verbatim");
-  ok(r.html.includes("An estimate from the period date you gave us"), "CM-W18: and says it is an estimate");
+  eq(offJob(r.html), 0, "CM-W18: and no estimate note or clinician line on the daily card (one job per card)");
   ok(r.html.indexOf('class="dc-actions"') < r.html.indexOf('class="dc-move"') && r.html.indexOf('class="dc-move"') < r.html.indexOf('class="dc-closing"'),
      "CM-W19: the row sits after the three actions and before the closing line");
   eq((r.html.match(/class="dc-tick"/g) || []).length, 3, "CM-W20: CONTROL, still three tickable actions, the row is not a fourth");
@@ -223,8 +226,9 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
 }
 { // amenorrheic: the gentle clinician line, no label, no workout
   const r = await render({ ...REGULAR, cycle_status: "amenorrheic" });
-  ok(r.html.includes(CM.STATUS_LINES.raise_with_clinician), "CM-W27: amenorrhea, the clinician line renders");
-  eq(r.html.includes("dc-move-label"), false, "CM-W28: amenorrhea, no 'Movement for today' label");
+  eq(offJob(r.html), 0, "CM-W27: amenorrhea, the daily card shows no clinician line (the cycle card's job)");
+  eq(r.html.includes("dc-move"), false, "CM-W28: amenorrhea, no movement row at all");
+  eq(r.rendered, true, "CM-W46: CONTROL, amenorrhea still renders the daily card");
   eq(flavors(r.html).length, 0, "CM-W29: amenorrhea, no phase flavor");
 }
 { // overdue and no date: NO row, because no control on this page can log a period (R8 held)
@@ -242,6 +246,18 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
   const r2 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 5) }, { moduleFails: true });
   eq(r2.rendered, true, "CM-W36: a failed module load still renders the card");
   eq(flavors(r2.html).length + (r2.html.includes("dc-move") ? 1 : 0), 0, "CM-W37: and leaves it unphased");
+}
+
+{ // ONE JOB PER CARD across every state: never line 10, never the estimate note
+  const states = [
+    { ...REGULAR, last_period_start_date: ymd(todayN - 1) }, { ...REGULAR, last_period_start_date: ymd(todayN - 13) },
+    { ...REGULAR, last_period_start_date: ymd(todayN - 24) }, { ...REGULAR, cycle_status: "amenorrheic" },
+    { ...REGULAR, last_period_start_date: ymd(todayN - 60) }, { ...REGULAR },
+  ];
+  let bad = 0, rows = 0;
+  for (const st of states) { const r = await render(st); bad += offJob(r.html); rows += r.html.includes('class="dc-move"') ? 1 : 0; }
+  eq(bad, 0, "CM-W47: across six states the daily card never shows line 10 or the estimate note");
+  eq(rows, 3, "CM-W48: CONTROL, the movement row did render in the three phase states");
 }
 
 // ── 5. stylesheet ────────────────────────────────────────────────────────────

@@ -1331,7 +1331,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-move{margin-top:12px;padding:12px 4px 2px;border-top:1px dashed var(--brown-light)}
 .dc-move-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);opacity:.75;margin-bottom:4px}
 .dc-move-line{font-size:14px;font-weight:500;color:var(--brown)}
-.dc-move-note{font-size:11px;color:var(--brown-mid);margin-top:4px}
 /* CYCLE_CARD_V1. Built from mocks/cycle-card.html, with the 2026-10-12 rulings: the module's four
    phase labels only (no ovulation state), the module's own lines, site amber. Two hosts, one
    render: the rail host above 960px, the main-column host (after Sana) at 960px and below. */
@@ -8221,24 +8220,20 @@ async function dcToggle(el){
 
 // CYCLE_MOVEMENT_V1 — the movement row. Its text is the module's own authored copy, never model
 // prose, and it is not one of the three tickable actions.
-//   phase                 -> today's movement line, with a note that the phase is an estimate.
-//   raise_with_clinician  -> the module's gentle line, and no workout plan.
-//   log_period, cycle_length_unknown -> NOTHING YET. Their lines ask her to log a period or add a
-//     cycle length, and this page has no control that does either outside an upload. Honesty over
-//     polish: the row waits for the log-period write path (R8, held for a ruling).
-//   every other status    -> nothing, and the reason is never shown.
+// ONE JOB PER CARD, founder ruling 2026-10-12: the movement line lives HERE and nowhere else; the
+// estimate note and the clinician line (line 10) live on the cycle card and never here.
+//   phase          -> "Movement for today" and today's movement line.
+//   every other status -> nothing, and the reason is never shown.
 function dcMoveFrom(cm){
   if(!cm) return null;
-  if(cm.status === 'phase' && cm.movementLine) return { label: 'Movement for today', line: cm.movementLine, note: 'An estimate from the period date you gave us' };
-  if(cm.status === 'raise_with_clinician' && cm.statusLine) return { label: null, line: cm.statusLine, note: null };
+  if(cm.status === 'phase' && cm.movementLine) return { label: 'Movement for today', line: cm.movementLine };
   return null;
 }
 function dcMoveHTML(mv){
   if(!mv || !mv.line) return '';
   return '<div class="dc-move">'
-    + (mv.label ? '<div class="dc-move-label">' + dcEsc(mv.label) + '</div>' : '')
+    + '<div class="dc-move-label">' + dcEsc(mv.label) + '</div>'
     + '<div class="dc-move-line">' + dcProse(mv.line) + '</div>'
-    + (mv.note ? '<div class="dc-move-note">' + dcEsc(mv.note) + '</div>' : '')
     + '</div>';
 }
 
@@ -8334,10 +8329,11 @@ async function dcRenderDailyCard(p, reportId, late){
 // with the founder's 2026-10-12 rulings. EVERYTHING SHOWN COMES FROM THE SHARED MODULE through
 // cmResolveFor, the same read the daily card uses: this card computes no phase, no day and no date.
 //   phase                  -> Day N of ~L, the module's phaseLabel (Menstrual, Follicular, Early
-//                             luteal, Late luteal; no ovulation state, ruled), its movementLine (the
-//                             daily card's movement row says the same), next period "estimated", Log period.
+//                             luteal, Late luteal; no ovulation state, ruled), next period "estimated",
+//                             the estimate note, Log period. NO movement line: ONE JOB PER CARD
+//                             (2026-10-12), the daily card's movement row is its only home.
 //   log_period             -> the module's STATUS_LINES.log_period and Log period.
-//   raise_with_clinician   -> the module's line only.
+//   raise_with_clinician   -> the module's line only (line 10; this card is its only home).
 //   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
 //                             perimenopause, PCOS, unreadable inputs, and a missing cycle length
 //                             (no control here can set one) all render no card and never a reason.
@@ -8375,14 +8371,13 @@ function cyLogBlock(open, msg){
 /** The card's HTML for a module result, or null for NO CARD. */
 function cyCardHTML(cm, open, msg){
   if(!cm) return null;
-  if(cm.status === 'phase' && cm.movementLine && cm.phaseLabel){
+  if(cm.status === 'phase' && cm.phaseLabel){
     const pct = Math.max(4, Math.min(100, Math.round((cm.cycleDay / cm.cycleLength) * 100)));
     return '<div class="cy-card" style="--cy-accent:' + (CY_ACCENT[cm.phase] || 'var(--teal)') + '">'
       + '<div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
       + '<div class="cy-day"><span class="cy-day-n">Day ' + dcEsc(cm.cycleDay) + '</span><span class="cy-day-of">of ~' + dcEsc(cm.cycleLength) + '</span></div>'
       + '<div class="cy-bar"><span style="width:' + pct + '%"></span></div>'
       + '<div class="cy-phase"><span class="cy-dot"></span>' + dcEsc(cm.phaseLabel) + '</div>'
-      + '<div class="cy-line">' + dcEsc(cm.movementLine) + '</div>'
       + (cm.nextPeriodEstimate ? '<div class="cy-next">' + dcEsc(CY_COPY.next) + ' <b>' + dcEsc(cyNiceDate(cm.nextPeriodEstimate)) + '</b> <span class="cy-est">' + dcEsc(CY_COPY.est) + '</span></div>' : '')
       + '<div class="cy-note">' + dcEsc(CY_COPY.note) + '</div>'
       + cyLogBlock(open, msg)
