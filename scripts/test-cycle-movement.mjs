@@ -33,6 +33,7 @@ const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
 console.log("CYCLE_MOVEMENT_V1");
 const HTML = readFileSync(process.env.DASH || new URL("../dashboard.html", import.meta.url), "utf8");
 const CM = await import(MODULE_PATH);
+const PNG = await import(new URL("../js/phase-note-guard.js", import.meta.url));   // the real guard, injected below
 const CORPUS = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 
 // ── 1. pins ──────────────────────────────────────────────────────────────────
@@ -158,6 +159,7 @@ function boot(world) {
   ctx.__setUser({ id: "00000000-0000-4000-8000-000000000001" });
   // the dynamic import cannot resolve inside the vm, so the loader is pointed at the real module
   ctx.dcLoadCycleMovement = async () => (world.moduleFails ? null : CM);
+  ctx.dcLoadPhaseNoteGuard = async () => (world.guardFails ? null : PNG);
   return { ctx, host, calls };
 }
 
@@ -175,6 +177,7 @@ async function render(profile, opts = {}) {
     reports: () => ({ data: { lmp_date_before_draw: opts.reportLmp ?? null }, error: null }),
     action_completions: () => ({ data: [], error: null }),
     moduleFails: !!opts.moduleFails,
+    guardFails: !!opts.guardFails,
   };
   const b = boot(world);
   const r = await b.ctx.dcRenderDailyCard({ priorities: [] }, "rep-1");
@@ -258,6 +261,20 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
   for (const st of states) { const r = await render(st); bad += offJob(r.html); rows += r.html.includes('class="dc-move"') ? 1 : 0; }
   eq(bad, 0, "CM-W47: across six states the daily card never shows line 10 or the estimate note");
   eq(rows, 3, "CM-W48: CONTROL, the movement row did render in the three phase states");
+}
+
+{ // PHASE_NOTE_GUARD_V1 through the real render: a flagged note is not shown, the action stands
+  const FLAGGED = "Avocado also offers healthy fats that can help steady mood and cravings in this phase.";
+  const pool = [{ ...POOL[0], phase_notes: { follicular: "F note.", luteal: FLAGGED } }, POOL[1], POOL[2]];
+  const r = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 20) }, { pool });
+  eq(flavors(r.html).length, 0, "CM-W49: cd 21, a flagged luteal note is not shown");
+  eq(r.html.includes("steady mood"), false, "CM-W50: its text is nowhere on the card");
+  eq((r.html.match(/class="dc-tick"/g) || []).length, 3, "CM-W51: CONTROL, all three actions still render");
+  const r2 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 5) }, { pool });
+  eq(JSON.stringify(flavors(r2.html)), JSON.stringify(["F note."]), "CM-W52: CONTROL, the same action's clean follicular note shows on cd 6");
+  const r3 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 5) }, { guardFails: true });
+  eq(flavors(r3.html).length, 0, "CM-W53: the guard failed to load: no notes at all");
+  ok(r3.rendered && r3.html.includes('class="dc-move"'), "CM-W54: and the card and its movement row still render");
 }
 
 // ── 5. stylesheet ────────────────────────────────────────────────────────────

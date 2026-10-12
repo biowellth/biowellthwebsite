@@ -1,0 +1,501 @@
+{
+ "version": "PHASE_NOTE_GUARD_V1",
+ "labelled": "2026-10-12",
+ "about": "Hand-labelled. Stored cases are Call D phase notes read from action_pool on 2026-10-12 (text and phase only; the keeper and the eval subject excluded), each reviewed by hand; synthetic cases pin the word-boundary trap and the energy rule both ways. category is the FIRST matching category in the guard order copy, generalization, condition, body_state, energy.",
+ "must_drop": [
+  {
+   "text": "Cooked greens in a warm dish can feel more comforting if appetite is a little off.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A hearty bean stew or warm bowl can help satisfy bigger appetite shifts.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A warm lentil soup can feel restorative and is easy on digestion during this phase.",
+   "category": "body_state",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Avocado can also help satisfy cravings for something rich and filling this phase.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Even a short, slow walk in the sun can lift mood a little during this phase.",
+   "category": "body_state",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "This is often a good phase for a longer outdoor walk if the day allows.",
+   "category": "generalization",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "A midday walk outside is a good way to pair sunlight with a gentle energy boost.",
+   "category": "energy",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "A warm egg dish in the morning can also help with energy and fullness this phase.",
+   "category": "energy",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "This can also help steady energy and reduce cravings that tend to show up this phase.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Energy tends to be higher now, so a slightly longer walk might feel easy.",
+   "category": "generalization",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "Herbal teas like cinnamon or ginger can feel satisfying if sweet cravings are strong.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Sleep needs can feel higher this phase, giving yourself extra rest is a good idea.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Hydration can help reduce the bloating and sluggishness that sometimes comes this phase.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Gentle movement like walking or yoga is often the most supportive choice this phase.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Energy is often returning this phase, so moderate movement tends to feel good.",
+   "category": "generalization",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "Sleep needs often run higher this phase, so giving yourself extra rest is genuinely worthwhile.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Staying well hydrated can also help ease some of the bloating that can come this phase.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "This can take some extra intention this phase when cravings for sweet or starchy foods rise.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Cooked greens in a soup or stew can feel more comforting as your appetite shifts.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Warm cooked greens like sautéed spinach may feel gentler on your digestion right now.",
+   "category": "body_state",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Raw greens in a salad are a great way to enjoy the fresh energy this phase often brings.",
+   "category": "generalization",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "Avocado also offers healthy fats that can help steady mood and cravings in this phase.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Even a slow, gentle walk in the sun can help lift a heavier mood during this phase.",
+   "category": "body_state",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Morning or midday sun pairs well with the natural energy uptick many feel early in the cycle.",
+   "category": "generalization",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "Continuing this habit after your period helps your body rebuild steadily.",
+   "category": "body_state",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "Lighter movement like stretching or a slow walk tends to suit the energy shifts of this phase.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Rest is a fully valid choice today, honoring fatigue is part of supporting your body.",
+   "category": "body_state",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Staying gently hydrated can help ease the bloating some women notice in this phase.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Cravings for sweets often rise here, pairing fruit with protein can help satisfy them gently.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Sleep quality can dip in the luteal phase, a wind-down routine before bed may help.",
+   "category": "body_state",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Sleep often feels more fragmented in the luteal phase, a calming pre-bed ritual can help.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Appetite often increases here, honoring that hunger rather than restricting supports your thyroid.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Stress tends to feel amplified in the luteal phase, a brief calming pause can really help.",
+   "category": "generalization",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "You need to rest more this phase.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "This should help you feel better.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Try this: a short walk after lunch.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Many women find a warm bowl comforting.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "A walk is a great idea!",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Iron can feel depleted this week, so try lentils.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Some people find a slow walk helps.",
+   "category": "generalization",
+   "source": "synthetic"
+  },
+  {
+   "text": "This usually feels good mid-cycle.",
+   "category": "generalization",
+   "source": "synthetic"
+  },
+  {
+   "text": "Movement tends to feel easier now.",
+   "category": "generalization",
+   "source": "synthetic"
+  },
+  {
+   "text": "Oats can help keep your blood sugar even.",
+   "category": "condition",
+   "source": "synthetic"
+  },
+  {
+   "text": "This supports your thyroid.",
+   "category": "condition",
+   "source": "synthetic"
+  },
+  {
+   "text": "Ginger tea can soothe cramps.",
+   "category": "body_state",
+   "source": "synthetic"
+  },
+  {
+   "text": "A walk can lift a moody afternoon.",
+   "category": "body_state",
+   "source": "synthetic"
+  },
+  {
+   "text": "Berries can help with PMS cravings.",
+   "category": "copy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Leafy greens help your body recover.",
+   "category": "body_state",
+   "source": "synthetic"
+  },
+  {
+   "text": "A brisk walk can boost your energy.",
+   "category": "energy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Oats help sustain energy through the morning.",
+   "category": "energy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Nuts make an energizing snack.",
+   "category": "energy",
+   "source": "synthetic"
+  },
+  {
+   "text": "A banana gives a quick energy lift.",
+   "category": "energy",
+   "source": "synthetic"
+  },
+  {
+   "text": "Eggs can support steady energy all day.",
+   "category": "energy",
+   "source": "synthetic"
+  }
+ ],
+ "must_keep": [
+  {
+   "text": "Warm cooked greens like wilted spinach can feel gentler than a cold salad right now.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Raw or lightly cooked greens both work well, go with whatever sounds good.",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "A fresh salad with romaine and sunflower seeds is a nice way to build this habit.",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "Roasted broccoli or asparagus makes an easy warm side when you want something quick.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Steaming or roasting these can make them easier to enjoy when energy is lower.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Lightly roasted asparagus with a bit of lemon is a simple, satisfying option.",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "A brief sit in the sun counts too, no pressure to walk if rest feels better.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A slow, quiet moment outside in the morning can help ease into the day gently.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Even sitting outside for a few quiet minutes can feel like a small, kind pause.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Pairing sunlight with your morning drink is a pleasant way to start the day.",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "A gentle pace is just fine, the movement matters more than the speed.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Even a slow, gentle stroll counts and can feel like a welcome break.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "This is a good phase to build the after-meal walk into a regular rhythm.",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "A warm cup of green tea can also be a calming ritual when the luteal phase feels heavy.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A gentle walk or light stretching is plenty, no need to push hard right now.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "This can be a good time for slightly more active sessions if that feels right.",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "Pumpkin seeds are also a gentle source of iron, which can be welcome during this phase.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "A small handful on oatmeal or a salad is an easy way to build this into the day.",
+   "phase": "follicular",
+   "source": "stored"
+  },
+  {
+   "text": "A hearty bean-based meal can help cover folate needs while also feeling satisfying.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "Warm cooked options like lentil soup or wilted greens can feel restorative right now.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Herbal teas like hibiscus or ginger can feel satisfying when you want something with flavor.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A big green salad or a grain bowl loaded with greens fits well into this social, active time.",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "A quiet sit in the sun, even in your yard or by a window, counts and can feel restorative.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "A sunny outdoor walk or a moment on a bench can complement the outward energy of this phase.",
+   "phase": "ovulatory",
+   "source": "stored",
+   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
+  },
+  {
+   "text": "Warm iron-rich dishes like lentil soup with a squeeze of lemon are a cozy option now.",
+   "phase": "luteal",
+   "source": "stored"
+  },
+  {
+   "text": "This pairing is especially worth prioritizing during your period when iron losses are higher.",
+   "phase": "menstrual",
+   "source": "stored",
+   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
+  },
+  {
+   "text": "A colorful meal with greens and a citrus dressing is a lovely way to keep this up.",
+   "phase": "ovulatory",
+   "source": "stored"
+  },
+  {
+   "text": "Red meat or lentil-based meals can feel particularly supportive during your period days.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "A calm walk after dinner can feel grounding when energy is more inward this phase.",
+   "phase": "luteal",
+   "source": "stored",
+   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
+  },
+  {
+   "text": "A gentle post-meal stroll is always enough, no need to push during lower-energy days.",
+   "phase": "menstrual",
+   "source": "stored"
+  },
+  {
+   "text": "Gentle rest and breathing can be especially grounding during the slower energy of your period.",
+   "phase": "menstrual",
+   "source": "stored",
+   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
+  },
+  {
+   "text": "A gentle walk or light stretching is plenty, no need to push hard right now.",
+   "source": "synthetic",
+   "note": "word-boundary trap: no need to is not an instruction"
+  },
+  {
+   "text": "If your energy is low today, a walk or an easy stretch is plenty.",
+   "source": "synthetic",
+   "note": "energy, conditional and state-led (the module pattern)"
+  },
+  {
+   "text": "On a lower-energy day, a slow stroll still counts.",
+   "source": "synthetic",
+   "note": "energy, state-led"
+  },
+  {
+   "text": "When your energy feels high, a longer walk could suit you.",
+   "source": "synthetic",
+   "note": "energy, conditional"
+  },
+  {
+   "text": "An uncommon grain like farro can be a nice change.",
+   "source": "synthetic",
+   "note": "word boundary: uncommon is not common"
+  },
+  {
+   "text": "Stretching after dinner can feel nice.",
+   "source": "synthetic",
+   "note": "word boundary: stretching is not stress"
+  },
+  {
+   "text": "Drizzle the greens with lemon and olive oil.",
+   "source": "synthetic",
+   "note": "control: plain food line"
+  }
+ ]
+}

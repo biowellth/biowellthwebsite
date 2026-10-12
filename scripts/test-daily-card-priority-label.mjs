@@ -18,6 +18,7 @@
 //   node scripts/test-daily-card-priority-label.mjs
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+const PNG = await import(new URL("../js/phase-note-guard.js", import.meta.url));
 
 const HTML = readFileSync(process.env.DASH || "dashboard.html", "utf8");
 const lines = HTML.split("\n");
@@ -206,6 +207,7 @@ function render(three, done = []) {
   b.ctx.__setDcState({
     reportId: "r1", todayYMD: "2026-09-21",
     three, done: new Set(done),
+    noteGuard: PNG,   // PHASE_NOTE_GUARD_V1: a note renders only once checked
   });
   b.ctx.dcRenderCard();
   return b;

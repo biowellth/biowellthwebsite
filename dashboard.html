@@ -8032,6 +8032,18 @@ function dcLoadCycleMovement(){
   if(!__cmModule) __cmModule = import(CM_SRC).catch(e => { __cmModule = null; console.error('[daily_card] cycle module load failed (unphased):', e); return null; });
   return __cmModule;
 }
+// PHASE_NOTE_GUARD_V1 — Call D's phase notes are model prose, so each is checked before it is shown,
+// by the SAME file supa runs at write time (js/phase-note-guard.js, byte-identical to supa
+// _shared/phase-note-guard.js, pinned by scripts/test-phase-note-guard.mjs; the query is its sha256
+// prefix, the cache key). This covers the notes stored before the write-time guard existed. A failed
+// load shows NO notes: an unchecked note is the thing the guard exists to keep out. The card and its
+// actions never depend on it.
+const PNG_SRC = '/js/phase-note-guard.js?v=663a758d';
+let __pngModule = null;
+function dcLoadPhaseNoteGuard(){
+  if(!__pngModule) __pngModule = import(PNG_SRC).catch(e => { __pngModule = null; console.error('[daily_card] phase-note guard load failed (no notes shown):', e); return null; });
+  return __pngModule;
+}
 // Every column the module reads. All are read elsewhere on this page as her own row (ONB2_STORED_COLS)
 // except last_period_start_date, which the 0058 capture has written since 2026-09-20 and nothing here
 // read until now.
@@ -8241,17 +8253,21 @@ function dcMoveHTML(mv){
 // when the internal flavor key is ovulatory the card shows Call D's FOLLICULAR note in its place.
 // Display only: the key itself, the module and Call D are unchanged. No follicular note, no note;
 // the ovulatory note is never a fallback.
-function dcFlavorFor(pn, phase){
+// PHASE_NOTE_GUARD_V1: AFTER that remap, the note is shown only if the guard allows it. No guard
+// (it failed to load), no note. A dropped note shows no note; the action is unchanged.
+function dcFlavorFor(pn, phase, guard){
   if(!phase || !pn || typeof pn !== 'object') return null;
   const note = pn[phase === 'ovulatory' ? 'follicular' : phase];
-  return (typeof note === 'string' && note.trim()) ? note : null;
+  if(!(typeof note === 'string' && note.trim())) return null;
+  if(!guard || typeof guard.phaseNoteAllowed !== 'function') return null;
+  return guard.phaseNoteAllowed(note) ? note : null;
 }
 
 function dcRenderCard(){
   const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
   const rows = __dcState.three.map(t => {
     const done = __dcState.done.has(t.action.action_id);
-    const flavor = dcFlavorFor(t.action.phase_notes, t.phase);
+    const flavor = dcFlavorFor(t.action.phase_notes, t.phase, __dcState.noteGuard);
     const label = dcMarkerLabel(t.action.priority_marker_id);
     return '<div class="dc-act' + (done ? ' done' : '') + '" data-aid="' + dcEsc(t.action.action_id) + '" role="button" tabindex="0">'
       + '<div class="dc-tick">' + DC_CHECK_SVG + '</div>'
@@ -8307,6 +8323,7 @@ async function dcRenderDailyCard(p, reportId, late){
     const todayYMD = dcYMD(dcTodayLocalDate());
     const cm = await cmResolveFor(reportId, todayYMD);   // CYCLE_MOVEMENT_V1: one read, shared with the cycle card
     const phase = (cm && cm.status === 'phase') ? cm.dailyCardKey : null;   // null -> every row unphased
+    const noteGuard = phase ? await dcLoadPhaseNoteGuard() : null;   // PHASE_NOTE_GUARD_V1; null -> no notes
     let done = new Set();
     try{
       const { data: comps } = await sb.from('action_completions').select('action_id').eq('user_id', USER.id).eq('action_date', todayYMD);
@@ -8314,7 +8331,7 @@ async function dcRenderDailyCard(p, reportId, late){
     } catch(e){ console.error('[daily_card] completions read failed:', e); }
     const shown = new Set(three.map(a => a.action_id));
     done = new Set([...done].filter(id => shown.has(id)));   // only the three shown
-    __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done, move: dcMoveFrom(cm) };
+    __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done, move: dcMoveFrom(cm), noteGuard };
     dcRenderCard();
     return true;
   } catch(e){
