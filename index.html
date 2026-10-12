@@ -112,811 +112,494 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- HOMEPAGE_MOTION_V1: the brand serif stays Fraunces, which this repo already loads, rather
+     than the Instrument Serif the brief named as a default. Plus Jakarta Sans and JetBrains Mono
+     are dropped from this page only; the app and legal pages still load them. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- HOMEPAGE_MOTION_V1: decide the motion and orb mode before first paint, so no state flashes.
+     motion      the GSAP choreography may hide intro states. Removed again if GSAP fails to load.
+     orb-live    WebGL is available, the canvas orb runs.
+     orb-static  reduced motion or no WebGL, the committed pearl.png stands in. -->
+<script>
+(function(){
+  var r=document.documentElement, reduce=false, gl=false;
+  try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){}
+  // Cheap capability check only. Opening a real WebGL context here cost a 300ms+ main-thread
+  // task on a throttled phone; the real context is opened later, and a failure there falls
+  // back to orb-static.
+  if(!reduce) gl=!!window.WebGLRenderingContext;
+  r.classList.add(reduce?'reduce':'motion');
+  r.classList.add(gl?'orb-live':'orb-static');
+  // A CDN that never answers must not leave the hero blank.
+  setTimeout(function(){ if(!window.gsap) r.classList.remove('motion'); },3000);
+})();
+</script>
 <style>
+/* HOMEPAGE_MOTION_V1. Colour rule: coral is warmth and what the report missed, teal is Sana and
+   BioWellth insight. --coral and --teal are fills only, never text. Small teal text is --teal-deep. */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --cream:#FAF8F4;
-  --cream-mid:#F2EDE3;
-  --teal:#0C8E6B;
-  --teal-dark:#097A5B;
-  --teal-light:#E3F5EE;
-  --teal-mid:#B8E4D4;
+  --cream:#FBFAF9;
+  --beige:#F7EFE9;
+  --ink:#47372B;
+  --ink-muted:#6B5545;
   --coral:#D47C65;
-  --coral-light:#FAF0ED;
-  --coral-dark:#BC6550;
-  --brown:#47372B;
-  --brown-deep:#31261C;
-  --brown-mid:#6B5047;
-  --brown-light:#EDE4DA;
+  --coral-deep:#9C5E47;
+  --coral-soft:#F5DCD6;
+  --coral-mid:#E9A994;
+  --coral-dark:#B8644F;
+  --coral-pale:#FCF3EE;
+  --teal:#0C8E6B;
+  --teal-deep:#0A6B52;
+  --teal-soft:#D3EBE2;
+  --teal-mid:#5FB79A;
+  --teal-pale:#EEF7F3;
   --white:#FFFFFF;
-  --off-white:#FDFBF8;
+  /* 0.8, not lower: every glass panel can sit over the coral orb, and small ink-muted and
+     teal-deep text needs 4.5:1 against the worst case, glass over --coral-dark (measured 5.1+). */
+  --glass:rgba(255,255,255,0.8);
+  --glass-edge:rgba(255,255,255,0.8);
+  --shadow:0 24px 60px -24px rgba(156,94,71,0.28),0 2px 8px rgba(71,55,43,0.05);
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  --gutter:clamp(16px,5vw,64px);
 }
-html{scroll-behavior:smooth;overflow-x:hidden}
-body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6;overflow-x:hidden}
+/* overflow-x:clip, not hidden: hidden on html and body makes body a scroll container, which
+   silently breaks every position:sticky below (the drift chart and the stacking cards). */
+html{scroll-behavior:smooth;overflow-x:clip}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+.lenis.lenis-stopped{overflow:hidden}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;overflow-x:clip;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(90% 70% at 50% 100%,var(--beige) 0%,rgba(247,239,233,0) 70%),var(--cream)}
 a{text-decoration:none;color:inherit}
-h1,h2,h3,h4{font-family:'Plus Jakarta Sans',sans-serif}
-:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
-[id]{scroll-margin-top:72px}
+:focus-visible{outline:2px solid var(--teal-deep);outline-offset:3px;border-radius:6px}
+[id]{scroll-margin-top:96px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:transparent;backdrop-filter:blur(0);border-bottom:1px solid transparent;padding:0 5%;transition:all 0.35s ease}
-nav.scrolled{background:rgba(250,248,244,0.96);backdrop-filter:blur(14px);border-bottom-color:rgba(71,55,43,0.07)}
-.nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:62px}
-.nav-logo{display:flex;align-items:center;gap:9px}
-.nav-logo-mark{width:40px;height:40px;color:var(--white);transition:color 0.35s;flex-shrink:0}
-nav.scrolled .nav-logo-mark{color:var(--teal)}
-.nav-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--white);letter-spacing:-0.03em;transition:color 0.35s}
-nav.scrolled .nav-logo span{color:var(--brown)}
-.nav-cta{background:var(--teal);color:var(--white);padding:9px 20px;border-radius:100px;font-size:14px;font-weight:500;transition:background 0.2s,transform 0.15s;white-space:nowrap}
-.nav-right{display:flex;align-items:center;gap:6px}
-.nav-link{font-size:14px;font-weight:500;color:rgba(255,255,255,0.72);padding:8px 14px;border-radius:100px;transition:all 0.2s;white-space:nowrap}
-nav.scrolled .nav-link{color:var(--brown-mid)}
-.nav-link:hover{color:var(--white)}
-nav.scrolled .nav-link:hover{color:var(--brown);background:var(--cream-mid)}
-@media(max-width:640px){.nav-link{display:none}}
-.nav-cta:hover{background:var(--teal-dark);transform:translateY(-1px)}
+/* Shared type */
+.eyebrow{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-deep)}
+.display{font-family:var(--serif);font-weight:400;letter-spacing:-.02em;line-height:1.02;color:var(--ink)}
+.display em,.h2 em{font-style:italic;color:var(--coral-deep)}
+.h2{font-family:var(--serif);font-weight:400;font-size:clamp(2.1rem,4.4vw,3.6rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink)}
+.lede{font-size:clamp(16px,1.35vw,18.5px);line-height:1.65;color:var(--ink-muted);max-width:34em}
+.glass{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(18px) saturate(1.15);backdrop-filter:blur(18px) saturate(1.15);box-shadow:var(--shadow);border-radius:24px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:-.005em;padding:14px 28px;border-radius:100px;cursor:pointer;border:0;transition:transform .2s ease,box-shadow .2s ease,background .2s ease;white-space:nowrap}
+.btn-ink{background:var(--ink);color:var(--cream)}
+.btn-ink:hover{transform:translateY(-2px);box-shadow:0 10px 24px -8px rgba(71,55,43,.45)}
+.btn-glass{background:var(--glass);color:var(--teal-deep);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.btn-glass:hover{transform:translateY(-2px);background:rgba(255,255,255,.8)}
+
+/* ORB. One fixed canvas behind every home section; sections stay transparent. */
+#orb-canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:0;pointer-events:none;display:block}
+.orb-static #orb-canvas{display:none}
+body[data-page="early-access"] #orb-canvas{display:none}
+.pearl-static{display:none}
+.orb-static .pearl-static{display:block;position:absolute;left:50%;aspect-ratio:1;background:url(/pearl.png) center/contain no-repeat;pointer-events:none;z-index:0;transform:translateX(-50%)}
+#page-home{position:relative;z-index:1}
+
+/* NAV. Fixed frosted pill. */
+nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--gutter);pointer-events:none}
+.nav-inner{pointer-events:auto;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;padding:0 8px 0 22px;border-radius:100px;background:rgba(251,250,249,.58);border:1px solid rgba(255,255,255,.8);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 10px 30px -18px rgba(71,55,43,.35);transition:background .3s ease}
+nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
+/* Brand mark: 11px teal dot with a 4px teal-soft ring, then the brown serif wordmark. */
+.brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--serif);font-size:21px;font-weight:500;letter-spacing:-.01em;color:#47372B}
+.brand-dot{width:11px;height:11px;border-radius:50%;background:#0C8E6B;box-shadow:0 0 0 4px var(--teal-soft);flex-shrink:0}
+.nav-right{display:flex;align-items:center;gap:2px}
+.nav-link{font-size:14px;font-weight:500;color:var(--ink-muted);padding:8px 14px;border-radius:100px;transition:background .2s,color .2s}
+.nav-link:hover{color:var(--ink);background:rgba(255,255,255,.7)}
+.nav-cta{margin-left:6px;padding:11px 20px;font-size:14px}
 
 /* HERO */
-.hero{background:radial-gradient(120% 100% at 80% 0%,#4C3B2D 0%,#3D2F24 48%,#31261C 100%);padding:120px 5% 100px;position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center}
-.hero-orb{position:absolute;border-radius:50%;filter:blur(8px);pointer-events:none;will-change:transform;z-index:0}
-.hero-orb.o1{top:-22%;right:-6%;width:560px;height:560px;background:radial-gradient(circle at 35% 35%,rgba(12,142,107,0.42),rgba(12,142,107,0) 68%);animation:drift1 22s ease-in-out infinite}
-.hero-orb.o2{bottom:-30%;left:-10%;width:600px;height:600px;background:radial-gradient(circle at 60% 40%,rgba(212,124,101,0.34),rgba(212,124,101,0) 68%);animation:drift2 26s ease-in-out infinite}
-.hero-orb.o3{top:20%;left:32%;width:340px;height:340px;background:radial-gradient(circle,rgba(201,146,54,0.16),transparent 70%);animation:drift1 30s ease-in-out infinite reverse}
-.hero-grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.06;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
-@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.03)}}
-@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,15px) scale(0.97)}}
-.hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:56px;align-items:center}
-.hero-badge{display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal-mid);margin-bottom:32px;padding:8px 15px;border:1px solid rgba(184,228,212,0.28);border-radius:100px;background:rgba(184,228,212,0.05);animation:fadeIn 0.5s 0.1s ease both}
-.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;box-shadow:0 0 0 0 rgba(12,142,107,0.6);animation:ping 2.6s ease-in-out infinite}
-@keyframes ping{0%{box-shadow:0 0 0 0 rgba(12,142,107,0.5)}70%,100%{box-shadow:0 0 0 8px rgba(12,142,107,0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.hero h1{font-family:'Fraunces',Georgia,serif;font-optical-sizing:auto;font-size:clamp(2.6rem,4.6vw,3.15rem);line-height:1.05;color:var(--white);font-weight:500;letter-spacing:-0.015em;margin-bottom:26px;max-width:900px;animation:slideUp 0.7s 0.2s cubic-bezier(0.22,1,0.36,1) both}
-.hero h1 em{font-family:'Fraunces',Georgia,serif;font-style:italic;color:#9FD9C5;font-weight:400;position:relative;display:inline-block}
-.hero h1 em::after{content:'';position:absolute;left:0;right:0;bottom:0.04em;height:3px;background:linear-gradient(90deg,var(--teal),var(--coral));opacity:0.7;border-radius:2px}
-.hero-sub{font-size:clamp(16px,1.5vw,18.5px);color:rgba(251,249,245,0.74);max-width:560px;line-height:1.75;margin-bottom:40px;animation:slideUp 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both}
-.hero-btns{display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:fadeIn 0.5s 0.55s ease both}
-.btn-teal{display:inline-block;background:var(--teal);color:var(--white);font-size:15px;font-weight:600;padding:15px 34px;border-radius:100px;transition:all 0.2s;cursor:pointer;letter-spacing:-0.01em}
-.btn-teal:hover{background:var(--teal-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(12,142,107,0.3)}
-.btn-outline{display:inline-block;border:1.5px solid rgba(255,255,255,0.35);color:var(--white);font-size:15px;font-weight:500;padding:14px 30px;border-radius:100px;cursor:pointer;transition:all 0.2s;background:transparent}
-.btn-outline:hover{border-color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06)}
-.hero-spots{margin-top:20px;font-size:13px;color:rgba(250,248,244,0.38);font-style:italic;animation:fadeIn 0.5s 0.7s ease both}
-@keyframes slideUp{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:space-between;padding:118px 0 24px;overflow:visible}
+.hero .pearl-static{width:min(78vh,84vw);bottom:-22vh}
+.hero-copy{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero-copy .eyebrow{margin-bottom:18px}
+.hero h1{font-size:clamp(2.6rem,5.3vw,4.7rem)}
+.hero h1 .l2{display:block}
+.hero .lede{margin:20px auto 0;max-width:30em;color:var(--ink-muted)}
+.hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.hero-foot{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,330px) 1fr minmax(0,330px);align-items:end;gap:24px;margin-top:28px}
+.hero-caption{grid-column:2;text-align:center;font-size:12.5px;color:var(--ink-muted);align-self:end;padding-bottom:6px}
+.hcard-wrap{transform:translate3d(calc(var(--px,0)*-12px),calc(var(--py,0)*-8px),0);will-change:transform}
+.hcard{padding:18px 20px}
+.hcard .eyebrow{font-size:11px}
+.hc-marker{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 8px}
+.hc-marker .name{font-family:var(--serif);font-size:22px}
+.hc-val{font-family:var(--serif);font-size:22px}
+.hc-val small{font-family:var(--sans);font-size:12px;color:var(--ink-muted)}
+.hc-read{padding:8px 0;border-top:1px solid rgba(71,55,43,.09)}
+.hc-who{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:3px}
+.hc-what{font-size:14px;line-height:1.5;color:var(--ink)}
+.hc-lab .hc-what{color:var(--ink);transition:color .5s ease}
+.strike{--s:100%;background-image:linear-gradient(var(--coral-deep),var(--coral-deep));background-repeat:no-repeat;background-position:0 58%;background-size:var(--s) 1.5px}
+/* Dims to ink-muted rather than by opacity, so the struck line still clears 4.5:1. */
+.hc-lab.dim .hc-what{color:var(--ink-muted)}
+.hc-bw .hc-who,.hc-bw .hc-what{color:var(--teal-deep)}
+.hc-big{display:flex;align-items:baseline;gap:12px;margin:6px 0 12px}
+.hc-num{font-family:var(--serif);font-size:56px;line-height:.9;color:var(--ink)}
+.hc-cap{font-size:14px;color:var(--ink-muted);line-height:1.35;max-width:12em}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:100px;background:var(--coral-soft);color:var(--ink);white-space:nowrap}
 
-/* HERO EXAMPLE CARD */
-.hero-card{background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:26px 24px;backdrop-filter:blur(10px);box-shadow:0 24px 60px rgba(0,0,0,0.28);animation:fadeIn 0.6s 0.45s ease both}
-.hero-card .kicker{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.13em;text-transform:uppercase;color:rgba(184,228,212,0.75);margin-bottom:16px}
-.hero-card .marker{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
-.hero-card .marker .name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:16px;color:var(--white)}
-.hero-card .marker .val{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--white)}
-.hero-card .marker .val span{font-size:11px;color:rgba(255,255,255,0.5)}
-.hero-card .read{border-radius:14px;padding:14px 16px;margin-bottom:12px}
-.hero-card .read .who{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px}
-.hero-card .read .what{font-size:14px;line-height:1.55}
-.hero-card .read.lab{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)}
-.hero-card .read.lab .who{color:rgba(255,255,255,0.45)}
-.hero-card .read.lab .what{color:rgba(255,255,255,0.62)}
-.hero-card .read.bw{background:rgba(12,142,107,0.14);border:1px solid rgba(12,142,107,0.4)}
-.hero-card .read.bw .who{color:var(--teal-mid)}
-.hero-card .read.bw .what{color:#EAF6F0}
-.hero-card .foot{font-size:12px;color:rgba(255,255,255,0.4);font-style:italic;margin-top:14px}
-/* HERO_NOT_TESTED_CHIPS_V1: the "Not tested on this report" row, ported from mocks/landing-v2.html.
-   Chip and label colours are rgba of --coral (212,124,101) and --coral-light (250,240,237) only. */
-.hero-card .gaps{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1)}
-.hero-card .gaps .who{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(212,124,101,0.95);margin-bottom:10px}
-.hero-card .chips{display:flex;flex-wrap:wrap;gap:7px}
-.hero-card .chip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:100px;background:rgba(212,124,101,0.14);border:1px dashed rgba(212,124,101,0.55);color:rgba(250,240,237,0.92);white-space:nowrap}
+/* TICKER */
+.ticker{position:relative;z-index:2;padding:30px 0;overflow:hidden;border-top:1px solid rgba(71,55,43,.08);border-bottom:1px solid rgba(71,55,43,.08);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker-track{display:flex;width:max-content;animation:ticker 70s linear infinite}
+.ticker ul{list-style:none;display:flex;align-items:center;flex-shrink:0}
+.ticker li{font-family:var(--serif);font-size:clamp(26px,3vw,40px);color:var(--ink);display:flex;align-items:center;white-space:nowrap}
+.ticker li::after{content:'';width:9px;height:9px;border-radius:50%;background:var(--coral);margin:0 clamp(22px,2.6vw,40px)}
+@keyframes ticker{to{transform:translateX(-50%)}}
 
-/* WHAT YOU GET STRIP */
-.strip{background:var(--teal);padding:0 5%}
-.strip-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
-.strip-item{padding:28px 12px;border-right:1px solid rgba(255,255,255,0.12)}
-.strip-item:last-child{border-right:none}
-.strip-item .strip-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.02em;margin-bottom:4px}
-.strip-item .strip-label{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:0.04em}
+/* DRIFT */
+.drift{position:relative;height:230vh}
+.drift-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center}
+.drift-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px;align-items:center;width:100%}
+.drift-copy .eyebrow{margin-bottom:18px}
+.drift-copy .lede{margin-top:20px}
+.chart-card{position:relative;padding:26px 26px 22px;margin:0}
+.chart-card svg{display:block;width:100%;height:auto;overflow:visible}
+.chart-card .pt{opacity:0;transition:opacity .45s ease}
+.chart-card .pt.on{opacity:1}
+.drift-pill{position:absolute;right:26px;top:22px;background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;padding:7px 14px;border-radius:100px;opacity:0;transform:translateY(6px);transition:opacity .4s ease,transform .4s ease}
+.drift-pill.on{opacity:1;transform:none}
 
-/* PAGES */
+/* STACK */
+.stack{position:relative;padding:12vh 0 18vh}
+.stack-cards{position:relative}
+/* Near-opaque so the card underneath reads as a layer, not as blurred text bleeding through. */
+.stack-card{position:sticky;top:120px;height:min(58vh,480px);padding:clamp(28px,4vw,56px);margin-bottom:9vh;display:flex;flex-direction:column;justify-content:space-between;transform-origin:50% 0;background:rgba(255,255,255,.88)}
+.stack-card:nth-child(2){top:144px}
+.stack-card:nth-child(3){top:168px;margin-bottom:0}
+.stack-card .eyebrow{margin-bottom:auto}
+.stack-big{font-family:var(--serif);font-size:clamp(5rem,13vw,10.5rem);line-height:.9;letter-spacing:-.03em;color:var(--ink)}
+.stack-line{font-family:var(--serif);font-size:clamp(1.8rem,3.8vw,3.2rem);line-height:1.08;letter-spacing:-.015em;max-width:16ch;color:var(--ink)}
+.stack-line em{font-style:italic;color:var(--coral-deep)}
+.stack-sub{font-size:clamp(16px,1.4vw,19px);color:var(--ink-muted);margin-top:10px}
+.phases{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.phases li{font-size:14px;font-weight:500;padding:8px 16px;border-radius:100px;color:var(--ink)}
+.ph-m{background:var(--coral-soft)}
+.ph-f{background:var(--cream);border:1px solid rgba(71,55,43,.18)}
+.ph-o{background:rgba(212,124,101,.22)}
+.ph-l{background:rgba(156,94,71,.14)}
+
+/* SANA. Teal belongs to Sana. */
+.sana{position:relative;padding:14vh 0}
+.sana-panel{border-radius:36px;background:linear-gradient(160deg,rgba(238,247,243,.92),rgba(211,235,226,.7));border:1px solid rgba(255,255,255,.8);padding:clamp(32px,5vw,72px);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,72px);align-items:center}
+.sana-avatar{position:relative;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff 0%,var(--teal-soft) 28%,var(--teal-mid) 66%,var(--teal) 100%);box-shadow:0 10px 30px -10px rgba(12,142,107,.55);margin-bottom:26px}
+.sana-avatar::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--teal);opacity:0;animation:sanaPulse 2.8s ease-out infinite}
+@keyframes sanaPulse{0%{transform:scale(.88);opacity:.55}100%{transform:scale(1.35);opacity:0}}
+.sana .h2 em{color:var(--teal-deep)}
+.chat-card{padding:24px;display:flex;flex-direction:column;gap:12px;min-height:290px;background:rgba(255,255,255,.85)}
+.chat-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid rgba(10,107,82,.12)}
+.chat-head .mini{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff 0%,var(--teal-soft) 28%,var(--teal-mid) 66%,var(--teal) 100%)}
+.chat-head .eyebrow{font-size:11px}
+.bubble{max-width:88%;padding:12px 16px;border-radius:18px;font-size:15px;line-height:1.55}
+.b-user{align-self:flex-end;background:var(--ink);color:var(--cream);border-bottom-right-radius:6px}
+.b-sana{align-self:flex-start;background:var(--white);color:var(--ink);border:1px solid rgba(10,107,82,.16);border-bottom-left-radius:6px}
+.typing{display:none;align-self:flex-start;gap:5px;padding:14px 16px;background:var(--white);border:1px solid rgba(10,107,82,.16);border-radius:18px;border-bottom-left-radius:6px}
+.typing.on{display:inline-flex}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:dot 1.1s ease-in-out infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-4px);opacity:1}}
+.chat-caption{font-size:12.5px;color:var(--ink-muted);margin-top:12px}
+
+/* FOUNDER */
+.founder{padding:16vh 0}
+.founder blockquote{max-width:860px;margin:0 auto;text-align:center}
+.founder blockquote p{font-family:var(--serif);font-style:italic;font-size:clamp(1.7rem,3.4vw,2.9rem);line-height:1.2;letter-spacing:-.01em;color:var(--ink)}
+.founder footer{margin-top:26px;font-size:15px;color:var(--ink-muted)}
+.founder footer a{color:var(--coral-deep);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+
+/* FINAL CTA */
+.final{position:relative;min-height:100vh;display:flex;align-items:center;padding:12vh 0}
+.final .pearl-static{width:min(80vh,92vw);top:50%;transform:translate(-50%,-50%)}
+.final-inner{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;width:100%}
+.final .display{font-size:clamp(3.2rem,10vw,8.6rem)}
+.final-panel{margin-top:30px;padding:22px 26px 18px;max-width:520px;width:100%;border-radius:32px}
+.final-panel .lede{margin:0 auto;font-size:17px;color:var(--ink)}
+.cta-pill{margin:16px auto 0;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;border-radius:100px;background:rgba(255,255,255,.75);border:1px solid var(--glass-edge)}
+.cta-pill .btn{width:100%}
+.final-privacy{font-size:13.5px;color:var(--ink-muted);margin-top:14px}
+.final-privacy a{color:var(--coral-deep);text-decoration:underline;text-underline-offset:3px}
+
+/* FOOTER */
+.site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(251,250,249,.85)}
+.foot-inner{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:baseline;justify-content:space-between}
+.foot-disc{font-size:13px;color:var(--ink-muted);max-width:62em;line-height:1.55}
+.foot-links{display:flex;flex-wrap:wrap;gap:18px}
+.foot-links a{font-size:13px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(71,55,43,.3)}
+.foot-copy{font-size:12px;color:var(--ink-muted);width:100%}
+.foot-copy a{text-decoration:underline}
+
+/* PAGES (router) */
 .page{display:none;min-height:100vh}
 .page.active{display:block}
 
-/* EARLY ACCESS PAGE */
-.ea-hero{background:radial-gradient(120% 160% at 80% 0%,#4C3B2D 0%,#3D2F24 52%,#31261C 100%);padding:72px 5% 20px;text-align:center;position:relative;overflow:hidden}
-.ea-orb{position:absolute;border-radius:50%;filter:blur(8px);pointer-events:none;will-change:transform;z-index:0}
-.ea-orb.o1{top:-200px;right:-30px;width:380px;height:380px;background:radial-gradient(circle at 40% 40%,rgba(12,142,107,0.5),rgba(12,142,107,0) 68%);animation:drift1 22s ease-in-out infinite}
-.ea-orb.o2{bottom:-200px;left:-30px;width:380px;height:380px;background:radial-gradient(circle at 55% 45%,rgba(212,124,101,0.42),rgba(212,124,101,0) 68%);animation:drift2 26s ease-in-out infinite}
-.ea-orb.o3{top:-40px;left:40%;width:220px;height:220px;background:radial-gradient(circle,rgba(201,146,54,0.2),transparent 70%);animation:drift1 30s ease-in-out infinite reverse}
-.ea-hero h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.4rem,2.5vw,1.8rem);color:var(--white);font-weight:700;letter-spacing:-0.03em;margin-bottom:6px;position:relative;z-index:1}
-.ea-hero p{font-size:14px;color:rgba(255,255,255,0.75);max-width:460px;margin:0 auto;line-height:1.7;position:relative;z-index:1}
-.ea-body{max-width:1100px;margin:0 auto;padding:24px 5% 64px}
-.ea-form{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--brown-light);margin-bottom:36px}
+/* EARLY ACCESS PAGE. Light treatment to match the new palette; form wiring untouched. */
+.ea-body{max-width:1100px;margin:0 auto;padding:116px var(--gutter) 64px;position:relative;z-index:1}
+.ea-hero{text-align:center;padding:12px 0 26px;position:relative}
+.ea-orb{display:none}
+.ea-hero h2{font-family:var(--serif);font-weight:400;font-size:clamp(2.2rem,4vw,3.2rem);letter-spacing:-.02em;color:var(--ink);margin-bottom:6px}
+.ea-hero p{font-size:16px;color:var(--ink-muted)}
+.ea-form{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid rgba(71,55,43,.1);margin-bottom:36px;box-shadow:var(--shadow)}
 .ea-form-mobile{display:none}
-.ea-mobile-btn{width:100%;padding:18px 32px;font-size:17px;border:none;cursor:pointer}
+.ea-mobile-btn{width:100%;padding:18px 32px;font-size:17px}
 .ea-form iframe{width:100%;height:620px;border:none;display:block}
-.ea-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:0}
-
-/* SECTION BASE */
-.section{padding:80px 5%}
-.section-inner{max-width:1100px;margin:0 auto}
-.section-tag{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--coral);margin-bottom:14px;font-weight:700;display:inline-flex;align-items:center;gap:10px}
-.section-tag::before{content:"";width:20px;height:1.5px;background:var(--coral);display:block;flex-shrink:0}
-.section-title{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--brown);margin-bottom:14px;line-height:1.12;font-weight:700;letter-spacing:-0.03em}
-.section-sub{font-size:15px;color:var(--brown-mid);max-width:520px;line-height:1.8;margin-bottom:40px}
-
-/* SCROLL REVEAL */
-@keyframes revealUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.reveal{opacity:0}.reveal.visible{animation:revealUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards}
-.rd1{animation-delay:0.06s}.rd2{animation-delay:0.12s}.rd3{animation-delay:0.18s}.rd4{animation-delay:0.24s}
-
-/* SECTION DIVIDERS */
-.section-divider{max-width:1100px;margin:0 auto;height:1px;background:rgba(71,55,43,0.12)}
-
-/* WHY DIFFERENT */
-.why-section{background:var(--cream);padding:56px 5%}
-.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:0}
-.why-card{padding:24px 0;border-top:2px solid var(--teal)}
-.why-card h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown);margin-bottom:8px;letter-spacing:-0.02em}
-.why-card p{font-size:14px;color:var(--brown-mid);line-height:1.7}
-@media(max-width:768px){.why-grid{grid-template-columns:1fr;gap:8px}.why-card{padding:18px 0}}
-
-/* HOW IT WORKS */
-.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;position:relative}
-.how-step{padding:0 28px 0 0}
-.how-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(3rem,5vw,4.2rem);font-weight:700;color:var(--teal);opacity:0.2;line-height:1;margin-bottom:20px}
-.how-step h3{font-size:16px;font-weight:700;color:var(--brown);margin-bottom:8px;letter-spacing:-0.02em}
-.how-step p{font-size:14px;color:var(--brown-mid);line-height:1.7}
-
-/* MOCK UI */
-.mock-section{background:var(--cream);padding:80px 5%}
-.mock-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
-.mock-visual{border-radius:20px;background:var(--white);padding:28px;border:1px solid var(--brown-light);display:flex;flex-direction:column;gap:14px}
-.mock-label{font-size:12px;color:var(--brown-mid);margin-bottom:2px;font-weight:500}
-.mock-bar{height:6px;border-radius:3px;background:var(--cream-mid);margin:4px 0;overflow:hidden}
-.mock-bar-fill{height:100%;border-radius:3px}
-.fill-coral{background:var(--coral)}
-.fill-teal{background:var(--teal)}
-.fill-amber{background:#D4A94A}
-.mock-note{font-size:11px;margin-top:2px;line-height:1.4}
-.mock-note.low{color:var(--coral)}
-.mock-note.ok{color:var(--teal)}
-.mock-note.watch{color:#9C7D30}
-.mock-text h2{font-size:clamp(1.6rem,3vw,2.2rem);color:var(--brown);margin-bottom:14px;line-height:1.15;font-weight:700;letter-spacing:-0.03em}
-.mock-text p{font-size:15px;color:var(--brown-mid);line-height:1.8;margin-bottom:12px}
-.mock-tag{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--coral);font-weight:700;margin-bottom:12px;display:inline-flex;align-items:center;gap:10px}
-.mock-tag::before{content:"";width:20px;height:1.5px;background:var(--coral);display:block}
-
-/* DIRECT ANSWERS (GEO) */
-.direct-answer{font-size:14px;color:var(--brown);line-height:1.7;margin-bottom:12px;font-weight:500}
-
-/* FOUNDER QUOTE */
-.founder-quote{border-left:3px solid var(--teal);padding-left:20px;margin:20px 0 0;font-style:italic}
-.founder-quote p{font-size:14px;color:var(--brown);line-height:1.75;margin-bottom:10px}
-.founder-quote p:last-child{margin-bottom:0}
-
-/* FOUNDER CREDIT */
-.founder-credit{font-size:13px;color:var(--brown-mid);margin-top:14px;font-style:italic}
-.founder-credit a{color:var(--teal);font-weight:600;font-style:normal;transition:color 0.2s}
-.founder-credit a:hover{color:var(--teal-dark)}
-
-/* GAP REPORT */
-.gap-report{display:flex;flex-direction:column;gap:0}
-.gap-header{display:flex;gap:12px;margin-bottom:16px}
-.gap-header-tested,.gap-header-missing{flex:1;display:flex;align-items:center;gap:10px;padding:14px;border-radius:10px}
-.gap-header-tested{background:var(--teal-light)}
-.gap-header-missing{background:var(--coral-light)}
-.gap-check{font-size:16px;color:var(--teal);font-weight:700}
-.gap-flag{font-size:16px;color:var(--coral);font-weight:700}
-.gap-h-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--brown-mid);margin-bottom:1px}
-.gap-header-tested .gap-h-title{color:var(--teal-dark)}
-.gap-header-missing .gap-h-title{color:var(--coral-dark)}
-.gap-h-count{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
-.gap-divider{height:1px;background:var(--cream-mid);margin:4px 0 16px}
-.gap-list-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--coral);margin-bottom:12px}
-.gap-items{display:flex;flex-direction:column;gap:0}
-.gap-item{padding:10px 0;border-bottom:1px solid var(--cream-mid)}
-.gap-item:last-child{border-bottom:none}
-.gap-item-header{display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;gap:12px}
-.gap-item-header:hover .gap-item-name{color:var(--teal)}
-.gap-item-left{flex:1;min-width:0}
-.gap-item-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:3px;letter-spacing:-0.01em;transition:color 0.2s}
-.gap-item-hook{font-size:12px;color:var(--brown-mid);line-height:1.55}
-.gap-item-toggle{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;color:var(--brown-mid);font-size:14px;transition:transform 0.25s ease}
-.gap-item.open .gap-item-toggle{transform:rotate(180deg)}
-.gap-item-detail{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
-.gap-item.open .gap-item-detail{max-height:300px}
-.gap-item-why{font-size:12px;color:var(--brown-mid);line-height:1.55;padding-top:8px}
-.gap-cta-strip{display:flex;align-items:center;gap:8px;margin-top:14px;padding:12px 16px;background:var(--teal-light);border-radius:10px;font-size:13px;font-weight:600;color:var(--teal-dark)}
-
-/* AI CHAT MOCK */
-.chat-mock{display:flex;flex-direction:column;gap:8px}
-.chat-bubble{border-radius:14px;padding:12px 16px;font-size:13px;line-height:1.65;max-width:90%}
-.bubble-ai{background:var(--teal-light);color:var(--brown)}
-.bubble-user{background:var(--coral-light);color:var(--brown);margin-left:auto}
-.chat-separator{display:flex;align-items:center;gap:12px;margin:20px 0}
-.chat-sep-line{flex:1;height:1px;background:var(--cream-mid)}
-.chat-sep-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);white-space:nowrap}
-
-/* WHO */
-.who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.who-card{border-radius:18px;padding:28px;transition:transform 0.2s,box-shadow 0.2s}
-.who-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(71,55,43,0.12)}
-.who-card.w-a{background:var(--brown-deep);color:var(--white)}
-.who-card.w-b{background:var(--teal);color:var(--white)}
-.who-card.w-c{background:var(--coral-light);color:var(--brown);border:1px solid rgba(212,124,101,0.15)}
-.who-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;opacity:0.5;margin-bottom:14px}
-.who-card h3{font-size:16px;font-weight:700;line-height:1.3;margin-bottom:8px;letter-spacing:-0.02em}
-.who-card p{font-size:14px;line-height:1.75;opacity:0.8}
-
-/* TESTIMONIAL */
-.testimonial{background:var(--brown-deep);padding:72px 5%;position:relative;overflow:hidden}
-.testimonial::before{content:'\201C';font-family:'Plus Jakarta Sans',sans-serif;font-size:20rem;font-weight:700;color:var(--teal);opacity:0.05;position:absolute;top:-3rem;left:3%;line-height:1;pointer-events:none}
-.testimonial blockquote{max-width:800px;margin:0 auto;font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.3rem,2.8vw,2rem);color:var(--cream);line-height:1.5;font-weight:300;font-style:italic;position:relative;z-index:1;text-align:center}
-.testimonial cite{display:block;margin-top:24px;font-size:11px;color:rgba(250,248,244,0.32);font-style:normal;letter-spacing:0.1em;text-transform:uppercase;text-align:center;position:relative;z-index:1}
-
-/* CTA / WAITLIST */
-.waitlist-section{background:var(--cream);padding:80px 5%}
-.waitlist-inner{max-width:1100px;margin:0 auto}
-.waitlist-top{text-align:center;margin-bottom:40px}
-.waitlist-top h2{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--brown);font-weight:700;letter-spacing:-0.03em;margin-bottom:12px}
-.waitlist-top p{font-size:16px;color:var(--brown-mid);max-width:480px;margin:0 auto;line-height:1.8}
-.waitlist-embed{background:var(--white);border-radius:22px;overflow:hidden;border:1px solid var(--brown-light);max-width:800px;margin:0 auto 36px}
-.waitlist-embed iframe{width:100%;height:560px;border:none;display:block}
-.waitlist-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:800px;margin:0 auto}
-.perk{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--brown-light);text-align:center}
+.ea-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.perk{background:var(--white);border-radius:16px;padding:20px;border:1px solid rgba(71,55,43,.1);text-align:center}
 .perk-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);margin:0 auto 12px}
-.perk h4{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:3px}
-.perk p{font-size:12px;color:var(--brown-mid);line-height:1.5}
-
-/* CTA BANNER */
-.cta-banner{background:var(--teal);padding:80px 5%;text-align:center}
-.cta-inner{max-width:600px;margin:0 auto}
-.cta-banner h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--white);font-weight:700;letter-spacing:-0.03em;margin-bottom:12px}
-.cta-banner p{font-size:16px;color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:32px}
-.btn-light{display:inline-block;background:var(--white);color:var(--brown);font-size:15px;font-weight:600;padding:15px 34px;border-radius:100px;cursor:pointer;transition:all 0.2s;letter-spacing:-0.01em}
-.btn-light:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(71,55,43,0.15)}
-
-/* PRIVACY NOTE */
-.privacy-note{display:flex;align-items:flex-start;gap:12px;max-width:640px;margin:32px auto 0;padding:20px 24px;background:var(--off-white);border:1px solid var(--brown-light);border-radius:14px}
+.perk h4{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.perk p{font-size:13px;color:var(--ink-muted);line-height:1.5}
+.privacy-note{display:flex;align-items:flex-start;gap:12px;max-width:640px;margin:32px auto 0;padding:20px 24px;background:var(--white);border:1px solid rgba(71,55,43,.1);border-radius:16px}
 .privacy-note svg{flex-shrink:0;margin-top:2px}
-.privacy-note p{font-size:13px;color:var(--brown-mid);line-height:1.6}
+.privacy-note p{font-size:13px;color:var(--ink-muted);line-height:1.6}
 
-/* FOOTER */
-footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(255,255,255,0.06)}
-.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-.footer-logo{display:flex;align-items:center;gap:9px}
-.footer-logo-mark{width:34px;height:34px;color:var(--white);flex-shrink:0}
-.footer-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.02em}
-.footer-links{display:flex;gap:20px}
-.footer-links a{font-size:13px;color:rgba(255,255,255,0.45);transition:color 0.2s}
-.footer-links a:hover{color:rgba(255,255,255,0.8)}
-.footer-copy{font-size:12px;color:rgba(255,255,255,0.25);width:100%;margin-top:4px}
-.footer-disclaimer{font-size:11px;color:rgba(255,255,255,0.35);width:100%;margin-top:12px;line-height:1.5;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
+/* Motion-only starting states. Without the .motion class every state below is final. */
+.motion .hero [data-intro]{opacity:0}
+.motion .hcard{opacity:0}
+.motion .hc-lab .strike{--s:0%}
+.motion .hc-bw{opacity:0}
+.motion .hcard-b .chips li{opacity:0}
+.motion .chat-card .b-user,.motion .chat-card .b-sana{opacity:0}
 
-/* MOBILE */
-@media(max-width:1219px){
-  .hero-inner{grid-template-columns:1fr;gap:40px}
-  .hero-card{max-width:520px}
+@media(max-width:1100px){
+  .hero-foot{grid-template-columns:1fr 1fr}
+  .hero-caption{grid-column:1/-1;order:3}
 }
-@media(max-width:768px){
-  .hero{padding:100px 5% 72px;min-height:auto}
-  .hero-orb{display:none}
-  .hero h1{font-size:2.2rem}
-  .strip-inner{grid-template-columns:1fr 1fr;gap:0}
-  .strip-item{border-right:none;border-bottom:1px solid rgba(255,255,255,0.1);padding:18px 12px}
-  .strip-item:nth-child(odd){border-right:1px solid rgba(255,255,255,0.1)}
-  .strip-item:nth-last-child(-n+2){border-bottom:none}
-  .how-steps{grid-template-columns:1fr;gap:32px}
-  .how-step{padding:0}
-  .mock-grid{grid-template-columns:1fr;gap:28px}
-  .mock-grid.reverse{direction:ltr}
-  .who-cards{grid-template-columns:1fr}
-  .ea-body{display:flex;flex-direction:column;padding-top:68px}
-  .ea-hero{order:1;padding:24px 5% 18px}
-  .ea-orb{display:none}
-  .ea-hero h2{font-size:1.2rem;margin-bottom:4px}
-  .ea-hero p{font-size:13px;line-height:1.5}
+/* Under 768px: no pinning, hero cards stack under the copy, nav links hide, orb smaller. */
+@media(max-width:767px){
+  .nav-link{display:none}
+  .nav-inner{padding:0 6px 0 18px;height:54px}
+  .brand{font-size:19px}
+  .nav-cta{padding:10px 16px;font-size:13.5px}
+  .hero{min-height:auto;padding:116px 0 40px}
+  .hero h1{font-size:clamp(2.4rem,11vw,3.2rem)}
+  .hero .pearl-static{width:94vw;bottom:auto;top:430px}
+  .hero-foot{grid-template-columns:1fr;gap:14px;margin-top:44px}
+  .hero-caption{order:3}
+  .drift{height:auto;padding:14vh 0 8vh}
+  .drift-sticky{position:static;height:auto;display:block}
+  .drift-grid{grid-template-columns:1fr;gap:28px}
+  .drift-copy{order:-1}
+  .stack{padding:6vh 0 10vh}
+  .stack-card{position:relative;top:auto!important;height:auto;min-height:0;margin-bottom:16px;gap:40px}
+  .sana-panel{grid-template-columns:1fr;border-radius:28px}
+  .founder{padding:12vh 0}
+  .final{min-height:90vh}
+  .ea-body{padding-top:96px}
   .ea-form-desktop{display:none}
-  .ea-form-mobile{display:block;order:2;margin-top:32px;margin-bottom:24px;text-align:center}
-  .ea-perks{order:3;grid-template-columns:1fr}
-  .ea-body>.privacy-note{order:4}
-  .waitlist-perks{grid-template-columns:1fr}
-  .waitlist-embed iframe{height:480px}
-  .footer-inner{flex-direction:column;align-items:flex-start}
-  .section{padding:56px 5%}
-  .mock-section{padding:56px 5%}
+  .ea-form-mobile{display:block;margin:12px 0 24px;text-align:center}
+  .ea-perks{grid-template-columns:1fr}
+  .ea-form iframe{height:480px}
 }
-@media(max-width:480px){
-  .hero h1{font-size:1.9rem}
-  .section-title{font-size:1.6rem}
-  .strip-inner{grid-template-columns:1fr}
-  .strip-item{border-right:none!important}
-}
-
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
-  .reveal{opacity:1!important}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .ticker-track{animation:none}
+  .ticker{-webkit-mask-image:none;mask-image:none}
+  .ticker-track{flex-wrap:wrap;width:auto;justify-content:center;padding:0 var(--gutter)}
+  .ticker ul[aria-hidden]{display:none}
+  .ticker ul{flex-wrap:wrap;justify-content:center;row-gap:8px}
+  .hcard-wrap{transform:none}
 }
 </style>
 </head>
-<body>
+<body data-page="home">
+<canvas id="orb-canvas" aria-hidden="true"></canvas>
 
-<!-- NAV -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="bw-mark" viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
--8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
--130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
--74 -235 -312 -235 -324 0 -2 -13 -23 -29 -47 -38 -57 -85 -143 -139 -253 -41
--85 -57 -118 -88 -190 -23 -54 -77 -215 -118 -355 -32 -105 -72 -324 -92 -493
--19 -157 -15 -548 6 -697 23 -167 65 -371 100 -485 11 -38 25 -83 30 -100 38
--135 172 -441 240 -550 13 -22 33 -56 43 -75 124 -228 421 -582 642 -765 33
--28 62 -53 65 -56 9 -11 245 -185 260 -193 17 -8 38 -20 95 -57 124 -80 359
--196 510 -251 69 -26 109 -39 140 -48 17 -5 44 -13 60 -19 41 -14 126 -37 210
--55 39 -8 102 -22 141 -31 40 -8 85 -15 101 -15 16 0 74 -7 129 -15 204 -31
-620 -16 859 31 183 36 232 47 270 59 22 7 67 20 100 29 33 10 75 24 93 32 18
-8 37 14 43 14 35 0 454 193 490 225 8 8 20 15 25 15 5 0 40 20 77 45 38 25 71
-45 73 45 11 0 245 180 340 262 130 113 207 194 369 387 56 66 205 274 205 286
-0 4 11 21 24 38 33 45 141 249 191 362 14 33 32 74 39 90 23 52 63 162 76 210
-5 17 13 44 18 60 27 80 53 188 86 355 61 311 61 756 0 1085 -24 130 -45 227
--60 270 -8 23 -14 50 -14 61 0 11 -4 24 -9 30 -6 5 -14 27 -20 49 -9 38 -24
-85 -42 130 -73 184 -152 354 -199 430 -13 22 -33 56 -43 75 -129 235 -405 564
--647 771 -97 83 -349 269 -365 269 -2 0 -30 17 -62 38 -87 57 -249 139 -428
-217 -55 23 -163 62 -210 75 -16 5 -43 13 -60 18 -138 47 -350 90 -565 117
--109 13 -517 20 -570 10z m461 -376 c40 -6 112 -22 159 -36 47 -13 99 -28 115
--32 33 -9 195 -87 265 -128 284 -165 548 -499 640 -808 58 -196 71 -288 71
--482 0 -171 -30 -375 -67 -461 -8 -18 -14 -39 -14 -47 0 -52 -214 -395 -256
--412 -26 -10 -13 -28 63 -88 41 -33 101 -83 132 -112 31 -29 58 -52 61 -52 14
--1 62 55 148 172 83 113 178 302 212 422 4 17 13 44 18 60 19 55 41 169 58
-303 18 143 16 381 -6 497 -31 173 -60 290 -87 352 -7 17 -13 34 -13 38 0 8
--27 70 -46 107 -8 14 -14 31 -14 36 0 6 -20 45 -45 86 -43 72 -52 96 -39 96
-18 0 313 -244 373 -309 13 -14 46 -51 75 -81 28 -30 67 -75 86 -100 19 -25 40
--52 47 -60 104 -132 221 -317 295 -470 47 -96 132 -298 141 -335 3 -11 10 -33
-16 -50 10 -31 29 -98 55 -195 64 -245 94 -668 61 -884 -8 -55 -15 -118 -15
--141 0 -23 -7 -64 -15 -91 -8 -27 -15 -60 -15 -73 0 -13 -7 -49 -16 -80 -8
--31 -22 -81 -31 -111 -42 -148 -72 -232 -141 -385 -133 -297 -353 -611 -582
--833 -84 -82 -276 -242 -289 -242 -6 0 -14 -7 -17 -15 -7 -16 -34 -21 -34 -5
-0 5 13 31 28 57 35 60 89 174 132 278 32 78 76 271 96 423 24 190 13 399 -32
-602 -17 72 -42 164 -55 195 -4 11 -18 45 -30 75 -100 254 -234 454 -430 645
--139 135 -273 238 -399 306 -25 14 -63 36 -85 50 -22 14 -60 33 -85 43 -25 10
--58 23 -75 30 -86 36 -196 64 -283 73 l-52 6 2 -177 3 -177 55 -19 c30 -11 63
--19 73 -20 11 0 31 -6 45 -14 15 -7 61 -30 102 -51 41 -20 89 -45 105 -56 17
--10 37 -22 45 -26 67 -32 243 -169 321 -250 68 -70 189 -225 189 -241 0 -5 6
--14 13 -20 13 -11 92 -168 120 -237 14 -36 29 -82 58 -182 37 -126 52 -392 29
--547 -15 -108 -63 -293 -89 -344 -4 -9 -34 -70 -66 -135 -32 -65 -88 -157
--123 -205 -73 -97 -229 -255 -301 -304 -115 -79 -162 -109 -183 -118 -13 -6
--30 -14 -38 -19 -17 -10 -78 -38 -125 -56 -221 -89 -507 -122 -755 -86 -92 13
--259 57 -330 88 -113 49 -242 119 -310 170 -25 18 -58 43 -75 55 -38 28 -192
-184 -222 223 -71 94 -93 124 -110 155 -10 19 -26 46 -35 60 -24 36 -86 184
--109 260 -11 36 -25 79 -30 95 -11 32 -24 118 -39 254 -10 98 2 275 26 384 35
-157 34 156 92 297 67 165 169 318 306 458 74 77 215 188 301 238 27 16 59 34
-70 41 110 64 240 118 343 140 31 7 33 25 30 203 l-3 155 -34 3 c-44 4 -167
--27 -311 -80 -19 -8 -77 -34 -128 -60 -311 -159 -588 -407 -774 -693 -53 -82
--162 -305 -173 -352 -3 -18 -11 -35 -16 -38 -5 -4 -9 -17 -9 -30 0 -13 -6 -39
--14 -57 -61 -143 -90 -532 -58 -753 20 -136 58 -290 89 -362 7 -17 13 -36 13
--41 0 -5 13 -37 30 -70 16 -34 30 -66 30 -71 0 -6 20 -45 45 -87 25 -41 45
--80 45 -85 0 -15 -27 -10 -41 8 -8 9 -36 33 -64 53 -62 47 -240 202 -279 244
--161 174 -302 356 -381 493 -25 43 -49 85 -55 93 -12 20 -109 216 -126 255
--58 138 -74 179 -74 191 0 7 -6 28 -14 46 -13 31 -23 67 -60 216 -23 92 -44
-217 -62 375 -24 212 -13 493 27 707 29 155 57 279 65 292 4 6 11 28 15 47 10
-47 56 179 74 213 8 14 15 35 15 46 0 11 7 25 15 32 8 7 15 18 15 24 0 12 66
-144 125 251 33 59 99 160 203 307 28 40 191 226 247 281 51 52 178 162 241
-210 106 82 182 136 215 154 19 10 53 31 76 46 24 15 47 27 52 27 5 0 11 4 13
-8 3 7 122 67 260 131 90 42 297 112 383 131 22 5 58 13 80 18 244 60 623 83
-836 51z"/><path d="M3482 4975 c-42 -35 -100 -180 -121 -305 -4 -25 -13 -72 -19 -105
--39 -210 -56 -510 -47 -855 7 -307 40 -602 81 -730 8 -25 14 -53 14 -62 0 -9
-15 -51 34 -92 25 -55 44 -81 68 -96 18 -11 37 -20 42 -20 24 0 84 81 103 141
-38 114 79 299 87 389 3 30 10 93 17 140 17 119 17 813 0 945 -7 55 -17 132
--21 170 -11 90 -28 178 -46 235 -8 25 -14 54 -14 64 0 34 -69 164 -99 185 -37
-27 -43 26 -79 -4z"/></g></g></symbol></svg>
-<nav id="sitenav">
+<!-- NAV. HOMEPAGE_MOTION_V1: frosted pill, new brand mark (teal dot + brown serif wordmark). -->
+<nav id="sitenav" aria-label="Main">
   <div class="nav-inner">
-    <a class="nav-logo" href="#" onclick="showPage('home')">
-      <svg class="nav-logo-mark" aria-label="BioWellth"><use href="#bw-mark"/></svg>
-      <span>BioWellth</span>
-    </a>
+    <a class="brand" href="/" onclick="if(window.showPage){event.preventDefault();showPage('home');}"><span class="brand-dot" aria-hidden="true"></span>BioWellth</a>
     <div class="nav-right">
       <a href="#how" class="nav-link">How it works</a>
-      <a href="#gaps" class="nav-link">What we test</a>
-      <a href="#" onclick="showPage('early-access')" class="nav-cta">Join the waitlist</a>
+      <a href="#sana" class="nav-link">Sana</a>
+      <a href="/science" class="nav-link">The science</a>
+      <a href="#" onclick="showPage('early-access')" class="btn btn-ink nav-cta">Join the waitlist</a>
     </div>
   </div>
 </nav>
 
-<!-- HOME -->
+<!-- HOME. HOMEPAGE_MOTION_V1. Every section is transparent so the fixed orb travels behind it.
+     data-orb is "x,y,size": x and y as fractions of the viewport from its centre, size as a
+     fraction of the viewport's shorter side. data-orb-m is the same under 768px. -->
 <div id="page-home" class="page active">
-<section class="hero">
-  <div class="hero-orb o1" aria-hidden="true"></div>
-  <div class="hero-orb o2" aria-hidden="true"></div>
-  <div class="hero-orb o3" aria-hidden="true"></div>
-  <div class="hero-grain" aria-hidden="true"></div>
-  <div class="hero-inner">
-    <div>
-      <div class="hero-badge">Built for South Asian Women</div>
-      <h1>Your tests came back normal.<br/><em>You're still exhausted.</em></h1>
-      <p class="hero-sub">Most checkups test ten to fifteen markers against ranges built on other bodies. We're building the panel that measures the markers a standard checkup leaves out when women ask about fatigue, cycle changes and brain fog, and reads them against South Asian biology and risk factors. Sana, your health companion, connects it all over time, so you can see what's changing and ask why.</p>
-      <div class="hero-btns">
-        <a href="#" onclick="showPage('early-access')" class="btn-teal">Join the waitlist</a>
-        <a href="#how" class="btn-outline">How it works</a>
-      </div>
+<main>
+
+<section class="hero" data-orb="0,-0.4,0.8" data-orb-m="0,-0.36,0.95" aria-labelledby="hero-h">
+  <div class="pearl-static" aria-hidden="true"></div>
+  <div class="wrap hero-copy">
+    <p class="eyebrow" data-intro>Built for South Asian women</p>
+    <h1 class="display" id="hero-h">Your tests came back normal. <em class="l2" data-intro>You're still exhausted.</em></h1>
+    <p class="lede" data-intro>A blood panel read for South Asian women. Tracked over time. Explained by Sana.</p>
+    <div class="hero-ctas" data-intro>
+      <a href="#" onclick="showPage('early-access')" class="btn btn-ink">Join the waitlist</a>
+      <a href="/science" class="btn btn-glass">See the science</a>
     </div>
-    <div class="hero-card" role="img" aria-label="Example report card. Ferritin 22 ng/mL. The standard report reads it as within range. The BioWellth read says it is in range but low for steady energy. Six markers were not tested on this report: Free T3, Free T4, hsCRP, AM cortisol, DHEA-S and progesterone.">
-      <div class="kicker">Same result · two readings</div>
-      <div class="marker"><span class="name">Ferritin</span><span class="val">22 <span>ng/mL</span></span></div>
-      <div class="read lab">
-        <div class="who">Standard report</div>
-        <div class="what">Within range. No action needed.</div>
-      </div>
-      <div class="read bw">
-        <div class="who">BioWellth read</div>
-        <div class="what">In range, but low for steady energy. May be worth raising at your next visit.</div>
-      </div>
-      <div class="gaps">
-        <div class="who">⚑ Not tested on this report</div>
-        <div class="chips">
-          <span class="chip">Free T3</span>
-          <span class="chip">Free T4</span>
-          <span class="chip">hsCRP</span>
-          <span class="chip">AM cortisol</span>
-          <span class="chip">DHEA-S</span>
-          <span class="chip">Progesterone</span>
+  </div>
+  <div class="wrap hero-foot">
+    <div class="hcard-wrap">
+      <div class="hcard hcard-a glass" role="group" aria-label="Illustrative example. Ferritin 22 ng/mL. The standard report reads it as within range with no action needed. The BioWellth read says it is in range, but low for steady energy.">
+        <p class="eyebrow">Same result, two readings</p>
+        <div class="hc-marker"><span class="name">Ferritin</span><span class="hc-val">22 <small>ng/mL</small></span></div>
+        <div class="hc-read hc-lab">
+          <div class="hc-who">Standard report</div>
+          <div class="hc-what"><span class="strike">Within range. No action needed.</span></div>
+        </div>
+        <div class="hc-read hc-bw">
+          <div class="hc-who">BioWellth read</div>
+          <div class="hc-what">In range, but low for steady energy. May be worth raising at your next visit.</div>
         </div>
       </div>
-      <div class="foot">Illustrative example. Not medical advice.</div>
     </div>
-  </div>
-</section>
-
-<!-- STRIP -->
-<div class="strip">
-  <div class="strip-inner">
-    <div class="strip-item"><div class="strip-num">Our blood panel</div><div class="strip-label">The markers a standard checkup skips</div></div>
-    <div class="strip-item"><div class="strip-num">Cycle-aware</div><div class="strip-label">Read with where you are in your cycle</div></div>
-    <div class="strip-item"><div class="strip-num">Longitudinal tracking</div><div class="strip-label">See drift before it becomes a diagnosis</div></div>
-    <div class="strip-item"><div class="strip-num">South Asian biology</div><div class="strip-label">Interpretation built for your body and risk factors</div></div>
-  </div>
-</div>
-
-<!-- WHY THIS IS DIFFERENT -->
-<section class="why-section">
-  <div class="section-inner">
-    <div class="section-tag reveal">Why this exists</div>
-    <div class="why-grid">
-      <div class="why-card reveal">
-        <h3>One report is a snapshot</h3>
-        <p>A marker can be in range on every report and still be moving the wrong way. Most checkups read each report on its own, and never alongside your cycle or how you've been feeling.</p>
-      </div>
-      <div class="why-card reveal rd1">
-        <h3>South Asian women's patterns are different</h3>
-        <p>South Asian women tend to show insulin resistance at lower BMIs (ADA), vitamin D and B12 deficiency are common, and cardiovascular risk shows up earlier (AHA). Your results deserve to be read with that context.</p>
-      </div>
-      <div class="why-card reveal rd2">
-        <h3>We bring it all together</h3>
-        <p>Your blood panel, your cycle and your daily check-ins, read together over time. Sana connects them and answers your questions from your own data. We don't wait for a result to be flagged. We watch for drift over time, so you can act on it before it becomes a diagnosis.</p>
+    <p class="hero-caption">Illustrative example. Not medical advice.</p>
+    <div class="hcard-wrap">
+      <div class="hcard hcard-b glass" role="group" aria-label="Illustrative example. Not tested on this report. 6 markers your checkup skipped.">
+        <p class="eyebrow">Not tested on this report</p>
+        <div class="hc-big"><span class="hc-num">6</span><span class="hc-cap">markers your checkup skipped</span></div>
+        <ul class="chips">
+          <li>Free T3</li><li>Free T4</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li>
+        </ul>
       </div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="section" style="background:var(--off-white)" id="how">
-  <div class="section-inner">
-    <div class="section-tag reveal">How it works</div>
-    <h2 class="section-title reveal rd1">One panel. Read properly. Tracked over time.</h2>
-    <p class="section-sub reveal rd2">Already have a recent report? You can start with that.</p>
-    <div class="how-steps">
-      <div class="how-step reveal">
-        <div class="how-num">01</div>
-        <h3>Get the full panel</h3>
-        <p>Hormones, thyroid, metabolic markers, micronutrients, and the inflammation and cycle markers a standard checkup leaves out. If you already have a recent report, upload the PDF and we'll start from there.</p>
-      </div>
-      <div class="how-step reveal rd1">
-        <div class="how-num">02</div>
-        <h3>See what a standard panel leaves out</h3>
-        <p>We'll show you which markers are functionally low even if they're "in range," which ones are drifting, what's missing entirely, and what the combination actually means for the way you've been feeling.</p>
-      </div>
-      <div class="how-step reveal rd2">
-        <div class="how-num">03</div>
-        <h3>Then watch it change over time</h3>
-        <p>Add each new panel as you get it. We thread them together and show you which markers are drifting, and how fast. When something's trending the wrong way, we flag it early, while there's still room to act. You also get a test-request list to bring to your doctor, so every appointment starts a step ahead.</p>
+<!-- Marker ticker. Only markers already named on this site. -->
+<section class="ticker" data-orb="0.34,0.02,0.34" data-orb-m="0.32,0.05,0.55" aria-label="Markers we read">
+  <div class="ticker-track">
+    <ul>
+      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
+    </ul>
+    <ul aria-hidden="true">
+      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
+    </ul>
+  </div>
+</section>
+
+<!-- Drift. The chart is teal: it is BioWellth's read of the trend. -->
+<section class="drift" id="drift" data-orb="-0.3,0.02,0.46" data-orb-m="-0.3,-0.25,0.62" aria-labelledby="drift-h">
+  <div class="drift-sticky">
+    <div class="wrap drift-grid">
+      <figure class="chart-card glass" data-reveal>
+        <svg viewBox="0 0 560 330" role="img" aria-labelledby="drift-svg-t">
+          <title id="drift-svg-t">Ferritin across three panels. 85 in January 2024, 60 in March 2025, 42 in February 2026. Every value was reported as normal, while the line drifted down out of the functional target band of 70 to 100.</title>
+          <defs>
+            <radialGradient id="mini-pearl" cx="35%" cy="30%" r="75%">
+              <stop offset="0" stop-color="#FFFFFF"/><stop offset=".3" stop-color="#D3EBE2"/><stop offset=".68" stop-color="#5FB79A"/><stop offset="1" stop-color="#0C8E6B"/>
+            </radialGradient>
+          </defs>
+          <rect x="40" y="88" width="500" height="72" rx="10" fill="#0C8E6B" fill-opacity=".12"/>
+          <text x="54" y="110" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#0A6B52">Functional target 70 to 100</text>
+          <line x1="40" y1="280" x2="540" y2="280" stroke="#47372B" stroke-opacity=".14"/>
+          <path id="drift-line" d="M100,124 L290,184 L480,227.2" fill="none" stroke="#0A6B52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <g class="pt on" data-at="0">
+            <circle cx="100" cy="124" r="7" fill="#0C8E6B" stroke="#fff" stroke-width="2.5"/>
+            <text x="100" y="146" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">85</text>
+            <text x="100" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Jan 2024</text>
+            <text x="100" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#0A6B52">in range</text>
+          </g>
+          <g class="pt on" data-at="0.52">
+            <circle cx="290" cy="184" r="7" fill="#0C8E6B" stroke="#fff" stroke-width="2.5"/>
+            <text x="290" y="172" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">60</text>
+            <text x="290" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Mar 2025</text>
+            <text x="290" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#0A6B52">still &#8220;normal&#8221;</text>
+          </g>
+          <g class="pt on" data-at="1">
+            <circle cx="480" cy="227.2" r="7" fill="#0C8E6B" stroke="#fff" stroke-width="2.5"/>
+            <text x="480" y="215" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">42</text>
+            <text x="480" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Feb 2026</text>
+            <text x="480" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#0A6B52">still &#8220;normal&#8221;</text>
+          </g>
+          <circle id="drift-pearl" r="9" fill="url(#mini-pearl)" transform="translate(480,227.2)"/>
+        </svg>
+        <span class="drift-pill on" aria-hidden="true">Drifting &#8595;</span>
+      </figure>
+      <div class="drift-copy" data-reveal>
+        <p class="eyebrow">Ferritin · last 3 panels</p>
+        <h2 class="h2" id="drift-h">Every report said normal. <em style="display:block">The trend didn't.</em></h2>
+        <p class="lede">Flagged "normal" on every report. Drifting toward deficiency the whole time.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- DIVIDER -->
-<div class="section-divider"></div>
-
-<!-- MOCK: FUNCTIONAL INTERPRETATION -->
-<section class="mock-section">
-  <div class="section-inner">
-    <div class="mock-grid">
-      <div class="reveal">
-        <div class="mock-tag">What it looks like</div>
-        <div class="mock-text">
-          <h2>This is a real result. The lab said it was normal.</h2>
-          <p class="direct-answer">Clinical reference ranges are statistical. They cover roughly 95% of the tested population, so you only get flagged if you're near the bottom or top 2.5% (Mayo Clinic). But those ranges were developed on populations that didn't look like you. They skewed male, Western, and white. They weren't built for South Asian women's metabolic patterns, hormonal cycles, or nutritional baselines.</p>
-          <p>Functional ranges, used in integrative and functional medicine practice, are narrower and focus on where people tend to feel and function best. They're not RCT-validated the way clinical thresholds are, but they catch problems standard ranges miss entirely.</p>
-          <p>Ferritin is a useful example. Most lab reports list the female reference range as roughly 10 to 150 ng/mL. Functional medicine commonly targets 70 to 100 ng/mL for women with heavy periods or high activity levels. Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when hemoglobin is still normal. A ferritin of 28 ng/mL sits inside the clinical range but is functionally low for a woman.</p>
-        </div>
+<!-- Three stacking cards. Sticky on desktop, a plain stack under 768px. -->
+<section class="stack" id="how" data-orb="0.33,0.04,0.42" data-orb-m="0.34,0.3,0.55" aria-label="How it works">
+  <div class="wrap stack-cards">
+    <article class="stack-card glass">
+      <p class="eyebrow">01 · The panel</p>
+      <div><div class="stack-big">170+</div><p class="stack-sub">markers across 21 categories</p></div>
+    </article>
+    <article class="stack-card glass">
+      <p class="eyebrow">02 · Cycle-aware</p>
+      <div>
+        <p class="stack-line">Read with where you are in your cycle.</p>
+        <ul class="phases" aria-label="Cycle phases">
+          <li class="ph-m">Menstrual</li><li class="ph-f">Follicular</li><li class="ph-o">Ovulatory</li><li class="ph-l">Luteal</li>
+        </ul>
       </div>
-      <div class="mock-visual reveal rd1">
-        <div>
-          <div class="mock-label">Ferritin (iron stores)</div>
-          <div class="mock-bar"><div class="mock-bar-fill fill-coral" style="width:28%"></div></div>
-          <div class="mock-note low">28 ng/mL · Inside clinical range (10 to 150). Functionally low; integrative medicine targets 70 to 100. (Cleveland Clinic; IFM)</div>
+    </article>
+    <article class="stack-card glass">
+      <p class="eyebrow">03 · Your biology</p>
+      <p class="stack-line">Built for South Asian women, <em>not averaged away.</em></p>
+    </article>
+  </div>
+</section>
+
+<!-- Sana. Teal section. -->
+<section class="sana" id="sana" data-orb="0.42,-0.3,0.34" data-orb-m="0.42,-0.38,0.5" aria-labelledby="sana-h">
+  <div class="wrap">
+    <div class="sana-panel">
+      <div data-reveal>
+        <div class="sana-avatar" aria-hidden="true"></div>
+        <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana answers from your data.</em></h2>
+      </div>
+      <div data-reveal>
+        <!-- TODO(HOMEPAGE_MOTION_V1): the Sana reply copy below needs reviewer sign-off before launch. -->
+        <div class="chat-card glass" role="group" aria-label="Illustrative conversation with Sana">
+          <div class="chat-head"><span class="mini" aria-hidden="true"></span><span class="eyebrow">Sana</span></div>
+          <p class="bubble b-user">Why am I so tired lately?</p>
+          <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
+          <p class="bubble b-sana">Your ferritin went from 85 to 42 across three panels. Each one was "in range", but that slide often tracks with low energy. Worth raising with your doctor. I've added ferritin and hsCRP to your test list.</p>
         </div>
-        <div>
-          <div class="mock-label">TSH (thyroid)</div>
-          <div class="mock-bar"><div class="mock-bar-fill fill-teal" style="width:65%"></div></div>
-          <div class="mock-note ok">2.1 mIU/L · Inside clinical (0.4 to 4.5) and functional targets (1.0 to 2.5). TSH alone doesn't show what's reaching your cells. (ATA; NIH)</div>
-        </div>
-        <div>
-          <div class="mock-label">Vitamin D (25-OH)</div>
-          <div class="mock-bar"><div class="mock-bar-fill fill-amber" style="width:42%"></div></div>
-          <div class="mock-note watch">32 ng/mL · Above the 20 ng/mL deficiency cut-off. Vitamin D insufficiency is especially widespread among South Asian women due to skin pigmentation and indoor lifestyles; functional targets 40 to 60. (Endocrine Society; ICMR-NIN)</div>
-        </div>
-        <div>
-          <div class="mock-label" style="color:var(--coral);font-weight:600">⚑ Not tested</div>
-          <div style="font-size:12px;color:var(--brown-mid);line-height:1.5;margin-top:4px">Free T3, Free T4, Progesterone, DHEA-S, hsCRP, Cortisol. These markers matter for how you feel. Ask your doctor to run them.</div>
-        </div>
+        <p class="chat-caption">Illustrative conversation.</p>
       </div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<!-- Founder. The full story is on /science#founder. -->
+<section class="founder" data-orb="-0.4,-0.26,0.28" data-orb-m="-0.4,-0.34,0.4" aria-label="From the founder">
+  <div class="wrap">
+    <blockquote data-reveal>
+      <p>My mother was tired for three years. Every checkup said normal. Nobody ran ferritin.</p>
+      <footer>Aditi Pillai, Founder · <a href="/science#founder">Read the full story</a></footer>
+    </blockquote>
+  </div>
+</section>
 
-<!-- MOCK: TRAJECTORY OVER TIME -->
-<section class="mock-section" style="background:var(--off-white)">
-  <div class="section-inner">
-    <div class="mock-grid">
-      <div class="reveal">
-        <div class="mock-tag">Tracking over time</div>
-        <div class="mock-text">
-          <h2>One panel tells you where you are. We show you where you're headed.</h2>
-          <p class="direct-answer">A single blood test is a snapshot. The most important signal usually isn't in any one result. It's in the direction you're moving.</p>
-          <p>Ferritin is the clearest example. It can read "normal" on three tests in a row while quietly falling from 85 to 42. That's the classic slide toward iron deficiency, and the fatigue and hair shedding that come with it. A one-time reading misses it. So does a free report that only sees your latest number.</p>
-          <p>We hold the thread across every panel you upload. When a marker is genuinely drifting the wrong way, not just wobbling between tests, we flag it early, while there's still room to act. Before it's a symptom, let alone a diagnosis.</p>
-          <p>Just as often, it's reassurance. A value that looks off on its own but has been steady and normal for your body, so you're not chasing something that was never a problem.</p>
-        </div>
+<!-- Final CTA. The orb comes back centred and large. -->
+<section class="final" id="join" data-orb="0,0.02,0.86" data-orb-m="0,0.04,1.05" aria-labelledby="final-h">
+  <div class="pearl-static" aria-hidden="true"></div>
+  <div class="wrap final-inner">
+    <h2 class="display" id="final-h" data-reveal>Join the waitlist.</h2>
+    <div class="final-panel glass" data-reveal>
+      <p class="lede">Early access opens in small groups.</p>
+      <!-- HOMEPAGE_MOTION_V1: the waitlist is the existing Typeform on /early-access, and this
+           repo has no email-capture endpoint. An email field here would collect an address and
+           then drop it, so the pill keeps the existing wiring as one button instead. -->
+      <div class="cta-pill">
+        <a href="#" onclick="showPage('early-access')" class="btn btn-ink">Join the waitlist</a>
       </div>
-      <div class="mock-visual reveal rd1">
-        <div style="width:100%">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <div class="mock-label" style="margin:0">Ferritin (iron stores) · last 3 panels</div>
-            <div style="font-size:11px;color:var(--brown-mid)">Clinical range 10 to 150</div>
-          </div>
-          <svg viewBox="0 0 460 300" role="img" aria-label="Ferritin trending down across three panels, from 85 in January 2024 to 60 in March 2025 to 42 in February 2026. Every value stays inside the clinical range, but the line drifts down out of the functional target band of 70 to 100 and heads toward the functionally low zone." style="width:100%;height:auto;display:block">
-            <!-- functional target band -->
-            <rect x="64" y="103" width="366" height="38" fill="#E3F5EE"/>
-            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#097A5B">Functional target 70 to 100</text>
-            <!-- functionally low zone -->
-            <rect x="64" y="192" width="366" height="38" fill="#FAF0ED"/>
-            <text x="68" y="206" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#BC6550">Functionally low</text>
-            <!-- baseline axis -->
-            <line x1="64" y1="230" x2="430" y2="230" stroke="#F2EDE3" stroke-width="1"/>
-            <!-- trajectory line -->
-            <polyline points="110,122 245,154 380,177" fill="none" stroke="#D47C65" stroke-width="2.5" stroke-opacity="0.55" stroke-linecap="round" stroke-linejoin="round"/>
-            <!-- projected continuation -->
-            <line x1="380" y1="177" x2="426" y2="194" stroke="#D47C65" stroke-width="2" stroke-dasharray="4 4" stroke-opacity="0.5"/>
-            <circle cx="426" cy="194" r="4" fill="none" stroke="#D47C65" stroke-width="1.5" stroke-opacity="0.6"/>
-            <!-- data points -->
-            <circle cx="110" cy="122" r="6" fill="#0C8E6B"/>
-            <circle cx="245" cy="154" r="6" fill="#D4A94A"/>
-            <circle cx="380" cy="177" r="6" fill="#D47C65"/>
-            <!-- value labels -->
-            <text x="110" y="112" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">85</text>
-            <text x="245" y="144" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">60</text>
-            <text x="380" y="167" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="13" font-weight="700" fill="#47372B">42</text>
-            <!-- x axis labels -->
-            <text x="110" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Jan 2024</text>
-            <text x="245" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Mar 2025</text>
-            <text x="380" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5047">Feb 2026</text>
-            <!-- status labels -->
-            <text x="110" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#097A5B">in range</text>
-            <text x="245" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C7D30">still &#8220;normal&#8221;</text>
-            <text x="380" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#BC6550">still &#8220;normal&#8221;</text>
-          </svg>
-          <div class="mock-note low" style="margin-top:10px">Flagged "normal" on every report. Drifting toward deficiency the whole time. A single panel can't show that. We do.</div>
-        </div>
-      </div>
+      <p class="final-privacy">Your data is yours. Never sold. <a href="/privacy">Privacy Policy</a></p>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
-
-<!-- WHAT'S COMING -->
-<section class="section">
-  <div class="section-inner">
-    <div class="mock-grid">
-      <div class="reveal">
-        <div class="mock-tag">What's coming</div>
-        <div class="mock-text">
-          <h2>Blood test analysis is just the start.</h2>
-          <p>We're building toward a full picture of your health. These features are on the roadmap and early access members will be the first to use them.</p>
-        </div>
-      </div>
-      <div class="reveal rd1">
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div style="background:var(--white);border-radius:14px;padding:20px 24px;border:1px solid var(--brown-light)">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);margin-bottom:6px">AI companion</div>
-            <p style="font-size:14px;color:var(--brown-mid);line-height:1.7;margin:0">Ask anything about your results and get an answer that actually uses your data. Not a chatbot with generic health tips.</p>
-          </div>
-          <div style="background:var(--white);border-radius:14px;padding:20px 24px;border:1px solid var(--brown-light)">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);margin-bottom:6px">Wearable sync</div>
-            <p style="font-size:14px;color:var(--brown-mid);line-height:1.7;margin:0">Connect Apple Health or Health Connect. Your blood work means more when you can see it alongside your sleep, heart rate, and activity patterns.</p>
-          </div>
-          <div style="background:var(--white);border-radius:14px;padding:20px 24px;border:1px solid var(--brown-light)">
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);margin-bottom:6px">Cycle-phase interpretation</div>
-            <p style="font-size:14px;color:var(--brown-mid);line-height:1.7;margin:0">Progesterone on day 7 means something completely different than progesterone on day 21. We'll adjust your interpretation based on where you are in your cycle.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="section-divider"></div>
-
-<!-- GAP ANALYSIS -->
-<section class="mock-section" id="gaps">
-  <div class="section-inner">
-    <div class="mock-grid">
-      <div class="reveal">
-        <div class="mock-tag">Gap analysis</div>
-        <div class="mock-text">
-          <h2>Your last checkup probably didn't test for any of these.</h2>
-          <p class="direct-answer">Standard health checkups typically include CBC, lipid panel, fasting glucose/HbA1c, liver and kidney panels, and TSH. Markers like ferritin, Free T3, Free T4, progesterone, morning cortisol, hsCRP, and DHEA-S are usually separate add-ons and rarely bundled by default. For South Asian women, these gaps are especially costly. Iron deficiency, thyroid dysfunction, vitamin D insufficiency, and insulin resistance all run at significantly higher rates in this population, and standard panels aren't designed to catch them early. We look at over 170 markers across 21 categories.</p>
-          <p>Those are the markers most relevant to fatigue, cycle symptoms, brain fog, and low-grade inflammation. They're the ones we flag as gaps.</p>
-          <div class="founder-quote">
-            <p>My mother was tired for three years before we figured out why. Every checkup came back "normal." Nobody ran ferritin. Nobody ran hsCRP. Her hemoglobin kept looking fine, so nothing got flagged. Meanwhile her iron stores had quietly emptied out, and underneath that, chronic inflammation that nobody looked for because nobody ran the right tests. When we finally got ferritin and hsCRP run, the answers were sitting right there. None of it was hidden. It just wasn't looked for.</p>
-            <p>That's what this is. We flag the low ferritin. We also ask why it's low. Someone should have asked three years earlier.</p>
-          </div>
-          <p class="founder-credit"><a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener">Aditi Pillai</a>, Founder</p>
-        </div>
-      </div>
-      <div class="mock-visual reveal rd1">
-        <div class="gap-report">
-          <div class="gap-header">
-            <div class="gap-header-tested">
-              <span class="gap-check">✓</span>
-              <div><div class="gap-h-title">Tested</div><div class="gap-h-count">7 categories</div></div>
-            </div>
-            <div class="gap-header-missing">
-              <span class="gap-flag">⚑</span>
-              <div><div class="gap-h-title">Not tested</div><div class="gap-h-count">14 categories</div></div>
-            </div>
-          </div>
-          <div class="gap-divider"></div>
-          <div class="gap-list-label">Key missing markers</div>
-          <div class="gap-items">
-            <div class="gap-item" onclick="this.classList.toggle('open')">
-              <div class="gap-item-header">
-                <div class="gap-item-left">
-                  <div class="gap-item-name">Free T3 &amp; Free T4</div>
-                  <div class="gap-item-hook">TSH is the screening test. It tells you how hard your pituitary is pushing, not what's actually reaching your cells.</div>
-                </div>
-                <div class="gap-item-toggle">▾</div>
-              </div>
-              <div class="gap-item-detail">
-                <div class="gap-item-why">Free T3 and Free T4 show the hormones actually reaching your cells. TSH can sit inside the reference range while Free T3 runs low in a subset of thyroid dysfunction. Worth running if you've had "normal TSH" reports and still feel off. (NIH StatPearls; American Thyroid Association)</div>
-              </div>
-            </div>
-            <div class="gap-item" onclick="this.classList.toggle('open')">
-              <div class="gap-item-header">
-                <div class="gap-item-left">
-                  <div class="gap-item-name">Ferritin</div>
-                  <div class="gap-item-hook">Your hemoglobin can look perfectly fine while your iron stores are already running on empty.</div>
-                </div>
-                <div class="gap-item-toggle">▾</div>
-              </div>
-              <div class="gap-item-detail">
-                <div class="gap-item-why">Ferritin catches depleted iron stores months before it shows up in hemoglobin. Levels below 30 ng/mL are considered functionally low even if technically "in range." It's the most commonly missed marker in standard women's panels. (Cleveland Clinic)</div>
-              </div>
-            </div>
-            <div class="gap-item" onclick="this.classList.toggle('open')">
-              <div class="gap-item-header">
-                <div class="gap-item-left">
-                  <div class="gap-item-name">Progesterone (luteal phase)</div>
-                  <div class="gap-item-hook">Timing matters. A value drawn outside the luteal window doesn't tell you much.</div>
-                </div>
-                <div class="gap-item-toggle">▾</div>
-              </div>
-              <div class="gap-item-detail">
-                <div class="gap-item-why">Progesterone peaks roughly 7 days after ovulation, so the test should be drawn in the mid-luteal phase, about 7 days before your next expected period. For a 28-day cycle that's around days 20 to 23; for a 32-day cycle closer to day 25. It's rarely bundled in standard panels. (ACOG; NIH)</div>
-              </div>
-            </div>
-            <div class="gap-item" onclick="this.classList.toggle('open')">
-              <div class="gap-item-header">
-                <div class="gap-item-left">
-                  <div class="gap-item-name">hsCRP</div>
-                  <div class="gap-item-hook">A general marker for systemic inflammation. It tells you something's off, not what's causing it.</div>
-                </div>
-                <div class="gap-item-toggle">▾</div>
-              </div>
-              <div class="gap-item-detail">
-                <div class="gap-item-why">An elevated hsCRP means inflammation is present. It doesn't say where it's coming from. Common drivers include infection, autoimmune activity, visceral fat, and chronic stress. If hsCRP is high and your iron and thyroid are fine, it's a signal to keep looking, not a diagnosis on its own. (Mayo Clinic; AHA)</div>
-              </div>
-            </div>
-            <div class="gap-item" onclick="this.classList.toggle('open')">
-              <div class="gap-item-header">
-                <div class="gap-item-left">
-                  <div class="gap-item-name">Cortisol (AM)</div>
-                  <div class="gap-item-hook">Your core stress hormone. Standard checkups don't include it by default.</div>
-                </div>
-                <div class="gap-item-toggle">▾</div>
-              </div>
-              <div class="gap-item-detail">
-                <div class="gap-item-why">Morning cortisol typically runs 6 to 23 µg/dL on clinical labs; functional medicine looks for the pattern, rhythm and ratios, more than any single number. Chronically high or flat cortisol rhythms are linked to broken sleep, afternoon energy crashes, and stubborn weight, though it's rarely the only factor. (Endocrine Society; NIH)</div>
-              </div>
-            </div>
-          </div>
-          <div class="gap-cta-strip">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <span>We generate a test request list you can bring to your doctor</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="section-divider"></div>
-
-<!-- WHO IT'S FOR -->
-<section class="section" style="background:var(--cream)">
-  <div class="section-inner">
-    <div class="section-tag reveal">Who it's for</div>
-    <h2 class="section-title reveal rd1" style="margin-bottom:32px">You probably recognize yourself here</h2>
-    <div class="who-cards">
-      <div class="who-card w-a reveal">
-        <div class="who-label">Dismissed</div>
-        <h3>"I've been tired for two years. Every test comes back fine. I've stopped trusting the tests."</h3>
-        <p>You know something's wrong. Your doctor doesn't see it because the ranges your results were measured against weren't built for South Asian women's biology. We read what you've already been tested for differently, and we flag what should've been included but wasn't.</p>
-      </div>
-      <div class="who-card w-b reveal rd1">
-        <div class="who-label">Curious</div>
-        <h3>"I got my blood work back. The report says normal. What does that actually mean for someone like me?"</h3>
-        <p>"Normal" means you're not in the bottom 2.5% of a population that doesn't look like you. That's it. You want to know if you're actually well, not just not-sick-enough-to-flag. That's a fair thing to want.</p>
-      </div>
-      <div class="who-card w-c reveal rd2">
-        <div class="who-label">Ahead of it</div>
-        <h3>"I don't have symptoms yet. I just want to know."</h3>
-        <p>South Asian women face higher baseline risk for insulin resistance, thyroid dysfunction, and cardiovascular disease at younger ages. Some of the most important shifts happen in people who feel completely fine. Markers quietly drifting the wrong way, the kind of drift that takes two or three years to become a symptom.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIAL / PRE-LAUNCH -->
-<section class="testimonial">
-  <blockquote class="reveal">We're pre-launch. We're not going to put up testimonials we don't have yet.<br/><br/>If you're in an early group and this changes a conversation with your doctor, we'd love to tell your story here.</blockquote>
-</section>
-
-<!-- WHAT THIS IS AND ISN'T -->
-<section class="section" style="background:var(--cream)">
-  <div class="section-inner" style="max-width:720px">
-    <div class="section-tag reveal">What this is and isn't</div>
-    <p style="font-size:15px;color:var(--brown-mid);line-height:1.8" class="reveal rd1">BioWellth is educational. We interpret existing test reports against functional ranges used in integrative medicine practice, adjusted for South Asian women's biology. We don't diagnose, treat, or prescribe. Functional ranges are narrower than clinical ranges and are based on expert consensus in functional and integrative medicine, not randomized clinical trials. Always discuss your results with a licensed clinician before acting on them.</p>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-banner">
-  <div class="cta-inner">
-    <h2>The waitlist is open across India.</h2>
-    <p>We're giving early access to small groups on the waitlist.</p>
-    <a href="#" onclick="showPage('early-access')" class="btn-light">Join the waitlist</a>
-  </div>
-</section>
-<div style="max-width:800px;margin:0 auto;padding:40px 5%">
-  <div class="privacy-note">
-    <svg viewBox="0 0 24 24" width="18" height="18" stroke="var(--teal)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <div>
-    <p>Your health data is yours. We do not sell your data or share it for advertising. We use service providers who process it on our behalf, under contract, only to run the service. Your reports are encrypted in transit, access is scoped to your account, and you can delete everything at any time. We're building a health tool, not a data business.</p>
-    <p style="font-size:12px;color:var(--brown-mid);margin-top:8px">Full data-handling details are in our <a href="/privacy" style="color:var(--teal);text-decoration:underline">Privacy Policy</a>.</p>
-    </div>
-  </div>
-</div>
+</main>
 </div><!-- /page-home -->
 
 <!-- EARLY ACCESS -->
@@ -933,7 +616,7 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
       <iframe id="ea-tf-iframe" data-tf-base="https://form.typeform.com/to/t0eULTZa" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
     </div>
     <div class="ea-form-mobile">
-      <button id="ea-tf-popup" data-tf-popup="t0eULTZa" data-tf-size="100" class="btn-teal ea-mobile-btn">Open the waitlist form</button>
+      <button id="ea-tf-popup" data-tf-popup="t0eULTZa" data-tf-size="100" class="btn btn-ink ea-mobile-btn">Open the waitlist form</button>
     </div>
     <!-- TYPEFORM_UTM_HIDDEN_V1. Carries utm_source, utm_medium and utm_content from
          this page's URL into the form's hidden fields of the same names. Two embeds,
@@ -1013,19 +696,16 @@ footer{background:var(--brown-deep);padding:40px 5%;border-top:1px solid rgba(25
   </div>
 </div><!-- /page-early-access -->
 
-<footer>
-  <div class="footer-inner">
-    <div class="footer-logo">
-      <svg class="footer-logo-mark" aria-label="BioWellth"><use href="#bw-mark"/></svg>
-      <span>BioWellth</span>
-    </div>
-    <div class="footer-links">
+<!-- FOOTER. HOMEPAGE_MOTION_V1: light, one line of disclaimer, the legal links and support. -->
+<footer class="site-foot">
+  <div class="wrap foot-inner">
+    <p class="foot-disc">BioWellth is not a medical provider. We interpret blood work against functional ranges built for South Asian women's biology. We don't diagnose, treat, or replace your doctor. We give you smarter information so you can have better conversations with them.</p>
+    <nav class="foot-links" aria-label="Legal and support">
       <a href="/privacy">Privacy Policy</a>
       <a href="/terms">Terms &amp; Conditions</a>
       <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>
-    </div>
-    <div class="footer-disclaimer">BioWellth is not a medical provider. We interpret blood work against functional ranges built for South Asian women's biology. We don't diagnose, treat, or replace your doctor. We give you smarter information so you can have better conversations with them.</div>
-    <div class="footer-copy">© 2026 BioWellth. All rights reserved. · Founded by <a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.45);text-decoration:underline">Aditi Pillai</a></div>
+    </nav>
+    <p class="foot-copy">© 2026 BioWellth. All rights reserved. · Founded by <a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener">Aditi Pillai</a></p>
   </div>
 </footer>
 
@@ -1042,10 +722,10 @@ function activatePage(id){
   var nav=document.getElementById('sitenav');
   if(id==='home'&&window.scrollY<80) nav.classList.remove('scrolled');
   else nav.classList.add('scrolled');
-  // Re-observe reveals
-  setTimeout(function(){
-    document.querySelectorAll('.reveal:not(.visible)').forEach(function(el){obs.observe(el);});
-  },60);
+  // HOMEPAGE_MOTION_V1: the orb and the scroll choreography key off the active page, and
+  // have to re-measure once a page that was display:none gets layout.
+  document.body.setAttribute('data-page',id);
+  try{ window.dispatchEvent(new Event('bw:page')); }catch(_){}
 }
 
 /* Pages are clean paths (/ and /early-access); sections stay #fragments */
@@ -1078,7 +758,12 @@ function goToSection(hash,settle){
   if(!el) return false;
   var page=el.closest('.page');
   if(!page) return false; // section outside any page - not ours to route
-  var scroll=function(){el.scrollIntoView({behavior:'smooth',block:'start'});};
+  // HOMEPAGE_MOTION_V1: with Lenis running, a native smooth scroll fights it, so hand the
+  // scroll to Lenis. The -96 matches [id]{scroll-margin-top:96px}, which clears the pill nav.
+  var scroll=function(){
+    if(window.__lenis) window.__lenis.scrollTo(el,{offset:-96});
+    else el.scrollIntoView({behavior:'smooth',block:'start'});
+  };
   if(!page.classList.contains('active')){
     activatePage(page.id.replace(/^page-/,''));
     settle=true; // .page is display:none until now, so it has no layout to measure yet
@@ -1094,6 +779,7 @@ function goToSection(hash,settle){
 /* The one router. Idempotent: popstate and hashchange both fire on a hash
    traversal, and every push/replace below is guarded, so a double call is a
    no-op beyond re-activating the page it already activated. */
+var SCIENCE_IDS=['why','ranges','tracking','gaps','who','founder','disclaimer'];
 function route(){
   var pg=pageForPath(location.pathname);
   if(location.hash){
@@ -1110,6 +796,12 @@ function route(){
     // push a second entry, which on a cold load would otherwise leave a
     // /early-access#how entry behind the /#how one and make back look dead.
     // Gated on the section existing so an unknown hash falls through untouched.
+    // HOMEPAGE_MOTION_V1: these sections moved to /science. Old shared links (/#gaps from
+    // the previous nav, /#founder) land on the moved section there instead of the hero.
+    if(!document.getElementById(h)&&SCIENCE_IDS.indexOf(h)!==-1){
+      location.replace('/science'+location.search+location.hash);
+      return;
+    }
     if(document.getElementById(h)){
       if(pg&&pg!=='home') activatePage('home');
       if(location.pathname!=='/') history.replaceState(null,'','/'+location.search+location.hash);
@@ -1144,7 +836,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a){
   });
 });
 
-/* Nav scroll - transparent on home hero */
+/* Nav scroll - the pill firms up once the page has scrolled */
 window.addEventListener('scroll',function(){
   var active=document.querySelector('.page.active');
   var isHome=active&&active.id==='page-home';
@@ -1153,16 +845,476 @@ window.addEventListener('scroll',function(){
   else nav.classList.add('scrolled');
 },{passive:true});
 
-/* Scroll reveal */
-var obs=new IntersectionObserver(function(entries){
-  entries.forEach(function(e){
-    if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
-  });
-},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
-document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+/* HOMEPAGE_MOTION_V1: the IntersectionObserver .reveal pass is gone. Reveals are GSAP
+   ScrollTrigger now, in the motion script below, and content is visible without it. */
 
 /* Land on the right page for a direct visit to /early-access or /#how */
 route();
+</script>
+
+<!-- HOMEPAGE_MOTION_V1. GSAP + ScrollTrigger from cdnjs, Lenis from jsDelivr, all deferred.
+     Three.js is NOT a tag here: the motion script injects it only when the orb will actually
+     run (motion allowed and WebGL present), so reduced-motion and no-WebGL visitors never
+     download it. If GSAP fails, the onerror drops .motion so every state renders final. -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" onerror="document.documentElement.classList.remove('motion')"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+'use strict';
+var root=document.documentElement;
+var reduce=root.classList.contains('reduce');
+var mqMobile=window.matchMedia('(max-width:767px)');
+var THREE_URL='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+var hasGsap=!!(window.gsap&&window.ScrollTrigger);
+if(!hasGsap) root.classList.remove('motion');
+var motion=root.classList.contains('motion');
+
+/* ---------- Smooth scroll ---------- */
+var lenis=null;
+if(!reduce&&window.Lenis){
+  try{ lenis=new window.Lenis({lerp:0.1,smoothWheel:true}); window.__lenis=lenis; }catch(_){ lenis=null; }
+}
+if(hasGsap){
+  gsap.registerPlugin(ScrollTrigger);
+  if(lenis){
+    lenis.on('scroll',ScrollTrigger.update);
+    gsap.ticker.add(function(t){ lenis.raf(t*1000); });
+    gsap.ticker.lagSmoothing(0);
+  }
+}else if(lenis){
+  (function raf(t){ lenis.raf(t); requestAnimationFrame(raf); })(0);
+}
+function scrollY(){ return lenis?lenis.animatedScroll:(window.scrollY||window.pageYOffset||0); }
+
+/* ---------- Pointer parallax (desktop, fine pointer only) ---------- */
+var pointer={x:0,y:0,sx:0,sy:0};
+var fine=!reduce&&window.matchMedia('(pointer:fine)').matches;
+if(fine){
+  window.addEventListener('pointermove',function(e){
+    pointer.x=(e.clientX/window.innerWidth)*2-1;
+    pointer.y=(e.clientY/window.innerHeight)*2-1;
+  },{passive:true});
+}
+var heroEl=document.querySelector('.hero');
+
+/* ---------- Hero intro ---------- */
+if(motion){
+  var tl=gsap.timeline({delay:0.1});
+  tl.fromTo('.hero [data-intro]',{opacity:0,y:26},{opacity:1,y:0,duration:1.05,ease:'power3.out',stagger:0.1})
+    .fromTo('.hcard',{opacity:0,y:36},{opacity:1,y:0,duration:1.1,ease:'power3.out',stagger:0.14},0.55)
+    .fromTo('.hcard-b .chips li',{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:'back.out(2.2)',stagger:0.09},1.35)
+    .fromTo('.hc-lab .strike',{'--s':'0%'},{'--s':'100%',duration:0.75,ease:'power2.inOut'},2.0)
+    .add(function(){ document.querySelector('.hc-lab').classList.add('dim'); },2.6)
+    .fromTo('.hc-bw',{opacity:0,y:8},{opacity:1,y:0,duration:0.85,ease:'power2.out'},2.85);
+}else{
+  var lab=document.querySelector('.hc-lab'); if(lab) lab.classList.add('dim');
+}
+
+/* Below-the-fold choreography is wired in idle time, after the hero has painted and
+   animated, so it never competes with first paint. */
+function idle(fn,t){ if('requestIdleCallback' in window) requestIdleCallback(fn,{timeout:t||1200}); else setTimeout(fn,300); }
+var orbHueTarget=0;
+idle(function(){
+/* ---------- Generic reveals ---------- */
+if(motion){
+  gsap.utils.toArray('[data-reveal]').forEach(function(el){
+    gsap.fromTo(el,{opacity:0,y:28},{opacity:1,y:0,duration:0.9,ease:'power3.out',
+      scrollTrigger:{trigger:el,start:'top 85%',once:true}});
+  });
+}
+
+/* ---------- Drift chart ---------- */
+var path=document.getElementById('drift-line');
+var dPearl=document.getElementById('drift-pearl');
+var dPts=[].slice.call(document.querySelectorAll('.chart-card .pt'));
+var dPill=document.querySelector('.drift-pill');
+var dLen=path?path.getTotalLength():0;
+function setDrift(p){
+  if(!path) return;
+  p=Math.max(0,Math.min(1,p));
+  path.style.strokeDasharray=dLen;
+  path.style.strokeDashoffset=dLen*(1-p);
+  var pt=path.getPointAtLength(dLen*p);
+  dPearl.setAttribute('transform','translate('+pt.x.toFixed(1)+','+pt.y.toFixed(1)+')');
+  dPts.forEach(function(g){ g.classList.toggle('on',p>=parseFloat(g.getAttribute('data-at'))-0.002); });
+  dPill.classList.toggle('on',p>=0.995);
+}
+if(motion&&path){
+  setDrift(0);
+  var mm=gsap.matchMedia();
+  mm.add('(min-width:768px)',function(){
+    // The section is 230vh with a sticky inner, so the chart holds still while the line draws.
+    ScrollTrigger.create({trigger:'.drift',start:'top top',end:'bottom bottom',scrub:0.6,
+      onUpdate:function(s){ setDrift(s.progress/0.82); }});
+  });
+  mm.add('(max-width:767px)',function(){
+    // No pinning or sticky under 768px: the line draws as the card scrolls through view.
+    ScrollTrigger.create({trigger:'.chart-card',start:'top 80%',end:'bottom 45%',scrub:0.6,
+      onUpdate:function(s){ setDrift(s.progress); }});
+  });
+}
+
+/* ---------- Stacking cards + orb hue ---------- */
+var cards=hasGsap?gsap.utils.toArray('.stack-card'):[];
+if(motion&&cards.length===3){
+  var bodies=cards.map(function(c){ return c.querySelector(':scope > :not(.eyebrow)'); });
+  var mm2=gsap.matchMedia();
+  mm2.add('(min-width:768px)',function(){
+    ScrollTrigger.create({trigger:'.stack',start:'top top',end:'bottom bottom',
+      onUpdate:function(s){
+        var p=s.progress;
+        // Card n settles back as card n+1 slides over it.
+        // The card scales back but stays opaque glass; only its body fades, so the covered
+        // card's text never blurs through the card on top. Its eyebrow stays as the visible tab.
+        gsap.set(cards[0],{scale:1-0.05*clamp01((p-0.12)/0.3)});
+        gsap.set(bodies[0],{opacity:1-clamp01((p-0.14)/0.22)});
+        gsap.set(cards[1],{scale:1-0.05*clamp01((p-0.5)/0.3)});
+        gsap.set(bodies[1],{opacity:1-clamp01((p-0.52)/0.22)});
+        // The orb warms slightly while the cycle card leads.
+        orbHueTarget=(p>0.3&&p<0.7)?1:0;
+      },
+      onLeave:function(){ orbHueTarget=0; },onLeaveBack:function(){ orbHueTarget=0; }});
+    return function(){ gsap.set(cards,{clearProps:'transform'}); gsap.set(bodies,{clearProps:'opacity'}); };
+  });
+  mm2.add('(max-width:767px)',function(){
+    cards.forEach(function(c){
+      gsap.fromTo(c,{opacity:0,y:30},{opacity:1,y:0,duration:0.8,ease:'power3.out',scrollTrigger:{trigger:c,start:'top 88%',once:true}});
+    });
+    ScrollTrigger.create({trigger:cards[1],start:'top 70%',end:'bottom 30%',
+      onToggle:function(s){ orbHueTarget=s.isActive?1:0; }});
+  });
+}
+function clamp01(v){ return v<0?0:v>1?1:v; }
+
+/* ---------- Sana chat ---------- */
+var chat=document.querySelector('.chat-card');
+if(motion&&chat){
+  var uB=chat.querySelector('.b-user'),sB=chat.querySelector('.b-sana'),typ=chat.querySelector('.typing');
+  sB.style.display='none';
+  ScrollTrigger.create({trigger:chat,start:'top 72%',once:true,onEnter:function(){
+    gsap.timeline()
+      .fromTo(uB,{opacity:0,y:12},{opacity:1,y:0,duration:0.55,ease:'power2.out'})
+      .add(function(){ typ.classList.add('on'); },'+=0.25')
+      .add(function(){ typ.classList.remove('on'); sB.style.display=''; },'+=1.5')
+      .fromTo(sB,{opacity:0,y:12},{opacity:1,y:0,duration:0.7,ease:'power2.out'});
+  }});
+}
+
+});
+
+/* ---------- Page switches (router) ---------- */
+window.addEventListener('bw:page',function(){
+  if(lenis) lenis.scrollTo(0,{immediate:true});
+  if(hasGsap) requestAnimationFrame(function(){ ScrollTrigger.refresh(); });
+  if(window.__orb) window.__orb.measure();
+});
+
+/* ---------- The orb ----------
+   HOMEPAGE_MOTION_V1. The orb renders in a Web Worker through an OffscreenCanvas wherever the
+   browser has one, so Three.js parsing, the shader compile and every frame stay off the main
+   thread and can never cost a scroll frame. Measured on Lighthouse mobile: with the orb on the
+   main thread, Total Blocking Time ran 630 to 1190ms across runs, almost all of it orb start-up;
+   the same page without the orb ran 10 to 20ms. Browsers without OffscreenCanvas run the very
+   same engine on the main thread instead.
+   The page measures keyframes, scroll, pointer and hue; the engine only draws. */
+if(!root.classList.contains('orb-live')||reduce) return;
+var canvas=document.getElementById('orb-canvas');
+var send=null, worker=null;
+function toStatic(){
+  root.classList.remove('orb-live'); root.classList.add('orb-static');
+  if(worker){ try{ worker.terminate(); }catch(_){} worker=null; }
+  send=null;
+}
+function startOrb(){
+  var mobile=mqMobile.matches;
+  var init={type:'init',threeUrl:THREE_URL,mobile:mobile,
+    // DPR capped at 1.5, and at 1 on phones, under the 1.25 the brief allowed: the orb has
+    // no hard edges to sharpen, and measured on a 4x-throttled 375px profile it lifted scroll
+    // from 38 to 46fps.
+    dpr:Math.min(window.devicePixelRatio||1,mobile?1:1.5)};
+  var canWorker=('transferControlToOffscreen' in canvas)&&typeof Worker!=='undefined'&&typeof Blob!=='undefined';
+  if(canWorker){
+    try{
+      var src='var handle=('+orbEngine.toString()+')(self,true);self.onmessage=function(e){handle(e.data);};';
+      worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+      worker.onmessage=function(e){ if(e.data&&e.data.type==='fail') toStatic(); };
+      worker.onerror=function(){ toStatic(); };
+      var off=canvas.transferControlToOffscreen();
+      init.canvas=off;
+      worker.postMessage(init,[off]);
+      send=function(m){ if(worker) worker.postMessage(m); };
+    }catch(e){ toStatic(); return; }
+    wire();
+  }else{
+    var s=document.createElement('script');
+    s.src=THREE_URL; s.async=true;
+    s.onerror=toStatic;
+    s.onload=function(){
+      try{
+        var handle=orbEngine(window,false);
+        send=function(m){ handle(m); };
+        init.canvas=canvas;
+        handle(init);
+        wire();
+      }catch(e){ toStatic(); }
+    };
+    document.head.appendChild(s);
+  }
+}
+// After load and in idle time, so the hero text and its intro never wait on the orb. The orb
+// rises in on its own, so arriving a beat late reads as part of the entrance.
+function queueOrb(){ idle(startOrb,2000); }
+if(document.readyState==='complete') queueOrb(); else window.addEventListener('load',queueOrb);
+
+/* Keyframes from data-orb on each home section, measured here because only the page has a DOM. */
+function measure(){
+  if(!send) return;
+  var vh0=window.innerHeight, y=scrollY(), max=Math.max(0,document.documentElement.scrollHeight-vh0);
+  var keys=[];
+  [].slice.call(document.querySelectorAll('#page-home [data-orb]')).forEach(function(el){
+    var r=el.getBoundingClientRect(), top=r.top+y;
+    var a=((mqMobile.matches&&el.getAttribute('data-orb-m'))||el.getAttribute('data-orb')).split(',').map(parseFloat);
+    var k={x:a[0],y:a[1],s:a[2]};
+    if(r.height>vh0*1.2){
+      // Tall (sticky) sections hold the orb still from their top to their last screen,
+      // so it only travels between sections, never while a chart or card stack is held.
+      keys.push({x:k.x,y:k.y,s:k.s,at:Math.max(0,Math.min(max,top))});
+      keys.push({x:k.x,y:k.y,s:k.s,at:Math.max(0,Math.min(max,top+r.height-vh0))});
+    }else{
+      // Short sections key when their centre reaches the viewport centre.
+      k.at=Math.max(0,Math.min(max,top+(Math.min(r.height,vh0)-vh0)/2));
+      keys.push(k);
+    }
+  });
+  keys.sort(function(a,b){ return a.at-b.at; });
+  send({type:'size',w:window.innerWidth,h:canvas.clientHeight||vh0});
+  send({type:'keys',keys:keys});
+}
+function wire(){
+  var lastY=-1, lastHue=-1, lastPage='';
+  // One small message per frame at most, and only when something changed.
+  (function tick(){
+    requestAnimationFrame(tick);
+    if(!send) return;
+    var pg=document.body.getAttribute('data-page');
+    if(pg!==lastPage){ lastPage=pg; send({type:'run',v:pg==='home'&&!document.hidden}); }
+    var y=scrollY();
+    if(y!==lastY){ lastY=y; send({type:'scroll',y:y}); }
+    if(orbHueTarget!==lastHue){ lastHue=orbHueTarget; send({type:'hue',v:orbHueTarget}); }
+    if(fine){
+      pointer.sx+=(pointer.x-pointer.sx)*0.08; pointer.sy+=(pointer.y-pointer.sy)*0.08;
+      if(heroEl){ heroEl.style.setProperty('--px',pointer.sx.toFixed(3)); heroEl.style.setProperty('--py',pointer.sy.toFixed(3)); }
+      send({type:'ptr',x:pointer.sx,y:pointer.sy});
+    }
+  })();
+  // Paused while the tab is hidden.
+  document.addEventListener('visibilitychange',function(){
+    if(send) send({type:'run',v:!document.hidden&&document.body.getAttribute('data-page')==='home'});
+  });
+  var rt=0;
+  function later(){ clearTimeout(rt); rt=setTimeout(measure,120); }
+  window.addEventListener('resize',later);
+  if(window.ResizeObserver) new ResizeObserver(later).observe(document.body);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(measure);
+  measure();
+  window.__orb={measure:measure,force:function(f){ if(send) send({type:'force',f:f}); }};
+}
+
+/* The engine. Self-contained on purpose: it is serialised with toString() into the worker, so
+   it may reference nothing outside itself. Messages in: init, size, keys, scroll, ptr, hue,
+   run, force. Message out: fail. */
+function orbEngine(scope,inWorker){
+  var THREE,renderer,scene,camera,orb,glow,group,uniforms,VIS_H;
+  var keys=[],vw=1,vh=1,scrollPos=0,ptr={x:0,y:0},hueT=0,hue=0,forced=null;
+  var cur=null,running=false,ready=false,raf=0,last=0,t0=0,minFrame=0,fine=false;
+  var rafFn=scope.requestAnimationFrame?scope.requestAnimationFrame.bind(scope):function(f){ return setTimeout(function(){ f(performance.now()); },16); };
+  var cafFn=scope.cancelAnimationFrame?scope.cancelAnimationFrame.bind(scope):clearTimeout;
+  function fail(){ running=false; if(inWorker) scope.postMessage({type:'fail'}); else throw new Error('orb'); }
+  function build(m){
+    if(inWorker) importScripts(m.threeUrl);
+    THREE=scope.THREE;
+    var mobile=m.mobile;
+    renderer=new THREE.WebGLRenderer({canvas:m.canvas,alpha:true,antialias:!mobile,powerPreference:'low-power'});
+    if(!renderer.getContext()) throw new Error('no gl');
+    renderer.setClearColor(0x000000,0);
+    renderer.setPixelRatio(m.dpr);
+    scene=new THREE.Scene();
+    camera=new THREE.PerspectiveCamera(30,1,0.1,100);
+    camera.position.z=10;
+    VIS_H=2*Math.tan(15*Math.PI/180)*10; // world units spanning the viewport height at z=0
+    // Phones draw at most 30fps. The orb breathes slowly, so half the frames costs nothing a
+    // reader can see and halves the GPU and battery cost while scrolling.
+    minFrame=mobile?1000/31:0;
+    fine=!mobile;
+    var NOISE=[
+      'vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}',
+      'vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}',
+      'vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}',
+      'vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}',
+      'float snoise(vec3 v){',
+      ' const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);',
+      ' vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);',
+      ' vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);',
+      ' vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;',
+      ' i=mod289(i);',
+      ' vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));',
+      ' float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;',
+      ' vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);',
+      ' vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);',
+      ' vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);',
+      ' vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));',
+      ' vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;',
+      ' vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);',
+      ' vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));',
+      ' p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;',
+      ' vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;',
+      ' return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));',
+      '}'
+    ].join('\n');
+  
+    var vert=[
+      'uniform float uTime; uniform float uAmp;',
+      'varying vec3 vN; varying vec3 vV; varying float vD;',
+      NOISE,
+      // Two slow octaves; time moves through the field rather than shaking it, so it breathes.
+      // Phones get the single main octave: half the vertex cost and a faster shader compile.
+      'float disp(vec3 n){ float d=snoise(n*0.85+vec3(0.0,uTime*0.09,uTime*0.06));',
+      '#ifdef ORB_LITE',
+      ' return d;',
+      '#else',
+      ' return d*0.82+snoise(n*1.7-vec3(uTime*0.05))*0.18;',
+      '#endif',
+      '}',
+      'void main(){',
+      ' vec3 n=normalize(position);',
+      ' float d=disp(n);',
+      ' vec3 p=n*(1.0+uAmp*d);',
+      // Normal from two nearby displaced samples, so lighting follows the morph.
+      ' vec3 t=normalize(cross(n,abs(n.y)<0.99?vec3(0.0,1.0,0.0):vec3(1.0,0.0,0.0)));',
+      ' vec3 b=normalize(cross(n,t));',
+      ' vec3 n1=normalize(n+t*0.02); vec3 n2=normalize(n+b*0.02);',
+      ' vec3 q1=n1*(1.0+uAmp*disp(n1)); vec3 q2=n2*(1.0+uAmp*disp(n2));',
+      ' vec3 nn=normalize(cross(q1-p,q2-p)); if(dot(nn,n)<0.0) nn=-nn;',
+      ' vN=normalize(normalMatrix*nn);',
+      ' vec4 mv=modelViewMatrix*vec4(p,1.0);',
+      ' vV=normalize(-mv.xyz); vD=d;',
+      ' gl_Position=projectionMatrix*mv;',
+      '}'
+    ].join('\n');
+  
+    var frag=[
+      'uniform float uTime; uniform float uHue;',
+      'uniform vec3 c0; uniform vec3 c1; uniform vec3 c2; uniform vec3 c3; uniform vec3 c4; uniform vec3 c5;',
+      'varying vec3 vN; varying vec3 vV; varying float vD;',
+      // Pearl grade: white, coral-pale, coral-soft, coral-mid, coral, coral-dark.
+      'vec3 grade(float t){ t=clamp(t,0.0,1.0)*5.0;',
+      ' if(t<1.0) return mix(c0,c1,t); if(t<2.0) return mix(c1,c2,t-1.0); if(t<3.0) return mix(c2,c3,t-2.0);',
+      ' if(t<4.0) return mix(c3,c4,t-3.0); return mix(c4,c5,t-4.0); }',
+      'void main(){',
+      ' vec3 N=normalize(vN); vec3 V=normalize(vV);',
+      ' vec3 L=normalize(vec3(-0.45,0.75,0.6));',
+      ' float ndv=max(dot(N,V),0.0);',
+      ' float fres=pow(1.0-ndv,2.4);',
+      ' float lit=dot(N,L)*0.5+0.5;',
+      ' float t=pow(1.0-lit,1.1)*1.12+vD*0.06+fres*0.18;',
+      ' vec3 col=grade(t);',
+      // Thin-film sheen: a faint lilac to peach shift that slides with view angle and morph.
+      ' float film=ndv*2.2+vD*1.4+uTime*0.03;',
+      ' float w=0.5+0.5*cos(6.28318*film);',
+      ' vec3 sheen=mix(vec3(0.91,0.86,0.99),vec3(1.0,0.87,0.76),w);',
+      ' col=mix(col,col*0.6+sheen*0.45,0.12+fres*0.38);',
+      ' vec3 H=normalize(L+V); col+=pow(max(dot(N,H),0.0),60.0)*0.32;',
+      ' col=mix(col,vec3(0.99,0.93,0.92),pow(fres,4.0)*0.35);',
+      // Cycle card: a slightly rosier, warmer pearl.
+      ' col=mix(col,col*vec3(1.0,0.9,0.97)+vec3(0.02,0.0,0.03),uHue*0.6);',
+      ' gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);',
+      '}'
+    ].join('\n');
+  
+    function c(hex){ return new THREE.Color(hex); }
+    uniforms={uTime:{value:0},uAmp:{value:0.12},uHue:{value:0},
+      c0:{value:c(0xFFFFFF)},c1:{value:c(0xFCF3EE)},c2:{value:c(0xF5DCD6)},c3:{value:c(0xE9A994)},c4:{value:c(0xD47C65)},c5:{value:c(0xB8644F)}};
+    // Lower mesh detail under 768px.
+    var geo=new THREE.IcosahedronGeometry(1,mobile?16:44);
+    var mat=new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,uniforms:uniforms,defines:mobile?{ORB_LITE:''}:{}});
+    orb=new THREE.Mesh(geo,mat);
+  
+    // Soft coral glow behind the orb. Premultiplied so it composites cleanly on the page.
+    var glowMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,premultipliedAlpha:true,
+      uniforms:{uColor:{value:c(0xE9A994)},uStrength:{value:0.55}},
+      vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader:'varying vec2 vUv; uniform vec3 uColor; uniform float uStrength; void main(){ float r=length(vUv-0.5)*2.0; float a=exp(-r*r*4.5)*(1.0-smoothstep(0.85,1.0,r))*uStrength; gl_FragColor=vec4(uColor*a,a); }'});
+    glow=new THREE.Mesh(new THREE.PlaneGeometry(1,1),glowMat);
+    glow.position.z=-1.2;
+  
+    group=new THREE.Group();
+    group.add(glow); group.add(orb);
+    scene.add(group);
+  }
+  function target(y){
+    if(forced) return forced;
+    if(!keys.length) return {x:0,y:-0.4,s:0.8};
+    if(y<=keys[0].at) return keys[0];
+    for(var i=0;i<keys.length-1;i++){
+      var a=keys[i],b=keys[i+1];
+      if(y<b.at){
+        var t=(y-a.at)/Math.max(1,b.at-a.at); t=t*t*(3-2*t);
+        return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,s:a.s+(b.s-a.s)*t};
+      }
+    }
+    return keys[keys.length-1];
+  }
+  function frame(now){
+    raf=rafFn(frame);
+    if(!running||!ready) return;
+    if(minFrame&&now-last<minFrame) return;
+    var dt=Math.min(0.05,(now-last)/1000||0.016); last=now;
+    var time=(now-t0)/1000;
+    var tg=target(scrollPos);
+    if(!cur) cur={x:tg.x,y:tg.y,s:tg.s};
+    var k=1-Math.exp(-dt*3.2);
+    cur.x+=(tg.x-cur.x)*k; cur.y+=(tg.y-cur.y)*k; cur.s+=(tg.s-cur.s)*k;
+    hue+=(hueT-hue)*(1-Math.exp(-dt*2));
+    // Rise from below on arrival.
+    var rise=forced?1:Math.min(1,time/2.6); rise=1-Math.pow(1-rise,3);
+    var u=VIS_H/vh; // world units per CSS pixel
+    var dPx=cur.s*Math.min(vw,vh);
+    var px=cur.x*vw+(fine?ptr.x*16:0);
+    var py=cur.y*vh-(1-rise)*vh*0.45+(fine?-ptr.y*12:0);
+    group.position.set(px*u,py*u,0);
+    var rad=dPx*u/2;
+    orb.scale.setScalar(rad);
+    glow.scale.setScalar(rad*3.6);
+    orb.rotation.y=time*0.06; orb.rotation.x=Math.sin(time*0.13)*0.12;
+    uniforms.uTime.value=time;
+    uniforms.uAmp.value=0.085+0.022*Math.sin(time*0.42); // slow breath
+    uniforms.uHue.value=hue;
+    renderer.render(scene,camera);
+  }
+  function setRun(v){
+    if(v&&!running){ running=true; last=performance.now(); cafFn(raf); raf=rafFn(frame); }
+    else if(!v&&running){ running=false; cafFn(raf); }
+  }
+  return function(m){
+    try{
+      switch(m.type){
+        case 'init': build(m); ready=true; t0=performance.now(); break;
+        case 'size':
+          vw=m.w; vh=m.h;
+          if(ready){ renderer.setSize(vw,vh,false); camera.aspect=vw/vh; camera.updateProjectionMatrix(); }
+          break;
+        case 'keys': keys=m.keys; break;
+        case 'scroll': scrollPos=m.y; break;
+        case 'ptr': ptr.x=m.x; ptr.y=m.y; break;
+        case 'hue': hueT=m.v; break;
+        case 'force': forced=m.f; break;
+        case 'run': setRun(!!m.v); break;
+      }
+    }catch(e){ fail(); }
+  };
+}
+});
 </script>
 <script src="https://embed.typeform.com/next/embed.js"></script>
 
