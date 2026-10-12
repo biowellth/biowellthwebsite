@@ -28,7 +28,8 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --cream:#FBFAF9;
+  --cream:#F8F2EC;
+  --card:#FBFAF9;
   --beige:#F7EFE9;
   --ink:#47372B;
   --ink-muted:#6B5545;
@@ -38,14 +39,17 @@
   --coral-mid:#E9A994;
   --coral-dark:#B8644F;
   --coral-pale:#FCF3EE;
-  --teal:#0C8E6B;
-  --teal-deep:#0A6B52;
-  --teal-soft:#D3EBE2;
-  --teal-mid:#5FB79A;
-  --teal-pale:#EEF7F3;
+  /* OLIVE_PALETTE_V1: the approved accent is olive, replacing the earlier accent 1:1 by role.
+     --olive is text and marks, --sage is fills, --sage-soft and --sage-pale are tints. */
+  --olive:#59663A;
+  --olive-dark:#4A5530;
+  --sage:#8C9A5B;
+  --sage-mid:#B5C08E;
+  --sage-soft:#E3E7D3;
+  --sage-pale:#F2F4EA;
   --white:#FFFFFF;
   /* Aliases so the moved markup's inline styles resolve to the new palette. */
-  --off-white:#FDFBF9;
+  --off-white:#F8F2EC;
   --brown-mid:#6B5545;
   --serif:'Fraunces',Georgia,serif;
   --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
@@ -54,17 +58,17 @@
 html{scroll-behavior:smooth;overflow-x:hidden}
 body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 a{text-decoration:none;color:inherit}
-:focus-visible{outline:2px solid var(--teal-deep);outline-offset:3px;border-radius:6px}
+:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
 [id]{scroll-margin-top:96px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
-.eyebrow{font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-deep)}
+.eyebrow{font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--olive)}
 h1,h2,h3,h4{font-family:var(--sans)}
 
 /* NAV, identical to the homepage pill */
 nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--gutter);pointer-events:none}
 .nav-inner{pointer-events:auto;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;height:58px;padding:0 8px 0 22px;border-radius:100px;background:rgba(251,250,249,.78);border:1px solid rgba(255,255,255,.8);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 10px 30px -18px rgba(71,55,43,.35)}
 .brand{display:inline-flex;align-items:center;gap:11px;font-family:var(--serif);font-size:21px;font-weight:500;letter-spacing:-.01em;color:#47372B}
-.brand-dot{width:11px;height:11px;border-radius:50%;background:#0C8E6B;box-shadow:0 0 0 4px var(--teal-soft);flex-shrink:0}
+.brand-dot{width:11px;height:11px;border-radius:50%;background:#59663A;box-shadow:0 0 0 4px var(--sage-soft);flex-shrink:0}
 .nav-right{display:flex;align-items:center;gap:2px}
 .nav-link{font-size:14px;font-weight:500;color:var(--ink-muted);padding:8px 14px;border-radius:100px;transition:background .2s,color .2s}
 .nav-link:hover{color:var(--ink);background:rgba(255,255,255,.7)}
@@ -82,15 +86,23 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 .sci-toc a:hover{border-color:rgba(71,55,43,.3)}
 
 /* MOVED SECTIONS. Classes kept from the old homepage, recoloured to the new tokens:
-   coral never as text (coral-deep instead), small teal text is teal-deep. */
+   coral never as text (coral-deep instead), olive for text and marks, sage for fills. */
 .section{padding:80px 5%}
 .section-inner{max-width:1100px;margin:0 auto}
-.section-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-deep);margin-bottom:14px;font-weight:500;display:inline-flex;align-items:center;gap:10px}
+.section-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--olive);margin-bottom:14px;font-weight:500;display:inline-flex;align-items:center;gap:10px}
 .section-title{font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--ink);margin-bottom:14px;line-height:1.12;font-weight:400;letter-spacing:-.015em}
 .section-divider{max-width:1100px;margin:0 auto;height:1px;background:rgba(71,55,43,0.1)}
+.section-sub{font-size:15.5px;color:var(--ink-muted);max-width:520px;line-height:1.8;margin-bottom:40px}
+.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.how-step{padding:0 28px 0 0}
+.how-num{font-family:var(--serif);font-size:clamp(3rem,5vw,4.2rem);color:var(--olive);line-height:1;margin-bottom:20px}
+.how-step h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px}
+.how-step p{font-size:15px;color:var(--ink-muted);line-height:1.7}
+.testimonial{background:var(--sage-pale);padding:72px 5%;border-top:1px solid rgba(71,55,43,.08);border-bottom:1px solid rgba(71,55,43,.08)}
+.testimonial blockquote{max-width:800px;margin:0 auto;font-family:var(--serif);font-size:clamp(1.3rem,2.6vw,1.9rem);color:var(--ink);line-height:1.45;font-style:italic;text-align:center}
 .why-section{background:var(--cream);padding:56px 5%}
 .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.why-card{padding:24px 0;border-top:2px solid var(--teal)}
+.why-card{padding:24px 0;border-top:2px solid var(--sage)}
 .why-card h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px}
 .why-card p{font-size:15px;color:var(--ink-muted);line-height:1.7}
 .mock-section{background:var(--cream);padding:80px 5%}
@@ -100,15 +112,15 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 .mock-bar{height:6px;border-radius:3px;background:var(--beige);margin:4px 0;overflow:hidden}
 .mock-bar-fill{height:100%;border-radius:3px}
 .fill-coral{background:var(--coral)}
-.fill-teal{background:var(--teal)}
+.fill-sage{background:var(--sage)}
 .fill-amber{background:#D4A94A}
 .mock-note{font-size:12px;margin-top:2px;line-height:1.45}
 .mock-note.low{color:var(--coral-deep)}
-.mock-note.ok{color:var(--teal-deep)}
+.mock-note.ok{color:var(--olive)}
 .mock-note.watch{color:#7F6527}
 .mock-text h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.3rem);color:var(--ink);margin-bottom:14px;line-height:1.12;font-weight:400;letter-spacing:-.015em}
 .mock-text p{font-size:15.5px;color:var(--ink-muted);line-height:1.8;margin-bottom:12px}
-.mock-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-deep);font-weight:500;margin-bottom:12px;display:inline-flex;align-items:center;gap:10px}
+.mock-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--olive);font-weight:500;margin-bottom:12px;display:inline-flex;align-items:center;gap:10px}
 .direct-answer{font-size:15.5px;color:var(--ink)!important;line-height:1.7;margin-bottom:12px;font-weight:500}
 .founder-quote{border-left:3px solid var(--coral);padding-left:22px;margin:20px 0 0;font-style:italic}
 .founder-quote p{font-family:var(--serif);font-size:clamp(1.1rem,1.8vw,1.35rem);color:var(--ink);line-height:1.6;margin-bottom:14px}
@@ -118,12 +130,12 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 .gap-report{display:flex;flex-direction:column}
 .gap-header{display:flex;gap:12px;margin-bottom:16px}
 .gap-header-tested,.gap-header-missing{flex:1;display:flex;align-items:center;gap:10px;padding:14px;border-radius:10px}
-.gap-header-tested{background:var(--teal-pale)}
+.gap-header-tested{background:var(--sage-pale)}
 .gap-header-missing{background:var(--coral-pale)}
-.gap-check{font-size:16px;color:var(--teal-deep);font-weight:700}
+.gap-check{font-size:16px;color:var(--olive);font-weight:700}
 .gap-flag{font-size:16px;color:var(--coral-deep);font-weight:700}
 .gap-h-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:1px}
-.gap-header-tested .gap-h-title{color:var(--teal-deep)}
+.gap-header-tested .gap-h-title{color:var(--olive)}
 .gap-header-missing .gap-h-title{color:var(--coral-deep)}
 .gap-h-count{font-family:var(--serif);font-size:19px;color:var(--ink)}
 .gap-divider{height:1px;background:var(--beige);margin:4px 0 16px}
@@ -131,7 +143,7 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 .gap-item{padding:10px 0;border-bottom:1px solid var(--beige)}
 .gap-item:last-child{border-bottom:none}
 .gap-item-header{display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;gap:12px}
-.gap-item-header:hover .gap-item-name{color:var(--teal-deep)}
+.gap-item-header:hover .gap-item-name{color:var(--olive)}
 .gap-item-left{flex:1;min-width:0}
 .gap-item-name{font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:3px;transition:color .2s}
 .gap-item-hook{font-size:13px;color:var(--ink-muted);line-height:1.55}
@@ -140,11 +152,11 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 .gap-item-detail{max-height:0;overflow:hidden;transition:max-height .3s ease}
 .gap-item.open .gap-item-detail{max-height:300px}
 .gap-item-why{font-size:13px;color:var(--ink-muted);line-height:1.6;padding-top:8px}
-.gap-cta-strip{display:flex;align-items:center;gap:8px;margin-top:14px;padding:12px 16px;background:var(--teal-pale);border-radius:10px;font-size:13.5px;font-weight:600;color:var(--teal-deep)}
+.gap-cta-strip{display:flex;align-items:center;gap:8px;margin-top:14px;padding:12px 16px;background:var(--sage-pale);border-radius:10px;font-size:13.5px;font-weight:600;color:var(--olive)}
 .who-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .who-card{border-radius:20px;padding:28px}
 .who-card.w-a{background:var(--ink);color:var(--cream)}
-.who-card.w-b{background:var(--teal-deep);color:var(--white)}
+.who-card.w-b{background:var(--olive);color:var(--white)}
 .who-card.w-c{background:var(--coral-pale);color:var(--ink);border:1px solid rgba(212,124,101,.2)}
 .who-label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:14px}
 .who-card h3{font-family:var(--serif);font-size:18px;font-weight:400;line-height:1.35;margin-bottom:10px}
@@ -169,6 +181,8 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
   .why-card{padding:18px 0}
   .mock-grid{grid-template-columns:1fr;gap:28px}
   .who-cards{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr;gap:32px}
+  .how-step{padding:0}
   .section,.mock-section{padding:56px 5%}
   .gap-header{flex-direction:column}
 }
@@ -180,7 +194,7 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
   <div class="nav-inner">
     <a class="brand" href="/"><span class="brand-dot" aria-hidden="true"></span>BioWellth</a>
     <div class="nav-right">
-      <a href="/#how" class="nav-link">How it works</a>
+      <a href="#how" class="nav-link">How it works</a>
       <a href="/#sana" class="nav-link">Sana</a>
       <a href="/science" class="nav-link" aria-current="page">The science</a>
       <a href="/early-access" class="btn btn-ink">Join the waitlist</a>
@@ -194,11 +208,13 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
     <h1>How we read a panel, <em>with every source.</em></h1>
     <ul class="sci-toc" aria-label="On this page">
       <li><a href="#why">Why this exists</a></li>
+      <li><a href="#how">How it works</a></li>
       <li><a href="#ranges">Ranges</a></li>
       <li><a href="#tracking">Tracking over time</a></li>
       <li><a href="#gaps">Gap analysis</a></li>
       <li><a href="#who">Who it's for</a></li>
       <li><a href="#founder">The founder story</a></li>
+      <li><a href="#prelaunch">Pre-launch</a></li>
       <li><a href="#disclaimer">What this is and isn't</a></li>
     </ul>
   </div>
@@ -227,6 +243,34 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 
 <div class="section-divider"></div>
 
+<!-- HOW IT WORKS. OLIVE_PALETTE_V1: moved verbatim from the homepage. -->
+<section class="section" style="background:var(--off-white)" id="how">
+  <div class="section-inner">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-title">One panel. Read properly. Tracked over time.</h2>
+    <p class="section-sub">Already have a recent report? You can start with that.</p>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-num">01</div>
+        <h3>Get the full panel</h3>
+        <p>Hormones, thyroid, metabolic markers, micronutrients, and the inflammation and cycle markers a standard checkup leaves out. If you already have a recent report, upload the PDF and we'll start from there.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-num">02</div>
+        <h3>See what a standard panel leaves out</h3>
+        <p>We'll show you which markers are functionally low even if they're "in range," which ones are drifting, what's missing entirely, and what the combination actually means for the way you've been feeling.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-num">03</div>
+        <h3>Then watch it change over time</h3>
+        <p>Add each new panel as you get it. We thread them together and show you which markers are drifting, and how fast. When something's trending the wrong way, we flag it early, while there's still room to act. You also get a test-request list to bring to your doctor, so every appointment starts a step ahead.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
 <section class="mock-section" id="ranges">
   <div class="section-inner">
     <div class="mock-grid">
@@ -247,7 +291,7 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
         </div>
         <div>
           <div class="mock-label">TSH (thyroid)</div>
-          <div class="mock-bar"><div class="mock-bar-fill fill-teal" style="width:65%"></div></div>
+          <div class="mock-bar"><div class="mock-bar-fill fill-sage" style="width:65%"></div></div>
           <div class="mock-note ok">2.1 mIU/L · Inside clinical (0.4 to 4.5) and functional targets (1.0 to 2.5). TSH alone doesn't show what's reaching your cells. (ATA; NIH)</div>
         </div>
         <div>
@@ -287,8 +331,8 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
           </div>
           <svg viewBox="0 0 460 300" role="img" aria-label="Ferritin trending down across three panels, from 85 in January 2024 to 60 in March 2025 to 42 in February 2026. Every value stays inside the clinical range, but the line drifts down out of the functional target band of 70 to 100 and heads toward the functionally low zone." style="width:100%;height:auto;display:block">
             <!-- functional target band -->
-            <rect x="64" y="103" width="366" height="38" fill="#E3F5EE"/>
-            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#0A6B52">Functional target 70 to 100</text>
+            <rect x="64" y="103" width="366" height="38" fill="#E3E7D3"/>
+            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#59663A">Functional target 70 to 100</text>
             <!-- functionally low zone -->
             <rect x="64" y="192" width="366" height="38" fill="#FAF0ED"/>
             <text x="68" y="206" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C5E47">Functionally low</text>
@@ -300,7 +344,7 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
             <line x1="380" y1="177" x2="426" y2="194" stroke="#D47C65" stroke-width="2" stroke-dasharray="4 4" stroke-opacity="0.5"/>
             <circle cx="426" cy="194" r="4" fill="none" stroke="#D47C65" stroke-width="1.5" stroke-opacity="0.6"/>
             <!-- data points -->
-            <circle cx="110" cy="122" r="6" fill="#0C8E6B"/>
+            <circle cx="110" cy="122" r="6" fill="#59663A"/>
             <circle cx="245" cy="154" r="6" fill="#D4A94A"/>
             <circle cx="380" cy="177" r="6" fill="#D47C65"/>
             <!-- value labels -->
@@ -312,8 +356,8 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
             <text x="245" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5545">Mar 2025</text>
             <text x="380" y="248" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10.5" fill="#6B5545">Feb 2026</text>
             <!-- status labels -->
-            <text x="110" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#0A6B52">in range</text>
-            <text x="245" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C7D30">still &#8220;normal&#8221;</text>
+            <text x="110" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#59663A">in range</text>
+            <text x="245" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#7F6527">still &#8220;normal&#8221;</text>
             <text x="380" y="264" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C5E47">still &#8220;normal&#8221;</text>
           </svg>
           <div class="mock-note low" style="margin-top:10px">Flagged "normal" on every report. Drifting toward deficiency the whole time. A single panel can't show that. We do.</div>
@@ -413,7 +457,7 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
             </div>
           </div>
           <div class="gap-cta-strip">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--teal)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="var(--olive)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             <span>We generate a test request list you can bring to your doctor</span>
           </div>
         </div>
@@ -463,6 +507,11 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
 </section>
 
 <div class="section-divider"></div>
+
+<!-- PRE-LAUNCH NOTE. OLIVE_PALETTE_V1: moved verbatim from the homepage. -->
+<section class="testimonial" id="prelaunch">
+  <blockquote>We're pre-launch. We're not going to put up testimonials we don't have yet.<br/><br/>If you're in an early group and this changes a conversation with your doctor, we'd love to tell your story here.</blockquote>
+</section>
 
 <section class="section" id="disclaimer" style="background:var(--cream)">
   <div class="section-inner" style="max-width:720px">
