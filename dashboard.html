@@ -1325,6 +1325,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-act.done .dc-base{color:var(--brown-mid)}
 .dc-closing{margin-top:16px;text-align:center;font-size:13px;color:var(--teal-dark);padding:2px 8px 4px;display:none}
 .daily-card.all-done .dc-closing{display:block}
+/* CYCLE_MOVEMENT_V1. The movement row: not a fourth action, so no tick and no row border, only a
+   dashed rule above it. Eyebrow in the .dc-label vocabulary, line in the .dc-base size, note in the
+   .dc-status size. */
+.dc-move{margin-top:12px;padding:12px 4px 2px;border-top:1px dashed var(--brown-light)}
+.dc-move-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);opacity:.75;margin-bottom:4px}
+.dc-move-line{font-size:14px;font-weight:500;color:var(--brown)}
+.dc-move-note{font-size:11px;color:var(--brown-mid);margin-top:4px}
 .comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
 .comp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
@@ -7959,29 +7966,42 @@ function dcParseYMD(s){ if(typeof s!=='string') return null; const m = s.match(/
 // FNV-1a 32-bit — stable string hash for the deterministic seed.
 function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619)>>>0; } return h>>>0; }
 
-// LOCKED phase mapping (Option A + amendments). Returns menstrual|follicular|ovulatory|
-// luteal, or null (unphased) on ANY eligibility failure. Precedence on collision:
-// menstrual > ovulatory > luteal > follicular.
-function dcResolvePhase(profile, lmpRaw){
-  if(!profile || profile.menstrual_status !== 'regular') return null;
-  const lmp = dcParseYMD(lmpRaw); if(!lmp) return null;
-  const days = Math.round((dcTodayLocalDate() - lmp) / 86400000);
-  if(!(days >= 0 && days <= 90)) return null;
-  // Blank stays blank. A missing cycle length or duration used to default to 28/5, which
-  // fabricated a phase for a woman who never answered — the same "28/5 as implicit truth"
-  // the placeholders carried. Null fails the range guards below (null >= 21 coerces to
-  // 0 >= 21, false), so she resolves as unphased rather than silently averaged.
-  let L = profile.typical_cycle_length_days; if(typeof L!=='number' || !isFinite(L)) L = null;
-  if(!(L >= 21 && L <= 35)) return null;
-  let P = profile.typical_period_duration_days; if(typeof P!=='number' || !isFinite(P)) P = null;
-  if(!(P >= 2 && P <= 8)) return null;
-  const cd = (((days % L) + L) % L) + 1;   // ((today - LMP) mod L) + 1, local dates
-  const ov = L - 14;
-  if(cd >= 1 && cd <= P) return 'menstrual';
-  if(cd >= ov-1 && cd <= ov+1) return 'ovulatory';
-  if(cd >= L-13 && cd <= L) return 'luteal';
-  return 'follicular';
+// CYCLE_MOVEMENT_V1 — the phase is no longer decided on this page. dcResolvePhase (the LOCKED
+// Option-A mapping) is SUPERSEDED by the shared module js/cycle-movement.js, byte-identical to
+// supa supabase/functions/_shared/cycle-movement.js and backend-branches
+// src/services/cycle-movement.js, so the daily card and Sana can never disagree about where she
+// is. Rulings: supa docs/cycle-movement-orient-2026-10-12.md section 7, approved 2026-10-12.
+//
+// What the module keeps from Option A: the same four flavor keys, the same boundaries for days
+// 1..L (pinned against the old function in scripts/test-cycle-movement.mjs), regular cyclers only,
+// L 21-35, P 2-8, and no 28-day guess for a missing cycle length.
+// What it changes, each by ruling:
+//   - the period date is the LATER of profiles.last_period_start_date and the report's
+//     lmp_date_before_draw (R6, the read-both step of the 0058 work), where Option A read the
+//     report's date only;
+//   - past L+7 days she gets NO phase. Option A wrapped the cycle day modulo L up to 90 days, so
+//     a date two cycles old still produced a confident phase;
+//   - pregnancy, postpartum, postmenopause, current hormonal contraception, hormone therapy,
+//     perimenopause, PCOS and an absent period all withhold the phase (R3-R5);
+//   - a missing period length defaults to 5 and is flagged (R1), where Option A withheld.
+//
+// The module is a plain ES module loaded with a dynamic import, because it must stay
+// byte-identical across three repositories and so cannot be pasted into this block. The query is
+// the first 8 hex of its sha256, so a changed module is a changed URL (the Fastly cache key) and
+// scripts/test-cycle-movement.mjs fails if the two drift. A failed load leaves every row unphased
+// and the movement row absent: the card itself never depends on it.
+const CM_SRC = '/js/cycle-movement.js?v=e832aa66';
+let __cmModule = null;
+function dcLoadCycleMovement(){
+  if(!__cmModule) __cmModule = import(CM_SRC).catch(e => { __cmModule = null; console.error('[daily_card] cycle module load failed (unphased):', e); return null; });
+  return __cmModule;
 }
+// Every column the module reads. All are read elsewhere on this page as her own row (ONB2_STORED_COLS)
+// except last_period_start_date, which the 0058 capture has written since 2026-09-20 and nothing here
+// read until now.
+const CM_PROFILE_COLS = 'menstrual_status, cycle_status, life_stage, pregnant_or_postpartum_within_6_months, ' +
+  'amenorrhea_reason, hormone_therapy_status, hormonal_contraception, on_hormonal_contraception, ' +
+  'typical_cycle_length_days, typical_period_duration_days, last_period_start_date';
 
 // Deterministic rank-weighted pick of k (A-Res weighted sampling; per-item u derived
 // from hash(seed:action_id) so it is order-independent). Rank 1 = largest weight;
@@ -8139,6 +8159,29 @@ async function dcToggle(el){
   }
 }
 
+// CYCLE_MOVEMENT_V1 — the movement row. Its text is the module's own authored copy, never model
+// prose, and it is not one of the three tickable actions.
+//   phase                 -> today's movement line, with a note that the phase is an estimate.
+//   raise_with_clinician  -> the module's gentle line, and no workout plan.
+//   log_period, cycle_length_unknown -> NOTHING YET. Their lines ask her to log a period or add a
+//     cycle length, and this page has no control that does either outside an upload. Honesty over
+//     polish: the row waits for the log-period write path (R8, held for a ruling).
+//   every other status    -> nothing, and the reason is never shown.
+function dcMoveFrom(cm){
+  if(!cm) return null;
+  if(cm.status === 'phase' && cm.movementLine) return { label: 'Movement for today', line: cm.movementLine, note: 'An estimate from the period date you gave us' };
+  if(cm.status === 'raise_with_clinician' && cm.statusLine) return { label: null, line: cm.statusLine, note: null };
+  return null;
+}
+function dcMoveHTML(mv){
+  if(!mv || !mv.line) return '';
+  return '<div class="dc-move">'
+    + (mv.label ? '<div class="dc-move-label">' + dcEsc(mv.label) + '</div>' : '')
+    + '<div class="dc-move-line">' + dcProse(mv.line) + '</div>'
+    + (mv.note ? '<div class="dc-move-note">' + dcEsc(mv.note) + '</div>' : '')
+    + '</div>';
+}
+
 function dcRenderCard(){
   const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
   const rows = __dcState.three.map(t => {
@@ -8159,6 +8202,7 @@ function dcRenderCard(){
     + '<div class="dc-titlewrap"><div class="dc-title">Today with Sana</div><div class="dc-status">Three small things you could do today</div></div>'
     + '<div class="dc-prog">0 of ' + __dcState.three.length + ' today</div></div>'
     + '<div class="dc-actions">' + rows + '</div>'
+    + dcMoveHTML(__dcState.move)
     + '<div class="dc-closing">That is all three for today, a quiet kind of progress.</div>';
   host.classList.remove('hidden');
   host.querySelectorAll('.dc-act').forEach(el => {
@@ -8196,16 +8240,23 @@ async function dcRenderDailyCard(p, reportId, late){
     }
     const three = dcSchedule(pool, reportId, rankMap);
     if(three.length === 0) return false;
-    let profile = null, lmpRaw = null;
+    const todayYMD = dcYMD(dcTodayLocalDate());
+    // CYCLE_MOVEMENT_V1: a read error leaves profile null, which the module resolves to no phase.
+    // A supabase-js error is RETURNED, not thrown, so it is checked, not left to the catch.
+    let profile = null, lmpRaw = null, cm = null;
     try{
-      const { data: prof } = await sb.from('profiles')
-        .select('menstrual_status, typical_cycle_length_days, typical_period_duration_days').eq('id', USER.id).maybeSingle();
+      const { data: prof, error: pe } = await sb.from('profiles')
+        .select(CM_PROFILE_COLS).eq('id', USER.id).maybeSingle();
+      if(pe) throw pe;
       profile = prof || null;
       const { data: rep } = await sb.from('reports').select('lmp_date_before_draw').eq('id', reportId).maybeSingle();
       lmpRaw = rep ? rep.lmp_date_before_draw : null;
-    } catch(e){ console.error('[daily_card] cycle context read failed (unphased):', e); }
-    const phase = dcResolvePhase(profile, lmpRaw);   // null -> every row unphased
-    const todayYMD = dcYMD(dcTodayLocalDate());
+    } catch(e){ console.error('[daily_card] cycle context read failed (unphased):', e); profile = null; }
+    try{
+      const mod = await dcLoadCycleMovement();
+      if(mod && profile) cm = mod.resolveCycleMovement(profile, { reportLmp: lmpRaw, today: todayYMD });
+    } catch(e){ console.error('[daily_card] cycle resolve failed (unphased):', e); cm = null; }
+    const phase = (cm && cm.status === 'phase') ? cm.dailyCardKey : null;   // null -> every row unphased
     let done = new Set();
     try{
       const { data: comps } = await sb.from('action_completions').select('action_id').eq('user_id', USER.id).eq('action_date', todayYMD);
@@ -8213,7 +8264,7 @@ async function dcRenderDailyCard(p, reportId, late){
     } catch(e){ console.error('[daily_card] completions read failed:', e); }
     const shown = new Set(three.map(a => a.action_id));
     done = new Set([...done].filter(id => shown.has(id)));   // only the three shown
-    __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done };
+    __dcState = { reportId, todayYMD, three: three.map(a => ({ action: a, phase })), done, move: dcMoveFrom(cm) };
     dcRenderCard();
     return true;
   } catch(e){
