@@ -8242,12 +8242,21 @@ function dcMoveHTML(mv){
     + '</div>';
 }
 
+// OVULATORY_SHOWS_FOLLICULAR_V1, founder ruling 2026-10-12: nothing she sees names ovulation, so
+// when the internal flavor key is ovulatory the card shows Call D's FOLLICULAR note in its place.
+// Display only: the key itself, the module and Call D are unchanged. No follicular note, no note;
+// the ovulatory note is never a fallback.
+function dcFlavorFor(pn, phase){
+  if(!phase || !pn || typeof pn !== 'object') return null;
+  const note = pn[phase === 'ovulatory' ? 'follicular' : phase];
+  return (typeof note === 'string' && note.trim()) ? note : null;
+}
+
 function dcRenderCard(){
   const host = document.getElementById('daily-card'); if(!host || !__dcState) return;
   const rows = __dcState.three.map(t => {
     const done = __dcState.done.has(t.action.action_id);
-    const pn = t.action.phase_notes;
-    const flavor = (t.phase && pn && typeof pn === 'object') ? pn[t.phase] : null;
+    const flavor = dcFlavorFor(t.action.phase_notes, t.phase);
     const label = dcMarkerLabel(t.action.priority_marker_id);
     return '<div class="dc-act' + (done ? ' done' : '') + '" data-aid="' + dcEsc(t.action.action_id) + '" role="button" tabindex="0">'
       + '<div class="dc-tick">' + DC_CHECK_SVG + '</div>'

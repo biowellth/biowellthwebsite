@@ -170,7 +170,7 @@ const REGULAR = { menstrual_status: "regular", typical_cycle_length_days: 28, ty
 
 async function render(profile, opts = {}) {
   const world = {
-    action_pool: () => ({ data: POOL, error: null }),
+    action_pool: () => ({ data: opts.pool || POOL, error: null }),
     profiles: () => (opts.profileError ? { data: null, error: { code: "42501", message: "denied" } } : { data: profile, error: null }),
     reports: () => ({ data: { lmp_date_before_draw: opts.reportLmp ?? null }, error: null }),
     action_completions: () => ({ data: [], error: null }),
@@ -200,9 +200,20 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
      "CM-W21: the profile read carries the current period date, contraception and pregnancy");
   ok(r.calls.some((c) => c.table === "reports" && /lmp_date_before_draw/.test(c.cols)), "CM-W22: and the report date is still read (read-both)");
 }
-{ // ovulation window maps to the ovulatory flavor key
+{ // OVULATORY_SHOWS_FOLLICULAR_V1: the ovulatory key keeps its name inside, and shows the FOLLICULAR note
   const r = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 13) });
-  eq(JSON.stringify(flavors(r.html)), JSON.stringify(["O note."]), "CM-W23: cd 14 shows the ovulatory flavor");
+  eq(JSON.stringify(flavors(r.html)), JSON.stringify(["F note."]), "CM-W23: cd 14 shows the follicular note in place of the ovulatory one");
+  eq(r.html.includes("O note."), false, "CM-W40: and the ovulatory note appears nowhere on the card");
+  eq(r.st.three.find((t) => t.action.action_id === "a1").phase, "ovulatory", "CM-W41: CONTROL, the internal key is still ovulatory (display only)");
+  const noF = [{ ...POOL[0], phase_notes: { menstrual: "M note.", ovulatory: "O note.", luteal: "L note." } }, POOL[1], POOL[2]];
+  const r2 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 13) }, { pool: noF });
+  eq(flavors(r2.html).length, 0, "CM-W42: no follicular note for the action, no phase note at all");
+  eq(r2.html.includes("O note."), false, "CM-W43: the ovulatory note is never the fallback");
+  const blankF = [{ ...POOL[0], phase_notes: { follicular: "  ", ovulatory: "O note." } }, POOL[1], POOL[2]];
+  const r3 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 13) }, { pool: blankF });
+  eq(flavors(r3.html).length + (r3.html.includes("O note.") ? 1 : 0), 0, "CM-W44: a blank follicular note counts as none");
+  const r4 = await render({ ...REGULAR, last_period_start_date: ymd(todayN - 20) });
+  eq(JSON.stringify(flavors(r4.html)), JSON.stringify(["L note."]), "CM-W45: CONTROL, cd 21 still shows its own luteal note");
 }
 { // current contraception: no flavor, no movement row, the card still renders
   const r = await render({ ...REGULAR, hormonal_contraception: "current", last_period_start_date: ymd(todayN - 5) });
