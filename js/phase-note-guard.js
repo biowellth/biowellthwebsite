@@ -46,11 +46,22 @@ const CONDITION_RE = /\b(thyroid|adrenal|liver|kidney|ovar(y|ies|ian)|uter(us|in
 // A body state named, or a claim that something helps or supports "your body".
 const BODY_STATE_RE = /\b(mood\w*|craving\w*|bloat\w*|cramp\w*|fatigue\w*|sluggish\w*|stress\w*|irritab\w*|sleep\w*|appetite|hunger|hormon\w*|inflamm\w*|symptom\w*|pain|painful|pms|premenstrual|digest\w*)\b|\b(help|helps|helping|support|supports|supporting)\s+your body\b/i;
 
-// ENERGY, ruled 2026-10-12: dropped only when a relief or support verb acts on it ("help with energy",
-// "boost your energy", "an energy boost", "energizing"), or beside a generalization (caught above).
-// A conditional, state-led use stays: "If your energy is low today", "when energy is lower".
+// ENERGY, ruled 2026-10-12 (two rulings). Dropped when:
+//   - a relief or support verb acts on it ("help with energy", "boost your energy", "an energy boost",
+//     "energizing"), or it sits beside a generalization (caught above);
+//   - it is attributed to a phase: an energy word in the same note as a phase reference ("this phase",
+//     "the luteal phase", "of your period", "this part of your cycle", "early in the cycle");
+//   - it is given an attributed state: "the outward energy", "slower energy", "natural energy", or a
+//     statement such as "your energy feels slower now" that is not a condition.
+// A conditional, state-led use stays: "If your energy is low today", "when energy is lower",
+// "on lower-energy days". "When iron losses are higher" names no energy and stays.
 const ENERGY_SUPPORT_RE = /\b(help|helps|helping|boost|boosts|boosting|steady|steadies|steadying|support|supports|supporting|lift|lifts|lifting|restore|restores|restoring|replenish\w*|fuel|fuels|fueling|sustain|sustains|sustaining|improve|improves|improving|increase|increases|increasing|raise|raises|raising|balance|balances|balancing)\b[^.;,!?]{0,40}\benerg/i;
 const ENERGY_NOUN_RE = /\benerg\w*[\s-]+(boost|lift)\w*|\benergi[sz]\w*/i;
+const ENERGY_WORD_RE = /\benerg(y|ies|etic)\b/i;
+const PHASE_REF_RE = /\bthis phase\b|\b(menstrual|follicular|ovulatory|luteal) phase\b|\b(of|during) your period\b|\bthis part of your cycle\b|\b(early|late) in (the|your) cycle\b/i;
+const ENERGY_ATTRIB_RE = /\b(outward|inward|slower|natural|higher|lower)\s+energ/i;
+const ENERGY_PRED_RE = /\benerg\w*\s+(is|feels|runs|seems|gets)\s+(more\s+|a little\s+|a bit\s+)?(outward|inward|slower|natural|higher|lower)\b/i;
+const ENERGY_COND_RE = /\b(if|when)\s+(your\s+)?energ/i;
 
 /** The category that drops this note, or null to keep it. Order: copy, generalization, condition, body_state, energy. */
 export function phaseNoteCategory(text) {
@@ -62,6 +73,9 @@ export function phaseNoteCategory(text) {
   if (CONDITION_RE.test(text)) return "condition";
   if (BODY_STATE_RE.test(text)) return "body_state";
   if (ENERGY_SUPPORT_RE.test(text) || ENERGY_NOUN_RE.test(text)) return "energy";
+  if (ENERGY_WORD_RE.test(text) && PHASE_REF_RE.test(text)) return "energy";
+  if (ENERGY_ATTRIB_RE.test(text)) return "energy";
+  if (ENERGY_PRED_RE.test(text) && !ENERGY_COND_RE.test(text)) return "energy";
   return null;
 }
 

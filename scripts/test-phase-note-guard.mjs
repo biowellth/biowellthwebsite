@@ -17,8 +17,8 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import vm from "node:vm";
 
-const GUARD_SHA256 = "663a758d3825dd5ce4eaeee052a16b4ce3922dce921000f91487c31af638b55f";
-const CORPUS_SHA256 = "5ef2b414865858a2ed3e3b8014d46d81a57cacff8846236f1e647a3155d09852";
+const GUARD_SHA256 = "2f643d317c78aa85c985f416eba2a3853d53c56663d449bf5937059b956dac43";
+const CORPUS_SHA256 = "a9de7e366df92fc5a2831ffaa62d244a3317069f6ca72b3f9e5b99eb1c375aa6";
 const GUARD_PATH = new URL("../js/phase-note-guard.js", import.meta.url);
 const CORPUS_PATH = new URL("./fixtures/phase-note-guard-corpus.json", import.meta.url);
 
@@ -60,6 +60,9 @@ eq(f({ follicular: CLEAN, ovulatory: FLAGGED }, "ovulatory", G), CLEAN, "PNG-W11
 eq(f({ follicular: FLAGGED, ovulatory: CLEAN }, "ovulatory", G), null, "PNG-W12: ovulatory remaps to a flagged follicular note: no note, and the ovulatory note is never the fallback");
 eq(f({ luteal: CLEAN }, "luteal", null), null, "PNG-W13: no guard (failed load), no note");
 eq(f({ luteal: CLEAN }, "luteal", {}), null, "PNG-W14: a guard without phaseNoteAllowed, no note");
+eq(f({ luteal: "A calm walk after dinner can feel grounding when energy is more inward this phase." }, "luteal", G), null, "PNG-W15: energy attributed to a phase shows no note (ruled 2026-10-12)");
+const COND = "Steaming or roasting these can make them easier to enjoy when energy is lower.";
+eq(f({ menstrual: COND }, "menstrual", G), COND, "PNG-W16: a conditional, state-led energy note is shown");
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

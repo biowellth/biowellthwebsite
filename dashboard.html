@@ -8038,7 +8038,7 @@ function dcLoadCycleMovement(){
 // prefix, the cache key). This covers the notes stored before the write-time guard existed. A failed
 // load shows NO notes: an unchecked note is the thing the guard exists to keep out. The card and its
 // actions never depend on it.
-const PNG_SRC = '/js/phase-note-guard.js?v=663a758d';
+const PNG_SRC = '/js/phase-note-guard.js?v=2f643d31';
 let __pngModule = null;
 function dcLoadPhaseNoteGuard(){
   if(!__pngModule) __pngModule = import(PNG_SRC).catch(e => { __pngModule = null; console.error('[daily_card] phase-note guard load failed (no notes shown):', e); return null; });

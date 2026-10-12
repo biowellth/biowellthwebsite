@@ -300,6 +300,57 @@
    "text": "Eggs can support steady energy all day.",
    "category": "energy",
    "source": "synthetic"
+  },
+  {
+   "text": "A sunny outdoor walk or a moment on a bench can complement the outward energy of this phase.",
+   "category": "energy",
+   "phase": "ovulatory",
+   "source": "stored",
+   "note": "ruled 2026-10-12: energy attributed to a phase"
+  },
+  {
+   "text": "A calm walk after dinner can feel grounding when energy is more inward this phase.",
+   "category": "energy",
+   "phase": "luteal",
+   "source": "stored",
+   "note": "ruled 2026-10-12: energy attributed to a phase"
+  },
+  {
+   "text": "Gentle rest and breathing can be especially grounding during the slower energy of your period.",
+   "category": "energy",
+   "phase": "menstrual",
+   "source": "stored",
+   "note": "ruled 2026-10-12: energy attributed to a phase"
+  },
+  {
+   "text": "Your energy is higher this phase, so a longer walk could suit you.",
+   "category": "energy",
+   "source": "synthetic",
+   "note": "energy attributed to a phase"
+  },
+  {
+   "text": "Energy runs lower during your period, so keep things gentle.",
+   "category": "energy",
+   "source": "synthetic",
+   "note": "energy attributed to a phase"
+  },
+  {
+   "text": "Lean into the natural energy you have early in the cycle.",
+   "category": "energy",
+   "source": "synthetic",
+   "note": "attributed state and a phase reference"
+  },
+  {
+   "text": "A brisk walk suits the outward energy you have right now.",
+   "category": "energy",
+   "source": "synthetic",
+   "note": "attributed state, no phase reference"
+  },
+  {
+   "text": "Your energy feels slower now, so a short stretch is plenty.",
+   "category": "energy",
+   "source": "synthetic",
+   "note": "attributed state as a statement, not a condition"
   }
  ],
  "must_keep": [
@@ -419,12 +470,6 @@
    "source": "stored"
   },
   {
-   "text": "A sunny outdoor walk or a moment on a bench can complement the outward energy of this phase.",
-   "phase": "ovulatory",
-   "source": "stored",
-   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
-  },
-  {
    "text": "Warm iron-rich dishes like lentil soup with a squeeze of lemon are a cozy option now.",
    "phase": "luteal",
    "source": "stored"
@@ -433,7 +478,7 @@
    "text": "This pairing is especially worth prioritizing during your period when iron losses are higher.",
    "phase": "menstrual",
    "source": "stored",
-   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
+   "note": "ruled 2026-10-12: names no energy, stays kept"
   },
   {
    "text": "A colorful meal with greens and a citrus dressing is a lovely way to keep this up.",
@@ -446,21 +491,9 @@
    "source": "stored"
   },
   {
-   "text": "A calm walk after dinner can feel grounding when energy is more inward this phase.",
-   "phase": "luteal",
-   "source": "stored",
-   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
-  },
-  {
    "text": "A gentle post-meal stroll is always enough, no need to push during lower-energy days.",
    "phase": "menstrual",
    "source": "stored"
-  },
-  {
-   "text": "Gentle rest and breathing can be especially grounding during the slower energy of your period.",
-   "phase": "menstrual",
-   "source": "stored",
-   "note": "borderline, kept by the 2026-10-12 energy ruling (no relief or support verb acts on energy, no generalization)"
   },
   {
    "text": "A gentle walk or light stretching is plenty, no need to push hard right now.",
@@ -496,6 +529,26 @@
    "text": "Drizzle the greens with lemon and olive oil.",
    "source": "synthetic",
    "note": "control: plain food line"
+  },
+  {
+   "text": "When your energy is lower, a short stretch is plenty.",
+   "source": "synthetic",
+   "note": "energy ruling 2026-10-12: conditional, state-led"
+  },
+  {
+   "text": "If you feel energetic today, a longer walk could suit you.",
+   "source": "synthetic",
+   "note": "energy ruling 2026-10-12: conditional, state-led (energetic)"
+  },
+  {
+   "text": "Save the longer walk for a higher-energy day.",
+   "source": "synthetic",
+   "note": "energy ruling 2026-10-12: a day she names, not a phase"
+  },
+  {
+   "text": "If your energy is low after a long work period, a short walk still counts.",
+   "source": "synthetic",
+   "note": "energy ruling 2026-10-12: a period that is not her period is not a phase reference"
   }
  ]
 }
