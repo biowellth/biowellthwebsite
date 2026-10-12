@@ -2680,7 +2680,8 @@ async function loadProfile(){
 /* ACCESS_COHORTS_V1 — free days left, and the calm state when they are gone.
  *
  * READ, NEVER DERIVED. The state comes from bw_my_entitlement (migration 0073), which computes it
- * server-side from her own profile. Nothing here re-implements the rules, so the line she reads and
+ * server-side from her user_access row (corrected 2026-10-12: this said "her own profile"; 0073 was
+ * revised before apply to keep entitlement out of profiles). Nothing here re-implements the rules, so the line she reads and
  * the refusal process-report makes cannot disagree.
  *
  * UNKNOWN MEANS SAY NOTHING AND BLOCK NOTHING. A failed or missing read (including the window
@@ -2689,11 +2690,14 @@ async function loadProfile(){
  * page never invents a block it cannot prove.
  *
  * PLACEHOLDER COPY. Every string below is a placeholder pending sign-off, written to the tone rules
- * (no colons, no em dashes). The two ended strings are the brief's text verbatim.
- * "Your founding price is saved for you" promises something no system yet records. */
+ * (no colons, no em dashes). The ended strings and the 402 strings are the 2026-10-12 brief's text
+ * verbatim. (Superseded the same day: the first early_access string said "Your founding price is
+ * saved for you", a promise no system records. The revision says she will be OFFERED one, which is
+ * still a commitment and still needs sign-off.) The early_access ended copy carries no "has ended"
+ * sentence of its own, so its first sentence stands as the heading; the top bar line says it ended. */
 let ENTITLEMENT = null;
 const ACCESS_ENDED_COPY = {   // PLACEHOLDER
-  early_access: ["Your founding access has ended.", "Your past reports are still here. Your founding price is saved for you."],
+  early_access: ["Your past reports are still here.", "As a founding member, you'll be offered a founding price to continue."],
   standard:     ["Your free trial has ended.", "Your past reports are still here."],
 };
 function accessLineText(ent){   // PLACEHOLDER copy
@@ -4498,11 +4502,14 @@ async function handleFile(file){
       return;                       // never poll: there is nothing queued to poll for
     }
     // ACCESS_COHORTS_V1 — 402, her free period ended between the preflight and the server check.
-    // process-report has already discarded this upload, so nothing is queued and nothing is kept.
-    // Re-read so the top bar line agrees, then show the same calm state the upload card shows.
+    // Nothing is queued. process-report tries to discard the upload and says whether it managed
+    // (`discarded`); "Nothing from this upload was kept" is shown only when it says true, so a
+    // failed cleanup or an unreadable body never makes that sentence a false claim.
+    // Re-read so the top bar line agrees.
     if(__prRes && pcIsEntitlementRefusal(__prRes.error)){
+      const __discarded = await pcEntitlementDiscarded(__prRes.error);
       await loadEntitlement();
-      pcRenderAccessEnded(ENTITLEMENT && ENTITLEMENT.cohort);
+      pcRenderAccessEnded(__discarded);
       showView("processing");
       return;                       // never poll: nothing was enqueued
     }
@@ -4737,11 +4744,33 @@ function pcIsEntitlementRefusal(error){
     return !!(res && res.status === 402);
   }catch(_){ return false; }
 }
-function pcRenderAccessEnded(cohort){
+// PLACEHOLDER copy (2026-10-12 brief, verbatim). Mirrors process-report's expiredMessage().
+const ACCESS_402_COPY = "We couldn't add this report because your free access has ended.";
+const ACCESS_402_DISCARDED = "Nothing from this upload was kept.";
+// true ONLY when the 402 body says so. The body is read off the Response on error.context; any
+// failure to read it (already consumed, not JSON, no context) is false, the honest default.
+async function pcEntitlementDiscarded(error){
+  try{
+    const res = error && error.context;
+    if(!res || typeof res.json !== "function") return false;
+    const body = await res.clone().json();
+    return !!(body && body.discarded === true);
+  }catch(_){ return false; }
+}
+function pcRenderAccessEnded(discarded){
   const v = $("view-processing");
   if(!v) return;
   if(__pcProcMarkup === null) __pcProcMarkup = v.innerHTML;
-  v.innerHTML = '<div class="pc-quota">' + accessEndedMarkup(cohort, !!window.__rdPayload) + '</div>';
+  v.innerHTML = '<div class="pc-quota">' +
+      '<div class="pc-quota-icon">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+          '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' +
+        '</svg>' +
+      '</div>' +
+      '<h1>' + esc(ACCESS_402_COPY) + '</h1>' +
+      (discarded === true ? '<p>' + esc(ACCESS_402_DISCARDED) + '</p>' : '') +
+      (window.__rdPayload ? '<div class="pc-quota-actions"><button class="pc-btn-quiet" id="access-ended-back" type="button">Back to my reports</button></div>' : '') +
+    '</div>';
   const b = $("access-ended-back");
   if(b) b.onclick = ()=>{ pcRestoreProcessing(); showView("dashboard"); };
 }

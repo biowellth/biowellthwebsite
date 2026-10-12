@@ -64,12 +64,33 @@ eq(accessLineText(E("trial_active", "standard", { days_left: null })), "", "acti
 
 console.log("BEHAVIOUR, the ended state differs by cohort");
 const ea = accessEndedMarkup("early_access", false), st = accessEndedMarkup("standard", true);
-ok(ea.includes("Your founding access has ended.") && ea.includes("Your past reports are still here. Your founding price is saved for you."), "EA ended copy verbatim");
+ok(ea.includes("<h1>Your past reports are still here.</h1>") && ea.includes("<p>As a founding member, you'll be offered a founding price to continue.</p>"), "EA ended copy verbatim (2026-10-12 brief)");
+ok(!ea.includes("saved for you"), "EA superseded 'founding price is saved' promise is gone");
 ok(!ea.includes("free trial"), "EA copy never says free trial");
 ok(st.includes("Your free trial has ended.") && st.includes("Your past reports are still here."), "STD ended copy verbatim");
 ok(!st.includes("founding"), "STD copy never mentions founding");
 ok(!ea.includes("access-ended-back") && st.includes("access-ended-back"), "Back control only when a panel is on screen");
 eq(accessEndedMarkup(null, false), accessEndedMarkup("standard", false), "unknown cohort falls back to the standard copy, never the founding promise");
+
+console.log("BEHAVIOUR, the 402 render says 'nothing was kept' ONLY when the server says so");
+{
+  const view = { innerHTML: "" };
+  const g = vm.createContext({ window: {}, $: (id) => (id === "view-processing" ? view : null), __pcProcMarkup: null });
+  vm.runInContext("var __pcProcMarkup = null;\n" + extract("esc") + "\n" +
+    HTML.slice(HTML.indexOf("const ACCESS_402_COPY = "), HTML.indexOf("function pcRenderAccessEnded(")) +
+    extract("pcRenderAccessEnded") + "\nthis.render = pcRenderAccessEnded; this.discarded = pcEntitlementDiscarded;", g);
+  const H = "We couldn't add this report because your free access has ended.", K = "Nothing from this upload was kept.";
+  g.render(true);  ok(view.innerHTML.includes(H) && view.innerHTML.includes(K), "discarded true: both sentences");
+  g.render(false); ok(view.innerHTML.includes(H) && !view.innerHTML.includes(K), "discarded false: no 'nothing was kept' claim");
+  g.render(undefined); ok(!view.innerHTML.includes(K), "discarded unknown: no claim");
+  for (const t of [H, K]) ok(!/[:\u2014\u2013]/.test(t), "tone ok: " + t);
+  const resp = (body) => ({ context: { clone() { return this; }, json: async () => body } });
+  eq(await g.discarded(resp({ discarded: true })), true, "body discarded:true reads true");
+  eq(await g.discarded(resp({ discarded: false })), false, "body discarded:false reads false");
+  eq(await g.discarded(resp({})), false, "missing flag reads false");
+  eq(await g.discarded({ context: { clone() { return this; }, json: async () => { throw new Error("used"); } } }), false, "unreadable body reads false");
+  eq(await g.discarded(null), false, "no error reads false");
+}
 
 console.log("BEHAVIOUR, 402 detection");
 eq(pcIsEntitlementRefusal({ context: { status: 402 } }), true, "402 is an entitlement refusal");
@@ -98,7 +119,9 @@ console.log("SHAPE, the 402 branch");
 const b402 = HF.indexOf("pcIsEntitlementRefusal(__prRes.error)");
 ok(b402 > 0, "upload path checks for 402");
 const after = HF.slice(b402, HF.indexOf("return;", b402));
-ok(after.includes("pcRenderAccessEnded(") && after.includes('showView("processing")'), "402 renders the ended state");
+ok(after.includes("pcRenderAccessEnded(__discarded)") && after.includes('showView("processing")'), "402 renders the 402 state");
+ok(after.indexOf("pcEntitlementDiscarded(__prRes.error)") >= 0 && after.indexOf("pcEntitlementDiscarded(") < after.indexOf("pcRenderAccessEnded("),
+  "the discarded flag is read from the response before rendering");
 ok(HF.indexOf("return;", b402) < HF.indexOf("pollForResult(reportId)"), "402 returns before any poll");
 ok(b402 > HF.indexOf("pcIsQuotaRefusal(__prRes.error)") && b402 < HF.indexOf("if(__prThrew || !__prRes || __prRes.error)"),
   "402 sits between the quota branch and the generic failure branch");
