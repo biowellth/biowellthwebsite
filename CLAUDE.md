@@ -233,7 +233,7 @@ Every file the first session had touched reverted on disk underneath it, its tes
 read as deleted, and only the reflog showed why. Nothing was lost, and that was luck rather than
 design.
 
-**Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page.
+**Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page. The marketing pages (`index.html`, `science.html`, `privacy.html`, `terms.html`) now use the olive and coral palette (`--olive`, `--sage` families, `--cream #F8F2EC`), while the app pages keep their original tokens.
 
 **`mocks/`** holds standalone single-file mocks named after the change token (`mocks/quota-429.html`, `mocks/processing-copy.html`). Each copies the live classes out of `dashboard.html` and renders every state of a screen side by side for review before the change is wired into the app. The directory is untracked working material — build a mock here first for anything that changes what a user sees in a hard-to-reach state (a failure, a quota block, a long-running job).
 ## Closed: the three login.html defects, FIXED 2026-09-07
