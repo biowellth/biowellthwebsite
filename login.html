@@ -7,13 +7,20 @@
 <title>BioWellth · Early access</title>
 <!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" href="/favicon.ico?v=olive1"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- LOGIN_PALETTE_V1: index.html's font link, Fraunces plus Instrument Sans. Plus Jakarta Sans (only .brand-name and h1)
+     and JetBrains Mono (used by nothing) are no longer loaded. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --cream:#FAF8F4; --cream-mid:#F2EDE3;
-  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  /* LOGIN_PALETTE_V1: onto index.html's OLIVE_PALETTE_V1 tokens. --cream was #FAF8F4 and --brown-mid #6B5047;
+     both now take index's values (--cream, --ink-muted). The four --teal tokens (#0C8E6B, #097A5B, #E3F5EE,
+     #F0F9F5) are deleted: nothing references them any more. .msg.err keeps its coral, unchanged. */
+  --cream:#F8F2EC; --cream-mid:#F2EDE3;
+  --olive:#59663A; --olive-dark:#4A5530; --sage:#8C9A5B; --sage-soft:#E3E7D3; --sage-pale:#F2F4EA;
+  --coral-deep-text:#8E5340; --ink-hover:#2F241C;
+  --serif:'Fraunces',Georgia,serif;
   --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;
-  --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB;
+  --brown:#47372B; --brown-mid:#6B5545; --brown-light:#EDE4DA; --brown-soft:#F7F2EB;
   --white:#FFFFFF;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -24,31 +31,41 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 /* LOGIN_BRAND_MARK_V1: was a 34px rounded square (radius 9px) with a teal gradient and a white "B" in
    Plus Jakarta 16px/700, a placeholder. Now the real mark, the same paths as the BRAND_MARK_HEADER_V1
    headers and dashboard.html's #bw-mark, in brown. .brand's align-items centres it on the name. */
-.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
+.brand-name{font-family:var(--serif);font-size:21px;font-weight:500;color:var(--brown);letter-spacing:-0.01em}
+/* LOGIN_PALETTE_V1: was Plus Jakarta 18px/700, -0.02em. Now index.html's .brand: Fraunces 21px/500, -0.01em. */
 .card{background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:36px 32px;box-shadow:0 30px 80px -20px rgba(71,55,43,0.12)}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
-.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal)}
-h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--brown);letter-spacing:-0.03em;line-height:1.2;margin-bottom:8px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--olive);font-weight:700;background:var(--sage-soft);padding:6px 14px;border-radius:100px;margin-bottom:20px}
+.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--sage)}
+/* LOGIN_PALETTE_V1: the eyebrow was --teal-dark on --teal-light with a --teal dot; now --olive on --sage-soft with a --sage dot. */
+h1{font-family:var(--serif);font-size:30px;font-weight:500;color:var(--brown);letter-spacing:-0.01em;line-height:1.15;margin-bottom:8px}
+/* LOGIN_PALETTE_V1: was Plus Jakarta 24px/700 at -0.03em. Fraunces sets smaller for the same size, so 30px/500 carries
+   the same weight on the card, at index's -0.01em. */
+@media(max-width:420px){h1{font-size:26px}}  /* LOGIN_PALETTE_V1: keeps "Create your account" on one line at phone width */
 .sub{font-size:14px;color:var(--brown-mid);line-height:1.65;margin-bottom:26px}
 label{display:block;font-size:13px;font-weight:600;color:var(--brown);margin-bottom:7px;margin-top:16px}
 label:first-of-type{margin-top:0}
 input{width:100%;font-family:inherit;font-size:16px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:11px;padding:12px 14px;transition:border-color .15s,background .15s}
-input:focus{outline:none;border-color:var(--teal);background:var(--white)}
-.btn{width:100%;margin-top:24px;background:var(--teal);color:var(--white);font-family:inherit;font-size:15px;font-weight:600;padding:14px;border:none;border-radius:100px;cursor:pointer;transition:background .2s,transform .12s}
-.btn:hover{background:var(--teal-dark);transform:translateY(-1px)}
+input:focus{outline:none;border-color:var(--olive);background:var(--white);box-shadow:0 0 0 3px rgba(89,102,58,.15)}
+/* LOGIN_PALETTE_V1: the focus border was --teal; now --olive plus a soft olive ring, so focus stays clearly visible. */
+.btn{width:100%;margin-top:24px;background:var(--brown);color:var(--cream);font-family:inherit;font-size:15px;font-weight:600;padding:14px;border:none;border-radius:100px;cursor:pointer;transition:background .2s,transform .12s}
+.btn:hover{background:var(--ink-hover);transform:translateY(-1px)}
+/* LOGIN_PALETTE_V1: the button was --teal with white text and a --teal-dark hover. Now the ink pill the homepage's
+   "Join the waitlist" and the dashboard's "See what changed" use: --brown with --cream text, a darker ink on hover.
+   Size, radius and the disabled state are unchanged. */
 .btn:active{transform:translateY(0)}
 .btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .toggle{text-align:center;font-size:14px;color:var(--brown-mid);margin-top:22px}
-.toggle a{color:var(--teal);font-weight:600;text-decoration:none;cursor:pointer}
+.toggle a{color:var(--coral-deep-text);font-weight:600;text-decoration:none;cursor:pointer}
 .toggle a:hover{text-decoration:underline}
 .msg{font-size:14px;line-height:1.55;border-radius:11px;padding:12px 14px;margin-top:18px;display:none}
 .msg.err{display:block;background:var(--coral-light);color:var(--coral-dark);border:1px solid #EAC9BF}
-.msg.ok{display:block;background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal-soft)}
+.msg.ok{display:block;background:var(--sage-pale);color:var(--olive-dark);border:1px solid var(--sage-soft)}
+/* LOGIN_PALETTE_V1: .toggle a was --teal, now --coral-deep-text. .msg.ok was teal on teal, now --olive-dark on --sage-pale. */
 /* AGE_AFFIRM_V1 — ported verbatim from dashboard.html .consent-row so the affirmation
    looks like the consent tick she already knows. label:first-of-type resets margin-top
    on the name field, so .consent-row sets its own. */
 .consent-row{display:flex;align-items:flex-start;gap:10px;text-align:left;font-size:13px;color:var(--brown-mid);line-height:1.6;margin-top:22px;margin-bottom:0;cursor:pointer;font-weight:400}
-.consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--teal);cursor:pointer}
+.consent-row input{margin-top:3px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--olive);cursor:pointer}  /* LOGIN_PALETTE_V1: was --teal */
 .consent-row b{display:block;color:var(--brown);font-weight:600}
 .foot{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:22px;line-height:1.6}
 .foot a{color:var(--brown-mid);text-decoration:underline}
