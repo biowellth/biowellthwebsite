@@ -10336,6 +10336,34 @@ async function onb2ResumeChip(){
 // /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
 // at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
 const SANA_CHAT_ENABLED = true;
+// SANA_LIVE_COPY_V1, 2026-10-13. THE "ARRIVING SOON" BADGE GOES AT BOOT WHILE SANA IS LIVE.
+// Until now the only code that removed #companion .comp-badge was sanaMountChat, on its first
+// mount. That covers every woman with a panel, because renderDashboard always reaches the mount
+// before the dashboard is shown. It does NOT cover a dashboard shown WITHOUT renderDashboard: a
+// first upload that fails, for a woman with no date of birth on file (so the no-panel chat never
+// mounted either), offers "Go to my dashboard", and that shows the static markup, badge included.
+// She was told Sana is arriving soon while Sana was live.
+//
+// So the badge is removed here, once, as the script loads, whenever the flag is on. This runs at
+// top level, after the markup is parsed (the app script sits at the end of body), and does not
+// depend on any boot path, session or payload.
+//
+// WHAT IS DELIBERATELY KEPT. The markup still ships the badge and sanaMountChat still removes it,
+// unchanged. With SANA_CHAT_ENABLED false this block does nothing, so the badge shows exactly as it
+// did before the chat went live, which is the true statement in that state. Pinned by
+// scripts/test-sana-badge.mjs in both states.
+//
+// IT CANNOT THROW. This is top-level code in the one app script, so an exception here would stop
+// every definition below it from ever existing. A cosmetic badge must never be why the app does
+// not load. Measured: the first cut called .remove() bare, and the node:vm suites, whose stub
+// querySelector returns an element with no remove method, went red at boot (cycle-card,
+// cycle-movement, tester-gate). The guard and the try keep a missing or odd node a no-op.
+if(SANA_CHAT_ENABLED){
+  try{
+    const liveBadge = document.querySelector("#companion .comp-badge");
+    if(liveBadge && typeof liveBadge.remove === "function") liveBadge.remove();
+  }catch(_e){}
+}
 // SANA_SINGLE_MOUNT_V1. sanaSend resolves sana-input, sana-thread and sana-send
 // with getElementById, which returns the FIRST match, so two live mounts would
 // reproduce the defect recorded at SANA_TURN_IDENTITY_V1. The per node
