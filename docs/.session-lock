@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-13T07:04:22Z
+scope: priority-heading-v1 branch only. PRIORITY_HEADING_V1 rename of the #prios-wrap section label in dashboard.html plus tests that pin the string. No push to main.
+repos: biowellth-website
