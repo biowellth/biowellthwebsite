@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-13T12:09:26Z
+scope: hero-on-base-v1 only. HERO_ON_BASE_V1 hero onto the page background in dashboard.html (CSS only) plus a new test in scripts/. Held for the whole session across branches hero-on-base-v1 and favicon-olive-v1. No push to main.
+repos: biowellth-website
