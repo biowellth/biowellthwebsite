@@ -2052,7 +2052,11 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 #view-dashboard .report-note{background:rgba(255,255,255,.62);border:1px solid var(--glass-edge);border-radius:18px;color:var(--ink-muted)}
 
 /* ── 7. ESCALATED BESIDE QUIET ──────────────────────────────────────────────────────────────── */
-#view-dashboard .v2-pair{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:stretch;margin-top:44px}
+/* align-items was stretch, so both cards took the height of the taller one. CORRECTED in the
+   DASHBOARD_V2_DESIGN follow-up on PR #6: the olive quiet block is nearly always the taller, and
+   stretch left "Worth keeping an eye on" as a mostly empty card under one short correction. Each
+   card is now top-aligned and only as tall as its content. The 900px rule below still stacks them. */
+#view-dashboard .v2-pair{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:start;margin-top:44px}
 #view-dashboard .v2-pair:not(:has(> :not(.hidden))){display:none}
 #view-dashboard .v2-pair > #quiet-wrap:only-of-type,#view-dashboard .v2-pair:has(> #escalated-wrap.hidden) > #quiet-wrap{grid-column:1/-1}
 #view-dashboard .v2-pair:has(> #quiet-wrap.hidden) > #escalated-wrap{grid-column:1/-1}
