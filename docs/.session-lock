@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-13T03:51:34Z
+scope: sana-live-copy-v1 branch only. Boot-time removal of the Arriving soon badge when SANA_CHAT_ENABLED; new scripts/test-sana-badge.mjs. No push to main.
+repos: biowellth-website
