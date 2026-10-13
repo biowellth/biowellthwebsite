@@ -218,7 +218,28 @@ const driver = (payload) => `<script>
     res.deckPh = deck ? [...deck.querySelectorAll(".prio-card .ph")].map(e => e.textContent.trim()) : [];
   } catch (e) { res.deckThrew = e.message; }
   const dash = document.getElementById("view-dashboard");
-  res.dashHtml = dash ? dash.innerHTML : "";
+  // DASHBOARD_V2_DESIGN (2026-10-13) changed the dashboard markup on purpose. Mapped back here, on a
+  // CLONE, and ONLY those changes, so every pre-existing node and every rendered byte is still
+  // compared below (whitespace between tags is normalised in the comparison, see EP-27):
+  //   - the v2 nodes it ADDED are removed: everything carrying a v2- class (orb, eyebrow, greeting,
+  //     the two hero buttons) and #comp-online, plus the DASHBOARD_V2_DESIGN comments;
+  //   - the .v2-pair wrapper is unwrapped, its two children kept in place;
+  //   - the two blocks it MOVED go back: #escalated-wrap before #ddc-home, #rail-systems before
+  //     #rail-browse.
+  // Against the BEFORE build every one of these is a no-op, because none of those nodes exist there.
+  const restore = (root) => {
+    const c = root.cloneNode(true);
+    c.querySelectorAll('[class*="v2-"]:not(.v2-pair), #comp-online').forEach(n => n.remove());
+    c.querySelectorAll(".v2-pair").forEach(w => { while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.remove(); });
+    const tw = document.createTreeWalker(c, NodeFilter.SHOW_COMMENT); const drop = [];
+    while (tw.nextNode()) if (tw.currentNode.nodeValue.indexOf("DASHBOARD_V2_DESIGN") !== -1) drop.push(tw.currentNode);
+    drop.forEach(n => n.remove());
+    const q = (sel) => c.querySelector(sel);
+    if (q("#escalated-wrap") && q("#ddc-home")) q("#ddc-home").parentNode.insertBefore(q("#escalated-wrap"), q("#ddc-home"));
+    if (q("#rail-systems") && q("#rail-browse")) q("#rail-browse").parentNode.insertBefore(q("#rail-systems"), q("#rail-browse"));
+    return c.innerHTML;
+  };
+  res.dashHtml = dash ? restore(dash) : "";
   res.errs = window.__errs;
   window.__result = res; window.__done = true;
 })();
@@ -389,6 +410,13 @@ else {
         }
       }
     }
+    // DASHBOARD_V2_DESIGN: on the dashboard surface only, whitespace BETWEEN tags is collapsed on
+    // both sides before hashing. Moving and unwrapping blocks (mapped back in the driver) leaves the
+    // source indentation around them different, and that indentation is not rendered content.
+    // Text inside elements is untouched.
+    const ws = (h) => String(h || "").replace(/>\s+</g, "><").trim();
+    if (B.dashHtml) B.dashHtml = ws(B.dashHtml);
+    if (CTL.dashHtml) CTL.dashHtml = ws(CTL.dashHtml);
     for (const [label, key] of surfaces) {
       const a = md5(B[key] || ""), b = md5(CTL[key] || "");
       ok((B[key] || "").length > 0, "EP-26." + label + " CONTROL: the BEFORE surface is non-empty  (" + (B[key] || "").length + " chars)");

@@ -1183,8 +1183,11 @@ ok("W2 zone control: a clamped dot still leaves every zone exactly where it was"
 
 // THE PALETTE, EXACT. Two of the eight already existed as tokens and are reused rather than
 // duplicated: --brown is the dot's ink and --white is the ring.
-for (const [name, hex] of [["--band-track", "#EFE9E1"], ["--band-green", "#9CCFB8"],
-  ["--band-green-ink", "#0A6B51"], ["--band-amber", "#EFD49A"], ["--band-amber-ink", "#8A6520"],
+// DASHBOARD_V2_DESIGN, 2026-10-13: the green pair moved at the founder's direction, from teal
+// #9CCFB8 / #0A6B51 to sage #C9D1A9 / olive-dark #4A5530. The assertion moved with it rather than
+// being dropped; the other five values are unchanged, and the control below pins the old teal out.
+for (const [name, hex] of [["--band-track", "#EFE9E1"], ["--band-green", "#C9D1A9"],
+  ["--band-green-ink", "#4A5530"], ["--band-amber", "#EFD49A"], ["--band-amber-ink", "#8A6520"],
   ["--band-coral", "#E8B4A2"], ["--band-coral-ink", "#9C4A32"]]) {
   ok("palette: " + name + " is " + hex, RAW.includes(name + ":" + hex));
 }
@@ -1192,6 +1195,8 @@ ok("the dot reuses the EXISTING --brown token, which already holds #47372B",
   /--brown:#47372B/.test(RAW) && /\.mk-band-dot\{[^}]*background:var\(--brown\)/.test(RAW));
 ok("palette control: a hex that is NOT in the ratified palette is absent",
   !RAW.includes("--band-green:#B8E4D4"));
+ok("palette control: the retired teal green is gone from the declaration",
+  !RAW.includes("--band-green:#9CCFB8") && !RAW.includes("--band-green-ink:#0A6B51"));
 eq("no second palette: each band token is declared exactly once",
   (RAW.match(/--band-green:#/g) || []).length, 1);
 

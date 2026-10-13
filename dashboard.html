@@ -8,7 +8,8 @@
 <!-- SANA_V1 companion + home surface identity -->
 
 <link rel="icon" href="/favicon.ico"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- DASHBOARD_V2_DESIGN: Fraunces added for the dashboard's headings, numbers and Sana's read. The other three families stay, because the other views still set them. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
@@ -21,7 +22,11 @@
   /* MARKER_BAND_V3 band palette, ratified. Six values that exist nowhere else in this
      file; the dot reuses --brown and its ring reuses --white, which already hold them. */
   --band-track:#EFE9E1;
-  --band-green:#9CCFB8; --band-green-ink:#0A6B51;
+  /* DASHBOARD_V2_DESIGN, 2026-10-13: the green pair CHANGED at the founder's direction, from
+     #9CCFB8 / #0A6B51 (teal) to sage #C9D1A9 / olive-dark #4A5530, so "Looks good" reads in the
+     olive palette everywhere the band draws. The amber and coral pairs are unchanged. The
+     palette assertion in scripts/test-band-nav-centring.mjs moved with these two values. */
+  --band-green:#C9D1A9; --band-green-ink:#4A5530;
   --band-amber:#EFD49A; --band-amber-ink:#8A6520;
   --band-coral:#E8B4A2; --band-coral-ink:#9C4A32;
   /* THE DOT'S DIAMETER, NAMED ONCE so the clamp that keeps it on the track can be derived
@@ -1333,9 +1338,14 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-move-line{font-size:14px;font-weight:500;color:var(--brown)}
 /* CYCLE_CARD_V1. Built from mocks/cycle-card.html, with the 2026-10-12 rulings: the module's four
    phase labels only (no ovulation state), the module's own lines, site amber. Two hosts, one
-   render: the rail host above 960px, the main-column host (after Sana) at 960px and below. */
-.cy-host-main{display:none}
-@media(max-width:960px){ .cy-host-rail{display:none} .cy-host-main:not(.hidden){display:block;margin-top:16px} }
+   render: the rail host above 960px, the main-column host (after Sana) at 960px and below.
+   SUPERSEDED BY DASHBOARD_V2_DESIGN, 2026-10-13. The v2 dashboard is ONE column at every width, so
+   the card sits immediately after Sana everywhere and the desktop rail placement is retired. The
+   two hosts and the one render are unchanged: the rail host is simply never displayed, and the
+   main host is displayed whenever cyPaint has filled it. Same two rules at every width now, where
+   they used to apply only at 960px and below. */
+.cy-host-rail{display:none}
+.cy-host-main:not(.hidden){display:block;margin-top:16px}
 .cy-card{background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:20px 22px}
 .cy-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid)}
 .cy-day{display:flex;align-items:baseline;gap:8px;margin-top:10px}
@@ -1759,6 +1769,407 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .tg-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--brown-light);display:flex;flex-wrap:wrap;gap:8px;
   align-items:center;justify-content:center;font-size:11.5px;color:var(--brown-mid)}
 .tg-sha{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);opacity:.75;letter-spacing:.02em}
+/* ─────────────────────────────────────────────────────────────────────────────────────────────
+   DASHBOARD_V2_DESIGN, 2026-10-13. The approved "Sana-centred" v2 dashboard, in the marketing
+   site's olive and coral palette.
+
+   WHAT THIS BLOCK IS. Presentation only. Every rule is scoped to #view-dashboard, or to the top
+   bar while #view-dashboard is the visible view, so the upload, processing, reveal, companion and
+   overlay views render exactly as before. It sits LAST in the stylesheet and leads with the id, so
+   it wins over the rules above without editing them; those rules stay as the record of what the
+   page looked like and why, and they still style every other view.
+
+   THE PALETTE SWAP IS DONE BY RE-POINTING TOKENS, not by rewriting rules. Inside the view, every
+   teal-role token resolves to its olive or sage counterpart (text and marks to --olive, fills to
+   --sage, tints to --sage-soft and --sage-pale), so the ~170 existing var(--teal...) references
+   inside the dashboard turn olive with no edit, and the same references in other views stay teal.
+   The names are left as they are on purpose for now: renaming them is a whole-file change across
+   views this commit does not touch. Hard-coded teal and dark-hero values that a token cannot
+   reach (inline colours written by renderers, rgba() literals) are overridden one by one below,
+   and the PR's computed-colour sweep is the check that none was missed.
+
+   STATUS COLOURS. "Looks good" is sage, "Worth watching" stays amber, "Worth a closer look" is
+   coral. Fills use the base tones; any text in a status colour uses the darker ink of that tone so
+   it clears 4.5:1 (coral text is #8E5340, never --coral).
+
+   MOTION. Fade-up, the band draw-in and the orb's breathing all live inside
+   @media(prefers-reduced-motion:no-preference), so with reduced motion on nothing moves.
+   ───────────────────────────────────────────────────────────────────────────────────────────── */
+#view-dashboard{
+  --cream:#F8F2EC; --card:#FBFAF9; --beige:#F7EFE9; --ink:#47372B; --ink-muted:#6B5545;
+  --coral:#D47C65; --coral-deep:#9C5E47; --coral-ink:#8E5340; --coral-soft:#F5DCD6; --coral-pale:#FCF3EE;
+  --olive:#59663A; --olive-dark:#4A5530; --sage:#8C9A5B; --sage-mid:#B5C08E; --sage-soft:#E3E7D3; --sage-pale:#F2F4EA;
+  --amber-ink:#8A6520;
+  /* teal roles, re-pointed inside this view only */
+  --teal:var(--olive); --teal-dark:var(--olive-dark); --teal-mid:var(--sage-mid);
+  --teal-light:var(--sage-soft); --teal-soft:var(--sage-pale);
+  /* the old app tokens this view leans on, moved onto the v2 values */
+  --brown:var(--ink); --brown-mid:var(--ink-muted); --brown-light:#EADFD4; --brown-soft:var(--beige); --cream-mid:#F1E7DD;
+  --coral-light:var(--coral-pale); --coral-dark:var(--coral-ink);
+  --glass:rgba(251,250,249,.7); --glass-edge:rgba(255,255,255,.85);
+  --v2-shadow:0 22px 50px -30px rgba(156,94,71,.35),0 1px 2px rgba(71,55,43,.04);
+  --serif:'Fraunces',Georgia,serif; --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+}
+/* One type system inside the view. Plus Jakarta Sans and JetBrains Mono are replaced here (no test
+   pins either inside the dashboard); Fraunces is reapplied below where the design calls for it. */
+#view-dashboard, #view-dashboard *{font-family:var(--sans)}
+
+/* The page behind the dashboard: warmer cream, a wider column and two soft colour fields so the
+   glass has something to blur. Scoped with :has, so other views keep the old background. */
+body:has(#view-dashboard:not(.hidden)){background:#F8F2EC;
+  background-image:radial-gradient(60% 45% at 92% 6%,rgba(245,220,214,.75),rgba(245,220,214,0) 70%),
+                   radial-gradient(50% 40% at 0% 38%,rgba(227,231,211,.7),rgba(227,231,211,0) 70%),
+                   radial-gradient(55% 40% at 100% 78%,rgba(252,243,238,.9),rgba(252,243,238,0) 70%);
+  background-attachment:fixed}
+body:has(#view-dashboard:not(.hidden)) .app{max-width:1304px}
+
+/* ── 1. TOP BAR ─────────────────────────────────────────────────────────────────────────────── */
+body:has(#view-dashboard:not(.hidden)) .topbar{background:rgba(248,242,236,.78);border-bottom:1px solid rgba(255,255,255,.7);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1)}
+body:has(#view-dashboard:not(.hidden)) .topbar-inner{max-width:1240px}
+body:has(#view-dashboard:not(.hidden)) .brand-mark{color:#47372B}
+body:has(#view-dashboard:not(.hidden)) .brand-name{font-family:'Fraunces',Georgia,serif;font-size:21px;font-weight:500;letter-spacing:-.01em;color:#47372B}
+body:has(#view-dashboard:not(.hidden)) .topbar .btn-ghost{font-family:'Instrument Sans',sans-serif;color:#6B5545;border-radius:100px}
+body:has(#view-dashboard:not(.hidden)) .topbar .btn-ghost:hover{background:rgba(255,255,255,.7);color:#47372B}
+body:has(#view-dashboard:not(.hidden)) #btn-sana{background:#59663A;color:#F8F2EC}
+body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:#F8F2EC}
+
+/* ── LAYOUT: one column at every width ──────────────────────────────────────────────────────── */
+#view-dashboard .dash-grid{display:block;max-width:1240px;margin:0 auto}
+#view-dashboard .dash-rail{position:static;display:flex;flex-direction:column;gap:18px;margin-top:34px}
+#view-dashboard .dash-rail .report-cta-row{margin:6px 0 0}
+
+/* Shared glass surface for every card-like block. */
+#view-dashboard .reveal-head, #view-dashboard .companion, #view-dashboard .cy-card, #view-dashboard .dc-act,
+#view-dashboard .prio, #view-dashboard #escalated-wrap, #view-dashboard .rail-card, #view-dashboard .gap-card,
+#view-dashboard .found-panel, #view-dashboard .esc-card, #view-dashboard .lever,
+#view-dashboard #amh-beat .esc-card, #view-dashboard .sana-consent-card{
+  background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--v2-shadow);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1)}
+
+/* Section labels: the ruled copy is unchanged, only its dress. */
+#view-dashboard .section-label{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;color:var(--olive);margin:44px 0 14px}
+#view-dashboard .section-label::before{width:22px;height:1.5px;background:var(--olive)}
+#view-dashboard .section-label.acc-coral{color:var(--coral-ink)}
+#view-dashboard .section-label.acc-coral::before{background:var(--coral)}
+#view-dashboard .section-label.acc-amber{color:var(--amber-ink)}
+
+/* ── 2. HERO ────────────────────────────────────────────────────────────────────────────────── */
+#view-dashboard .reveal-head{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+  grid-template-areas:"text left" "traj stats" "pop pop";gap:10px 48px;align-items:center;
+  background:linear-gradient(140deg,rgba(251,250,249,.82),rgba(252,243,238,.62));color:var(--ink);
+  border-radius:32px;padding:46px 52px 40px;margin-bottom:22px;overflow:visible}
+#view-dashboard .reveal-head::before,#view-dashboard .reveal-head::after{display:none}
+#view-dashboard .reveal-head-text{grid-area:text;order:0;align-self:center}
+#view-dashboard .reveal-head-left{grid-area:left;order:0;max-width:none;align-self:center;gap:12px}
+#view-dashboard .hero-stats{grid-area:stats;order:0}
+#view-dashboard .hero-traj{grid-area:traj}
+#view-dashboard .score-info-pop{grid-area:pop;order:0}
+#view-dashboard .v2-eyebrow{font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--olive);min-height:1em}
+#view-dashboard .v2-eyebrow:empty{display:none}
+#view-dashboard .v2-greet{font-family:var(--serif);font-weight:300;font-size:clamp(34px,4.4vw,56px);line-height:1.02;letter-spacing:-.02em;color:var(--ink);margin:14px 0 18px}
+#view-dashboard .v2-greet:empty{display:none}
+#view-dashboard .v2-greet em{font-family:var(--serif);font-style:italic;font-weight:300;color:var(--coral-deep)}
+#view-dashboard .reveal-head-text .band{display:inline-flex;font-size:11.5px;font-weight:600;letter-spacing:.14em;color:var(--olive-dark);
+  background:var(--sage-pale);border:1px solid var(--sage-soft);border-radius:100px;padding:5px 12px 5px 10px;margin:0 0 4px}
+#view-dashboard .reveal-head-text .band::before{background:var(--sage)}
+#view-dashboard .reveal-head-text .headline{font-family:var(--serif);font-weight:300;color:var(--ink);font-size:clamp(20px,2vw,26px);line-height:1.38;margin-top:12px}
+#view-dashboard .reveal-head-text .headline.h-lg{font-size:clamp(19px,1.9vw,24px)}
+#view-dashboard .reveal-head-text .headline.h-md{font-size:clamp(18px,1.75vw,22px)}
+#view-dashboard .reveal-head-text .headline.h-sm{font-size:clamp(17px,1.6vw,20px)}
+#view-dashboard .reveal-head-text .headline strong{font-family:var(--serif);font-weight:500}
+/* #8E5340, not --coral-deep: the emphasis is 18 to 22px, so it is small text, and --coral-deep measured
+   4.44:1 on the hero glass. The 34px-plus greeting name keeps --coral-deep as large italic. */
+#view-dashboard .reveal-head-text .headline .hl{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--coral-ink)}
+#view-dashboard .hero-trend{color:var(--ink-muted)}
+#view-dashboard .v2-hero-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+#view-dashboard:has(#prios-wrap.hidden) #v2-see-changed{display:none}
+#view-dashboard .v2-btn{font-family:var(--sans);font-size:14.5px;font-weight:600;border-radius:100px;padding:13px 24px;cursor:pointer;
+  border:1px solid transparent;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+#view-dashboard .v2-btn-ink{background:var(--ink);color:var(--cream)}
+#view-dashboard .v2-btn-ink:hover{transform:translateY(-1px);box-shadow:0 10px 22px -10px rgba(71,55,43,.55)}
+#view-dashboard .v2-btn-glass{background:rgba(255,255,255,.7);border-color:var(--glass-edge);color:var(--olive-dark)}
+#view-dashboard .v2-btn-glass:hover{background:#fff}
+#view-dashboard .v2-btn:focus-visible,#view-dashboard .comp-chip:focus-visible,#view-dashboard .sana-send:focus-visible{outline:2px solid var(--olive);outline-offset:3px}
+
+/* The vitality ring and the pearl orb. The ring is ::after, a conic arc masked to a thin band, so
+   it can be thin without masking the orb and the number inside it. --p is still set by the
+   renderer on #score-ring exactly as before. */
+#view-dashboard .score-ring{width:clamp(220px,24vw,300px);height:clamp(220px,24vw,300px);background:none;position:relative}
+#view-dashboard .score-ring::before{display:none}
+#view-dashboard .score-ring::after{content:"";position:absolute;inset:0;border-radius:50%;z-index:3;pointer-events:none;
+  background:conic-gradient(var(--coral-deep) calc(var(--p,0)*1%),rgba(71,55,43,.12) 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px));
+          mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 3px))}
+#view-dashboard .v2-orb{position:absolute;inset:16px;border-radius:50%;z-index:1;
+  background:radial-gradient(circle at 36% 30%,#FFFFFF 0%,#FCF3EE 20%,#F5DCD6 44%,#E9A994 74%,#D47C65 100%);
+  box-shadow:0 30px 60px -24px rgba(212,124,101,.55),inset -12px -16px 34px rgba(184,100,79,.28),inset 10px 12px 26px rgba(255,255,255,.65)}
+#view-dashboard .v2-orb::after{content:"";position:absolute;inset:0;border-radius:inherit;mix-blend-mode:soft-light;opacity:.55;
+  background:conic-gradient(from 210deg,rgba(234,224,251,.0),rgba(234,224,251,.75),rgba(255,224,200,.65),rgba(234,224,251,0) 60%)}
+#view-dashboard .score-num{position:relative;z-index:2;font-family:var(--serif);font-weight:400;font-size:clamp(58px,6vw,78px);letter-spacing:-.03em;color:var(--ink);line-height:.95}
+#view-dashboard .score-cap{position:relative;z-index:2;font-size:11.5px;font-weight:600;letter-spacing:.18em;color:var(--ink);margin-top:6px}
+#view-dashboard .score-info-btn{position:relative;z-index:4;font-size:12.5px;color:var(--olive-dark);border-bottom-color:rgba(74,85,48,.45)}
+#view-dashboard .score-info-btn:hover{color:var(--ink)}
+#view-dashboard .score-info-pop{color:var(--ink-muted);background:rgba(255,255,255,.72);border:1px solid var(--glass-edge);border-radius:18px}
+
+/* The four counts as floating glass chips under the orb. The renderer writes each number's colour
+   inline for the old dark hero, so these overrides are !important by necessity, and they key on
+   position because the renderer always emits the four in this order. */
+#view-dashboard .hero-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0;border:0;max-width:340px;justify-self:center;width:100%}
+#view-dashboard .hero-stat{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:18px;min-width:0;
+  background:rgba(255,255,255,.66);border:1px solid var(--glass-edge);box-shadow:0 12px 26px -20px rgba(71,55,43,.45);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#view-dashboard .hero-stat::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;background:var(--sage)}
+#view-dashboard .hero-stat:nth-child(1)::before{background:var(--coral)}
+#view-dashboard .hero-stat:nth-child(2)::before{background:#D4A94A}
+#view-dashboard .hero-stat:nth-child(3)::before{background:var(--sage)}
+#view-dashboard .hero-stat:nth-child(4)::before{background:transparent;border:1.5px dashed var(--ink-muted)}
+#view-dashboard .hs-num{font-family:var(--serif);font-weight:400;font-size:26px;color:var(--ink)!important}
+#view-dashboard .hs-lbl{font-size:12px;color:var(--ink-muted);margin-top:0}
+
+/* ── 3. SANA ────────────────────────────────────────────────────────────────────────────────── */
+#view-dashboard .companion{border-radius:32px;padding:34px 38px 30px;margin-bottom:22px;
+  background:linear-gradient(150deg,rgba(242,244,234,.92),rgba(227,231,211,.62) 60%,rgba(251,250,249,.75));}
+#view-dashboard .comp-head{gap:14px;margin-bottom:18px}
+#view-dashboard .comp-avatar{width:46px;height:46px;font-size:0;color:transparent;position:relative;
+  background:radial-gradient(circle at 34% 30%,#fff 0%,#E3E7D3 28%,#B5C08E 66%,#8C9A5B 100%);
+  box-shadow:0 10px 24px -10px rgba(89,102,58,.6)}
+#view-dashboard .comp-avatar::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--sage);opacity:0}
+#view-dashboard .comp-title{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
+#view-dashboard .comp-status{font-size:13px;color:var(--ink-muted)}
+#view-dashboard .comp-badge{color:var(--ink-muted);background:rgba(255,255,255,.6);border-color:var(--glass-edge)}
+#view-dashboard .comp-online{display:none;margin-left:auto;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--olive-dark);
+  background:rgba(255,255,255,.62);border:1px solid var(--glass-edge);border-radius:100px;padding:6px 12px 6px 10px}
+#view-dashboard #companion:has(#sana-mount[data-mounted="1"]) .comp-online{display:inline-flex}
+#view-dashboard .comp-online-dot{width:8px;height:8px;border-radius:50%;background:var(--olive);box-shadow:0 0 0 3px rgba(140,154,91,.25)}
+#view-dashboard .comp-read p{font-family:var(--serif);font-weight:300;font-size:clamp(21px,2.2vw,28px);line-height:1.4;letter-spacing:-.01em;color:var(--ink);margin:0 0 12px}
+#view-dashboard .comp-read p:last-child{margin-bottom:0}
+#view-dashboard .comp-chips{gap:8px;margin-top:20px}
+#view-dashboard .comp-chip{font-size:14px;font-weight:600;color:var(--olive-dark);background:var(--sage-soft);border:1px solid rgba(140,154,91,.35);
+  border-radius:100px;padding:10px 16px;transition:background .2s ease}
+#view-dashboard .comp-chip:hover,#view-dashboard .comp-chip.active{background:var(--sage-mid);color:var(--ink)}
+#view-dashboard .comp-response{color:var(--ink)}
+/* The live chat: thread above the input, the input a pill with the olive Ask button inside it.
+   Overrides the 420px column stacking, because a pill keeps both on one line at 375px. */
+#view-dashboard #sana-mount{margin-top:22px}
+#view-dashboard .sana-thread{margin-top:0}
+#view-dashboard .sana-row{flex-direction:row;align-items:center;gap:6px;margin-top:14px;padding:6px 6px 6px 18px;border-radius:100px;
+  background:rgba(255,255,255,.86);border:1px solid var(--glass-edge);box-shadow:0 14px 30px -22px rgba(71,55,43,.5)}
+#view-dashboard .sana-input{border:0;background:transparent;padding:10px 4px;font-size:16px;color:var(--ink)}
+#view-dashboard .sana-input::placeholder{color:var(--ink-muted)}
+#view-dashboard .sana-input:focus{outline:none}
+#view-dashboard .sana-row:focus-within{outline:2px solid var(--olive);outline-offset:2px}
+#view-dashboard .sana-send{width:auto;border-radius:100px;padding:11px 22px;background:var(--olive);color:var(--cream);font-size:14.5px}
+#view-dashboard .sana-send:hover{background:var(--olive-dark)}
+#view-dashboard .sana-turn.sana-you{background:rgba(255,255,255,.72);color:var(--ink);font-weight:500}
+#view-dashboard .sana-turn.sana-her{border-left-color:var(--sage);color:var(--ink)}
+#view-dashboard .sana-her .sana-label{color:var(--olive-dark)}
+#view-dashboard .sana-dots span{background:var(--sage)}
+#view-dashboard .sana-consent-card{border-radius:22px;padding:20px 22px}
+#view-dashboard .sana-consent-h{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink)}
+#view-dashboard .sana-consent-b{color:var(--ink-muted)}
+#view-dashboard .comp-ai-note{color:var(--ink-muted);border-top-color:rgba(89,102,58,.18);margin-top:20px}
+#view-dashboard .scan-entry{border-top-color:rgba(89,102,58,.18)}
+#view-dashboard .scan-entry .btn-ghost{color:var(--olive-dark);background:rgba(255,255,255,.6);border:1px solid var(--glass-edge)}
+
+/* ── 4. CYCLE ───────────────────────────────────────────────────────────────────────────────── */
+#view-dashboard .cy-host-main:not(.hidden){margin:0 0 22px}
+#view-dashboard .cy-card{border-radius:28px;padding:26px 30px}
+#view-dashboard .cy-eyebrow{font-size:12px;letter-spacing:.16em;color:var(--olive)}
+#view-dashboard .cy-day-n{font-family:var(--serif);font-weight:400;font-size:40px;letter-spacing:-.02em;color:var(--ink)}
+#view-dashboard .cy-day-of{color:var(--ink-muted)}
+/* The phase strip: the four phases in palette (menstrual coral-soft, follicular cream, ovulatory
+   coral at 22%, luteal coral-deep at 14%), at the share of a 28-day cycle each one usually takes.
+   The filled span the renderer already sizes to today becomes transparent and carries a small coral
+   pearl at its end, so "today" is the pearl, not a bar. */
+#view-dashboard .cy-bar{height:12px;border-radius:100px;overflow:visible;position:relative;margin:16px 0 14px;border:1px solid rgba(71,55,43,.08);
+  background:linear-gradient(90deg,#F5DCD6 0 18%,#F8F2EC 18% 46%,rgba(212,124,101,.22) 46% 57%,rgba(156,94,71,.14) 57% 100%)}
+#view-dashboard .cy-bar span{position:relative;display:block;height:100%;background:transparent!important}
+#view-dashboard .cy-bar span::after{content:"";position:absolute;right:-9px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff 0%,#F5DCD6 35%,#E9A994 70%,#D47C65 100%);box-shadow:0 4px 10px -3px rgba(156,94,71,.6),0 0 0 3px rgba(255,255,255,.85)}
+#view-dashboard .cy-phase{font-family:var(--serif);font-size:20px;color:var(--ink)}
+#view-dashboard .cy-dot{background:var(--coral)}
+#view-dashboard .cy-next,#view-dashboard .cy-note,#view-dashboard .cy-line,#view-dashboard .cy-ask{color:var(--ink-muted)}
+#view-dashboard .cy-est{color:var(--amber-ink)}
+#view-dashboard .cy-btn{border-radius:100px}
+#view-dashboard .cy-btn.primary{background:var(--olive);color:var(--cream);border-color:var(--olive)}
+
+/* ── 5. TODAY ───────────────────────────────────────────────────────────────────────────────── */
+#view-dashboard .daily-card{background:none;border:0;box-shadow:none;padding:0;margin-bottom:6px}
+#view-dashboard .dc-head{position:relative;padding-bottom:16px;margin-bottom:14px}
+#view-dashboard .dc-avatar{font-size:0;color:transparent;background:radial-gradient(circle at 34% 30%,#fff 0%,#E3E7D3 28%,#B5C08E 66%,#8C9A5B 100%)}
+#view-dashboard .dc-title{font-family:var(--serif);font-weight:400;font-size:24px;letter-spacing:-.01em;color:var(--ink)}
+#view-dashboard .dc-status{color:var(--ink-muted)}
+#view-dashboard .dc-prog{color:var(--olive-dark);background:var(--sage-pale);border:1px solid var(--sage-soft)}
+/* The thin progress bar, drawn from the cards' own done state with :has, so it needs no JS and
+   can never disagree with the ticks. 0, 1, 2 or 3 done -> 0, 33, 67 or 100 percent. */
+#view-dashboard .dc-head::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:0;border-radius:3px;background:var(--olive);transition:width .5s ease}
+#view-dashboard .dc-head::before{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:rgba(89,102,58,.14)}
+#view-dashboard .daily-card:has(.dc-act.done) .dc-head::after{width:33.4%}
+#view-dashboard .daily-card:has(.dc-act.done ~ .dc-act.done) .dc-head::after{width:66.7%}
+#view-dashboard .daily-card:has(.dc-act.done ~ .dc-act.done ~ .dc-act.done) .dc-head::after{width:100%}
+#view-dashboard .dc-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#view-dashboard .dc-act{border-radius:24px;padding:22px 20px;align-items:flex-start;gap:14px;min-height:150px;cursor:pointer;transition:background .25s ease,transform .2s ease}
+#view-dashboard .dc-act:hover{transform:translateY(-2px)}
+#view-dashboard .dc-label{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--olive)}
+#view-dashboard .dc-base{font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.35;color:var(--ink)}
+#view-dashboard .dc-tick{border-color:var(--sage)}
+#view-dashboard .dc-act.done{background:linear-gradient(150deg,#59663A,#4A5530);border-color:#4A5530}
+#view-dashboard .dc-act.done .dc-base,#view-dashboard .dc-act.done .dc-label{color:#F8F2EC}
+#view-dashboard .dc-act.done .dc-tick{background:#F8F2EC;border-color:#F8F2EC}
+#view-dashboard .dc-act.done .dc-tick svg{stroke:#4A5530}
+#view-dashboard .dc-move{border-top:1px dashed rgba(89,102,58,.25)}
+#view-dashboard .dc-move-label{color:var(--olive);opacity:1}
+#view-dashboard .dc-closing{color:var(--ink-muted)}
+
+/* ── 6. WHAT NEEDS A CLOSER LOOK ────────────────────────────────────────────────────────────── */
+#view-dashboard .prio{border-radius:28px;padding:30px 34px;margin-bottom:16px}
+/* The art keeps its pinned 76px, 56px under 480 (test-dashboard-e2e E2E-8 and E2E-12); only its tint softens. */
+#view-dashboard .prio-art{opacity:.9}
+#view-dashboard .prio-top{align-items:baseline;gap:16px}
+/* coral-deep, not --coral: at 46px the numeral is large text and --coral measured under 3:1 on the card. */
+#view-dashboard .prio-rank{font-family:var(--serif);font-weight:300;font-size:46px;line-height:.9;color:var(--coral-deep);letter-spacing:-.03em}
+#view-dashboard .prio-title{font-family:var(--serif);font-weight:400;font-size:clamp(21px,2vw,26px);letter-spacing:-.01em;color:var(--ink)}
+#view-dashboard .chip{font-family:var(--sans);font-size:13px;font-weight:600;border-radius:100px;padding:6px 13px}
+#view-dashboard .chip.s-flag{color:var(--coral-ink)}
+#view-dashboard .chip.s-watch{color:var(--amber-ink)}
+#view-dashboard .chip.s-good,#view-dashboard .chip.s-ref{color:var(--olive-dark)}
+/* .prio-toggle keeps its own rules: the token colour at 481px and up (olive here, through the re-pointed
+   --teal) and the muted ink below, which test-dashboard-e2e E2E-21b and E2E-28b pin. */
+#view-dashboard .prio-connect,#view-dashboard .prio-action{background:rgba(255,255,255,.62);border:1px solid var(--glass-edge)}
+#view-dashboard .prio-mk-name{font-family:var(--serif);font-size:17px}
+#view-dashboard .prio-mk-range{font-family:var(--serif);font-size:22px;color:var(--ink)}
+/* MARKER_BAND_V3, dressed for v2 inside the dashboard only. The zone colours still come from the
+   --band-* tokens (green is now sage, see :root); the dot becomes a small coral pearl here. The
+   base .mk-band-dot rule above, which the band suite pins to --brown, is untouched and still
+   draws the markers overlay. */
+#view-dashboard .mk-band{max-width:520px}
+#view-dashboard .mk-band-track{height:10px;border-radius:100px}
+#view-dashboard .mk-band-zone{height:10px}
+#view-dashboard .mk-band-dot{background:radial-gradient(circle at 35% 30%,#fff 0%,#F5DCD6 30%,#E9A994 65%,#D47C65 100%);border-color:#fff;box-shadow:0 3px 8px -2px rgba(156,94,71,.6)}
+#view-dashboard .mk-band-ends,#view-dashboard .mk-band-note,#view-dashboard .mk-lg{font-family:var(--sans)}
+#view-dashboard .report-note{background:rgba(255,255,255,.62);border:1px solid var(--glass-edge);border-radius:18px;color:var(--ink-muted)}
+
+/* ── 7. ESCALATED BESIDE QUIET ──────────────────────────────────────────────────────────────── */
+#view-dashboard .v2-pair{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:stretch;margin-top:44px}
+#view-dashboard .v2-pair:not(:has(> :not(.hidden))){display:none}
+#view-dashboard .v2-pair > #quiet-wrap:only-of-type,#view-dashboard .v2-pair:has(> #escalated-wrap.hidden) > #quiet-wrap{grid-column:1/-1}
+#view-dashboard .v2-pair:has(> #quiet-wrap.hidden) > #escalated-wrap{grid-column:1/-1}
+#view-dashboard .v2-pair .section-label{margin-top:0}
+#view-dashboard #escalated-wrap{border-radius:28px;padding:28px 30px}
+#view-dashboard #escalated-wrap .esc-card{background:rgba(252,243,238,.8);box-shadow:none;border-radius:18px}
+#view-dashboard .esc-name{font-family:var(--serif);font-weight:500;font-size:17px;color:var(--ink)}
+#view-dashboard .esc-text{color:var(--ink-muted)}
+#view-dashboard #quiet-wrap{border-radius:28px;padding:28px 30px;color:#F8F2EC;
+  background:linear-gradient(150deg,#59663A 0%,#4A5530 70%,#3F4829 100%);box-shadow:0 26px 50px -30px rgba(74,85,48,.8)}
+#view-dashboard #quiet-wrap .section-label{color:#F8F2EC}
+#view-dashboard #quiet-wrap .section-label::before{background:#E3E7D3}
+#view-dashboard .quiet-intro{font-family:var(--serif);font-weight:300;font-size:clamp(21px,2vw,26px);line-height:1.35;color:#F8F2EC;margin-bottom:18px}
+#view-dashboard #quiet{display:flex;flex-direction:column;gap:10px}
+/* The cards inside the olive block DARKEN their backing rather than lighten it: a cream wash lifted
+   the olive to rgb(105,116,76), where 13px cream text measured 3.9:1. */
+#view-dashboard .quiet{background:rgba(31,36,20,.16);border:1px solid rgba(248,242,236,.22);border-radius:22px;padding:14px 18px}
+#view-dashboard .quiet-title{font-family:var(--serif);font-weight:400;font-size:17px;color:#F8F2EC}
+#view-dashboard .quiet-note,#view-dashboard .quiet-foot{color:#F8F2EC}
+#view-dashboard .quiet-toggle{color:#F2F4EA}
+#view-dashboard .quiet-toggle:hover{color:#F8F2EC}
+
+/* ── 8. FOUNDATIONS, AMH, DDC, CLARIFY ──────────────────────────────────────────────────────── */
+#view-dashboard .found-panel{border-radius:28px;padding:26px 28px}
+#view-dashboard .lever{border-radius:22px;box-shadow:none;background:rgba(255,255,255,.7)}
+#view-dashboard .lever-name{font-family:var(--serif);font-weight:400;font-size:19px;color:var(--ink)}
+#view-dashboard .lever-toggle,#view-dashboard .found-why-toggle{color:var(--olive)}
+#view-dashboard .found-lead,#view-dashboard .found-closing,#view-dashboard .lever-action,#view-dashboard .lever-conn{color:var(--ink-muted)}
+#view-dashboard #amh-beat .esc-card{border-radius:24px}
+#view-dashboard #ddc .gap-card,#view-dashboard #clarify .gap-card,#view-dashboard #ddc > div,#view-dashboard #clarify > div{border-radius:24px}
+
+/* ── 9. LOWER BAND ──────────────────────────────────────────────────────────────────────────── */
+#view-dashboard .rail-card,#view-dashboard .gap-card{border-radius:26px;padding:24px 28px}
+#view-dashboard .rail-card-title,#view-dashboard .longi-card-sub{font-family:var(--sans);color:var(--olive);letter-spacing:.14em}
+#view-dashboard .sysr-t,#view-dashboard .longi-card-title{font-family:var(--serif);font-weight:400;font-size:21px;color:var(--ink)}
+/* Systems as glass status pills. The dot colour stays the renderer's own inline value. */
+#view-dashboard #rail-systems{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#view-dashboard #rail-systems .sysr-head{flex:0 0 100%;margin-bottom:8px}
+#view-dashboard .sysr-row{width:auto;border:1px solid var(--glass-edge);border-radius:100px;padding:9px 14px;gap:9px;background:rgba(255,255,255,.7)}
+#view-dashboard .sysr-row:hover{background:#fff}
+#view-dashboard .sysr-row:hover .sysr-nm{color:var(--ink)}
+#view-dashboard .sysr-n{font-family:var(--serif);color:var(--ink-muted)}
+#view-dashboard .sysr-all{flex:0 0 100%;border-top:0;color:var(--olive)}
+#view-dashboard .sysr-row.untested,#view-dashboard .sysr-row:has(.sysr-dot[style*="transparent"]){border-style:dashed;border-color:rgba(71,55,43,.3)}
+#view-dashboard .longi-pname{font-family:var(--serif);font-weight:400;font-size:16px}
+#view-dashboard .longi-viewall{color:var(--olive-dark)}
+#view-dashboard .rail-row-h{font-family:var(--serif);font-weight:400;font-size:17px}
+#view-dashboard .rail-row-icon{background:var(--sage-pale);border-radius:14px}
+#view-dashboard .rail-row-icon svg{stroke:var(--olive-dark)}
+#view-dashboard .report-cta-row{display:flex;flex-wrap:wrap;gap:10px}
+#view-dashboard .report-cta{flex:1 1 240px;border-radius:100px;padding:15px 22px;background:var(--ink);color:var(--cream);border:1px solid var(--ink);font-weight:600}
+#view-dashboard .report-cta.secondary{background:rgba(255,255,255,.7);color:var(--ink);border-color:var(--glass-edge)}
+#view-dashboard .replay-btn{border-radius:100px;background:rgba(255,255,255,.7);border-color:var(--glass-edge);color:var(--ink)}
+#view-dashboard .disclaimer{background:rgba(255,255,255,.55);border:1px solid var(--glass-edge);border-radius:22px;color:var(--ink-muted)}
+
+/* Hard-coded teal a token cannot reach. ST_COLOR in the script writes the "looks good" status as a
+   literal #0C8E6B (and the reference tint as #B8E4D4) into inline styles and SVG stroke attributes on
+   the systems rail, the body map and the sparklines. ST_COLOR itself is left alone because the reveal
+   deck outside this view still reads it; inside the view the literal is matched and re-coloured to
+   sage. !important only on the inline style, which nothing else can outrank. */
+#view-dashboard [style*="background:#0C8E6B" i]{background:var(--sage)!important}
+#view-dashboard [style*="background:#B8E4D4" i]{background:var(--sage-mid)!important}
+#view-dashboard [style*="color:#0C8E6B" i]{color:var(--olive-dark)!important}
+#view-dashboard [stroke="#0C8E6B" i]{stroke:var(--sage)}
+#view-dashboard [fill="#0C8E6B" i]{fill:var(--sage)}
+#view-dashboard [stroke="#B8E4D4" i]{stroke:var(--sage-mid)}
+#view-dashboard [fill="#B8E4D4" i]{fill:var(--sage-mid)}
+/* The body map sets its connector lines and organ dots through element.style, which the browser
+   serialises as rgb(), so those forms are matched too. */
+#view-dashboard [style*="rgb(12, 142, 107)"]{stroke:var(--sage)!important}
+#view-dashboard .bm-od[style*="rgb(12, 142, 107)"]{background:var(--sage)!important}
+#view-dashboard [style*="rgb(184, 228, 212)"]{stroke:var(--sage-mid)!important}
+#view-dashboard .bm-od[style*="rgb(184, 228, 212)"]{background:var(--sage-mid)!important}
+
+/* ── MOTION (only with no reduced-motion preference) ────────────────────────────────────────── */
+@media(prefers-reduced-motion:no-preference){
+  #view-dashboard .reveal-head,#view-dashboard .companion,#view-dashboard .cy-host-main:not(.hidden),
+  #view-dashboard .daily-card:not(.hidden),#view-dashboard .dash-main > div:not(.hidden),#view-dashboard .dash-rail > div:not(.hidden){
+    animation:v2Up .7s cubic-bezier(.2,.7,.2,1) both}
+  #view-dashboard .companion{animation-delay:.08s}
+  #view-dashboard .cy-host-main{animation-delay:.14s}
+  #view-dashboard .daily-card{animation-delay:.2s}
+  #view-dashboard .dc-act:nth-child(2){animation:v2Up .7s .28s cubic-bezier(.2,.7,.2,1) both}
+  #view-dashboard .dc-act:nth-child(3){animation:v2Up .7s .36s cubic-bezier(.2,.7,.2,1) both}
+  #view-dashboard .v2-orb{animation:v2Morph 16s ease-in-out infinite,v2Breathe 7s ease-in-out infinite}
+  #view-dashboard .v2-orb::after{animation:v2Sheen 22s linear infinite}
+  #view-dashboard .comp-avatar::after{animation:v2Pulse 2.8s ease-out infinite}
+  #view-dashboard .prio.open .mk-band-track{animation:v2Draw .9s cubic-bezier(.2,.7,.2,1) both}
+  #view-dashboard .hero-traj svg path{animation:v2Draw 1.2s cubic-bezier(.2,.7,.2,1) both}
+}
+@keyframes v2Up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes v2Morph{0%,100%{border-radius:50% 50% 50% 50%/50% 50% 50% 50%}33%{border-radius:53% 47% 51% 49%/47% 53% 48% 52%}66%{border-radius:48% 52% 47% 53%/52% 48% 53% 47%}}
+@keyframes v2Breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes v2Sheen{to{transform:rotate(360deg)}}
+@keyframes v2Pulse{0%{transform:scale(.9);opacity:.55}100%{transform:scale(1.35);opacity:0}}
+@keyframes v2Draw{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  #view-dashboard .reveal-head{grid-template-columns:1fr;grid-template-areas:"text" "left" "stats" "traj" "pop";padding:30px 22px 26px;border-radius:28px;text-align:left}
+  #view-dashboard .reveal-head-left{align-items:center}
+  #view-dashboard .hero-stats{max-width:none}
+  #view-dashboard .dc-actions{grid-template-columns:1fr}
+  #view-dashboard .dc-act{min-height:0}
+  #view-dashboard .v2-pair{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  #view-dashboard .reveal-head{flex-direction:initial;align-items:initial}
+  #view-dashboard .companion{padding:24px 20px 22px;border-radius:26px}
+  #view-dashboard .prio{padding:22px 20px;border-radius:24px}
+  #view-dashboard .prio-rank{font-size:38px}
+  #view-dashboard .cy-card{padding:22px 20px}
+  #view-dashboard .rail-card,#view-dashboard .gap-card,#view-dashboard #escalated-wrap,#view-dashboard #quiet-wrap,#view-dashboard .found-panel{padding:22px 20px}
+  #view-dashboard .hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #view-dashboard .sana-row{padding-left:14px}
+  #view-dashboard .sana-send{padding:11px 18px}
+}
 </style>
 
 <!-- ERROR_MONITORING_V1 — Sentry browser SDK, ERRORS ONLY.
@@ -2359,12 +2770,21 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <div class="reveal-head">
       <div class="reveal-head-left">
         <div class="score-ring" id="score-ring">
+          <!-- DASHBOARD_V2_DESIGN: the CSS pearl orb. Decorative only, so aria-hidden; the ring's
+               arc (::after) still draws the score from --p, and the number sits above the orb. -->
+          <div class="v2-orb" aria-hidden="true"></div>
           <div class="score-num" id="score-num">&ndash;</div>
           <div class="score-cap">Vitality</div>
         </div>
         <button class="score-info-btn hidden" id="score-info-btn" type="button" aria-expanded="false">What's this?</button>
       </div>
       <div class="reveal-head-text">
+        <!-- DASHBOARD_V2_DESIGN: the weekday eyebrow and the time-of-day greeting. Both are filled
+             by v2PaintHero, never by a renderer, and both are empty until it runs, so a page where
+             it never runs shows the hero exactly as before. The name is shown ONLY when the profile
+             carries one; the cycle part ONLY when the cycle card resolved a phase. -->
+        <div class="v2-eyebrow" id="v2-eyebrow"></div>
+        <div class="v2-greet" id="v2-greet"></div>
         <div class="band" id="band">Your results</div>
         <!-- RETIRED IN THE HERO 2026-09-23, at the founder's ruling. This carried the
              "Based on N of the 7 systems ..." sentence; that sentence now opens the
@@ -2377,6 +2797,14 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
         <div class="coverage-line hidden" id="coverage-line"></div>
         <div class="headline" id="headline"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
+        <!-- DASHBOARD_V2_DESIGN: two shortcuts, no new behaviour. "See what changed" scrolls to
+             #prios-wrap and is hidden by CSS whenever that section is hidden, so it never points at
+             nothing. The second button forwards to #btn-report, the existing Save my full report
+             action, so there is still one implementation of it. -->
+        <div class="v2-hero-btns">
+          <button class="v2-btn v2-btn-ink" id="v2-see-changed" type="button">See what changed</button>
+          <button class="v2-btn v2-btn-glass" id="v2-save-report" type="button">Save my full report</button>
+        </div>
       </div>
       <!-- THE FOUR-COUNT ROW MOVED OUT AND CAME BACK, both on 2026-09-23. f4fa2a4 put it at
            the top of #theme-wrap on the reasoning that the hero should carry one thing to read;
@@ -2404,6 +2832,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
           <span class="comp-status">Your AI companion, reading from your panel</span>
         </div>
         <span class="comp-badge">Arriving soon</span>
+        <!-- DASHBOARD_V2_DESIGN: the live state. Hidden by default and shown by CSS only while
+             #sana-mount carries data-mounted="1", which sanaMountChat sets at the moment it builds
+             the input and clears when the chat moves to another container. So "Online" cannot show
+             unless the chat really is in this card. The badge above is untouched (SANA_LIVE_COPY_V1). -->
+        <span class="comp-online" id="comp-online"><span class="comp-online-dot" aria-hidden="true"></span>Online</span>
       </div>
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
@@ -2456,11 +2889,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div id="prios"></div>
     </div>
 
-    <div id="escalated-wrap" class="hidden">
-      <div class="section-label acc-teal">Worth keeping an eye on</div>
-      <div id="escalated"></div>
-    </div>
-
     <span id="ddc-home" hidden></span>
     <div id="ddc-wrap" class="hidden">
       <div id="ddc"></div>
@@ -2470,6 +2898,16 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       <div id="clarify"></div>
     </div>
 
+    <!-- DASHBOARD_V2_DESIGN: #escalated-wrap MOVED here from directly under #prios-wrap, so it can
+         sit beside #quiet-wrap as the v2 pair (one glass card, one olive block). Moved, not edited:
+         same id, same label, same renderer. #ddc and #clarify keep their place under the
+         priorities, which is where their prompts belong. The wrapper is layout only; it carries no
+         id and nothing reads it. -->
+    <div class="v2-pair">
+    <div id="escalated-wrap" class="hidden">
+      <div class="section-label acc-teal">Worth keeping an eye on</div>
+      <div id="escalated"></div>
+    </div>
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
       <!-- DENSITY_COLLAPSE_V3, 2026-09-23. THE INTRO IS BACK WHERE IT STARTED, loose and visible
@@ -2483,6 +2921,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
            NEITHER SENTENCE WAS EDITED at any point: the strings moved, they did not change. -->
       <p class="quiet-intro" id="quiet-intro"></p>
       <div id="quiet"></div>
+    </div>
     </div>
 
     <div id="foundations-wrap" class="hidden">
@@ -2514,6 +2953,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
     <!-- CYCLE_CARD_V1 desktop host, top of the side rail. Hidden at 960px and below, where the rail
          stacks after the whole main column and #cycle-card-main shows instead. -->
     <div class="cy-host cy-host-rail hidden" id="cycle-card-rail"></div>
+    <!-- DASHBOARD_V2_DESIGN: #rail-systems MOVED above #longi-wrap, so the status pills come
+         first in the lower band. Same id, same renderer. The cycle host stays first in the rail, as
+         CYCLE_CARD_V1's placement test requires, and is now never displayed (see .cy-host-rail). -->
+    <div id="rail-systems" class="rail-card hidden"></div>
+
     <div id="longi-wrap" class="hidden">
       <div class="section-label" id="longi-label">Since your last panel</div>
       <div id="longi-block" class="longi-block gap-card">
@@ -2527,8 +2971,6 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
       </div>
       <div id="longi-firstpanel" class="gap-card hidden"></div>
     </div>
-
-    <div id="rail-systems" class="rail-card hidden"></div>
 
     <div id="rail-browse" class="rail-card hidden"></div>
 
@@ -8425,6 +8867,9 @@ function cyPaint(){
       cyLogPeriod(input ? input.value : '');
     });
   }
+  // DASHBOARD_V2_DESIGN: the hero eyebrow follows the card's phase. Guarded, because the cycle
+  // suite boots this block on its own, where the painter does not exist.
+  if(typeof v2PaintHero === 'function') v2PaintHero();
 }
 /** Entry point. Called from renderDashboard beside the daily card. Never throws; any failure hides the card. */
 async function cyRenderCard(p, reportId){
@@ -10364,6 +10809,50 @@ if(SANA_CHAT_ENABLED){
     if(liveBadge && typeof liveBadge.remove === "function") liveBadge.remove();
   }catch(_e){}
 }
+// DASHBOARD_V2_DESIGN, 2026-10-13. The hero's eyebrow and greeting, and its two shortcut buttons.
+// PRESENTATION ONLY. Nothing here reads the payload, writes state another function reads, or calls
+// the backend. It reads three things that already exist: the clock, PROFILE.full_name through the
+// existing firstName(), and the cycle card's own resolved module result in __cy.
+//
+// THE NAME APPEARS ONLY WHEN THE PROFILE HAS ONE. With no full_name the greeting ends at the time
+// of day, with no comma left hanging. THE CYCLE PART APPEARS ONLY WHEN THE CARD RESOLVED A PHASE
+// (__cy.cm.status "phase" with a label and a day). log_period, raise_with_clinician and no card all
+// show the weekday alone, so the hero never states a phase the cycle card itself would not show.
+//
+// Called from cyPaint, which runs on every dashboard render (cyRenderCard always ends in it) and
+// again whenever she logs a period, so the eyebrow follows the card. Throw-safe on purpose: a
+// greeting must never be why the cycle card does not paint. Text is set with textContent and the
+// name goes in its own element, so nothing user-supplied is parsed as HTML.
+function v2PaintHero(){
+  try{
+    const eb = $("v2-eyebrow"), gr = $("v2-greet");
+    if(!eb || !gr) return;
+    const now = new Date();
+    const day = now.toLocaleDateString("en-US", { weekday: "long" });
+    const cm = (typeof __cy !== "undefined" && __cy) ? __cy.cm : null;
+    const phased = !!(cm && cm.status === "phase" && cm.phaseLabel && cm.cycleDay);
+    eb.textContent = phased ? (day + " \u00b7 " + cm.phaseLabel + " \u00b7 Day " + cm.cycleDay) : day;
+    const h = now.getHours();
+    const tod = h < 12 ? "Good morning" : (h < 17 ? "Good afternoon" : "Good evening");
+    const nm = (typeof firstName === "function") ? firstName(PROFILE && PROFILE.full_name) : "";
+    gr.textContent = nm ? (tod + ", ") : tod;
+    if(nm && typeof document.createElement === "function"){
+      const em = document.createElement("em");
+      em.textContent = nm;
+      if(typeof gr.appendChild === "function") gr.appendChild(em);
+    }
+  }catch(_e){}
+}
+// The two hero buttons. Wired once at load; both only forward to things that already exist.
+try{
+  const seeBtn = $("v2-see-changed");
+  if(seeBtn) seeBtn.onclick = ()=>{
+    const t = $("prios-wrap");
+    if(t && t.scrollIntoView) t.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const saveBtn = $("v2-save-report");
+  if(saveBtn) saveBtn.onclick = ()=>{ const r = $("btn-report"); if(r && r.click) r.click(); };
+}catch(_e){}
 // SANA_SINGLE_MOUNT_V1. sanaSend resolves sana-input, sana-thread and sana-send
 // with getElementById, which returns the FIRST match, so two live mounts would
 // reproduce the defect recorded at SANA_TURN_IDENTITY_V1. The per node
