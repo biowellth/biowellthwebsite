@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-13T13:31:28Z
+scope: scan-chip-consent-v1 only. SCAN_CHIP_CONSENT_V1 consent flow for the face scan chip in dashboard.html (openFaceScan plus a helper), a new stub-DOM test, count pins. No push to main.
+repos: biowellth-website
