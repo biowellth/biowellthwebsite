@@ -237,7 +237,11 @@ for (const [name, prof] of HIDDEN) {
   const iRailHost = HTML.indexOf('id="cycle-card-rail"');
   const iLongi = HTML.indexOf('<div id="longi-wrap" class="hidden">');
   ok(iRail > 0 && iRail < iRailHost && iRailHost < iLongi, "CC-38 desktop host is the first thing in the rail");
-  ok(/@media\(max-width:960px\)\{ \.cy-host-rail\{display:none\} \.cy-host-main:not\(\.hidden\)\{display:block/.test(HTML), "CC-39 the media query shows exactly one host");
+  // CC-39 PINNED THE 960px MEDIA QUERY UNTIL 2026-10-13. DASHBOARD_V2_DESIGN made the dashboard one
+  // column at every width, so the card sits after Sana everywhere: the main host shows whenever it
+  // is filled and the rail host never does. Still exactly one host on screen, now at every width.
+  ok(/\n\.cy-host-rail\{display:none\}\n\.cy-host-main:not\(\.hidden\)\{display:block/.test(HTML), "CC-39 exactly one host shows, the main one, at every width (no media query)");
+  ok(!/@media\(max-width:960px\)\{ \.cy-host-rail\{display:none\}/.test(HTML), "CC-39b the 960px-only placement is gone, so the rail host cannot reappear on desktop");
   ok(/dcRenderDailyCard\(p, reportId\);\s*\n\s*cyRenderCard\(p, reportId\);/.test(HTML), "CC-40 renderDashboard renders the cycle card beside the daily card");
   const copy = (HTML.match(/const CY_COPY = \{[\s\S]*?\n\};/) || [""])[0];
   ok(copy.length > 100, "CC-41 CONTROL: CY_COPY found");
