@@ -2897,7 +2897,14 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     <div class="daily-card hidden" id="daily-card"></div>
 
     <div id="prios-wrap" class="hidden">
-      <div class="section-label acc-coral">What needs a closer look</div>
+      <!-- PRIORITY_HEADING_V1 -- was "What needs a closer look". It must not reuse the hero chip's
+           "closer look" wording, because the two count different things. The chip "Worth a closer
+           look" counts flag-tier markers (systems[].markers[].status through sysStatus). This list is
+           payload.priorities, which Call B can build from watch-tier markers and which
+           PRIORITY_BAND_RECONCILE_V1 keeps, so a real panel could show "0 Worth a closer look" right
+           above priority cards. "What needs attention" is the name the walkthrough's ruled copy
+           (wtItems) already gives this section, so the page and the walkthrough now agree. -->
+      <div class="section-label acc-coral">What needs attention</div>
       <!-- CONFOUNDER_NOTE_V1 — Call B's panel-level caveat. Sits between the section label and
            the cards because it governs how to read them: it is the sentence that says which
            systems could not be scored and why. Reuses .report-note, the page's existing
@@ -9338,6 +9345,8 @@ async function renderDashboard(p, reportId){
    *
    * BEFORE the cards, because it governs how to read them. A woman who reads "What needs a closer
    * look" and then seven cards with no hormones in them has been told nothing about the absence.
+   * (PRIORITY_HEADING_V1, corrected note: the heading now reads "What needs attention". The
+   * reasoning above is unchanged by the rename.)
    *
    * esc() is the page's escaper and is applied to model-authored prose here exactly as it is on
    * nh.lead. The copy is passed through untouched otherwise — Call B owns the wording.

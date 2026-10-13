@@ -410,6 +410,26 @@ else {
         }
       }
     }
+    // PRIORITY_HEADING_V1 (2026-10-13) renamed the #prios-wrap section label on purpose, from "What needs
+    // a closer look" to "What needs attention", and put a comment above it saying why. Mapped back like the
+    // blocks above, and ONLY that block, read verbatim from the page so an edit to it is seen: it must occur
+    // exactly once on the dashboard surface and nowhere else, so every other byte is still compared.
+    {
+      const SRC = readFileSync(new URL("../dashboard.html", import.meta.url), "utf8");
+      const START = "<!-- PRIORITY_HEADING_V1 --", END = '<div class="section-label acc-coral">What needs attention</div>';
+      const i = SRC.lastIndexOf("\n", SRC.indexOf(START)) + 1, j = SRC.indexOf(END, i) + END.length + 1;
+      const PH_NEW = SRC.slice(i, j), PH_OLD = '      <div class="section-label acc-coral">What needs a closer look</div>\n';
+      ok(PH_NEW.length > 200 && PH_NEW.length < 1200 && PH_NEW.endsWith(END + "\n"), "EP-27 PH CONTROL: the heading block was read from the page  (" + PH_NEW.length + " chars)");
+      const EXPECT_PH = { dashHtml: 1, reportHtml: 0, deckHtml: 0 };
+      for (const [label, key] of surfaces) {
+        const n = (CTL[key] || "").split(PH_NEW).length - 1;
+        ok(n === EXPECT_PH[key], "EP-27." + label + " PH CONTROL: the deliberate heading change occurs " + EXPECT_PH[key] + " time(s) here  (" + n + ")");
+        if (n === EXPECT_PH[key] && n > 0) CTL[key] = CTL[key].split(PH_NEW).join(PH_OLD);
+      }
+    }
+    // MERGE NOTE (PRIORITY_HEADING_V1 brought up to main 0cd7b59): both mappings are kept. The heading
+    // block is mapped back FIRST, while the page bytes it reads verbatim are still intact; the
+    // DASHBOARD_V2_DESIGN whitespace collapse runs after it, on both sides, as it did before.
     // DASHBOARD_V2_DESIGN: on the dashboard surface only, whitespace BETWEEN tags is collapsed on
     // both sides before hashing. Moving and unwrapping blocks (mapped back in the driver) leaves the
     // source indentation around them different, and that indentation is not rendered content.

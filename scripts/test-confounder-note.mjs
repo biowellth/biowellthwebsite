@@ -105,7 +105,8 @@ ok("N4 CONTROL: the same text unescaped DOES contain a raw <script, so the check
   String(XSS).indexOf("<script") > -1);
 
 // ── N5: it is rendered BEFORE the priority cards, in the DOM ──────────────────────────────────
-const iLabel = RAW.indexOf('<div class="section-label acc-coral">What needs a closer look</div>');
+// PRIORITY_HEADING_V1: anchor string follows the renamed heading. Order assertion unchanged.
+const iLabel = RAW.indexOf('<div class="section-label acc-coral">What needs attention</div>');
 const iSlot  = RAW.indexOf('<div id="confounder-note"');
 const iPrios = RAW.indexOf('<div id="prios"></div>');
 const iWrap  = RAW.indexOf('<div id="prios-wrap"');
