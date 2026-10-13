@@ -1,4 +1,4 @@
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#47372B" fill-rule="evenodd" aria-hidden="true"><style>path{fill:#47372B}@media (prefers-color-scheme:dark){path{fill:#F8F2EC}}</style><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><!-- FAVICON_OLIVE_V1: olive disc #59663A with the mark in cream #F8F2EC at 62% of the disc, centred. One design reads on light and dark tabs, so the old prefers-color-scheme switch is gone. --><circle cx="50" cy="50" r="50" fill="#59663A"/><g fill="#F8F2EC" fill-rule="evenodd" transform="translate(14.834,14.834) scale(0.7002)"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
 -8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
 -130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
 -74 -235 -312 -235 -324 0 -2 -13 -23 -29 -47 -38 -57 -85 -143 -139 -253 -41
@@ -62,4 +62,4 @@
 15 -51 34 -92 25 -55 44 -81 68 -96 18 -11 37 -20 42 -20 24 0 84 81 103 141
 38 114 79 299 87 389 3 30 10 93 17 140 17 119 17 813 0 945 -7 55 -17 132
 -21 170 -11 90 -28 178 -46 235 -8 25 -14 54 -14 64 0 34 -69 164 -99 185 -37
-27 -43 26 -79 -4z"/></g></g></svg>
+27 -43 26 -79 -4z"/></g></g></g></svg>

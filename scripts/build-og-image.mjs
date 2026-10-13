@@ -17,7 +17,12 @@ const FONT_DIR = process.env.FONT_DIR;
 const font = (pkg, file) => 'data:font/woff2;base64,' + fs.readFileSync(path.join(FONT_DIR, pkg, 'files', file)).toString('base64');
 // The <style> in favicon.svg (its dark-tab rule) is dropped so the share image is always the
 // brown mark, whatever colour scheme the rendering browser reports.
-const mark = fs.readFileSync('favicon.svg', 'utf8').replace(/<style>[\s\S]*?<\/style>/, '').replace('aria-hidden="true"', 'width="46" height="46"');
+// FAVICON_OLIVE_V1 (2026-10-13): favicon.svg is now an olive disc with a cream mark, which is the
+// tab icon, not the brand mark this image carries. So the mark's own group is cut out and wrapped
+// in the same brown 46px svg this line produced before; the resulting string is unchanged.
+const MARK = (fs.readFileSync('favicon.svg', 'utf8').match(/<g transform="scale\(0\.142450\)">[\s\S]*?<\/g><\/g>/) || [])[0];
+if (!MARK) throw new Error('build-og-image: the mark group was not found in favicon.svg');
+const mark = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#47372B" fill-rule="evenodd" width="46" height="46">${MARK}</svg>`;
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face{font-family:Fraunces;font-weight:400;font-style:normal;src:url(${font('fraunces', 'fraunces-latin-400-normal.woff2')})}
