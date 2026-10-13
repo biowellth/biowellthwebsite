@@ -140,8 +140,12 @@ const driver = (payload) => `<script>
   // The token is RESOLVED from the page, so the colour pin follows a token change instead of
   // freezing a hex the stylesheet no longer uses.
   {
+    // DASHBOARD_V2_DESIGN, 2026-10-13: the probe is resolved INSIDE #view-dashboard, where the
+    // expander lives. The dashboard re-points its teal-role tokens to olive in that scope, so a probe
+    // on <body> read the old teal while the expander, correctly, used the page's own token. What is
+    // pinned is unchanged: the colour comes from the token where the control sits, not from a hex.
     const probe = document.createElement("span");
-    probe.style.color = "var(--teal)"; document.body.appendChild(probe);
+    probe.style.color = "var(--teal)"; (document.getElementById("view-dashboard") || document.body).appendChild(probe);
     res.tealResolved = getComputedStyle(probe).color; probe.remove();
   }
   // DENSITY_COLLAPSE_V2. Both sections collapse to headlines with disclosures, so what is at
