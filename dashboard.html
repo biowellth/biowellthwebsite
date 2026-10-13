@@ -11316,11 +11316,62 @@ async function renderScanEntry(){
   }
 }
 
+// SCAN_CHIP_CONSENT_V1. The consent flow for a face scan tap, the same one sanaSend runs.
+//
+// THE DEFECT. The scan chip, labelled SANA_COPY.scanLabel.action (CAMERA_READING_CHIP_V1), renders for every woman,
+// because renderCompanionChips prepends it with no gate, and openFaceScan's first line returned
+// false when there was no Sana consent. So a woman who had never agreed tapped the chip and
+// nothing happened at all: no card, no note, no navigation. Measured on production by an
+// account with zero sana consent_events.
+//
+// WHY HERE AND NOT IN THE CHIP. renderCompanionChips's chip assembly and click handler are
+// pinned line for line by scripts/test-scan-handoff.mjs, so the chip stays exactly as it is and
+// the tap it already makes now leads somewhere. Kept out of openFaceScan's own body too, which
+// that suite also pins for string literals and DOM sinks.
+//
+// THE SAME FLOW AS sanaSend, with its own strings only: consentPending while the notice is not
+// approved, the consent card from sanaAskConsent, and consentDeclined on a no. No new copy.
+//
+// THE CARD IS SCROLLED INTO VIEW. It mounts in #sana-consent, at the foot of the companion card,
+// below the chat, while the chip sits at the top of it. On a phone that is below the fold, so a
+// woman who tapped the chip would see nothing change. Centred, and without animation when she
+// prefers reduced motion. Nothing in the markup moves.
+//
+// renderScanEntry IS NOT CALLED HERE. sanaAskConsent already calls it the moment a grant is
+// stamped (SCAN_AFTER_CONSENT_V1), so the card and the top bar link appear on a yes without a
+// second call.
+async function scanAskConsent(){
+  const thread = $("sana-thread");
+  const note = (copy)=>{
+    if(!thread) return;
+    const n = document.createElement("div"); n.className = "sana-turn";
+    thread.appendChild(n); sanaNote(n, copy);
+    if(typeof n.scrollIntoView === "function") n.scrollIntoView({ block: "nearest" });
+  };
+  if(!SANA_CONSENT_TEXT_APPROVED){ note(SANA_COPY.consentPending); return false; }
+  const asking = sanaAskConsent();
+  const mount = $(SANA_CONSENT_MOUNT_ID);
+  if(mount && mount.classList.contains("show") && typeof mount.scrollIntoView === "function"){
+    const still = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    mount.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
+  }
+  if(!(await asking)){ note(SANA_COPY.consentDeclined); return false; }
+  return true;
+}
+
 async function openFaceScan(){
+  // SCAN_CHIP_CONSENT_V1. Without consent, ask, the way sanaSend does, instead of returning in
+  // silence. askedNow records that THIS tap ran the consent flow, which decides how we open below.
+  const askedNow = !(await sanaConsentGranted());
+  if(askedNow && !(await scanAskConsent())) return false;
+
   // CONSENT BEFORE A CAMERA, and before any token is minted. The same gate Sana
   // uses, read the same way: a woman who has not accepted must not reach a
   // camera flow, and an unknown answer counts as not granted.
+  // SCAN_CHIP_CONSENT_V1: kept as the SECOND gate after the flow above, and the cached state is
+  // read directly as well, so no token is ever minted unless SANA_CONSENT_STATE is exactly true.
   if(!(await sanaConsentGranted())) return false;
+  if(SANA_CONSENT_STATE !== true) return false;
 
   // Re-read the session rather than caching one, for sanaAccessToken's own
   // reason: a dashboard tab outlives an access token, so a cached one is a
@@ -11365,6 +11416,18 @@ async function openFaceScan(){
   // the dashboard stays visible beside it and noopener still severs the handle both ways.
   const phone = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)
     || window.innerWidth < 700;
+  // SCAN_CHIP_CONSENT_V1. AFTER A CONSENT TAP, THE SAME TAB ON EVERY DEVICE.
+  //
+  // The tap that reaches this line is now her "yes" on the consent card, and after it come the
+  // grant request to consent-accept and sanaAccessToken, both awaited. A popup needs the tap's
+  // transient activation, which Chromium keeps for about five seconds (measured 2026-10-13:
+  // navigator.userActivation.isActive true at 4.5s, false at 5.5s) and Safari for far less, so a
+  // slow grant request would get a desktop window.open silently blocked. And it cannot be
+  // detected: window.open with noopener returns null whether it opened or not. So the phone path
+  // above is used for everyone who consented in this tap. It is the same safety argument: the
+  // scan page carries its "Back to your dashboard" link, so the same tab does not strand her.
+  // A woman who had ALREADY consented takes the unchanged desktop path below.
+  if(askedNow){ location.assign(url); return true; }
   if(phone){ location.assign(url); return true; }
 
   window.open(url, "_blank", "noopener");
