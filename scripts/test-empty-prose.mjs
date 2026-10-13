@@ -134,13 +134,15 @@ const MUTANTS = {
            `'<span class="prio-title">'+esc(x.headline||"")+'</span></div>'+`]],
   fix4: [[`    .filter(lv => lv && (foundPipe(lv.action || "") || foundPipe(lv.connection || "")));`,
            `    .filter(lv => !!lv);`]],
+  // SANA_LIVE_COPY_V1: the second anchor moved with the CLOSING string itself. It is a position
+  // marker for the mutant, not an assertion about the copy.
   fix5: [[`  sanaMountChat();
   // THE NO-LEAD RETURN IS GONE.`,
            `  // THE NO-LEAD RETURN IS GONE.`],
-          [`  const CLOSING = "This is a small preview.`,
+          [`  const CLOSING = "You can ask Sana about any of this`,
            `  const nhMut = p && p.narrative_headline;
   if(!(nhMut && typeof nhMut.lead === "string" && nhMut.lead.trim())) return;
-  const CLOSING = "This is a small preview.`]],
+  const CLOSING = "You can ask Sana about any of this`]],
 };
 
 // ── plumbing ────────────────────────────────────────────────────────────────
