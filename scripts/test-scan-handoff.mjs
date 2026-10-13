@@ -481,7 +481,11 @@ ok("the render hook runs before the chat flag is consulted",
 // from a fully consented woman. renderCompanionChips now calls it before that return too.
 // No scan STRING changed: the SCAN_ORIGIN, url and window.open literals are asserted
 // unchanged above and below this line.
-eq("renderScanEntry has exactly two call sites", (CODE.match(/renderScanEntry\(\);/g) || []).length, 2);
+// THREE CALL SITES SINCE SCAN_AFTER_CONSENT_V1 (2026-10-13). The third is in sanaAskConsent's yes
+// handler: both call sites above run at mount, before she has agreed, so the entry stayed hidden
+// after a grant until a reload. It is pinned exactly by scripts/test-scan-after-consent.mjs. The
+// two-site reasoning above still holds for those two.
+eq("renderScanEntry has exactly three call sites", (CODE.match(/renderScanEntry\(\);/g) || []).length, 3);
 ok("markup order, not handler order, puts the intro above the button",
   RAW.indexOf('id="scan-intro"') < RAW.indexOf('id="scan-go"'));
 ok("markup order control: the ids really are present", RAW.indexOf('id="scan-go"') > 0);
