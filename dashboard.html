@@ -8799,6 +8799,9 @@ async function renderDashboard(p, reportId){
   // companion's first "read" (lead + closing as two paragraphs). esc() applies
   // the same em-dash/HTML rules used everywhere. With no narrative_headline the
   // read is hidden and only the "Arriving soon" state shows (no crash).
+  // (SANA_LIVE_COPY_V1, corrected 2026-10-13: with SANA_CHAT_ENABLED true, sanaMountChat removes
+  // that badge on its first mount, so a missing narrative_headline now leaves the chips and the
+  // chat showing, not an "Arriving soon" state. The no-crash point stands.)
   const compRead = $("comp-read");
   if(compRead){
     const nh = p.narrative_headline;
@@ -9140,7 +9143,21 @@ function renderCompanionChips(p, score){
   // lead is present, so it is a pre-existing defect of that chip's copy and not of this gate.
   // Gating it on priorities would change a currently-shipping path, which this commit does not do.
 
-  const CLOSING = "This is a small preview. Sana, your full companion who can answer anything about your panel, is arriving soon.";
+  // SANA_LIVE_COPY_V1, 2026-10-13. CLOSING used to read "This is a small preview. Sana, your full
+  // companion who can answer anything about your panel, is arriving soon." That was true while the
+  // chips were the only Sana a woman could reach and the chat was built dark. It is FALSE now: the
+  // server founder allowlist was reverted and deployed 2026-10-09, consent v3.1 is approved, and
+  // SANA_CHAT_ENABLED is true, so every chip answer was telling her Sana was still on the way while
+  // the chat sat right under it. The line now points her at that chat instead.
+  //
+  // WHY "BELOW" IS SAFE TO SAY HERE: sanaMountChat runs a few lines up, before this constant, so on
+  // this path the chat has already been built into #sana-mount, which sits under #comp-answer in the
+  // markup. The one way it would not be is SANA_CHAT_ENABLED going false again, and anyone flipping
+  // that flag back must restore a not-yet-live line here in the same change.
+  //
+  // Still appended exactly where it was, at the end of each of the four chip answers. Plain, no
+  // colon, no em dash.
+  const CLOSING = "You can ask Sana about any of this in the chat below.";
   const items = [];
 
   // Q1 — first priority (in payload order) whose system is NOT sensitive; its lead marker + why.
@@ -10319,6 +10336,34 @@ async function onb2ResumeChip(){
 // /auth/link-supabase-account no longer 404s; the discriminator flipped 404 to 401
 // at 19:39:00Z that day. Evidence: supa docs/phase1-flip-2026-09-04.md.
 const SANA_CHAT_ENABLED = true;
+// SANA_LIVE_COPY_V1, 2026-10-13. THE "ARRIVING SOON" BADGE GOES AT BOOT WHILE SANA IS LIVE.
+// Until now the only code that removed #companion .comp-badge was sanaMountChat, on its first
+// mount. That covers every woman with a panel, because renderDashboard always reaches the mount
+// before the dashboard is shown. It does NOT cover a dashboard shown WITHOUT renderDashboard: a
+// first upload that fails, for a woman with no date of birth on file (so the no-panel chat never
+// mounted either), offers "Go to my dashboard", and that shows the static markup, badge included.
+// She was told Sana is arriving soon while Sana was live.
+//
+// So the badge is removed here, once, as the script loads, whenever the flag is on. This runs at
+// top level, after the markup is parsed (the app script sits at the end of body), and does not
+// depend on any boot path, session or payload.
+//
+// WHAT IS DELIBERATELY KEPT. The markup still ships the badge and sanaMountChat still removes it,
+// unchanged. With SANA_CHAT_ENABLED false this block does nothing, so the badge shows exactly as it
+// did before the chat went live, which is the true statement in that state. Pinned by
+// scripts/test-sana-badge.mjs in both states.
+//
+// IT CANNOT THROW. This is top-level code in the one app script, so an exception here would stop
+// every definition below it from ever existing. A cosmetic badge must never be why the app does
+// not load. Measured: the first cut called .remove() bare, and the node:vm suites, whose stub
+// querySelector returns an element with no remove method, went red at boot (cycle-card,
+// cycle-movement, tester-gate). The guard and the try keep a missing or odd node a no-op.
+if(SANA_CHAT_ENABLED){
+  try{
+    const liveBadge = document.querySelector("#companion .comp-badge");
+    if(liveBadge && typeof liveBadge.remove === "function") liveBadge.remove();
+  }catch(_e){}
+}
 // SANA_SINGLE_MOUNT_V1. sanaSend resolves sana-input, sana-thread and sana-send
 // with getElementById, which returns the FIRST match, so two live mounts would
 // reproduce the defect recorded at SANA_TURN_IDENTITY_V1. The per node
