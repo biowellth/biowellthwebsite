@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-13T04:13:41Z
+scope: dashboard-v2-design branch only. DASHBOARD_V2_DESIGN restyle of #view-dashboard in dashboard.html (CSS, markup order within the view, presentational JS only), tests that pin styling. No push to main.
+repos: biowellth-website
