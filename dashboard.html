@@ -11381,7 +11381,13 @@ function sanaAskConsent(){
     $("sana-consent-yes").onclick = async ()=>{
       $("sana-consent-yes").disabled = true;
       const ok = await sanaStampConsent("granted");
-      if(ok){ SANA_CONSENT_STATE = true; close(true); }
+      // SCAN_AFTER_CONSENT_V1. renderScanEntry ran only at mount (sanaMountChat), when consent was
+      // still not granted, so it returned with #scan-entry and #btn-scan hidden and nothing ever ran
+      // it again. A woman who agreed here saw no face scan entry until she reloaded. It is called
+      // right after the state flips so its own sanaConsentGranted gate reads true from the cache.
+      // BARE AND UNAWAITED, like its other call sites: it must not delay close() or the resolve
+      // the caller is waiting on, and it gates itself, so this widens nothing.
+      if(ok){ SANA_CONSENT_STATE = true; renderScanEntry(); close(true); }
       else { $("sana-consent-yes").disabled = false; if(msg) msg.textContent = SANA_COPY.consentFailed; }
     };
   });
