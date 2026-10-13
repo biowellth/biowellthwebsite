@@ -11,6 +11,10 @@
 // MUTANT. Each page with its old header put back must fail, which proves the checks read the
 // header rather than passing by luck.
 //
+// LOGIN_BRAND_MARK_V1 (2026-10-13) adds login.html, whose .brand held a teal rounded square with a
+// white "B" as a placeholder. It is checked the same way, plus: no "B" placeholder element and no
+// teal gradient left on .brand-mark. Its mutant puts the "B" div back.
+//
 //   node scripts/test-brand-mark-header.mjs
 import { readFileSync } from "node:fs";
 
@@ -30,7 +34,9 @@ const PAGES = [
   ["index.html",   /<a class="brand" href="\/"[^>]*>([\s\S]*?)<\/a>/,               "brand-mark"],
   ["science.html", /<a class="brand" href="\/"[^>]*>([\s\S]*?)<\/a>/,               "brand-mark"],
   ["privacy.html", /<div class="policy-nav-inner">\s*(?:<!--[\s\S]*?-->\s*)?<span>([\s\S]*?)<\/span>/, "policy-mark"],
+  ["login.html",   /<div class="brand">([\s\S]*?<div class="brand-name">[\s\S]*?<\/div>)\s*<\/div>/, "brand-mark"],
 ];
+const TOKEN = { "login.html": "LOGIN_BRAND_MARK_V1" };
 
 function check(label, html, headerRe, cls) {
   const r = { header: false, svg: false, samePaths: false, hidden: false, name: false, fill: false, noDot: false };
@@ -63,15 +69,23 @@ for (const [file, re, cls] of PAGES) {
   ok(r.name, "BM-5 " + file + ": the wordmark text is still exactly BioWellth, the accessible name");
   ok(r.fill, "BM-6 " + file + ": ." + cls + " is filled #47372B");
   ok(r.noDot, "BM-7 " + file + ": no element carries the brand-dot class");
-  ok(html.indexOf("BRAND_MARK_HEADER_V1") > -1, "BM-8 " + file + ": the change token marks the site");
+  const tok = TOKEN[file] || "BRAND_MARK_HEADER_V1";
+  ok(html.indexOf(tok) > -1, "BM-8 " + file + ": the change token " + tok + " marks the site");
+  if (file === "login.html") {
+    ok(!/<div class="brand-mark">B<\/div>/.test(html), "BM-11 login.html: no \"B\" placeholder element");
+    ok(!/\.brand-mark\{[^}]*linear-gradient/.test(html), "BM-12 login.html: .brand-mark carries no gradient any more");
+  }
 
   // MUTANT: the pre-change header put back on this page.
   const OLD = file === "privacy.html"
     ? html.replace(/<span><svg class="policy-mark"[\s\S]*?<\/svg>BioWellth<\/span>/, "<span>BioWellth</span>")
+    : file === "login.html"
+    ? html.replace(/<svg class="brand-mark"[\s\S]*?<\/svg>/, '<div class="brand-mark">B</div>')
     : html.replace(/<svg class="brand-mark"[\s\S]*?<\/svg>BioWellth<\/a>/, '<span class="brand-dot" aria-hidden="true"></span>BioWellth</a>');
   ok(OLD !== html, "BM-9 " + file + " MUTANT control: the old header was really put back");
   const m = check(file, OLD, re, cls);
   ok(!(m.svg && m.samePaths) || !m.noDot, "BM-10 " + file + " MUTANT: the old header fails BM-2/3 or BM-7, so they read the header");
+  if (file === "login.html") ok(/<div class="brand-mark">B<\/div>/.test(OLD), "BM-13 login.html MUTANT: and it carries the \"B\" placeholder BM-11 rejects");
 }
 
 console.log("\n  " + pass + " passed, " + fail + " failed");
