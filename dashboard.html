@@ -99,7 +99,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .del-input{width:100%;font-family:inherit;font-size:16px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:11px;padding:11px 14px;letter-spacing:.08em}
 .del-input:focus{outline:none;border-color:var(--coral)}
 .del-msg{font-size:13px;line-height:1.5;margin-top:12px;min-height:1px}
-.del-msg.err{color:var(--coral-dark)}
+/* ERROR_CONTRAST_V2: text --coral-dark #BC6550 -> --coral-deep-text #8E5340 (3.90:1 -> 5.76:1). Fill and border unchanged. */
+.del-msg.err{color:var(--coral-deep-text)}
 .del-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
 .del-confirm{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--coral-dark);border:none;border-radius:100px;padding:10px 20px;cursor:pointer}
 .del-confirm:disabled{opacity:.45;cursor:not-allowed}
@@ -235,8 +236,9 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
    primary-button look is applied here only. Ink with cream text, 10.22:1. */
 .dobg .sana-send{background:var(--ink);color:var(--cream);border-radius:100px;padding:12px 26px}
 .dobg .sana-send:hover{background:var(--ink-hover)}
-.dobg-refuse{background:var(--coral-soft);border:1px solid var(--coral-light);border-radius:14px;padding:18px 20px;font-size:14px;line-height:1.7;color:var(--coral-dark);margin-bottom:20px}
-.dobg-msg{font-size:13px;line-height:1.6;color:var(--coral-dark);margin-bottom:14px;min-height:1px}
+/* ERROR_CONTRAST_V2: text --coral-dark #BC6550 -> --coral-deep-text #8E5340 (.dobg-refuse 3.81:1 -> 5.63:1, .dobg-msg 3.94:1 -> 5.82:1). Fill and border unchanged. */
+.dobg-refuse{background:var(--coral-soft);border:1px solid var(--coral-light);border-radius:14px;padding:18px 20px;font-size:14px;line-height:1.7;color:var(--coral-deep-text);margin-bottom:20px}
+.dobg-msg{font-size:13px;line-height:1.6;color:var(--coral-deep-text);margin-bottom:14px;min-height:1px}
 .dropzone.locked{opacity:.45;cursor:not-allowed}
 /* AI_DISCLOSURE_V1 — persistent AI-error line, INSIDE .companion so it travels with the AI
    output. Not a dismissable toast: screenshots of a reading circulate without the policy
@@ -286,6 +288,7 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 #view-pending{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 140px);text-align:center}
 #view-pending h1{font-family:'Fraunces',Georgia,serif;font-weight:500;letter-spacing:-0.015em;font-size:24px;margin-bottom:10px}
 #view-pending p{font-size:15px;color:var(--brown-mid);max-width:420px;line-height:1.7}
+/* ERROR_CONTRAST_V2: .proc-err is left as it is. No markup or script uses the class, so nothing renders it. */
 .proc-err{color:var(--coral-dark)}
 /* PROCESSING_COPY_V1 — terminal failure state. ZERO motion, ZERO reading-language: the spinner is
    removed from the DOM (not hidden) and the headline is REPLACED. The retired render left the
@@ -425,7 +428,8 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .bc-ready{text-align:center;font-size:12px;font-weight:600;color:var(--olive-dark);margin-top:10px}
 .bc-err-card{display:flex;gap:11px;align-items:flex-start;background:var(--coral-light);border:1px solid var(--coral);border-radius:12px;padding:13px 15px;margin-bottom:14px}
 .bc-err-card svg{flex:none;width:19px;height:19px;stroke:var(--coral-dark);fill:none;stroke-width:2;margin-top:1px}
-.bc-err-t{font-size:13.5px;color:var(--coral-dark);font-weight:600;line-height:1.45}
+/* ERROR_CONTRAST_V2: text --coral-dark #BC6550 -> --coral-deep-text #8E5340 (3.67:1 -> 5.42:1). Fill and border unchanged. */
+.bc-err-t{font-size:13.5px;color:var(--coral-deep-text);font-weight:600;line-height:1.45}
 .proc-file{margin-top:18px;font-size:13px;color:var(--brown-mid)}
 .proc-file strong{color:var(--brown)}
 /* Upload-time confounder ask lives on the Call A "Reading your report" screen (left-aligned, constrained). */
@@ -995,7 +999,8 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 @media(max-width:540px){ .markers-list .mk-range{display:none} }
 .disclaimer strong{color:var(--brown);font-weight:600}
 .msg{font-size:14px;border-radius:11px;padding:12px 14px;margin-top:16px;display:none}
-.msg.err{display:block;background:var(--coral-light);color:var(--coral-dark)}
+/* ERROR_CONTRAST_V2: text --coral-dark #BC6550 -> --coral-deep-text #8E5340 (3.67:1 -> 5.42:1). Fill and border unchanged. */
+.msg.err{display:block;background:var(--coral-light);color:var(--coral-deep-text)}
 
 /* REVEAL DECK (gated, shows once per upload).
    CSS ported from reveal.html. Body styles applied to #view-reveal so the
