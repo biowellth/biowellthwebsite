@@ -427,6 +427,19 @@ else {
         if (n === EXPECT_PH[key] && n > 0) CTL[key] = CTL[key].split(PH_NEW).join(PH_OLD);
       }
     }
+    // REVEAL_PALETTE_V1 (2026-10-14) changed ONE attribute on purpose: the reveal ring's initial inline style is
+    // now "stroke:var(--coral-deep)" (was "stroke:var(--amber)"), so the arc matches the dashboard ring from its
+    // first frame. Mapped back like V3 and DD above, and ONLY that string: it must occur exactly once in the
+    // reveal deck and nowhere else, so every other byte of every surface is still compared.
+    {
+      const RS_NEW = 'style="stroke:var(--coral-deep)"', RS_OLD = 'style="stroke:var(--amber)"';
+      const EXPECT_RS = { dashHtml: 0, reportHtml: 0, deckHtml: 1 };
+      for (const [label, key] of surfaces) {
+        const n = (CTL[key] || "").split(RS_NEW).length - 1;
+        ok(n === EXPECT_RS[key], "EP-27." + label + " RS CONTROL: the deliberate ring stroke change occurs " + EXPECT_RS[key] + " time(s) here  (" + n + ")");
+        if (n === EXPECT_RS[key] && n > 0) CTL[key] = CTL[key].split(RS_NEW).join(RS_OLD);
+      }
+    }
     // MERGE NOTE (PRIORITY_HEADING_V1 brought up to main 0cd7b59): both mappings are kept. The heading
     // block is mapped back FIRST, while the page bytes it reads verbatim are still intact; the
     // DASHBOARD_V2_DESIGN whitespace collapse runs after it, on both sides, as it did before.

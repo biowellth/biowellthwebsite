@@ -87,7 +87,9 @@ ok(st.watch === "#D4A94A" && st.flag === "#D47C65" && st.none === "#D9CDBE", "LV
 // 4. Scope held: the :root teal tokens are unchanged, and teal still lives in the rail and outside.
 const root = (css(HTML).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
 ok(/--teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;/.test(root), "LV-9: :root --teal tokens unchanged");
-for (const s of [".sysr-all", ".interim-dot", ".eyebrow::before"])
+// REVEAL_PALETTE_V1 (2026-10-14) moved .interim-dot off teal, so this out-of-scope control now names the
+// dashboard rail's .sysr-row:hover .sysr-nm instead, which still uses --teal.
+for (const s of [".sysr-all", ".sysr-row:hover .sysr-nm", ".eyebrow::before"])
   ok(r.all.some(([sel, b]) => sel === s && /var\(--teal\)/.test(b)), "LV-10 CONTROL: out-of-scope " + s + " still uses --teal");
 
 // 5. Mutants must fail; the same values in a comment must pass.
