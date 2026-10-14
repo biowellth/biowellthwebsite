@@ -21,6 +21,8 @@
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
   --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
   --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
+  /* ERROR_CONTRAST_V2: small coral text that clears 4.5:1, the value login.html and dashboard.html use. */
+  --coral-deep-text:#8E5340;
   --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30; --amber-deep:#B8812E;
   --brown:#47372B; --brown-mid:#6B5047; --brown-light:#EDE4DA; --brown-soft:#F7F2EB; --white:#FFFFFF;
   --off-white:#FDFBF8; --shadow:0 18px 50px -24px rgba(71,55,43,.45);
@@ -63,7 +65,8 @@ pre{font-family:'JetBrains Mono',monospace;font-size:12px;white-space:pre-wrap;w
 .tags input{width:auto}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .msg{font-size:14px;margin-top:10px}
-.msg.err{color:var(--coral-dark)}
+/* ERROR_CONTRAST_V2: text --coral-dark #BC6550 -> --coral-deep-text #8E5340 (4.11:1 -> 6.07:1 on white). Fill and border unchanged. */
+.msg.err{color:var(--coral-deep-text)}
 .msg.ok{color:var(--teal-dark)}
 .changed textarea{border-color:var(--amber);background:var(--amber-light)}
 /* REVIEW_FLAGS_V1 (supa docs/followups-2026-09-25.md item 7). Existing tokens only. */
