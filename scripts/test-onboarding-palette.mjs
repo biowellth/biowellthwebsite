@@ -78,7 +78,9 @@ const control = HTML.replace("</style>", "/* .bc-start{background:var(--teal)} r
 ok(check(control).bad.length === 0, "CONTROL: the same values inside a comment pass");
 
 // 4. Scope held: out-of-scope rules still draw in teal, and the :root teal tokens are unchanged.
-for (const s of [".interim-dot", ".eyebrow::before", ".sana-send"])
+// REVEAL_PALETTE_V1 (2026-10-14) moved .interim-dot off teal, so this out-of-scope control now names the
+// dashboard rail's .sysr-all instead, which still uses --teal.
+for (const s of [".sysr-all", ".eyebrow::before", ".sana-send"])
   ok(r.all.some(([sel, b]) => sel === s && /var\(--teal\)/.test(b)), "out-of-scope " + s + " still uses --teal");
 const root = (css(HTML).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
 ok(/--teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;/.test(root),
