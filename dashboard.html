@@ -413,8 +413,14 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .bc-start{width:100%;font-family:inherit;font-size:15px;font-weight:700;color:var(--cream);background:var(--ink);border:none;border-radius:100px;padding:14px 26px;cursor:pointer;transition:background .15s}
 .bc-start:hover{background:var(--ink-hover)}
 .bc-start[disabled]{background:rgba(71,55,43,.45);cursor:default}
-.bc-start.retry{background:var(--coral)}
-.bc-start.retry:hover{background:var(--coral-dark)}
+/* ERROR_CONTRAST_V1, 2026-10-14: the retry fill was --coral #D47C65, and the cream text measured 2.88:1 on it
+   (3.87:1 on the --coral-dark hover), under the 4.5:1 AA bar for 15px bold text. PR #17 recorded 3.06:1 for
+   this pair; that figure used #F8F2EC, but .bc-start's --cream resolves to #FAF8F4 here, so 2.88:1 is the
+   measured number. Now --coral-deep-text #8E5340, 5.72:1, hover #7A4636, 7.18:1. Both stay on coral's hue
+   (15 and 14 degrees, against ink's 26) and well apart from the ink button (1.87:1 between the two fills).
+   The --coral tokens themselves are unchanged, because other rules use them. */
+.bc-start.retry{background:var(--coral-deep-text)}
+.bc-start.retry:hover{background:#7A4636}
 .bc-quiet{text-align:center;font-size:12px;color:var(--brown-mid);margin-top:10px}
 .bc-ready{text-align:center;font-size:12px;font-weight:600;color:var(--olive-dark);margin-top:10px}
 .bc-err-card{display:flex;gap:11px;align-items:flex-start;background:var(--coral-light);border:1px solid var(--coral);border-radius:12px;padding:13px 15px;margin-bottom:14px}

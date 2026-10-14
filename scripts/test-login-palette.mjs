@@ -59,5 +59,33 @@ for (const [label, mutated, expect] of MUTANTS) {
 const commentOnly = HTML.replace(ROOT, ROOT + "\n  /* was --teal:#0C8E6B with Plus Jakarta */");
 ok(findings(commentOnly).length === 0, "LP-8 CONTROL: the same values inside a comment are not reported, so LP-1 reads code only");
 
+// ERROR_CONTRAST_V1 -- the .msg.err text clears WCAG AA 4.5:1 on its own fill. Both colours are read
+// from the page's CSS with comments stripped and var() resolved through :root, so the ratio is the one
+// the browser paints (the Playwright run in the PR measured the same 5.42:1 from computed styles).
+console.log("\nERROR CONTRAST -- .msg.err");
+const lum = (h) => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+  .map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+function errPair(html) {
+  const code = strip(html);
+  const root = (code.match(/:root\{([\s\S]*?)\}/) || [])[1] || "";
+  const tok = (v) => { const m = v.match(/^var\((--[\w-]+)\)$/); if (!m) return v;
+    const d = root.match(new RegExp(m[1] + ":\\s*(#[0-9A-Fa-f]{6})")); return d ? d[1] : null; };
+  const rule = (code.match(/\.msg\.err\{([^}]*)\}/) || [])[1] || "";
+  const fg = tok(((rule.match(/(?:^|;)color:([^;]+)/) || [])[1] || "").trim());
+  const bg = tok(((rule.match(/background:([^;]+)/) || [])[1] || "").trim());
+  return { rule, fg, bg, r: fg && bg ? ratio(fg, bg) : 0 };
+}
+const ep = errPair(HTML);
+ok(!!ep.rule && !!ep.fg && !!ep.bg, "EC-1 CONTROL: .msg.err found and both colours resolved (" + ep.fg + " on " + ep.bg + ")");
+ok(/color:var\(--coral-deep-text\)/.test(ep.rule), "EC-2: .msg.err text is var(--coral-deep-text)");
+ok(/--coral-deep-text:#8E5340/.test(strip(HTML)), "EC-3: --coral-deep-text is #8E5340 in :root");
+ok(/background:var\(--coral-light\)/.test(ep.rule) && /border:1px solid #EAC9BF/.test(ep.rule), "EC-4: fill and border are unchanged");
+ok(ep.r >= 4.5, "EC-5: .msg.err text contrast " + ep.r.toFixed(2) + ":1 is at least 4.5:1");
+const ecMutant = HTML.replace("color:var(--coral-deep-text);border:1px solid #EAC9BF", "color:var(--coral-dark);border:1px solid #EAC9BF");
+ok(ecMutant !== HTML, "EC-6 control: the --coral-dark mutant really changed the page");
+const em = errPair(ecMutant);
+ok(em.r > 0 && em.r < 4.5, "EC-7 MUTANT: the old --coral-dark text is caught at " + em.r.toFixed(2) + ":1");
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

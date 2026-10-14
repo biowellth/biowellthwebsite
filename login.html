@@ -58,7 +58,9 @@ input:focus{outline:none;border-color:var(--olive);background:var(--white);box-s
 .toggle a{color:var(--coral-deep-text);font-weight:600;text-decoration:none;cursor:pointer}
 .toggle a:hover{text-decoration:underline}
 .msg{font-size:14px;line-height:1.55;border-radius:11px;padding:12px 14px;margin-top:18px;display:none}
-.msg.err{display:block;background:var(--coral-light);color:var(--coral-dark);border:1px solid #EAC9BF}
+/* ERROR_CONTRAST_V1, 2026-10-14: text was --coral-dark #BC6550, 3.67:1 on the --coral-light fill, under the
+   4.5:1 AA bar for 14px text. --coral-deep-text #8E5340 is 5.42:1 on the same fill. Fill and border unchanged. */
+.msg.err{display:block;background:var(--coral-light);color:var(--coral-deep-text);border:1px solid #EAC9BF}
 .msg.ok{display:block;background:var(--sage-pale);color:var(--olive-dark);border:1px solid var(--sage-soft)}
 /* LOGIN_PALETTE_V1: .toggle a was --teal, now --coral-deep-text. .msg.ok was teal on teal, now --olive-dark on --sage-pale. */
 /* AGE_AFFIRM_V1 — ported verbatim from dashboard.html .consent-row so the affirmation

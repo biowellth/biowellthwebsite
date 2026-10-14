@@ -94,5 +94,37 @@ ok(stepAt > 0, "step text line unchanged");
 ok(stepAt > 0 && /^\s*if\(c\.n > 0\) h \+= '<div class="onb2-bar" aria-hidden="true"><span style="width:' \+ Math\.round\(100 \* c\.n \/ c\.total\) \+ '%"><\/span><\/div>';/.test(lines[stepAt + 1]),
    "progress bar follows it, width from c.n and c.total, aria-hidden, no text");
 
+// 6. ERROR_CONTRAST_V1: the retry button's cream text clears 4.5:1 on its fill and on the hover fill,
+// and the fill stays on coral's hue, apart from the ink button. Colours come from the comment-stripped
+// rules with var() resolved through :root (the PR's Playwright run measured the same 5.72:1 and 7.18:1).
+const lum = (h) => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+  .map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const hue = (h) => { const [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return 0;
+  const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360; };
+function retry(html) {
+  const all = rules(stripComments(css(html)));
+  const rootBody = (stripComments(css(html)).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
+  const tok = (v) => { v = (v || "").trim(); const m = v.match(/^var\((--[\w-]+)\)$/); if (!m) return /^#[0-9A-Fa-f]{6}$/.test(v) ? v : null;
+    const d = rootBody.match(new RegExp(m[1] + ":\\s*(#[0-9A-Fa-f]{6})")); return d ? d[1] : null; };
+  const decl = (sel, prop) => { const hit = all.filter(([s]) => s === sel).map(([, b]) => (b.match(new RegExp("(?:^|;)" + prop + ":([^;]+)")) || [])[1]).filter(Boolean);
+    return hit.length ? tok(hit[hit.length - 1]) : null; };
+  return { text: decl(".bc-start", "color"), ink: decl(".bc-start", "background"),
+           fill: decl(".bc-start.retry", "background"), hover: decl(".bc-start.retry:hover", "background") };
+}
+const rt = retry(HTML);
+ok(rt.text && rt.ink && rt.fill && rt.hover, "EC-1 CONTROL: .bc-start text, ink fill, retry fill and retry hover all resolved (" + [rt.text, rt.ink, rt.fill, rt.hover].join(", ") + ")");
+ok(rt.fill === "#8E5340", "EC-2: .bc-start.retry fill is #8E5340");
+ok(rt.fill && ratio(rt.text, rt.fill) >= 4.5, "EC-3: cream on the retry fill is " + (rt.fill ? ratio(rt.text, rt.fill).toFixed(2) : "?") + ":1, at least 4.5:1");
+ok(rt.hover && ratio(rt.text, rt.hover) >= 4.5, "EC-4: cream on the retry hover is " + (rt.hover ? ratio(rt.text, rt.hover).toFixed(2) : "?") + ":1, at least 4.5:1");
+ok(rt.fill && rt.fill !== rt.ink && hue(rt.fill) <= 20 && hue(rt.hover) <= 20 && hue(rt.ink) > 20,
+   "EC-5: retry stays on coral's hue (" + (rt.fill ? hue(rt.fill).toFixed(0) : "?") + " and " + (rt.hover ? hue(rt.hover).toFixed(0) : "?") + " degrees), apart from the ink button (" + (rt.ink ? hue(rt.ink).toFixed(0) : "?") + ")");
+ok(/--coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550;/.test(css(HTML)), "EC-6: the :root --coral tokens are unchanged");
+const rtMutant = HTML.replace(".bc-start.retry{background:var(--coral-deep-text)}", ".bc-start.retry{background:var(--coral)}");
+ok(rtMutant !== HTML, "EC-7 control: the --coral mutant really changed the page");
+const rm = retry(rtMutant);
+ok(rm.fill && ratio(rm.text, rm.fill) < 4.5, "EC-8 MUTANT: the old --coral retry fill is caught at " + (rm.fill ? ratio(rm.text, rm.fill).toFixed(2) : "?") + ":1");
+
 console.log("\n  " + pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
