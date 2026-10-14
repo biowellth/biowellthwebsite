@@ -7,7 +7,8 @@
 //     hex or rgb, and no Plus Jakarta (the mkFlash keyframes, used only by .sm-marker, included)
 //   - ST_COLOR 's-good' is #8C9A5B (--sage), not #0C8E6B, and 's-ref' is #B5C08E (--sage-mid);
 //     's-watch', 's-flag' and 's-none' are unchanged
-//   - the :root --teal tokens are unchanged, because out-of-scope views still draw with them
+//   - the :root --teal tokens are unchanged, because out-of-scope views still draw with them (corrected by
+//     LEFTOVERS_PALETTE_V1: they now point at olive and sage, so the views that name them no longer paint teal)
 // WHAT IS NOT. The dashboard rail's own classes (.longi-card*, .longi-p*, .longi-preview,
 // .longi-viewall, .longi-close-line, .longi-block, the bare .gap-card and .sysr-*) and every
 // #view-dashboard-prefixed DASHBOARD_V2 rule are out of scope. A control below proves the rail still
@@ -86,7 +87,9 @@ ok(st.watch === "#D4A94A" && st.flag === "#D47C65" && st.none === "#D9CDBE", "LV
 
 // 4. Scope held: the :root teal tokens are unchanged, and teal still lives in the rail and outside.
 const root = (css(HTML).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
-ok(/--teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;/.test(root), "LV-9: :root --teal tokens unchanged");
+// LEFTOVERS_PALETTE_V1 (2026-10-14) re-pointed the :root teal tokens at olive and sage on purpose, so no view can
+// paint teal. This assertion pinned the old hexes; it now pins the re-point instead, and still fails if :root drifts.
+ok(/--teal:var\(--olive\); --teal-dark:var\(--olive-dark\); --teal-mid:var\(--sage-mid\); --teal-light:var\(--sage-soft\); --teal-soft:var\(--sage-pale\);/.test(root), "LV-9: :root --teal tokens point at olive and sage (LEFTOVERS_PALETTE_V1)");
 // REVEAL_PALETTE_V1 (2026-10-14) moved .interim-dot off teal, so this out-of-scope control now names the
 // dashboard rail's .sysr-row:hover .sysr-nm instead, which still uses --teal.
 for (const s of [".sysr-all", ".sysr-row:hover .sysr-nm", ".eyebrow::before"])

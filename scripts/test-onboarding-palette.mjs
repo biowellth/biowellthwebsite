@@ -77,14 +77,17 @@ ok(check(mutantJ).bad.length === 1, "MUTANT: a Plus Jakarta .onb2-q-h declaratio
 const control = HTML.replace("</style>", "/* .bc-start{background:var(--teal)} rgb(12, 142, 107) Plus Jakarta */\n</style>");
 ok(check(control).bad.length === 0, "CONTROL: the same values inside a comment pass");
 
-// 4. Scope held: out-of-scope rules still draw in teal, and the :root teal tokens are unchanged.
+// 4. Scope held: out-of-scope rules still name --teal, and the :root teal tokens are unchanged (corrected by
+// LEFTOVERS_PALETTE_V1: they now point at olive and sage, see below).
 // REVEAL_PALETTE_V1 (2026-10-14) moved .interim-dot off teal, so this out-of-scope control now names the
 // dashboard rail's .sysr-all instead, which still uses --teal.
 for (const s of [".sysr-all", ".eyebrow::before", ".sana-send"])
   ok(r.all.some(([sel, b]) => sel === s && /var\(--teal\)/.test(b)), "out-of-scope " + s + " still uses --teal");
 const root = (css(HTML).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
-ok(/--teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;/.test(root),
-   ":root --teal tokens unchanged");
+// LEFTOVERS_PALETTE_V1 (2026-10-14) re-pointed the :root teal tokens at olive and sage on purpose, so no view can
+// paint teal. This assertion pinned the old hexes; it now pins the re-point instead, and still fails if :root drifts.
+ok(/--teal:var\(--olive\); --teal-dark:var\(--olive-dark\); --teal-mid:var\(--sage-mid\); --teal-light:var\(--sage-soft\); --teal-soft:var\(--sage-pale\);/.test(root),
+   ":root --teal tokens point at olive and sage (LEFTOVERS_PALETTE_V1)");
 for (const t of ["--ink:#47372B", "--ink-hover:#2F241C", "--olive:#59663A", "--olive-dark:#4A5530", "--sage:#8C9A5B",
                  "--sage-soft:#E3E7D3", "--sage-pale:#F2F4EA", "--coral-deep:#9C5E47", "--coral-deep-text:#8E5340"])
   ok(root.includes(t), ":root defines " + t);
