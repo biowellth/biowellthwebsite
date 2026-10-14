@@ -1,4 +1,0 @@
-session: 01BSZ7tMixxXpvisQdW4AApX
-taken: 2026-10-14T12:10:10Z
-scope: ERROR_CONTRAST_V1, login.html .msg.err text colour and dashboard.html .bc-start.retry background, plus scripts/test-login-palette.mjs and scripts/test-onboarding-palette.mjs, branch claude/admiring-sagan-qzwetw, PR only, not merged
-repos: biowellth-website
