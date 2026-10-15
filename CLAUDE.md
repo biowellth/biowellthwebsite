@@ -2,6 +2,71 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Brand system as of 2026-10-15
+
+Added by CLAUDE_MD_BRAND_V1. Every value below was read from the files on `main` at `cb79546`, not
+carried from a brief.
+
+- **Colour and type.** Coral is the main colour, olive is Sana's accent (the dashboard's Sana send
+  button, focus rings and her label), and primary buttons are ink pills (`--ink` with `--cream` text,
+  `border-radius:100px`, `--ink-hover` on hover). Headings are **Fraunces** (500 for headings and the
+  wordmark), and UI and body text are **Instrument Sans**. **Teal and Plus Jakarta Sans are retired
+  on every page.** The tokens as declared in `dashboard.html` `:root`:
+  - coral `--coral:#D47C65`, `--coral-light:#FAF0ED`, `--coral-dark:#BC6550`, `--coral-soft:#FCF5F2`,
+    `--coral-deep:#9C5E47`, `--coral-deep-text:#8E5340` (small coral text that clears 4.5:1)
+  - olive and sage `--olive:#59663A`, `--olive-dark:#4A5530`, `--sage:#8C9A5B`, `--sage-mid:#B5C08E`,
+    `--sage-soft:#E3E7D3`, `--sage-pale:#F2F4EA`
+  - ink `--ink:#47372B`, `--ink-hover:#2F241C` (`--brown` is the same `#47372B`)
+  - cream `--cream:#FAF8F4`, `--cream-mid:#F2EDE3`. The `#view-dashboard` block re-declares the
+    warmer `--cream:#F8F2EC` that the marketing pages and `login.html` use.
+  - amber `--amber:#D4A94A` and family, plus the `--band-*` marker band tokens
+  - Fraunces is `--serif:'Fraunces',Georgia,serif` and Instrument Sans is
+    `--sans:'Instrument Sans',system-ui,-apple-system,sans-serif`, both declared in the
+    `#view-dashboard` block rather than `:root`.
+- **Status colours are fixed.** Flag is coral, watch is amber, good is sage, not scored is neutral.
+  In code that is `ST_COLOR` in `dashboard.html`: `'s-flag':'#D47C65'`, `'s-watch':'#D4A94A'`,
+  `'s-good':'#8C9A5B'`, `'s-none':'#D9CDBE'`, and `'s-ref':'#B5C08E'` (sage-mid) for a life-stage
+  reference marker. **An unscored marker must never look like a pass or a flag.**
+- **The `--teal` names are aliases, not colours.** `dashboard.html` and `review.html` both declare
+  `--teal:var(--olive); --teal-dark:var(--olive-dark); --teal-mid:var(--sage-mid);
+  --teal-light:var(--sage-soft); --teal-soft:var(--sage-pale);` in `:root` (LEFTOVERS_PALETTE_V1).
+  They exist only so older rules that name `--teal` moved without an edit. **New code uses the olive
+  and sage names directly and never `--teal`.** `dashboard.html` also keeps seven attribute-selector
+  overrides (`[style*="background:#0C8E6B" i]` and similar, DASHBOARD_V2_DESIGN) that repaint any
+  inline teal as sage. They are a safety net and the only teal hexes outside comments.
+- **The gate is `scripts/test-leftovers-palette.mjs`.** It boots every state of `dashboard.html`
+  (upload, companion, processing, pending, interim, dashboard, every overlay, the modals, the tester
+  gate, every reveal beat), the four `review.html` views and the static pages at 1440 and 390, and
+  asserts zero computed Plus Jakarta and zero computed teal values. Any UI change must keep it
+  green. The "Plus Jakarta" text that remains in `dashboard.html` (and in `review.html`,
+  `login.html`, `terms.html`, `privacy.html`, `science.html` and `index.html`) is only in comments
+  recording old values. That is expected, and the test ignores it because it reads computed style.
+- **The redesign PRs, in merge order:**
+  - #6 DASHBOARD_V2_DESIGN. Sana-centred dashboard restyle, olive and coral.
+  - #9 HERO_ON_BASE_V1. The vitality hero sits on the page background, not in a card.
+  - #10 FAVICON_OLIVE_V1. Olive disc favicon with a cream mark.
+  - #12 BRAND_MARK_HEADER_V1. The real BioWellth mark in the index, science and privacy headers.
+  - #13 STACK_CARDS_MOCKUP_V1. The three stacking cards match the approved mockup.
+  - #14 LOGIN_BRAND_MARK_V1. The real mark on `login.html`, not the teal "B".
+  - #15 LOGIN_PALETTE_V1. `login.html` onto coral and olive with Fraunces and Instrument Sans.
+  - #17 ONBOARDING_PALETTE_V1. The onboarding screens onto coral, olive, ink and Fraunces.
+  - #18 ERROR_CONTRAST_V1. Login error text and the draw-card retry button clear 4.5:1.
+  - #19 LIST_VIEWS_PALETTE_V1. Markers, trends, gaps, themes, systems and the system modal.
+  - #20 ERROR_CONTRAST_V2. Six error texts move to `#8E5340` so each clears 4.5:1.
+  - #21 REVEAL_PALETTE_V1. The walkthrough, the Still reading screen and the cycle card accent.
+  - #22 LEFTOVERS_PALETTE_V1. No teal and no Plus Jakarta anywhere on the site.
+
+  Merged in the same window but not part of the brand work: #7 PRIORITY_HEADING_V1, #8
+  SCAN_AFTER_CONSENT_V1, #11 SCAN_CHIP_CONSENT_V1, #16 ABOUT_LABEL_V1.
+- **Open items.**
+  - The homepage orb redesign is waiting on Aditi's choice. Pearl is the recommendation.
+  - The account modal's danger-zone heading (`.acct-dz-h`, "Delete account") is `--coral-dark`
+    `#BC6550` on the white `.acct-card`, measured in the rendered page at **4.11:1**, below 4.5:1.
+    It predates the redesign and is not fixed. (The LEFTOVERS_PALETTE_V1 report quoted 3.67:1; that
+    figure was wrong, and 4.11:1 is the measured value.)
+  - `CY_ACCENT` follicular is `var(--olive)` in code, but `#view-dashboard .cy-dot{background:var(--coral)}`
+    forces the dot to coral, so the accent has no visible effect today.
+
 ## State as of 2026-09-26
 
 **The single source of truth is the backend repo's `docs/handoff-2026-09-26.md`.** Read it before
@@ -233,7 +298,22 @@ Every file the first session had touched reverted on disk underneath it, its tes
 read as deleted, and only the reflog showed why. Nothing was lost, and that was luck rather than
 design.
 
-**Design tokens** (`--cream`, `--teal`, `--brown` families everywhere, `--coral` in all but `terms.html`, plus `--amber` in `dashboard.html`) and the font stack (Plus Jakarta Sans / Instrument Sans / JetBrains Mono) are re-declared in each file's `:root`. There is no shared stylesheet — keep the values identical when adding a page. The marketing pages (`index.html`, `science.html`, `privacy.html`, `terms.html`) now use the olive and coral palette (`--olive`, `--sage` families, `--cream #F8F2EC`), while the app pages keep their original tokens.
+**Design tokens** are re-declared in each file's `:root`, and each page carries its own Google Fonts link. There is no shared stylesheet, so keep the values identical when adding a page. Fonts everywhere are Fraunces for headings and Instrument Sans for UI and body; JetBrains Mono is loaded only where a page shows mono text. Teal and Plus Jakarta Sans are retired (see "Brand system as of 2026-10-15" at the top). Per file, as read on 2026-10-15:
+
+| File | Fonts loaded | Tokens in `:root` |
+| --- | --- | --- |
+| `dashboard.html` | Fraunces, Instrument Sans, JetBrains Mono | 47. `--cream #FAF8F4` (the `#view-dashboard` block re-declares `#F8F2EC` and other olive-system values for the dashboard view), coral (incl. `--coral-deep`, `--coral-deep-text`), amber, orange, brown, `--ink`/`--ink-hover`, olive and sage, `--band-*`, `--onb-*`, and the five `--teal*` aliases pointing at olive and sage. `--serif` and `--sans` live in the `#view-dashboard` block. |
+| `review.html` | Fraunces, Instrument Sans, JetBrains Mono | 29. The dashboard's values for every token it declares (pinned by `test-review-page.mjs` R-6), including the five `--teal*` aliases and `--olive`, `--olive-dark`, `--sage-mid`, `--sage-soft`, `--sage-pale`, `--ink-hover`. |
+| `login.html` | Fraunces, Instrument Sans | 18. `--cream #F8F2EC`, olive and sage, coral, brown (`--brown-mid #6B5545`), `--ink-hover`, `--serif`. |
+| `index.html` | Fraunces, Instrument Sans | 25. `--cream #F8F2EC`, `--card`, `--beige`, `--ink`, `--ink-muted`, the coral family (`--coral-dark #B8644F` here), olive and sage, `--glass*`, `--serif`, `--sans`, `--gutter`. |
+| `science.html` | Fraunces, Instrument Sans (with 700 and italic) | 23. Matches `index.html` minus `--coral-deep-text`, `--glass`, `--glass-edge` and `--shadow`, plus `--off-white` and `--brown-mid`. |
+| `privacy.html` | Fraunces, Instrument Sans | 9. `--cream #F8F2EC`, `--olive`, `--olive-dark`, `--sage-pale`, `--coral`, brown family, `--white`. |
+| `terms.html` | Fraunces, Instrument Sans | 6. `--cream #F8F2EC`, `--olive`, `--olive-dark`, brown family. No coral. |
+| `signup.html` | none | none. It is a redirect stub to the sign-up pane of `login.html`. |
+
+Three values differ by page and are recorded here so they are not mistaken for new drift: `--cream` (`#FAF8F4` in the app pages, `#F8F2EC` on the marketing pages and `login.html`) and `--brown-mid` (`#6B5047` in the app pages, `privacy.html` and `terms.html`; `#6B5545` in `login.html` and `science.html`). `--coral-dark` is `#BC6550` in `dashboard.html`, `review.html` and `login.html`, and `#B8644F` in `index.html` and `science.html`.
+
+*Corrected 2026-10-15 by CLAUDE_MD_BRAND_V1.* This paragraph said the `--teal` family was declared "everywhere", that the font stack was "Plus Jakarta Sans / Instrument Sans / JetBrains Mono", and that the app pages kept "their original tokens" while only the marketing pages used olive and coral. All three stopped being true across PRs #6 to #22, and the last of them with LEFTOVERS_PALETTE_V1 (PR #22).
 
 **`mocks/`** holds standalone single-file mocks named after the change token (`mocks/quota-429.html`, `mocks/processing-copy.html`). Each copies the live classes out of `dashboard.html` and renders every state of a screen side by side for review before the change is wired into the app. The directory is untracked working material — build a mock here first for anything that changes what a user sees in a hard-to-reach state (a failure, a quota block, a long-running job).
 ## Closed: the three login.html defects, FIXED 2026-09-07
