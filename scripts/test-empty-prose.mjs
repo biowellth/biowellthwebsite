@@ -222,14 +222,16 @@ const driver = (payload) => `<script>
   // CLONE, and ONLY those changes, so every pre-existing node and every rendered byte is still
   // compared below (whitespace between tags is normalised in the comparison, see EP-27):
   //   - the v2 nodes it ADDED are removed: everything carrying a v2- class (orb, eyebrow, greeting,
-  //     the two hero buttons) and #comp-online, plus the DASHBOARD_V2_DESIGN comments;
+  //     the two hero buttons), plus the DASHBOARD_V2_DESIGN comments (SANA_ONLINE_REMOVE_V1: #comp-online
+  //     was dropped from this list on 2026-10-15 because the pill no longer exists, and the one-line
+  //     comment left in its place names DASHBOARD_V2_DESIGN so this same pass removes it);
   //   - the .v2-pair wrapper is unwrapped, its two children kept in place;
   //   - the two blocks it MOVED go back: #escalated-wrap before #ddc-home, #rail-systems before
   //     #rail-browse.
   // Against the BEFORE build every one of these is a no-op, because none of those nodes exist there.
   const restore = (root) => {
     const c = root.cloneNode(true);
-    c.querySelectorAll('[class*="v2-"]:not(.v2-pair), #comp-online').forEach(n => n.remove());
+    c.querySelectorAll('[class*="v2-"]:not(.v2-pair)').forEach(n => n.remove());
     c.querySelectorAll(".v2-pair").forEach(w => { while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.remove(); });
     const tw = document.createTreeWalker(c, NodeFilter.SHOW_COMMENT); const drop = [];
     while (tw.nextNode()) if (tw.currentNode.nodeValue.indexOf("DASHBOARD_V2_DESIGN") !== -1) drop.push(tw.currentNode);

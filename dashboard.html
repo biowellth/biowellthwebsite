@@ -2090,10 +2090,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 #view-dashboard .comp-title{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
 #view-dashboard .comp-status{font-size:13px;color:var(--ink-muted)}
 #view-dashboard .comp-badge{color:var(--ink-muted);background:rgba(255,255,255,.6);border-color:var(--glass-edge)}
-#view-dashboard .comp-online{display:none;margin-left:auto;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--olive-dark);
-  background:rgba(255,255,255,.62);border:1px solid var(--glass-edge);border-radius:100px;padding:6px 12px 6px 10px}
-#view-dashboard #companion:has(#sana-mount[data-mounted="1"]) .comp-online{display:inline-flex}
-#view-dashboard .comp-online-dot{width:8px;height:8px;border-radius:50%;background:var(--olive);box-shadow:0 0 0 3px rgba(140,154,91,.25)}
+/* SANA_ONLINE_REMOVE_V1: the .comp-online and .comp-online-dot rules went with the Online pill, removed at the founder's request on 2026-10-15. */
 #view-dashboard .comp-read p{font-family:var(--serif);font-weight:300;font-size:clamp(21px,2.2vw,28px);line-height:1.4;letter-spacing:-.01em;color:var(--ink);margin:0 0 12px}
 #view-dashboard .comp-read p:last-child{margin-bottom:0}
 #view-dashboard .comp-chips{gap:8px;margin-top:20px}
@@ -3090,11 +3087,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
           <span class="comp-status">Your AI companion, reading from your panel</span>
         </div>
         <span class="comp-badge">Arriving soon</span>
-        <!-- DASHBOARD_V2_DESIGN: the live state. Hidden by default and shown by CSS only while
-             #sana-mount carries data-mounted="1", which sanaMountChat sets at the moment it builds
-             the input and clears when the chat moves to another container. So "Online" cannot show
-             unless the chat really is in this card. The badge above is untouched (SANA_LIVE_COPY_V1). -->
-        <span class="comp-online" id="comp-online"><span class="comp-online-dot" aria-hidden="true"></span>Online</span>
+        <!-- SANA_ONLINE_REMOVE_V1: the DASHBOARD_V2_DESIGN "Online" pill was removed here at the founder's request on 2026-10-15. -->
       </div>
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
