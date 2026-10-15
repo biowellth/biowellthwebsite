@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-15T17:53:56Z
+scope: sana-online-remove-v1 only. SANA_ONLINE_REMOVE_V1 removes the Online pill markup and CSS from dashboard.html and drops #comp-online from scripts/test-empty-prose.mjs. No push to main.
+repos: biowellth-website
