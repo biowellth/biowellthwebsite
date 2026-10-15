@@ -14,30 +14,33 @@
 <meta name="robots" content="index, follow"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- LEFTOVERS_PALETTE_V1: Fraunces replaces Plus Jakarta Sans, the same link index.html uses. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--cream:#F8F2EC;--olive:#59663A;--olive-dark:#4A5530;--brown:#47372B;--brown-mid:#6B5047;--brown-light:#EDE4DA;--white:#FFFFFF}
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6}
 a{text-decoration:none;color:inherit}
-h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif}
+/* LEFTOVERS_PALETTE_V1: headings and the brand names were Plus Jakarta at 700. Now Fraunces 500, the homepage's
+   heading face. Sizes, colours and spacing are unchanged; only the family and weight moved. */
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:500}
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(248,242,236,0.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(71,55,43,0.07);padding:0 5%}
 .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:62px}
 .nav-logo{display:flex;align-items:center;gap:9px}
 .nav-logo img{width:44px;height:44px;object-fit:contain}
-.nav-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:var(--brown);letter-spacing:-0.03em}
+.nav-logo span{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:500;color:var(--brown);letter-spacing:-0.03em}
 .nav-back{font-size:14px;color:var(--brown-mid);transition:color 0.2s;display:flex;align-items:center;gap:6px}
 .nav-back:hover{color:var(--olive)}
 .legal-page{max-width:720px;margin:0 auto;padding:110px 5% 80px}
-.legal-page h1{font-size:clamp(1.8rem,3vw,2.4rem);color:var(--brown);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px}
+.legal-page h1{font-size:clamp(1.8rem,3vw,2.4rem);color:var(--brown);font-weight:500;letter-spacing:-0.03em;margin-bottom:8px}
 .legal-updated{font-size:13px;color:var(--brown-mid);margin-bottom:40px}
-.legal-page h2{font-size:16px;font-weight:700;color:var(--brown);margin-top:32px;margin-bottom:8px;letter-spacing:-0.02em}
+.legal-page h2{font-size:16px;font-weight:500;color:var(--brown);margin-top:32px;margin-bottom:8px;letter-spacing:-0.02em}
 .legal-page p{font-size:15px;color:var(--brown-mid);line-height:1.8}
 footer{background:var(--brown);padding:40px 5%}
 .footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
 .footer-logo{display:flex;align-items:center;gap:9px}
 .footer-logo img{width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1)}
-.footer-logo span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.02em}
+.footer-logo span{font-family:'Fraunces',Georgia,serif;font-size:15px;font-weight:500;color:var(--white);letter-spacing:-0.02em}
 .footer-links{display:flex;gap:20px}
 .footer-links a{font-size:13px;color:rgba(255,255,255,0.78);transition:color 0.2s}
 .footer-links a:hover{color:rgba(255,255,255,0.95)}

@@ -8,7 +8,8 @@
 //   - the reveal ring colour code in animateRing and the initial ringStyle contain no var(--teal),
 //     and the ring arc is var(--coral-deep)
 //   - CY_ACCENT follicular is not var(--teal) (it is var(--olive))
-//   - the :root --teal tokens are unchanged, because other views still draw with them
+//   - the :root --teal tokens are unchanged, because other views still draw with them (corrected by
+//     LEFTOVERS_PALETTE_V1: they now point at olive and sage, so the views that name them no longer paint teal)
 // WHY COMMENTS ARE STRIPPED. The rules explain what they replaced ("was --teal"), and a check that
 // reads comments fails on the documentation of the fix.
 // CONTROLS. Mutants (a teal reveal rule, a Plus Jakarta interim rule, var(--teal) back in the ring
@@ -79,7 +80,9 @@ ok(/var\(--sage\)/.test(j.col) && /var\(--amber\)/.test(j.col) && /var\(--coral\
 ok(j.fol && j.fol !== "var(--teal)", "RP-8: CY_ACCENT follicular is not var(--teal)");
 ok(j.fol === "var(--olive)", "RP-9: CY_ACCENT follicular is var(--olive) (got " + j.fol + ")");
 const root = (css(HTML).match(/:root\{([\s\S]*?)\n\}/) || [])[1] || "";
-ok(/--teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;/.test(root), "RP-10: :root --teal tokens unchanged");
+// LEFTOVERS_PALETTE_V1 (2026-10-14) re-pointed the :root teal tokens at olive and sage on purpose, so no view can
+// paint teal. This assertion pinned the old hexes; it now pins the re-point instead, and still fails if :root drifts.
+ok(/--teal:var\(--olive\); --teal-dark:var\(--olive-dark\); --teal-mid:var\(--sage-mid\); --teal-light:var\(--sage-soft\); --teal-soft:var\(--sage-pale\);/.test(root), "RP-10: :root --teal tokens point at olive and sage (LEFTOVERS_PALETTE_V1)");
 
 console.log("\nMUTANTS -- each must fail, and only in real code");
 const M = [

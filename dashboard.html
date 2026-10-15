@@ -10,11 +10,15 @@
 <!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" href="/favicon.ico?v=olive1"/>
 <!-- DASHBOARD_V2_DESIGN: Fraunces added for the dashboard's headings, numbers and Sana's read. The other three families stay, because the other views still set them. -->
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --cream:#FAF8F4; --cream-mid:#F2EDE3;
-  --teal:#0C8E6B; --teal-dark:#097A5B; --teal-mid:#B8E4D4; --teal-light:#E3F5EE; --teal-soft:#F0F9F5;
+  /* LEFTOVERS_PALETTE_V1, 2026-10-14: the five teal roles now resolve to olive and sage across the WHOLE page,
+     not only inside #view-dashboard (DASHBOARD_V2_DESIGN re-pointed them there first; that copy is left in
+     place and now matches). Were #0C8E6B, #097A5B, #B8E4D4, #E3F5EE and #F0F9F5. The --olive and --sage
+     tokens they point at are declared further down this :root (ONBOARDING_PALETTE_V1). */
+  --teal:var(--olive); --teal-dark:var(--olive-dark); --teal-mid:var(--sage-mid); --teal-light:var(--sage-soft); --teal-soft:var(--sage-pale);
   --coral:#D47C65; --coral-light:#FAF0ED; --coral-dark:#BC6550; --coral-soft:#FCF5F2;
   --amber:#D4A94A; --amber-light:#FAF3E0; --amber-dark:#9C7D30; --amber-deep:#B8812E;
   --orange:#D49358; --orange-light:#FAF1E5; --orange-dark:#A56838;
@@ -59,7 +63,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .topbar-inner{max-width:1100px;margin:0 auto;min-height:60px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:10px;cursor:pointer}
 .brand-mark{width:30px;height:30px;color:var(--teal)}
-.brand-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);letter-spacing:-0.02em}
+/* LEFTOVERS_PALETTE_V1: the values the dashboard's topbar override already sets (body:has(#view-dashboard) .brand-name),
+   now the default, so every view shows the same wordmark. Was Plus Jakarta 16px/700. */
+.brand-name{font-family:'Fraunces',Georgia,serif;font-size:21px;font-weight:500;color:#47372B;letter-spacing:-.01em}
 /* ASK_SANA_NAV_V1 — the wrap moves OUT of the 600px query and onto the base rule. The reasoning
    at CAMERA_READING_NAV_V1 below was right and was simply scoped too narrowly: "Wrapping cannot
    overflow at any width or any label length" is an argument for wrapping at EVERY width, and the
@@ -94,7 +100,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .del-link:hover{opacity:1}
 .del-modal{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(71,55,43,.45)}
 .del-card{background:var(--white);border:1px solid var(--brown-light);border-radius:18px;padding:26px 24px;max-width:440px;width:100%;box-shadow:0 30px 80px -20px rgba(71,55,43,.4)}
-.del-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:12px}
+.del-h{font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:500;letter-spacing:-.01em;color:var(--brown);margin-bottom:12px}
 .del-body{font-size:14px;line-height:1.6;color:var(--brown-mid);margin-bottom:12px}
 .del-input{width:100%;font-family:inherit;font-size:16px;color:var(--brown);background:var(--cream);border:1px solid var(--brown-light);border-radius:11px;padding:11px 14px;letter-spacing:.08em}
 .del-input:focus{outline:none;border-color:var(--coral)}
@@ -110,7 +116,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .acct-h,.acct-row,.acct-dz{flex:none}
 .acct-close{position:absolute;top:16px;right:18px;font-size:24px;line-height:1;color:var(--brown-mid);background:none;border:none;cursor:pointer;padding:2px 6px}
 .acct-close:hover{color:var(--brown)}
-.acct-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:var(--brown);margin-bottom:22px}
+.acct-h{font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:500;letter-spacing:-.01em;color:var(--brown);margin-bottom:22px}
 .acct-row{padding:18px 0;border-top:1px solid var(--brown-light)}
 .acct-row:first-of-type{border-top:none;padding-top:0}
 .acct-klabel{font-size:12px;color:var(--brown-mid);margin-bottom:5px}
@@ -119,7 +125,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .acct-signout:hover{border-color:var(--brown-mid)}
 .acct-privacy{font-size:13.5px;line-height:1.55;color:var(--brown-mid)}
 .acct-dz{margin-top:26px;padding-top:24px;border-top:1px solid var(--brown-light)}
-.acct-dz-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--coral-dark);margin-bottom:8px}
+.acct-dz-h{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:500;color:var(--coral-dark);margin-bottom:8px}
 .acct-dz-body{font-size:13.5px;line-height:1.55;color:var(--brown-mid);margin-bottom:16px}
 .acct-dz-open{font-family:inherit;font-size:13px;font-weight:600;color:var(--coral-dark);background:none;border:1px solid rgba(212,124,101,.5);border-radius:11px;padding:10px 18px;cursor:pointer}
 .acct-dz-open:hover{background:rgba(212,124,101,.08)}
@@ -159,7 +165,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .rail-row-icon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--brown-soft);display:flex;align-items:center;justify-content:center;transition:background .15s}
 .rail-row-icon svg{width:17px;height:17px;stroke:var(--brown-mid);fill:none}
 .rail-row-text{display:flex;flex-direction:column;min-width:0;flex:1}
-.rail-row-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:var(--brown)}
+.rail-row-h{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--brown)}
 .rail-row-sub{font-size:12.5px;color:var(--brown-mid);margin-top:1px}
 .rail-row-chev{flex:none;color:var(--brown-mid);opacity:.5;font-size:18px;line-height:1}
 .rail-row:hover .rail-row-icon{background:var(--brown-light)}
@@ -178,7 +184,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   .dash-grid{grid-template-columns:1fr}
   .dash-rail{position:static}
 }
-h1{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.03em;color:var(--brown)}
+/* LEFTOVERS_PALETTE_V1: family only. Every h1 this page renders has its own size and weight rule, and inside
+   #view-dashboard the v2 font rule wins anyway, so only the family changes here. */
+h1{font-family:'Fraunces',Georgia,serif;letter-spacing:-0.03em;color:var(--brown)}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;background:var(--teal-light);padding:6px 14px;border-radius:100px;margin-bottom:20px}
 .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal)}
 /* ONBOARDING_PALETTE_V1: the upload card's eyebrow only. The bare .eyebrow above is shared with the
@@ -439,14 +447,14 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .reveal-head{display:flex;flex-wrap:wrap;gap:14px 30px;align-items:flex-start;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:30px 40px;margin-bottom:24px}
 .score-ring{width:104px;height:104px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:conic-gradient(var(--teal) calc(var(--p,70)*1%),var(--brown-light) 0);position:relative}
 .score-ring::before{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--white)}
-.score-num{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-size:34px;font-weight:700;color:var(--brown);line-height:1}
+.score-num{position:relative;font-family:'Instrument Sans',sans-serif;font-size:34px;font-weight:700;color:var(--brown);line-height:1}
 .score-cap{position:relative;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-mid);margin-top:3px}
-.reveal-head-text .band{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:6px}
+.reveal-head-text .band{font-family:'Instrument Sans',sans-serif;font-size:20px;font-weight:700;color:var(--brown);margin-bottom:6px}
 .reveal-head-text .headline{font-size:15px;color:var(--brown-mid);line-height:1.7}
 .vitality-frame{margin-top:12px}
 .vitality-frame p{font-size:13.5px;color:var(--brown-mid);line-height:1.7;margin:0 0 8px}
 .vitality-frame p:last-child{margin-bottom:0}
-.section-label{display:flex;align-items:center;gap:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:30px 0 4px}
+.section-label{display:flex;align-items:center;gap:10px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.08em;margin:30px 0 4px}
 .section-label::before{content:"";width:18px;height:2px;border-radius:2px;background:var(--brown);flex:none}
 .section-label.acc-coral::before{background:var(--coral)}
 .section-label.acc-teal::before{background:var(--teal)}
@@ -574,7 +582,7 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .prio-bridge:hover{color:var(--brown)}
 .prio-top{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .prio-rank{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid)}
-.prio-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;line-height:1.25;font-weight:700;color:var(--brown);margin:6px 0 14px}
+.prio-title{font-family:'Instrument Sans',sans-serif;font-size:20px;line-height:1.25;font-weight:700;color:var(--brown);margin:6px 0 14px}
 .prio-marker{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;background:var(--coral-light);color:var(--coral-dark);padding:6px 12px;border-radius:7px}
 .prio-finding{font-size:14px;color:var(--brown);line-height:1.6;margin-bottom:8px}
 /* Stage 2 restyle: the_connection variant only (a brown-soft tinted block); applied ALONGSIDE
@@ -742,10 +750,10 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
    card, never a form/settings row. Suppressed once the user has answered (profile.supp_*). */
 .clarify-card{background:var(--teal-soft);border:1px solid var(--teal-light);border-radius:16px;padding:18px 20px;margin-bottom:10px;animation:escFade .4s ease}
 .clarify-lead{font-size:14px;color:var(--brown);line-height:1.5;margin-bottom:2px}
-.clarify-q{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:600;color:var(--teal-dark);line-height:1.4;margin-bottom:5px}
+.clarify-q{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:600;color:var(--teal-dark);line-height:1.4;margin-bottom:5px}
 .clarify-why{font-size:12.5px;color:var(--brown-mid);opacity:.9;line-height:1.5;margin-bottom:14px}
 .clarify-opts{display:flex;flex-wrap:wrap;gap:9px}
-.clarify-opt{font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--teal-dark);background:#fff;border:1px solid var(--teal-mid);border-radius:100px;padding:9px 16px;cursor:pointer;transition:background .15s,transform .1s}
+.clarify-opt{font-family:'Instrument Sans',sans-serif;font-size:13.5px;font-weight:600;color:var(--teal-dark);background:#fff;border:1px solid var(--teal-mid);border-radius:100px;padding:9px 16px;cursor:pointer;transition:background .15s,transform .1s}
 .clarify-opt:hover{background:var(--teal-light);transform:translateY(-1px)}
 .clarify-opt:disabled{opacity:.45;cursor:default;transform:none}
 .ddc-error{margin-top:10px;font-size:13px;color:var(--coral-dark);background:var(--coral-light);border:1px solid var(--coral);border-radius:10px;padding:8px 12px}
@@ -758,14 +766,14 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 /* escalated_soft (Deploy D2): a measured soft-priority surfaced by a "no" answer. Softer than
    the coral priorities (calm amber accent, no expand). Fades in on the calm reveal. */
 .esc-card{background:var(--amber-light);border:1px solid #F0E3C2;border-radius:14px;padding:15px 18px;margin-bottom:8px;animation:escFade .5s ease}
-.esc-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.esc-name{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:4px}
 .esc-text{font-size:13.5px;color:var(--brown-mid);line-height:1.6}
 @keyframes escFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.quiet-intro{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:600;color:var(--teal-dark);line-height:1.35;margin-bottom:20px}
+.quiet-intro{font-family:'Instrument Sans',sans-serif;font-size:22px;font-weight:600;color:var(--teal-dark);line-height:1.35;margin-bottom:20px}
 /* auto-fit reflow: 2 survivors fill the row cleanly (no broken 3-col gap); 3 cards go 3-up wide, 2-up/1-up as width drops */
 #quiet{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .quiet{background:#fff;border:1px solid var(--teal-light);border-radius:16px;padding:20px}
-.quiet-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:5px}
+.quiet-title{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;color:var(--teal-dark);margin-bottom:5px}
 .quiet-note{font-size:13px;color:var(--brown-mid);line-height:1.55}
 /* DENSITY_COLLAPSE_V2, 2026-09-23. The two-line clamp on .quiet-note is GONE, and with it the
    pair of rules that added and released it. V1 clamped the implication so its first two lines
@@ -944,17 +952,17 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .markers-sort:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(89,102,58,.15)}
 /* Longitudinal rail preview card (title-row + date + preview + counts, all inside the card). */
 .longi-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:3px}
-.longi-card-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+.longi-card-title{font-family:'Instrument Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
 .longi-card-sub{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.02em;color:var(--brown-mid);margin-bottom:14px}
 .longi-preview{display:flex;flex-direction:column;gap:0;margin-bottom:16px}
 .longi-prow{display:flex;align-items:center;gap:10px;padding:11px 0}
 .longi-prow + .longi-prow{border-top:1px solid var(--brown-light)}   /* separator between preview rows */
 /* Name truncates with an ellipsis (never wraps); min-width keeps at least ~90px legible before it
    ellipses, and flex:1 pushes .longi-pmove to the card's right edge so the two never overlap. */
-.longi-pname{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:var(--brown);flex:1;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.longi-pname{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:500;color:var(--brown);flex:1;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .longi-pmove{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--brown-mid);flex:none;margin-left:auto;text-align:right}
 .longi-close-line{font-size:12.5px;color:var(--brown-mid);border-top:1px solid var(--brown-light);padding-top:11px;margin-top:2px}
-.longi-viewall{display:inline-flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:var(--teal-dark);background:none;border:none;cursor:pointer;padding:0;flex:none}
+.longi-viewall{display:inline-flex;align-items:center;gap:5px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--teal-dark);background:none;border:none;cursor:pointer;padding:0;flex:none}
 .longi-viewall:hover{color:var(--teal)}
 /* Trends page overlay (full longitudinal detail) — z above #view-markers (150), below #sys-modal (200) */
 .trends-view{position:fixed;inset:0;z-index:160;background:var(--cream);overflow-y:auto}
@@ -1254,7 +1262,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
    flex child of .acct-card; the .rv-list is the ONLY internal scroll so the head + delete zone stay put. */
 #report-vault{flex:none;display:flex;flex-direction:column;border-top:1px solid var(--brown-light);margin-top:24px;padding-top:16px}
 .rv{display:flex;flex-direction:column}
-.rv-head{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:3px}
+.rv-head{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:500;color:var(--brown);margin-bottom:3px}
 .rv-sub{font-size:12.5px;color:var(--brown-mid);margin-bottom:12px}
 /* FIX (vault sliver): the list gets a real ceiling + internal scroll instead of pure flex:1 in an
    auto-height card, which collapsed it to ~43px. No min-height:0 collapse path. */
@@ -1266,8 +1274,8 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 .rv-meta{flex:1 1 auto;min-width:0}
 .rv-name{font-size:15px;font-weight:600;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rv-date{font:400 12px 'JetBrains Mono',monospace;color:var(--brown-mid);margin-top:3px}
-.rv-view{flex:none;display:inline-flex;align-items:center;gap:7px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:13px;color:var(--teal);background:rgba(12,142,107,.08);border:1px solid rgba(12,142,107,.22);border-radius:10px;padding:8px 15px;cursor:pointer}
-.rv-view:hover{background:rgba(12,142,107,.14)}
+.rv-view{flex:none;display:inline-flex;align-items:center;gap:7px;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:13px;color:var(--teal);background:rgba(89,102,58,.08);border:1px solid rgba(89,102,58,.22);border-radius:10px;padding:8px 15px;cursor:pointer}
+.rv-view:hover{background:rgba(89,102,58,.14)}   /* LEFTOVERS_PALETTE_V1: tints were teal rgba(12,142,107,...) */
 .rv-view:disabled{opacity:.6;cursor:default}
 .rv-view svg{width:14px;height:14px}
 .rv-status{flex:none;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.04em;padding:6px 12px;border-radius:20px}
@@ -1282,7 +1290,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .rv-row.muted .rv-name{color:var(--brown-mid)}
 .rv-empty{padding:22px 4px;text-align:center;color:var(--brown-mid);font-size:14px}
 .replay-row{display:flex;justify-content:center;margin-top:28px}
-.replay-btn{display:inline-flex;align-items:center;gap:9px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown-mid);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 20px;cursor:pointer;transition:color .15s,border-color .15s,transform .15s}
+.replay-btn{display:inline-flex;align-items:center;gap:9px;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown-mid);background:var(--white);border:1px solid var(--brown-light);border-radius:12px;padding:12px 20px;cursor:pointer;transition:color .15s,border-color .15s,transform .15s}
 .replay-btn:hover{color:var(--brown);border-color:var(--brown-mid);transform:translateY(-1px)}
 .replay-btn svg{width:16px;height:16px}
 
@@ -1293,7 +1301,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    Content (ring + text) sits at z-index 2 above the blooms (0) and grain (1). */
 .reveal-head{position:relative;overflow:hidden;background:var(--brown);border-color:transparent;color:var(--cream)}
 .reveal-head::before{content:'';position:absolute;inset:-40% -20%;z-index:0;pointer-events:none;
-  background:radial-gradient(380px 380px at 28% 36%,rgba(12,142,107,.68),rgba(12,142,107,0) 60%),
+  /* LEFTOVERS_PALETTE_V1: was teal rgba(12,142,107,...). #view-dashboard hides this layer, so it never painted. */
+  background:radial-gradient(380px 380px at 28% 36%,rgba(140,154,91,.68),rgba(140,154,91,0) 60%),
              radial-gradient(340px 340px at 71% 64%,rgba(212,124,101,.62),rgba(212,124,101,0) 60%);
   animation:revealDrift 22s ease-in-out infinite;backface-visibility:hidden}
 .reveal-head::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
@@ -1306,7 +1315,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .reveal-head .score-cap{color:rgba(250,248,244,.55)}
 .reveal-head-text .band{color:var(--teal-mid);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;margin-bottom:0;display:inline-flex;align-items:center;gap:8px}
 .reveal-head-text .band::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);flex:none}
-.reveal-head-text .headline{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(22px,3.2vw,34px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px;max-width:min(58ch, 100%)}
+.reveal-head-text .headline{font-family:'Instrument Sans',sans-serif;font-size:clamp(22px,3.2vw,34px);font-weight:300;font-style:normal;line-height:1.32;color:var(--cream);margin-top:10px;max-width:min(58ch, 100%)}
 .reveal-head-text .headline strong{font-weight:600;color:inherit}
 /* Hero summary size tiers (compound + hero-scoped so they never collide with #view-reveal .h-lg/.h-md
    on the reveal deck). Each sets its own line-height, else it inherits the base 1.32. */
@@ -1342,7 +1351,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .hero-stats{display:flex;flex-wrap:wrap;gap:14px 36px;margin:0 0 18px;padding-top:18px;border-top:1px solid var(--brown-light)}
 .reveal-head .hero-stats{flex:0 0 100%;order:3;margin:18px 0 0;border-top-color:rgba(250,248,244,.14)}
 .hero-stat{min-width:60px}
-.hs-num{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;line-height:1}
+.hs-num{font-family:'Instrument Sans',sans-serif;font-size:24px;font-weight:700;line-height:1}
 .hs-lbl{font-size:11px;color:var(--brown-mid);margin-top:5px;line-height:1.3}
 .reveal-head .hs-lbl{color:rgba(250,248,244,.6)}
 .hero-trend{margin-top:16px;font-size:13px;font-style:italic;color:var(--teal-mid)}
@@ -1412,9 +1421,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 /* Sana daily actions card — mock-faithful, tokens native to the Sana surface */
 .daily-card{background:linear-gradient(135deg,var(--white),var(--teal-soft));border:1px solid var(--teal-light);border-radius:18px;padding:20px 18px 16px;margin-bottom:24px;box-shadow:var(--shadow)}
 .dc-head{display:flex;align-items:center;gap:11px;margin-bottom:4px}
-.dc-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px}
+.dc-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:15px}
 .dc-titlewrap{display:flex;flex-direction:column;line-height:1.2}
-.dc-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14.5px;color:var(--brown)}
+.dc-title{font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:14.5px;color:var(--brown)}
 .dc-status{font-size:11px;color:var(--brown-mid);margin-top:2px}
 .dc-prog{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--teal-dark);background:var(--white);border:1px solid var(--teal-light);border-radius:100px;padding:5px 11px;white-space:nowrap}
 .dc-actions{margin-top:14px;display:flex;flex-direction:column;gap:9px}
@@ -1486,8 +1495,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .cy-log .cy-btn{margin-top:0}
 .cy-msg{font-size:12.5px;color:var(--brown-mid);margin-top:8px}
 .comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
-.comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px}
-.comp-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
+.comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:16px}
+.comp-title{font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
 .comp-badge{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange-dark);background:var(--amber-light);border:1px solid #F0E3C2;border-radius:100px;padding:4px 10px}
 .comp-read p{font-size:14px;line-height:1.7;color:var(--brown-mid);margin:0 0 10px}
 .comp-read p:last-child{margin-bottom:0}
@@ -1524,7 +1533,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .found-levers{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
 @media(min-width:768px){.found-levers{grid-template-columns:repeat(3,1fr)}}
 .lever{background:var(--white);border:1px solid var(--teal-light);border-radius:14px;padding:18px 20px}
-.lever-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
+.lever-name{font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:15px;color:var(--brown);margin-bottom:7px}
 .lever-action{font-size:14px;line-height:1.6;color:var(--brown);margin-bottom:8px}
 .lever-conn{font-size:13.5px;line-height:1.65;color:var(--brown-mid)}
 .lever-relates{margin-top:11px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-dark)}
@@ -1596,7 +1605,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .report-view{position:fixed;inset:0;z-index:120;background:var(--cream);display:flex;flex-direction:column}
 .report-view.hidden{display:none}
 .report-bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--white);border-bottom:1px solid var(--brown-light);padding:12px 20px}
-.report-bar-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+.report-bar-title{font-family:'Instrument Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
 .report-bar-btn{font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;color:var(--brown-mid);background:var(--cream);border:1px solid var(--brown-light);border-radius:100px;padding:8px 18px;cursor:pointer}
 .report-bar-btn:hover{color:var(--brown);border-color:var(--brown-mid)}
 .report-bar-btn.primary{background:var(--teal);color:var(--white);border-color:var(--teal)}
@@ -1604,10 +1613,10 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .report-scroll{flex:1 1 auto;overflow-y:auto;padding:28px 20px 60px}
 .report-doc{max-width:760px;margin:0 auto;background:var(--white);border:1px solid var(--brown-light);border-radius:16px;padding:40px 44px;color:var(--brown)}
 .report-doc-head{border-bottom:2px solid var(--brown-light);padding-bottom:20px;margin-bottom:26px}
-.report-doc-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;color:var(--brown);margin-bottom:8px}
+.report-doc-title{font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:500;color:var(--brown);margin-bottom:8px}
 .report-doc-meta{font-size:13px;color:var(--brown-mid);line-height:1.75}
 .report-sec{margin-bottom:30px}
-.report-sec-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--brown-light)}
+.report-sec-h{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:500;color:var(--brown);margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--brown-light)}
 .report-sec-sub{font-size:12.5px;color:var(--brown-mid);line-height:1.55;margin:10px 0 14px}
 .report-lead{font-size:14px;line-height:1.65;color:var(--brown);margin:12px 0 14px}
 .report-band{font-weight:700}
@@ -1617,7 +1626,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .report-note{background:var(--brown-soft);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--brown-mid);margin-top:14px}
 .report-note strong{color:var(--brown)}
 .report-item{border:1px solid var(--brown-light);border-radius:12px;padding:15px 17px;margin-bottom:11px}
-.report-item-h{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.report-item-h{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;color:var(--brown);margin-bottom:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .report-item-body{font-size:13.5px;line-height:1.6;color:var(--brown)}
 .report-item-body p{margin:0 0 8px}
 .report-item-body p:last-child{margin-bottom:0}
@@ -1860,13 +1869,13 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   .onb2-stage.transit{animation:none}
   .onb2-q{transform:none;opacity:1;filter:none}
 }
-.acct-onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown);margin:16px 0 8px}
+.acct-onb-h{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:15px;color:var(--brown);margin:16px 0 8px}
 .acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--brown-light);font-size:13.5px}
 .acct-onb-k{color:var(--brown-mid)}
 .acct-onb-v{color:var(--brown);text-align:right}
 .acct-onb-edit{margin-top:12px;padding:9px 16px;border:1px solid var(--brown-light);border-radius:100px;background:var(--white);font-size:13.5px;color:var(--brown)}
 
-.acct-onb-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown);margin:16px 0 8px}
+.acct-onb-h{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:15px;color:var(--brown);margin:16px 0 8px}
 .acct-onb-row{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--brown-light);font-size:13.5px}
 .acct-onb-k{color:var(--brown-mid)}
 .acct-onb-v{color:var(--brown);text-align:right}
@@ -1880,11 +1889,11 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   background:rgba(242,237,227,.93);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow:auto}
 .tg-card{width:min(560px,100%);min-width:0;max-width:100%;background:var(--off-white);border:1px solid var(--brown-light);
   border-radius:20px;padding:26px 24px 20px;box-shadow:var(--shadow);margin:auto}
-.tg-h{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:22px;color:var(--brown);letter-spacing:-.02em;line-height:1.25;margin:0 0 8px}
+.tg-h{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:24px;color:var(--brown);letter-spacing:-.015em;line-height:1.25;margin:0 0 8px}
 .tg-sub{font-size:14px;color:var(--brown-mid);line-height:1.7;margin:0 0 18px}
 .tg-doc{max-height:280px;overflow-y:auto;background:var(--white);border:1px solid var(--brown-light);border-radius:14px;padding:18px 18px 14px;margin-bottom:20px}
-.tg-doc-h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown);margin:0 0 6px;line-height:1.35}
-.tg-doc-h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--brown);margin:18px 0 6px}
+.tg-doc-h1{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:500;color:var(--brown);margin:0 0 6px;line-height:1.35}
+.tg-doc-h2{font-family:'Fraunces',Georgia,serif;font-size:14px;font-weight:500;color:var(--brown);margin:18px 0 6px}
 .tg-doc-ver{font-size:12px;color:var(--brown-mid);line-height:1.65;margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--brown-light)}
 .tg-doc-p{font-size:12.5px;color:var(--brown-mid);line-height:1.75;margin:0 0 10px}
 .tg-doc-li{font-size:12.5px;color:var(--brown-mid);line-height:1.75;margin:0 0 8px;padding-left:14px;position:relative}

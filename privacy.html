@@ -13,7 +13,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=olive1"/>
 <link rel="shortcut icon" href="/favicon.ico?v=olive1"/>
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=olive1"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<!-- LEFTOVERS_PALETTE_V1: Fraunces replaces Plus Jakarta Sans, the same link index.html uses. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -31,14 +32,16 @@
 body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(--brown);line-height:1.7}
 a{color:var(--olive);text-decoration:underline}
 a:hover{color:var(--olive-dark)}
-h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
+/* LEFTOVERS_PALETTE_V1: headings and the brand names were Plus Jakarta at 700. Now Fraunces 500, the homepage's
+   heading face. Sizes, colours and spacing are unchanged; only the family and weight moved. */
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:500;letter-spacing:-0.02em}
 
 .policy-header{background:var(--brown);padding:100px 5% 48px;text-align:center}
-.policy-header h1{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--white);font-weight:700;margin-bottom:8px}
+.policy-header h1{font-size:clamp(1.8rem,3.5vw,2.6rem);color:var(--white);font-weight:500;margin-bottom:8px}
 .policy-header p{font-size:14px;color:rgba(250,248,244,0.78)}
 
 .policy-body{max-width:720px;margin:0 auto;padding:48px 5% 80px}
-.policy-body h2{font-size:18px;font-weight:700;color:var(--brown);margin-top:40px;margin-bottom:12px;padding-top:24px;border-top:1px solid var(--brown-light)}
+.policy-body h2{font-size:18px;font-weight:500;color:var(--brown);margin-top:40px;margin-bottom:12px;padding-top:24px;border-top:1px solid var(--brown-light)}
 .policy-body h2:first-of-type{border-top:none;padding-top:0;margin-top:0}
 .policy-body p{font-size:15px;color:var(--brown-mid);margin-bottom:14px;line-height:1.8}
 .policy-body ul{margin:8px 0 16px 20px;list-style:disc}
@@ -52,7 +55,7 @@ h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-0.02em}
 .policy-nav-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 .policy-nav a{font-size:14px;font-weight:500;color:var(--olive);text-decoration:none}
 .policy-nav a:hover{text-decoration:underline}
-.policy-nav span{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--brown)}
+.policy-nav span{font-family:'Fraunces',Georgia,serif;font-size:15px;font-weight:500;color:var(--brown)}
 /* BRAND_MARK_HEADER_V1: the mark before the name. The span becomes inline-flex only so the mark and the text
    share a centre line; its font, size and colour are unchanged. The mark is 1.2em, 18px at this nav's 15px. */
 .policy-nav span{display:inline-flex;align-items:center;gap:8px}
