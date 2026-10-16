@@ -1,27 +1,28 @@
 # BioWellth
 
-> Functional-range blood work interpretation and cycle-aware health insights for women. Upload existing lab reports. We flag gaps against functional ranges and suggest next tests. Founded by Aditi Pillai.
+> Blood work interpretation built for South Asian women's biology. A home blood draw for the markers a standard checkup skips, read for where you feel your best, not just okay, and tracked across every panel. Past tests can be uploaded and read alongside it. Founded by Aditi Pillai.
 
 ## What BioWellth does
-- Reads existing blood test results against functional ranges, not just clinical thresholds
-- Connects blood work to cycle phase and symptoms. Wearable data (Apple Health, Health Connect) is coming soon.
-- Flags markers that standard checkups skip: free T3, free T4, ferritin, progesterone, cortisol, hsCRP, DHEA-S
-- Generates a test request list for your doctor showing what was missing
-- AI companion answers health questions using your actual data
+- Home blood draw, booked in a morning slot and timed to your cycle so markers like progesterone are read on the right day
+- Reads every marker against ranges set where women tend to feel their best, alongside the clinical range, and shows what a clinical range lets pass
+- Includes markers standard checkups usually skip: ferritin, free T3, free T4, progesterone, morning cortisol, hsCRP, DHEA-S
+- Reads past test reports you upload together with new panels, so you can see which way each marker is moving
+- Sana, a personal AI companion, answers questions about your results from your own data
+- Gives you questions to bring to your doctor
 
 ## Who it's for
-women who want to understand their blood work beyond "normal." Three groups: women whose symptoms have been dismissed despite normal tests, women who feel fine but want to know what their numbers actually mean, and women who want to catch problems before symptoms start.
+Women who want to understand their blood work beyond "normal." Three groups: women whose symptoms have been dismissed despite normal tests, women who want to know what a normal result means for them, and women who feel fine and want to see how their markers move over time.
 
 ## Current status
-Pre-launch. Early access, by invitation. Free during early access.
+Pre-launch. Early access opens in small groups from the waitlist.
 
 ## Links
 - Home: https://biowellth.ai
-- About (ranges, tracking, gap analysis, sources, founder story): https://biowellth.ai/science
+- About (how we read a panel, ranges, tracking over time, the panel, sources, founder story): https://biowellth.ai/science
 - Founder: https://www.linkedin.com/in/aditi-pillai/
 
 ## Contact
 - Email: support@mybiowellth.com
 
 ## Notes
-Content is static HTML, fully crawlable without JavaScript. All claims reference functional-medicine frameworks and are complementary to, not a replacement for, licensed medical advice. BioWellth does not diagnose, treat, or replace your doctor.
+Content is static HTML, fully crawlable without JavaScript. The ranges BioWellth reads against are narrower than clinical ranges and are based on expert consensus in integrative medicine, not randomized clinical trials. BioWellth is educational. It does not diagnose, treat, or replace your doctor.
