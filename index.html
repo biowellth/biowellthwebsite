@@ -301,6 +301,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .stack-card:nth-child(3){background:rgba(245,220,214,.72)}
 .stack-card:nth-child(2){top:150px}
 .stack-card:nth-child(3){top:180px;margin-bottom:0}
+/* FERRITIN_NARRATIVE_V1: desktop dwell. Cards 01 and 02 hold, stuck and fully readable, for 30vh of
+   scroll before the next card arrives. Phones keep the plain 16px stack from the rule below. */
+@media (min-width:768px){.stack-card:nth-child(-n+2){margin-bottom:30vh}}
 /* STACK_CARDS_MOCKUP_V1: sticky tops were 144 and 168. */
 .stack-card .eyebrow{margin-bottom:auto}
 .stack-big{font-family:var(--serif);font-size:clamp(72px,10vw,140px);line-height:.9;letter-spacing:-.03em;color:var(--ink)}
@@ -309,6 +312,13 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .stack-sub{font-size:22px;color:var(--ink-muted);margin-top:10px}
 /* STACK_CARDS_MOCKUP_V1: .stack-big was clamp(5rem,13vw,10.5rem); .stack-line (the 02 and 03 headlines) was
    clamp(1.8rem,3.8vw,3.2rem) at line-height 1.08; .stack-sub was clamp(16px,1.4vw,19px). Mockup values. */
+/* FERRITIN_NARRATIVE_V1: panel section head, card body text and card 01 chips. */
+.stack-head{margin-bottom:48px;max-width:calc(980px + 2 * var(--gutter))}
+.stack-head .eyebrow{margin-bottom:18px}
+.stack-body{font-size:19px;line-height:1.5;color:var(--ink-muted);max-width:52ch;margin-top:18px}
+.stack-chips{margin-top:14px}
+.stack-chips li{font-size:15px;padding:7px 14px}
+.hero-line{margin-top:14px;font-family:var(--serif);font-style:italic;font-size:19px;line-height:1.3;color:var(--ink)}
 .phases{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
 .phases li{font-size:14px;font-weight:500;padding:8px 16px;border-radius:100px;color:var(--ink)}
 .ph-m{background:var(--coral-soft)}
@@ -393,7 +403,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .motion .hcard{opacity:0}
 .motion .hc-lab .strike{--s:0%}
 .motion .hc-bw{opacity:0}
-.motion .hcard-b .chips li{opacity:0}
+/* FERRITIN_NARRATIVE_V1: .motion .hcard-b .chips li{opacity:0} removed with the hero card. */
 .motion .chat-card .b-user,.motion .chat-card .b-sana{opacity:0}
 
 @media(max-width:1100px){
@@ -543,7 +553,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   </div>
   <div class="wrap hero-foot">
     <div class="hcard-wrap">
-      <div class="hcard hcard-a glass" role="group" aria-label="Illustrative example. Ferritin 22 ng/mL. The standard report reads it as within range with no action needed. The BioWellth read says it is in range, but low for steady energy.">
+      <div class="hcard hcard-a glass" role="group" aria-label="Illustrative example. Ferritin 22 ng/mL. The standard report reads it as within range with no action needed. The BioWellth read says it is in range, but low for steady energy, and worth raising at your next visit.">
         <p class="eyebrow">Same result, two readings</p>
         <div class="hc-marker"><span class="name">Ferritin</span><span class="hc-val">22 <small>ng/mL</small></span></div>
         <div class="hc-read hc-lab">
@@ -552,33 +562,15 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
         </div>
         <div class="hc-read hc-bw">
           <div class="hc-who">BioWellth read</div>
-          <div class="hc-what">In range, but low for steady energy. May be worth raising at your next visit.</div>
+          <div class="hc-what">In range, but low for steady energy. Worth raising at your next visit.</div>
         </div>
       </div>
+      <!-- FERRITIN_NARRATIVE_V1 -->
+      <p class="hero-line">One number looks fine. Three tell a different story.</p>
     </div>
     <p class="hero-caption">Illustrative example. Not medical advice.</p>
-    <div class="hcard-wrap">
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <div class="hcard hcard-b glass" role="group" aria-label="Illustrative example. Your checkup skipped these 6 markers. Our panel includes them.">
-        <p class="eyebrow">Your checkup skipped these</p>
-        <div class="hc-big"><span class="hc-num">6</span><span class="hc-cap">markers our panel includes</span></div>
-        <ul class="chips">
-          <li>Free T3</li><li>Free T4</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Marker ticker. Only markers already named on this site. -->
-<section class="ticker" data-orb="0.34,0.02,0.34" data-orb-m="0.32,0.05,0.55" aria-label="Markers we read">
-  <div class="ticker-track">
-    <ul>
-      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
-    </ul>
-    <ul aria-hidden="true">
-      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
-    </ul>
+    <!-- FERRITIN_NARRATIVE_V1: the "Your checkup skipped these 6" card left the hero. Its six markers now sit in
+         panel card 01, so the hero carries one ferritin number and hands the story to the trend. -->
   </div>
 </section>
 
@@ -588,75 +580,55 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <div class="wrap drift-grid">
       <figure class="chart-card glass" data-reveal>
         <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
+        <!-- FERRITIN_NARRATIVE_V1: data is 74, 48, 22, and the chart is rescaled so 74 sits inside the band and 22
+             well below it. y = 70 + (100 - value) * 2.4, so the band 70 to 100 is y 70 to 142, 74 is
+             132.4, 48 is 204.4, 22 is 257.2 (axis at 280). The middle point's data-at is its share of
+             the path length, 203.2 of 400.4 = 0.51. The band label carries no numbers. -->
         <svg viewBox="0 0 560 330" role="img" aria-labelledby="drift-svg-t">
-          <title id="drift-svg-t">Ferritin across three panels. 85 in January 2024, 60 in March 2025, 42 in February 2026. Every value was reported as normal, while the line drifted down out of the feel-your-best range of 70 to 100.</title>
+          <title id="drift-svg-t">Ferritin across your last three reports. 74 in January 2024, 48 in March 2025, 22 in February 2026. Every value was reported as normal, while the line slid down out of the feel-your-best range.</title>
           <defs>
             <radialGradient id="mini-pearl" cx="35%" cy="30%" r="75%">
               <stop offset="0" stop-color="#FFFFFF"/><stop offset=".3" stop-color="#E3E7D3"/><stop offset=".68" stop-color="#B5C08E"/><stop offset="1" stop-color="#8C9A5B"/>
             </radialGradient>
           </defs>
-          <rect x="40" y="88" width="500" height="72" rx="10" fill="#8C9A5B" fill-opacity=".2"/>
-          <text x="54" y="110" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#4A5530">Feel-your-best range 70 to 100</text>
+          <rect x="40" y="70" width="500" height="72" rx="10" fill="#8C9A5B" fill-opacity=".2"/>
+          <text x="54" y="92" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#4A5530">Feel-your-best range</text>
           <line x1="40" y1="280" x2="540" y2="280" stroke="#47372B" stroke-opacity=".14"/>
-          <path id="drift-line" d="M100,124 L290,184 L480,227.2" fill="none" stroke="#59663A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path id="drift-line" d="M100,132.4 L290,204.4 L480,257.2" fill="none" stroke="#59663A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <g class="pt on" data-at="0">
-            <circle cx="100" cy="124" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
-            <text x="100" y="146" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">85</text>
+            <circle cx="100" cy="132.4" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
+            <text x="100" y="161" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">74</text>
             <text x="100" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Jan 2024</text>
             <text x="100" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#59663A">in range</text>
           </g>
-          <g class="pt on" data-at="0.52">
-            <circle cx="290" cy="184" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
-            <text x="290" y="172" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">60</text>
+          <g class="pt on" data-at="0.51">
+            <circle cx="290" cy="204.4" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
+            <text x="290" y="192" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">48</text>
             <text x="290" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Mar 2025</text>
             <text x="290" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#59663A">still &#8220;normal&#8221;</text>
           </g>
           <g class="pt on" data-at="1">
-            <circle cx="480" cy="227.2" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
-            <text x="480" y="215" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">42</text>
+            <circle cx="480" cy="257.2" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
+            <text x="480" y="245" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">22</text>
             <text x="480" y="304" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Feb 2026</text>
             <text x="480" y="322" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#59663A">still &#8220;normal&#8221;</text>
           </g>
-          <circle id="drift-pearl" r="9" fill="url(#mini-pearl)" transform="translate(480,227.2)"/>
+          <circle id="drift-pearl" r="9" fill="url(#mini-pearl)" transform="translate(480,257.2)"/>
         </svg>
         <span class="drift-pill on" aria-hidden="true">Drifting &#8595;</span>
       </figure>
       <div class="drift-copy" data-reveal>
-        <p class="eyebrow">Ferritin · last 3 panels</p>
+        <!-- FERRITIN_NARRATIVE_V1 -->
+        <p class="eyebrow">Ferritin · your last 3 reports</p>
         <h2 class="h2" id="drift-h">Every report said normal. <em style="display:block">The trend didn't.</em></h2>
-        <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-        <p class="lede">In range on every report. Falling across all three. Retest with us and we read every panel together, so you see which way you're moving.</p>
+        <!-- FERRITIN_NARRATIVE_V1: was the LANDING_COPY_V1 drift lede. -->
+        <p class="lede">74, then 48, then 22. Each report called it normal. Read together, it's a slide. Retest with us and every panel is read alongside the last.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Three stacking cards. Sticky on desktop, a plain stack under 768px. -->
-<section class="stack" id="read" data-orb="0.33,0.04,0.42" data-orb-m="0.34,0.3,0.55" aria-label="The panel, your cycle, your biology">
-  <div class="wrap stack-cards">
-    <article class="stack-card glass">
-      <p class="eyebrow">01 · The panel</p>
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <div><div class="stack-big">170+</div><p class="stack-sub">markers across 21 categories, drawn at home</p></div>
-    </article>
-    <article class="stack-card glass">
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <p class="eyebrow">02 · Timed to your cycle</p>
-      <div>
-        <p class="stack-line">Drawn on the right day of your cycle.</p>
-        <ul class="phases" aria-label="Cycle phases">
-          <li class="ph-m">Menstrual</li><li class="ph-f">Follicular</li><li class="ph-o">Ovulatory</li><li class="ph-l">Luteal</li>
-        </ul>
-      </div>
-    </article>
-    <article class="stack-card glass">
-      <p class="eyebrow">03 · Your biology</p>
-      <p class="stack-line">Built for South Asian women, <em>not averaged away.</em></p>
-    </article>
-  </div>
-</section>
-
-<!-- Sana. Olive section. -->
+<!-- Sana. Olive section. FERRITIN_NARRATIVE_V1: moved to directly after the trend, so her reply reads the chart just shown. -->
 <section class="sana" id="sana" data-orb="0.42,-0.3,0.34" data-orb-m="0.42,-0.38,0.5" aria-labelledby="sana-h">
   <div class="wrap">
     <div class="sana-panel">
@@ -670,8 +642,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
           <div class="chat-head"><span class="mini" aria-hidden="true"></span><span class="eyebrow">Sana</span></div>
           <p class="bubble b-user">Why am I so tired lately?</p>
           <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-          <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-          <p class="bubble b-sana">Your ferritin went from 85 to 42 across three panels. Each one was "in range", but that slide often tracks with low energy. Ferritin and hsCRP are worth raising with your doctor.</p>
+          <!-- FERRITIN_NARRATIVE_V1: was the LANDING_COPY_V1 reply with 85 and 42. -->
+          <p class="bubble b-sana">Your ferritin went from 74 to 22 across three reports. Each was in range, but a slide like that often tracks with low energy. Worth raising with your doctor, along with hsCRP, which your past panels didn't include.</p>
         </div>
         <p class="chat-caption">Illustrative conversation.</p>
       </div>
@@ -679,11 +651,66 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   </div>
 </section>
 
+<!-- Marker ticker. Only markers already named on this site. FERRITIN_NARRATIVE_V1: moved from under the hero to open the panel section. -->
+<section class="ticker" data-orb="0.34,0.02,0.34" data-orb-m="0.32,0.05,0.55" aria-label="Markers we read">
+  <div class="ticker-track">
+    <ul>
+      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
+    </ul>
+    <ul aria-hidden="true">
+      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
+    </ul>
+  </div>
+</section>
+
+<!-- Three stacking cards. Sticky on desktop, a plain stack under 768px. -->
+<section class="stack" id="read" data-orb="0.33,0.04,0.42" data-orb-m="0.34,0.3,0.55" aria-labelledby="read-h">
+  <!-- FERRITIN_NARRATIVE_V1: section head added. -->
+  <div class="wrap stack-head" data-reveal>
+    <p class="eyebrow">Beyond ferritin</p>
+    <h2 class="h2" id="read-h">Ferritin was one question. <em style="display:block">Your checkup skipped others.</em></h2>
+  </div>
+  <div class="wrap stack-cards">
+    <!-- FERRITIN_NARRATIVE_V1: each card keeps ONE body element after its eyebrow, because the stack JS fades
+         `:scope > :not(.eyebrow)` as the next card slides over. Card 01's six markers render as chips
+         rather than after a colon, per the copy rule. -->
+    <article class="stack-card glass">
+      <p class="eyebrow">01 · The panel</p>
+      <div>
+        <div class="stack-big">170+</div>
+        <p class="stack-sub">markers, drawn at home.</p>
+        <p class="stack-body">Including the ones most checkups skip</p>
+        <ul class="chips stack-chips" aria-label="Markers most checkups skip">
+          <li>Free T3</li><li>Free T4</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li>
+        </ul>
+      </div>
+    </article>
+    <article class="stack-card glass">
+      <p class="eyebrow">02 · Timed to your cycle</p>
+      <div>
+        <p class="stack-line">Drawn on the right day of your cycle.</p>
+        <p class="stack-body">Hormones like progesterone shift across your cycle, so we time your draw for a reading that means something.</p>
+        <ul class="phases" aria-label="Cycle phases">
+          <li class="ph-m">Menstrual</li><li class="ph-f">Follicular</li><li class="ph-o">Ovulatory</li><li class="ph-l">Luteal</li>
+        </ul>
+      </div>
+    </article>
+    <article class="stack-card glass">
+      <p class="eyebrow">03 · Your biology</p>
+      <div>
+        <p class="stack-line">Interpretation for South Asian biology.</p>
+        <p class="stack-body">Low iron, B12 and vitamin D, and early insulin resistance are common in South Asian women. Your read accounts for that.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
 <!-- Founder. The full story is on /science#founder. -->
 <section class="founder" data-orb="-0.4,-0.26,0.28" data-orb-m="-0.4,-0.34,0.4" aria-label="From the founder">
   <div class="wrap">
     <blockquote data-reveal>
-      <p>My mother was tired for three years. Every checkup said normal. Nobody ran ferritin.</p>
+      <!-- FERRITIN_NARRATIVE_V1 -->
+      <p>My mother was tired for three years. Every checkup said normal. Nobody ran ferritin. When someone finally did, the report read it as normal too.</p>
       <footer>Aditi Pillai, Founder · <a href="/science#founder">Read the full story</a></footer>
     </blockquote>
   </div>
@@ -693,10 +720,11 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 <section class="final" id="join" data-orb="0,0.02,0.86" data-orb-m="0,0.04,1.05" aria-labelledby="final-h">
   <div class="pearl-static" aria-hidden="true"></div>
   <div class="wrap final-inner">
-    <h2 class="display" id="final-h" data-reveal>Join the waitlist.</h2>
+    <!-- FERRITIN_NARRATIVE_V1 -->
+    <h2 class="display" id="final-h" data-reveal>Start with your next panel.</h2>
     <div class="final-panel glass" data-reveal>
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <p class="lede">The waitlist is open across India. Early access opens in small groups.</p>
+      <!-- FERRITIN_NARRATIVE_V1: was the LANDING_COPY_V1 lede. -->
+      <p class="lede">Home draws open in India first. Join the waitlist for early access.</p>
       <!-- HOMEPAGE_MOTION_V1: the waitlist is the existing Typeform on /early-access, and this
            repo has no email-capture endpoint. An email field here would collect an address and
            then drop it, so the pill keeps the existing wiring as one button instead. -->
@@ -1017,7 +1045,7 @@ if(motion){
   var tl=gsap.timeline({delay:0.1});
   tl.fromTo('.hero [data-intro]',{opacity:0,y:26},{opacity:1,y:0,duration:1.05,ease:'power3.out',stagger:0.1})
     .fromTo('.hcard',{opacity:0,y:36},{opacity:1,y:0,duration:1.1,ease:'power3.out',stagger:0.14},0.55)
-    .fromTo('.hcard-b .chips li',{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:'back.out(2.2)',stagger:0.09},1.35)
+    // FERRITIN_NARRATIVE_V1: the .hcard-b chip pop went with the hero's second card.
     .fromTo('.hc-lab .strike',{'--s':'0%'},{'--s':'100%',duration:0.75,ease:'power2.inOut'},2.0)
     .add(function(){ document.querySelector('.hc-lab').classList.add('dim'); },2.6)
     .fromTo('.hc-bw',{opacity:0,y:8},{opacity:1,y:0,duration:0.85,ease:'power2.out'},2.85);
@@ -1081,10 +1109,17 @@ if(motion&&cards.length===3){
         // Card n settles back as card n+1 slides over it.
         // The card scales back but stays opaque glass; only its body fades, so the covered
         // card's text never blurs through the card on top. Its eyebrow stays as the visible tab.
-        gsap.set(cards[0],{scale:1-0.05*clamp01((p-0.12)/0.3)});
-        gsap.set(bodies[0],{opacity:1-clamp01((p-0.14)/0.22)});
-        gsap.set(cards[1],{scale:1-0.05*clamp01((p-0.5)/0.3)});
-        gsap.set(bodies[1],{opacity:1-clamp01((p-0.52)/0.22)});
+        // FERRITIN_NARRATIVE_V1: the fade and scale-back are driven by how far the NEXT card has
+        // actually slid over this card's body, not by a fixed slice of section progress. Measured
+        // before this change at 1440: card 01's body was already at opacity 0.66 while card 02 was
+        // still 92px below it, and at 0.16 when card 02 first touched it. Now a body stays at full
+        // opacity until the next card reaches its bottom edge, then fades as it is covered.
+        for(var k=0;k<2;k++){
+          var br=bodies[k].getBoundingClientRect(),nt=cards[k+1].getBoundingClientRect().top;
+          var cov=clamp01((br.bottom-nt)/Math.max(1,br.bottom-br.top));
+          gsap.set(cards[k],{scale:1-0.05*cov});
+          gsap.set(bodies[k],{opacity:1-cov});
+        }
         // The orb warms slightly while the cycle card leads.
         orbHueTarget=(p>0.3&&p<0.7)?1:0;
       },
