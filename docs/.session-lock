@@ -1,0 +1,4 @@
+session: 0162nikQ
+taken: 2026-10-16T08:23:44Z
+scope: landing-copy-v1 only. LANDING_COPY_V1 copy-only edits to index.html (and llms.txt if the old hero lede is present). No push to main.
+repos: biowellth-website
