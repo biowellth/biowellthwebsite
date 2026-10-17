@@ -5183,7 +5183,7 @@ async function handleFile(file){
 
 // ── PROCESSING_COPY_V1 ──────────────────────────────────────────────────────────────────────
 // Honest processing copy. Three states, all byte-matching the re-signed artifact
-// docs/biowellth-between-calls-copy-SIGNED.md (Aditi Pillai, 2026-08-18):
+// docs/biowellth-between-calls-copy-SIGNED.md (founder-signed, 2026-08-18):
 //   IN-3  normal interim, under the threshold
 //   IN-4  long-running continuation, past it. This ALSO covers a queue retry: a retry is NOT
 //         front-end distinguishable, because failPhase writes reports.status='error' only when
@@ -5232,11 +5232,11 @@ const PC_LONG_MS = 9 * 60 * 1000;
 const PC_OVERDUE_MS = 25 * 60 * 1000;
 const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
 const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
-// FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed Aditi Pillai 2026-08-19). FAIL-5 is the
+// FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed by the founder 2026-08-19). FAIL-5 is the
 // SECOND-failure state: the one retry is spent, so no control is offered that would be refused.
 const PC_FAIL2 = "Your report is saved and nothing is lost. Something went wrong while we were reading it. You can try again, or tell us and we will look at it with you.";
 const PC_FAIL5 = "We tried again and it still did not finish. Your report is saved and nothing is lost. Tell us and we will look at it with you.";
-// FAIL6_V1 — FAIL-6, byte-exact from the artifact (signed Aditi Pillai 2026-08-19). UNRETRYABLE: the
+// FAIL6_V1 — FAIL-6, byte-exact from the artifact (signed by the founder 2026-08-19). UNRETRYABLE: the
 // report failed before or during transcription, so there is nothing to re-read and RETRY_MODE_V1 can
 // never rescue it. Distinct from FAIL-2 (retry available) and FAIL-5 (retry spent) because BOTH of
 // those strings are false here — FAIL-2 promises a retry the backend refuses, FAIL-5 claims we tried
@@ -5467,7 +5467,7 @@ function pcRenderFailure(reportId, mode){
 
 // STALE_TAB_POLL_V1 — the report this poll is watching, or null when nothing is in flight.
 // Needed because a backgrounded tab does not lose its interval, it gets THROTTLED (browsers clamp
-// background timers to roughly once a minute). Aditi's 2026-08-19 walk finished at 22:58 and the tab
+// background timers to roughly once a minute). The founder's 2026-08-19 walk finished at 22:58 and the tab
 // still showed "processing" minutes later: the backend was healthy the whole time and the payload was
 // readable to her, the tab just had not ticked. So the fix is not a faster interval, it is an
 // immediate tick the moment the tab is looked at again.
@@ -5708,7 +5708,7 @@ function renderInterim(tj, elapsedMs){
   // "Reading your report" screen, 2026-07-15). IN-3 (SIGNED docs/biowellth-between-calls-copy-SIGNED.md)
   // is the calm reassurance; no ask here. Top matter -> #interim-list, marker list -> #interim-markers.
   // PROCESSING_COPY_V1: IN-3 / IN-4 are chosen by ELAPSED, see pcInterimSub. Both byte-match the
-  // re-signed artifact (docs/biowellth-between-calls-copy-SIGNED.md, Aditi Pillai 2026-08-18).
+  // re-signed artifact (docs/biowellth-between-calls-copy-SIGNED.md, founder-signed 2026-08-18).
   let topHtml =
     '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
     '<p class="interim-sub">' + esc(pcInterimSub(elapsedMs)) + '</p>' +
@@ -6267,7 +6267,7 @@ function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 // enqueue-rescore edge fn, then polls results.rescored_at and re-renders the sharpened read.
 // The engine already did the scoring; this is FE-only.
 const CLARIFY_COL = { vitamin_b12: "supp_b12", vitamin_b9_folate: "supp_folate" };
-// Companion-register copy (no colons, no em dashes; warm, plain, hedged). Aditi may tune.
+// Companion-register copy (no colons, no em dashes; warm, plain, hedged). The founder may tune.
 const CLARIFY_COPY = {
   vitamin_b12:       { lead: "Your B12 is sitting higher than the usual range.",   ask: "Do you take a B12 supplement?", why: "It changes what this number means for you." },
   vitamin_b9_folate: { lead: "Your folate is sitting higher than the usual range.", ask: "Do you take a folate or folic-acid supplement?", why: "It changes what this number means for you." },
@@ -6288,7 +6288,7 @@ const CLARIFY_ACK = {
 };
 // Folate redirect (Finding #2 step 3): the "folate" word in a B12 ack becomes a tappable link
 // that opens the vitamins system modal and reveals the folate row. Constant span injected AFTER
-// esc() so the rest of the copy stays escaped (Approach B — Aditi's strings stay verbatim).
+// esc() so the rest of the copy stays escaped (Approach B — the founder's strings stay verbatim).
 const FOLATE_LINK = '<span class="folate-link" data-goto="vitamin_b9_folate" role="link" tabindex="0">folate</span>';
 function payloadHasFolate(){
   const p = window.__rdPayload;
@@ -8351,7 +8351,7 @@ function buildHeroSummary(p){
 // FIRST PANEL OPENS WITH "OVERALL", NOT "HOLDING STEADY". Holding steady is a claim about movement,
 // and a first panel has nothing to have moved from. The other three band strings make no such claim,
 // so they are untouched, and every multi-panel opener is untouched. With a name the "Overall, " is
-// dropped rather than stacked, because "Aditi, overall, you are steady" is two openers in a row.
+// dropped rather than stacked, because "Priya, overall, you are steady" is two openers in a row.
 function heroOpenerClause(bandKey, firstPanel){
   const B = BAND_CLAUSE[bandKey];
   if(!B) return null;
@@ -13333,7 +13333,7 @@ function esc(s){
 }
 
 // First name from PROFILE.full_name (nullable OAuth text). Trim, first whitespace-delimited
-// token. "Lakshmi Vinod" -> "Lakshmi", "Aditi" -> "Aditi". "" for null/empty/whitespace-only.
+// token. "Lakshmi Vinod" -> "Lakshmi", "Priya" -> "Priya". "" for null/empty/whitespace-only.
 // Result MUST still pass through esc() before innerHTML (user-controlled OAuth data).
 function firstName(s){
   const t = String(s == null ? "" : s).trim();
