@@ -1,0 +1,4 @@
+session: 549f4b84
+taken: 2026-10-17T18:37:14Z
+scope: merge PR #29 into main with a merge commit (LANDING_PRODUCT_SHOTS_V1), then verify the Pages deploy.
+repos: biowellth-website
