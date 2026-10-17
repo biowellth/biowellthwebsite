@@ -309,6 +309,40 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .ph-o{background:rgba(212,124,101,.22)}
 .ph-l{background:rgba(156,94,71,.14)}
 
+/* LANDING_PRODUCT_SHOTS_V1: "What you get back". No glow of its own: the travelling orb and the body
+   glow are the page's existing treatment, so this section adds no new decoration. The browser frame
+   is 960px at 1440 and scales down with the column; the image keeps the approved 960x600 ratio. */
+.shots{position:relative;padding:6vh 0 4vh}
+.shots-head .eyebrow{margin-bottom:18px}
+.shots-lead{margin-top:20px;font-size:19px;line-height:1.6;color:var(--ink-muted);max-width:600px}
+.shots-row1{position:relative;margin-top:56px;padding-bottom:20px}
+.shots-browser{width:min(960px,calc(100% - 92px));border-radius:20px;overflow:hidden;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:0 40px 80px -32px rgba(156,94,71,.34)}
+.shots-bar{height:40px;display:flex;align-items:center;gap:16px;padding:0 16px}
+.shots-dots{display:flex;gap:6px}
+.shots-dots i{width:10px;height:10px;border-radius:50%;background:#E9D9CF}
+.shots-url{margin:0 auto;transform:translateX(-25px);font-size:12px;color:var(--ink-muted);background:rgba(255,255,255,.7);border-radius:100px;padding:3px 16px}
+.shots-browser img{display:block;width:100%;height:auto;aspect-ratio:958/600;object-fit:cover;object-position:top}
+.shots-phone{position:absolute;right:0;top:70px;width:262px;height:560px;padding:10px;border-radius:40px;background:#47372B;box-shadow:0 40px 80px -32px rgba(71,55,43,.45)}
+.shots-phone img{display:block;width:100%;height:100%;border-radius:30px;object-fit:cover;object-position:top}
+.shots-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center;margin-top:72px}
+.shots-trends{border-radius:20px;overflow:hidden}
+.shots-trends img{display:block;width:100%;height:auto}
+.shots-copy h3{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.15;letter-spacing:-.01em;color:var(--ink)}
+.shots-copy h3 em{font-style:italic;color:var(--coral-deep)}
+.shots-copy p{margin-top:14px;font-size:17px;line-height:1.6;color:var(--ink-muted)}
+.shots .chat-caption{margin-top:28px}
+@media(max-width:767px){
+  .shots{padding:6vh 0}
+  .shots .h2{font-size:38px}
+  .shots-lead{font-size:17px}
+  .shots-row1{margin-top:36px;padding-bottom:0}
+  .shots-browser{display:none}
+  .shots-phone{position:relative;right:auto;top:auto;width:290px;height:620px;margin:0 auto}
+  .shots-row2{display:block;margin-top:32px}
+  .shots-trends img{height:150px;object-fit:cover;object-position:left top}
+  .shots-copy{display:none}
+}
+
 /* SANA. Olive and sage belong to Sana. */
 .sana{position:relative;padding:14vh 0}
 .sana-panel{border-radius:36px;background:linear-gradient(160deg,rgba(242,244,234,.92),rgba(227,231,211,.7));border:1px solid rgba(255,255,255,.8);padding:clamp(32px,5vw,72px);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,72px);align-items:center}
@@ -655,6 +689,37 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       <p class="eyebrow">03 · Your biology</p>
       <p class="stack-line">Built for South Asian women, <em>not averaged away.</em></p>
     </article>
+  </div>
+</section>
+
+<!-- LANDING_PRODUCT_SHOTS_V1: "What you get back". Real dashboard.html screens rendered from a synthetic
+     panel by scripts/capture-landing-shots.mjs. No real person's data. data-orb is the midpoint of #read and #sana. -->
+<section class="shots" id="get-back" data-orb="0.38,-0.13,0.38" data-orb-m="0.38,-0.04,0.52" aria-labelledby="shots-h">
+  <div class="wrap">
+    <div class="shots-head" data-reveal>
+      <p class="eyebrow">What you get back</p>
+      <h2 class="h2" id="shots-h">Your panel, <em>read for you.</em></h2>
+      <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana reads it with you.</p>
+    </div>
+    <div class="shots-row1" data-reveal>
+      <div class="shots-browser">
+        <div class="shots-bar" aria-hidden="true"><span class="shots-dots"><i></i><i></i><i></i></span><span class="shots-url">biowellth.ai/dashboard</span></div>
+        <img src="assets/landing/shot-01-dashboard.webp" width="960" height="600" loading="lazy" decoding="async" alt="A sample BioWellth dashboard for an illustrative member, Priya. It shows a vitality score of 74 marked Steady, a note that more markers came back into range than moved out since her last panel, counts of markers worth a closer look, worth watching and looking good, and Sana's chat box below.">
+      </div>
+      <div class="shots-phone">
+        <img src="assets/landing/shot-03-mobile.webp" width="242" height="540" loading="lazy" decoding="async" alt="The same sample dashboard on a phone, with the greeting to Priya, the Steady label and the vitality score of 74.">
+      </div>
+    </div>
+    <div class="shots-row2" data-reveal>
+      <div class="shots-trends glass">
+        <img src="assets/landing/shot-02-trends.webp" width="1600" height="456" loading="lazy" decoding="async" alt="A sample comparison with the January 2026 panel. Six markers held steady, vitamin B12 came back into range, and vitamin D is still worth a closer look.">
+      </div>
+      <div class="shots-copy">
+        <h3>See what changed, <em>not just what is.</em></h3>
+        <p>Each new panel is read against your last one, so a slow slide shows up before it becomes a problem.</p>
+      </div>
+    </div>
+    <p class="chat-caption">Sample report with illustrative data.</p>
   </div>
 </section>
 
