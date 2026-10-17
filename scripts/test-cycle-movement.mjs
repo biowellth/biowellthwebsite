@@ -289,14 +289,14 @@ eq((HTML.match(/^\.dc-flavor\{/gm) || []).length, 1, "CM-W39: CONTROL, .dc-flavo
   const R = { menstrual_status: "regular", typical_cycle_length_days: 28, typical_period_duration_days: 5 };
   const t = "2026-10-17";
   const longC = CM.resolveCycleMovement({ ...R, typical_cycle_length_days: 42, last_period_start_date: "2026-09-17" }, { today: t });
-  eq(longC.reason + ":" + longC.daysSince, "out_of_range_inputs:30", "CM-W45: out_of_range_inputs carries daysSince");
+  eq(longC.reason + ":" + longC.daysSince, "out_of_range_inputs:30", "CM-W55: out_of_range_inputs carries daysSince");
   const over = CM.resolveCycleMovement({ ...R, last_period_start_date: "2026-09-07" }, { today: t });
-  eq(over.reason + ":" + over.daysSince + ":" + over.cycleDay, "overdue:40:41", "CM-W46: overdue carries daysSince, cycleDay - 1");
+  eq(over.reason + ":" + over.daysSince + ":" + over.cycleDay, "overdue:40:41", "CM-W56: overdue carries daysSince, cycleDay - 1");
   const none = CM.resolveCycleMovement({ ...R, typical_cycle_length_days: 42 }, { today: t });
-  eq(none.daysSince, null, "CM-W47: no usable date gives null");
+  eq(none.daysSince, null, "CM-W57: no usable date gives null");
   const phase = CM.resolveCycleMovement({ ...R, last_period_start_date: "2026-10-10" }, { today: t });
-  eq("daysSince" in phase, false, "CM-W48: a phase result has no daysSince key");
-  eq("daysSince" in over, true, "CM-W49: CONTROL, the overdue result does");
+  eq("daysSince" in phase, false, "CM-W58: a phase result has no daysSince key");
+  eq("daysSince" in over, true, "CM-W59: CONTROL, the overdue result does");
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
