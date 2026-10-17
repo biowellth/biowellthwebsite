@@ -1,6 +1,6 @@
 # BioWellth
 
-> Blood work interpretation built for South Asian women's biology. A home blood draw for the markers a standard checkup skips, read for where you feel your best, not just okay, and tracked across every panel. Past tests can be uploaded and read alongside it. Founded by Aditi Pillai.
+> Blood work interpretation built for South Asian women's biology. A home blood draw for the markers a standard checkup skips, read for where you feel your best, not just okay, and tracked across every panel. Past tests can be uploaded and read alongside it.
 
 ## What BioWellth does
 - Home blood draw, booked in a morning slot and timed to your cycle so markers like progesterone are read on the right day
@@ -19,7 +19,6 @@ Pre-launch. Early access opens in small groups from the waitlist.
 ## Links
 - Home: https://biowellth.ai
 - About (how we read a panel, ranges, tracking over time, the panel, sources, founder story): https://biowellth.ai/science
-- Founder: https://www.linkedin.com/in/aditi-pillai/
 
 ## Contact
 - Email: support@mybiowellth.com
