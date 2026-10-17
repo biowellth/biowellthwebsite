@@ -31,6 +31,7 @@
 <meta name="robots" content="index, follow"/>
 
 <!-- JSON-LD: Organization -->
+<!-- FOUNDER_NAME_REMOVE_V1: the Organization block no longer carries the "founder" Person or the "sameAs" key, whose only entry was the personal LinkedIn. -->
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -38,20 +39,12 @@
   "name":"BioWellth",
   "url":"https://biowellth.ai",
   "logo":"https://biowellth.ai/logo.png",
-  "founder":{
-    "@type":"Person",
-    "name":"Aditi Pillai",
-    "url":"https://www.linkedin.com/in/aditi-pillai/"
-  },
   "description":"Functional-range blood work interpretation built for South Asian women's biology. Adjusted for the metabolic, hormonal, and nutritional patterns standard ranges miss.",
   "contactPoint":{
     "@type":"ContactPoint",
     "email":"support@mybiowellth.com",
     "contactType":"customer support"
-  },
-  "sameAs":[
-    "https://www.linkedin.com/in/aditi-pillai/"
-  ]
+  }
 }
 </script>
 
@@ -695,7 +688,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <blockquote data-reveal>
       <!-- FERRITIN_NUMBERS_V1: founder quote -->
       <p>My mother was tired for three years. Every checkup said normal. Nobody ran ferritin. When someone finally did, the report read it as normal too.</p>
-      <footer>Aditi Pillai, Founder · <a href="/science#founder">Read the full story</a></footer>
+      <!-- FOUNDER_NAME_REMOVE_V1 -->
+      <footer>Founder · <a href="/science#founder">Read the full story</a></footer>
     </blockquote>
   </div>
 </section>
@@ -829,7 +823,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       <a href="/terms">Terms &amp; Conditions</a>
       <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>
     </nav>
-    <p class="foot-copy">© 2026 BioWellth. All rights reserved. · Founded by <a href="https://www.linkedin.com/in/aditi-pillai/" target="_blank" rel="noopener">Aditi Pillai</a></p>
+    <!-- FOUNDER_NAME_REMOVE_V1: the founder name and LinkedIn link were removed from the footer. -->
+    <p class="foot-copy">© 2026 BioWellth. All rights reserved.</p>
   </div>
 </footer>
 
