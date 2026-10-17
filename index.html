@@ -607,7 +607,10 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
           <path id="drift-line" d="M100,150.4 L290,212.8 L480,275.2" fill="none" stroke="#59663A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <g class="pt on" data-at="0">
             <circle cx="100" cy="150.4" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
-            <text x="100" y="172.4" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">74</text>
+            <!-- FERRITIN_NUMBERS_V1: the 74 label moved from under the point (x 100, y 172.4, middle) to its left
+                 (x 84, y 157, end), because under the point it touched the line. Measured clearance from the line
+                 is 12.8px at 1440 and 7.4px at 390, and from the dot 6.8px and 3.8px. -->
+            <text x="84" y="157" text-anchor="end" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">74</text>
             <text x="100" y="339" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Jan 2024</text>
             <text x="100" y="357" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#59663A">in range</text>
           </g>
