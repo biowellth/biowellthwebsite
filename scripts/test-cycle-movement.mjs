@@ -20,7 +20,10 @@ import { createHash } from "node:crypto";
 import vm from "node:vm";
 import { extractApp } from "./lib/extract-app.mjs";
 
-const MODULE_SHA256 = "6aec9b31075f24b61bd59283e19079868fb3ef1bcbab49f55392b8b326e36487";
+// DAYS_SINCE_V1, 2026-10-17: MOVED from 6aec9b31... with supa, for the additive daysSince field.
+// backend-branches was NOT edited by ruling; its copy (branch aditi/cycle-movement-2026-10-12 only,
+// not on prod) still holds 6aec9b31.
+const MODULE_SHA256 = "23dfc9e2d8c1f779cb73da901af43d956c783f428815df015519ba31e2c0e396";
 const CORPUS_SHA256 = "d8c449d26c5bdff6a444de4eed3f0bbe615f2bda77475fc4c02d24d9d2245f5e";
 const MODULE_PATH = new URL("../js/cycle-movement.js", import.meta.url);
 const CORPUS_PATH = new URL("./fixtures/cycle-movement-corpus.json", import.meta.url);
@@ -280,6 +283,21 @@ eq(/function dcResolvePhase\s*\(/.test(HTML), false, "CM-W13: dcResolvePhase is 
 // ── 5. stylesheet ────────────────────────────────────────────────────────────
 eq((HTML.match(/^\.dc-move\{/gm) || []).length, 1, "CM-W38: exactly one .dc-move rule");
 eq((HTML.match(/^\.dc-flavor\{/gm) || []).length, 1, "CM-W39: CONTROL, .dc-flavor is also defined once");
+
+// ── 6. DAYS_SINCE_V1 ─────────────────────────────────────────────────────────
+{
+  const R = { menstrual_status: "regular", typical_cycle_length_days: 28, typical_period_duration_days: 5 };
+  const t = "2026-10-17";
+  const longC = CM.resolveCycleMovement({ ...R, typical_cycle_length_days: 42, last_period_start_date: "2026-09-17" }, { today: t });
+  eq(longC.reason + ":" + longC.daysSince, "out_of_range_inputs:30", "CM-W40: out_of_range_inputs carries daysSince");
+  const over = CM.resolveCycleMovement({ ...R, last_period_start_date: "2026-09-07" }, { today: t });
+  eq(over.reason + ":" + over.daysSince + ":" + over.cycleDay, "overdue:40:41", "CM-W41: overdue carries daysSince, cycleDay - 1");
+  const none = CM.resolveCycleMovement({ ...R, typical_cycle_length_days: 42 }, { today: t });
+  eq(none.daysSince, null, "CM-W42: no usable date gives null");
+  const phase = CM.resolveCycleMovement({ ...R, last_period_start_date: "2026-10-10" }, { today: t });
+  eq("daysSince" in phase, false, "CM-W43: a phase result has no daysSince key");
+  eq("daysSince" in over, true, "CM-W44: CONTROL, the overdue result does");
+}
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

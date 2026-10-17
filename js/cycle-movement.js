@@ -39,6 +39,19 @@ function ymdFromDayNumber(n) {
   return new Date(n * 86400000).toISOString().slice(0, 10);
 }
 
+// DAYS_SINCE_V1 (2026-10-17). Whole days from the later usable period date (R6, the same rule and the
+// same "ignored if malformed or in her future" filter the phase path uses below) to today. 0 on the
+// day the period started, so cycleDay is daysSince + 1 wherever both exist. null with no usable date.
+// Read ONLY by the out_of_range_inputs and overdue results; it decides nothing.
+function daysSinceLmp(p, o, todayN) {
+  let best = null;
+  for (const v of [p.last_period_start_date, o.reportLmp]) {
+    const n = dayNumber(v);
+    if (n !== null && n <= todayN && (best === null || n > best)) best = n;
+  }
+  return best === null ? null : todayN - best;
+}
+
 function intOrNull(v) {
   return typeof v === "number" && Number.isInteger(v) ? v : null;
 }
@@ -167,7 +180,9 @@ export function resolveCycleMovement(profile, opts) {
   if (L === null) {
     return base("no_phase", "cycle_length_unknown", { statusLine: STATUS_LINES.cycle_length_unknown });
   }
-  if (L < CYCLE_LENGTH_MIN || L > CYCLE_LENGTH_MAX) return base("no_phase", "out_of_range_inputs");
+  if (L < CYCLE_LENGTH_MIN || L > CYCLE_LENGTH_MAX) {
+    return base("no_phase", "out_of_range_inputs", { daysSince: daysSinceLmp(p, o, todayN) });
+  }
 
   let P = intOrNull(p.typical_period_duration_days);
   let periodEstimated = false;
@@ -175,7 +190,7 @@ export function resolveCycleMovement(profile, opts) {
     P = PERIOD_LENGTH_DEFAULT;
     periodEstimated = true;
   } else if (P < PERIOD_LENGTH_MIN || P > PERIOD_LENGTH_MAX) {
-    return base("no_phase", "out_of_range_inputs");
+    return base("no_phase", "out_of_range_inputs", { daysSince: daysSinceLmp(p, o, todayN) });
   }
 
   // R6: the later of the two, each ignored if malformed or in her future.
@@ -197,7 +212,7 @@ export function resolveCycleMovement(profile, opts) {
   const cycleDay = todayN - lmpN + 1;
   const withLmp = Object.assign({ lmp: ymdFromDayNumber(lmpN), lmpSource: candidates[0].source, cycleDay }, inputs);
   if (cycleDay > L + OVERDUE_GRACE_DAYS) {
-    return base("log_period", "overdue", Object.assign({ statusLine: STATUS_LINES.log_period }, withLmp));
+    return base("log_period", "overdue", Object.assign({ statusLine: STATUS_LINES.log_period, daysSince: todayN - lmpN }, withLmp));
   }
 
   const ov = L - 14;
