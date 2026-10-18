@@ -178,7 +178,7 @@ const HIDDEN = [
   ["perimenopause", { ...REG, menstrual_status: "perimenopausal", last_period_start_date: ago(6) }],
   ["PCOS", { ...REG, cycle_status: "pcos", last_period_start_date: ago(6) }],
   // "cycle length missing" left this list on 2026-10-18: CYCLE_CARD_DAYCOUNT_V1 shows it (CC-50 on).
-  // out_of_range_inputs with no date left it the same day: it gets the live Log period card (CC-88).
+  // out_of_range_inputs with no date left it the same day: it gets the Log period card with logPlain (CC-88).
 ];
 for (const [name, prof] of HIDDEN) {
   const r = await render(prof);
@@ -351,14 +351,23 @@ for (const [v, want] of [["12", "invalid"], ["91", "invalid"], ["abc", "invalid"
 {
   const want = resolve(NOLEN);
   ok(want.reason === "cycle_length_unknown" && want.daysSince === null, "CC-78 CONTROL: the module gives cycle_length_unknown, daysSince null");
-  eq(r_copy().logLine, CM.STATUS_LINES.log_period, "CC-49 the card's logLine is the module's STATUS_LINES.log_period word for word");
+  eq(r_copy().logPlain, "Log the day your last period started.", "CC-49 the no-date line is CY_COPY.logPlain");
+  ok(r_copy().logPlain !== CM.STATUS_LINES.log_period, "CC-49b CONTROL: logPlain is not the module's log_period line");
   const r = await render(NOLEN);
   const live = await render({ ...REG });
   ok(resolve({ ...REG }).reason === "lmp_unknown", "CC-79 CONTROL: REG with no date is the live log_period/lmp_unknown card");
-  eq(r.rail.innerHTML, live.rail.innerHTML, "CC-80 no cycle length, no date: byte-identical to the live Log period card");
+  ok(live.rail.innerHTML.includes(">" + CM.STATUS_LINES.log_period + "<") && !live.rail.innerHTML.includes(r_copy().logPlain), "CC-79b CONTROL: lmp_unknown still carries the module's line word for word, not logPlain");
+  eq(r.rail.innerHTML, asPlain(live.rail.innerHTML), "CC-80 no cycle length, no date: the live Log period card's markup with logPlain");
+  eq(r.rail.innerHTML.includes(CM.STATUS_LINES.log_period), false, "CC-80b and not the module's movement-ideas line");
   eq(r.rail.innerHTML.includes(SINCE) || r.rail.innerHTML.includes("len-open"), false, "CC-81 no day count, no cycle-length link");
 }
 function r_copy() { return boot({}).ctx.__getCopy(); }
+// The live card with its one line swapped, so the comparison checks everything else byte for byte.
+function asPlain(h) {
+  const from = ">" + CM.STATUS_LINES.log_period + "<";
+  if (h.split(from).length !== 2) return "NO SINGLE MODULE LINE IN " + h;
+  return h.replace(from, ">" + r_copy().logPlain + "<");
+}
 
 // 3. out_of_range_inputs and overdue: day count, Log period, the line ONLY when N > 35.
 const THREE = [
@@ -392,12 +401,12 @@ for (const [name, prof, reason, n, line] of THREE) {
     const want = resolve(prof);
     ok(want.reason === "out_of_range_inputs" && want.daysSince === null, `CC-88a CONTROL ${name}, no date: the module gives out_of_range_inputs, daysSince null`);
     const r = await render(prof);
-    eq(r.rail.innerHTML, live.rail.innerHTML, `CC-88b ${name}, no date: byte-identical to the live Log period card`);
-    eq(r.main.innerHTML, live.main.innerHTML, `CC-88c ${name}, no date: the phone host too`);
+    eq(r.rail.innerHTML, asPlain(live.rail.innerHTML), `CC-88b ${name}, no date: the live Log period card's markup with logPlain`);
+    eq(r.main.innerHTML, asPlain(live.main.innerHTML), `CC-88c ${name}, no date: the phone host too`);
     ok(!r.rail.hidden() && !r.main.hidden(), `CC-88d ${name}, no date: the hosts are shown`);
   }
   const other = await render({ ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(20) });
-  ok(other.rail.innerHTML !== live.rail.innerHTML, "CC-88e CONTROL: the byte-identity test tells a different card apart (out of range WITH a date)");
+  ok(other.rail.innerHTML !== asPlain(live.rail.innerHTML), "CC-88e CONTROL: the byte-identity test tells a different card apart (out of range WITH a date)");
 }
 
 // 4. unchanged states carry none of the new pieces.
@@ -414,7 +423,7 @@ for (const [name, prof, reason, n, line] of THREE) {
 // copy and palette for the new pieces, each with a planted control that fires.
 {
   const c = r_copy();
-  const NEW_KEYS = ["logLine", "since", "long", "lenLink", "lenAsk", "lenHelp", "lenType", "lenDays", "lenGroup", "lenInvalid"];
+  const NEW_KEYS = ["logPlain", "since", "long", "lenLink", "lenAsk", "lenHelp", "lenType", "lenDays", "lenGroup", "lenInvalid"];
   const vals = NEW_KEYS.map((k) => c[k]);
   ok(vals.every((v) => typeof v === "string" && v.length > 0), "CC-91 CONTROL: every new copy key is present");
   const BANNED = /[:—!]|\bcommon\b|many women|most women|\bnormal\b|\bfertil|conceiv|pregnan|ovulat|pcos|polycystic|amenorrh|endometri|menopaus|thyroid|disorder|syndrome|diagnos|condition/i;

@@ -9071,10 +9071,11 @@ async function dcRenderDailyCard(p, reportId, late){
 //                             the cycle-length ask (24 to 35, or typed), saved through onb2Write with
 //                             onb2Int's 15 to 90, then this card and the daily card re-render; Log
 //                             period below the link. With no date, the live Log period card above,
-//                             byte-identical to log_period/lmp_unknown (cyLogCardHTML).
+//                             the log_period/lmp_unknown markup (cyLogCardHTML) with CY_COPY.logPlain,
+//                             since logging alone does not unlock movement ideas there.
 //   out_of_range_inputs,   -> "Day N since your last period" and Log period. The clinician line shows
 //   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date gets
-//                             the live Log period card too (2026-10-18 ruling).
+//                             the same logPlain card (2026-10-18 rulings).
 //   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
 //                             perimenopause, PCOS and unreadable inputs all render no card and never a reason.
 // "Log period" posts process-report mode log_period (supa LOG_PERIOD_V1) through the page's
@@ -9094,7 +9095,7 @@ const CY_COPY = {
   invalidDate: 'That date is later than today. Choose the day your last period started.',
   retry: 'That did not save. Try again in a moment.',
   // CYCLE_CARD_DAYCOUNT_V1
-  logLine: 'Log your period to see movement ideas for where you are in your cycle.',   // = the module's STATUS_LINES.log_period (CC-49)
+  logPlain: 'Log the day your last period started.',   // PROPOSED 2026-10-18; the two no-date cases only, lmp_unknown keeps the module's line
   since: 'since your last period',
   long: 'A cycle this long is worth looking into with a clinician.',
   lenLink: 'Add your usual cycle length',
@@ -9154,12 +9155,12 @@ function cyCardHTML(cm, open, msg, len){
   if(!cm) return null;
   if(cm.status === 'no_phase' && cm.reason === 'cycle_length_unknown'){
     const n = cyDayN(cm);
-    if(n === null) return cyLogCardHTML(CY_COPY.logLine, open, msg);
+    if(n === null) return cyLogCardHTML(CY_COPY.logPlain, open, msg);
     return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
       + cySinceHTML(n) + cyLenBlock(len) + cyLogBlock(open, msg) + '</div>';
   }
   if(cm.status === 'no_phase' && cm.reason === 'out_of_range_inputs' && cyDayN(cm) === null){
-    return cyLogCardHTML(CY_COPY.logLine, open, msg);
+    return cyLogCardHTML(CY_COPY.logPlain, open, msg);
   }
   if((cm.status === 'no_phase' && cm.reason === 'out_of_range_inputs') || (cm.status === 'log_period' && cm.reason === 'overdue')){
     const n = cyDayN(cm);
