@@ -82,10 +82,12 @@ const PAYLOAD = {
   // disclosures and a THREE-column row. With one lever and one win the fixture could not tell a
   // three-across row from a one-across one, and "all of them are closed" was a claim about three
   // controls. Three of each gives 3 quiet + 3 lever + 1 why = seven.
+  // QW_SAFETY_ANY_V1 (2026-10-18): each entry carries an ordinary marker, because dropSuppressedQW
+  // now drops a markerless entry (it cannot be shown to be safe). Live entries always carry markers.
   quietly_working: [
-    { finding: "A quiet win", implication: "still true" },
-    { finding: "A second win", implication: "also still true" },
-    { finding: "A third win", implication: "holding steady" }],
+    { finding: "A quiet win", implication: "still true", markers: ["hdl"] },
+    { finding: "A second win", implication: "also still true", markers: ["alb"] },
+    { finding: "A third win", implication: "holding steady", markers: ["glucose"] }],
   foundations: { lead: "Lead line", levers: [
     { display_name: "Sleep", action: "Sleep action", connection: "c" },
     { display_name: "Iron", action: "Iron action", connection: "c2" },

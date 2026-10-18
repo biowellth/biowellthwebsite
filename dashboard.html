@@ -8558,16 +8558,20 @@ function renderFoundations(p){
   }
 }
 
-// Copy-safety helper (shared): drop "quietly working" strengths that are PURELY
-// sensitive-class (heavy-metals / autoimmune) so an all-negative panel isn't surfaced
-// as a "win" with reassuring declarative copy. Suppressed-id set = systems-derived
+// Copy-safety helper (shared): drop "quietly working" strengths that TOUCH a
+// sensitive class (heavy-metals / autoimmune / tumor markers) so none of them is ever
+// listed as a "win" with reassuring declarative copy. Suppressed-id set = systems-derived
 // (authoritative — follows the library) UNION a hardcoded floor so it fails CLOSED if
 // payload.systems[] is ever absent/renamed. Floor ids verified verbatim against the
 // heavy_metals + autoimmune systems[].markers[] across all 3 keepers (19 metals +
-// ana/anti_ccp/aso/rheumatoid_factor). Mirrors the backend QW tumor filter's "all
-// markers in set -> drop" semantics (mixed entries kept; markerless entries kept —
-// fail-open, a separate decision NOT changed here). Routes BOTH the dashboard
-// "What's already strong" beat and the reveal-deck Beat 1.
+// ana/anti_ccp/aso/rheumatoid_factor). Routes the dashboard "What's already strong" beat,
+// the reveal-deck Beat 1, the report snapshot and the companion Q4 chip.
+// QW_SAFETY_ANY_V1 (2026-10-18): the rule is ANY sensitive marker -> drop the WHOLE entry, and
+// an entry with no markers (absent or empty) -> drop, because it cannot be shown to be safe.
+// It was "ALL markers sensitive -> drop, markerless -> keep", which let a mixed entry such as
+// [ana, ordinary marker] or a markerless one render. The whole entry goes, never just the
+// marker, because the model's prose may name the marker. Same rule as the worker's pre-storage
+// filter (process-report-worker index.ts, QW_SAFETY_ANY_V1); test: scripts/test-qw-safety-filter.mjs.
 // Systems whose reassuring all-clear copy must never surface as a "win" — gated across
 // the strengths beat, the reveal deck (both via dropSuppressedQW), and the system-detail
 // modal summary_line. (cardStatus still neutralizes only heavy_metals on the body map —
@@ -8610,8 +8614,8 @@ function dropSuppressedQW(list, payload){
       for(const m of (Array.isArray(s.markers)?s.markers:[])) qwSuppIds.add(m.marker_id);
   return (Array.isArray(list)?list:[]).filter(x=>{
     const mk = Array.isArray(x.markers)?x.markers:[];
-    if(!mk.length) return true;                 // no class info -> keep (can't classify)
-    return !mk.every(id => qwSuppIds.has(id));    // drop iff ALL markers are sensitive-class
+    if(!mk.length) return false;                // QW_SAFETY_ANY_V1: no markers -> can't prove safe -> drop
+    return !mk.some(id => qwSuppIds.has(id));     // QW_SAFETY_ANY_V1: drop if ANY marker is sensitive-class
   });
 }
 
@@ -9849,7 +9853,7 @@ async function renderDashboard(p, reportId){
   renderEscalated(p);
 
   // Copy-safety: route the dashboard "What's already strong" beat through the shared
-  // suppression helper (dropSuppressedQW) — drops purely heavy-metals/autoimmune "wins".
+  // suppression helper (dropSuppressedQW) — drops any "win" touching a sensitive class.
   // The reveal-deck Beat 1 goes through the same helper, so the logic lives in one place.
   // EMPTY_PROSE_V1 — an entry whose finding PROSE_GUARD_V1 (worker v134) emptied has nothing to
   // put on a card face, and a card with no title is not a quieter card, it is a blank one.

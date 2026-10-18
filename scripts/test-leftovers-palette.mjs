@@ -124,7 +124,9 @@ const P = {
   systems: SYSTEMS,
   priorities: [pr(1, "Your vitamin D is running low", "vitamins", "vitamin_d_25oh_total", "Vitamin D", "flag"), pr(2, "Your iron stores are on the low side", "iron_status", "ferritin", "Ferritin", "watch"),
                pr(3, "Inflammation is up", "inflammation", "hs_crp", "hs-CRP", "flag")],
-  quietly_working: [{ finding: "Your blood sugar control is steady." }, { finding: "A second quiet win." }],
+  // QW_SAFETY_ANY_V1 (2026-10-18): ordinary markers on each entry, because a markerless entry is now
+  // dropped and the strength cards would leave this sweep without failing it.
+  quietly_working: [{ finding: "Your blood sugar control is steady.", markers: ["glucose"] }, { finding: "A second quiet win.", markers: ["hdl"] }],
   foundations: { lead: "Lead line.", closing: "Closing line.", levers: [{ display_name: "Morning sunlight", action: "Synthetic action.", appears_in_priority_ids: ["p1"] }] },
   coverage_gap: { ids: ["free_t3", "homocysteine"], by_system: { thyroid: ["free_t3"], methylation: ["homocysteine"] }, direction_only: [] },
   longitudinal: { baseline_panel_date: "2026-01-15", resolved: [lm("vitamin_b12", "Vitamin B12", "pg/mL", 298, 412, "optimal")],
