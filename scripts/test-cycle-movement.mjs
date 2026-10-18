@@ -23,7 +23,9 @@ import { extractApp } from "./lib/extract-app.mjs";
 // DAYS_SINCE_V1, 2026-10-17: MOVED from 6aec9b31... with supa, for the additive daysSince field.
 // backend-branches was NOT edited by ruling; its copy (branch aditi/cycle-movement-2026-10-12 only,
 // not on prod) still holds 6aec9b31.
-const MODULE_SHA256 = "23dfc9e2d8c1f779cb73da901af43d956c783f428815df015519ba31e2c0e396";
+// DAYS_SINCE_V2, 2026-10-18: MOVED again, 23dfc9e2... -> 14d709cb..., daysSince on cycle_length_unknown,
+// with supa. backend-branches still holds 6aec9b31 and is now TWO changes behind.
+const MODULE_SHA256 = "14d709cb26153ed8a4cf44905e850af17dcbd844f49329ae2d70249e6743907c";
 const CORPUS_SHA256 = "d8c449d26c5bdff6a444de4eed3f0bbe615f2bda77475fc4c02d24d9d2245f5e";
 const MODULE_PATH = new URL("../js/cycle-movement.js", import.meta.url);
 const CORPUS_PATH = new URL("./fixtures/cycle-movement-corpus.json", import.meta.url);
@@ -297,6 +299,16 @@ eq((HTML.match(/^\.dc-flavor\{/gm) || []).length, 1, "CM-W39: CONTROL, .dc-flavo
   const phase = CM.resolveCycleMovement({ ...R, last_period_start_date: "2026-10-10" }, { today: t });
   eq("daysSince" in phase, false, "CM-W58: a phase result has no daysSince key");
   eq("daysSince" in over, true, "CM-W59: CONTROL, the overdue result does");
+}
+
+// ── 7. DAYS_SINCE_V2 ─────────────────────────────────────────────────────────
+{
+  const t = "2026-10-17";
+  const withDate = CM.resolveCycleMovement({ menstrual_status: "regular", last_period_start_date: "2026-09-01" }, { today: t, reportLmp: "2026-09-27" });
+  eq(withDate.reason + ":" + withDate.daysSince, "cycle_length_unknown:20", "CM-W60: cycle_length_unknown with a date carries daysSince (later-of)");
+  const noDate = CM.resolveCycleMovement({ menstrual_status: "regular" }, { today: t });
+  eq(noDate.reason + ":" + noDate.daysSince, "cycle_length_unknown:null", "CM-W61: cycle_length_unknown without a date carries null");
+  eq("daysSince" in noDate, true, "CM-W62: CONTROL, the key is present even when null");
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

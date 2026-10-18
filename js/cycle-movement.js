@@ -43,6 +43,7 @@ function ymdFromDayNumber(n) {
 // same "ignored if malformed or in her future" filter the phase path uses below) to today. 0 on the
 // day the period started, so cycleDay is daysSince + 1 wherever both exist. null with no usable date.
 // Read ONLY by the out_of_range_inputs and overdue results; it decides nothing.
+// DAYS_SINCE_V2 (2026-10-18): also the cycle_length_unknown result, same function, same rules.
 function daysSinceLmp(p, o, todayN) {
   let best = null;
   for (const v of [p.last_period_start_date, o.reportLmp]) {
@@ -178,7 +179,7 @@ export function resolveCycleMovement(profile, opts) {
 
   const L = intOrNull(p.typical_cycle_length_days);
   if (L === null) {
-    return base("no_phase", "cycle_length_unknown", { statusLine: STATUS_LINES.cycle_length_unknown });
+    return base("no_phase", "cycle_length_unknown", { statusLine: STATUS_LINES.cycle_length_unknown, daysSince: daysSinceLmp(p, o, todayN) });
   }
   if (L < CYCLE_LENGTH_MIN || L > CYCLE_LENGTH_MAX) {
     return base("no_phase", "out_of_range_inputs", { daysSince: daysSinceLmp(p, o, todayN) });

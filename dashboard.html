@@ -8726,7 +8726,7 @@ function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^
 // the first 8 hex of its sha256, so a changed module is a changed URL (the Fastly cache key) and
 // scripts/test-cycle-movement.mjs fails if the two drift. A failed load leaves every row unphased
 // and the movement row absent: the card itself never depends on it.
-const CM_SRC = '/js/cycle-movement.js?v=23dfc9e2';   // DAYS_SINCE_V1: was v=6aec9b31, moved with the module bytes
+const CM_SRC = '/js/cycle-movement.js?v=14d709cb';   // DAYS_SINCE_V2: was v=23dfc9e2 (V1), v=6aec9b31 before that; moves with the module bytes
 let __cmModule = null;
 function dcLoadCycleMovement(){
   if(!__cmModule) __cmModule = import(CM_SRC).catch(e => { __cmModule = null; console.error('[daily_card] cycle module load failed (unphased):', e); return null; });
