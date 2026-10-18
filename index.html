@@ -7,7 +7,8 @@
 <title>BioWellth: Your tests came back normal. You're still exhausted.</title>
 <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
 <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-<meta name="description" content="A home blood panel built for South Asian women's biology, read for where you feel your best and tracked over time. Waitlist open across India."/>
+<!-- WAITLIST_INDIA_REMOVE_V1: the closing sentence naming the waitlist region was removed at Aditi's call. -->
+<meta name="description" content="A home blood panel built for South Asian women's biology, read for where you feel your best and tracked over time."/>
 <!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" type="image/png" href="/favicon-96x96.png?v=olive1" sizes="96x96"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=olive1"/>
@@ -226,6 +227,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .hero .pearl-static{width:min(78vh,84vw);bottom:-22vh}
 .hero-copy{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center}
 .hero-copy .eyebrow{margin-bottom:18px}
+/* HERO_PREVENTIVE_EYEBROW_V1: keeps the longer hero eyebrow on one line on phones. Scoped to .hero-copy, not
+   .hero, because section.hero also holds the two hero card eyebrows, which must not change. */
+@media(max-width:480px){.hero-copy .eyebrow{letter-spacing:.1em;font-size:11px}}
 .hero h1{font-size:clamp(2.6rem,5.3vw,4.7rem)}
 .hero h1 .l2{display:block}
 .hero .lede{margin:20px auto 0;max-width:30em;color:var(--ink-muted)}
@@ -557,7 +561,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 <section class="hero" data-orb="0,-0.4,0.8" data-orb-m="0,-0.36,0.95" aria-labelledby="hero-h">
   <div class="pearl-static" aria-hidden="true"></div>
   <div class="wrap hero-copy">
-    <p class="eyebrow" data-intro>Built for South Asian women</p>
+    <!-- HERO_PREVENTIVE_EYEBROW_V1: was "Built for South Asian women", changed at Aditi's call. -->
+    <p class="eyebrow" data-intro>Preventive health for South Asian women</p>
     <h1 class="display" id="hero-h">Your tests came back normal. <em class="l2" data-intro>You're still exhausted.</em></h1>
     <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
     <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
@@ -766,7 +771,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <h2 class="display" id="final-h" data-reveal>Join the waitlist.</h2>
     <div class="final-panel glass" data-reveal>
       <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <p class="lede">The waitlist is open across India. Early access opens in small groups.</p>
+      <!-- WAITLIST_INDIA_REMOVE_V1: the opening sentence naming the waitlist region was removed at Aditi's call. -->
+      <p class="lede">Early access opens in small groups.</p>
       <!-- HOMEPAGE_MOTION_V1: the waitlist is the existing Typeform on /early-access, and this
            repo has no email-capture endpoint. An email field here would collect an address and
            then drop it, so the pill keeps the existing wiring as one button instead. -->
