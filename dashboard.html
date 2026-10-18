@@ -1842,6 +1842,9 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    chips, being pills, select to an olive fill with cream text (5.58:1). Was teal-soft for both. */
 .onb2-opt:hover{border-color:var(--sage-mid);transform:translateX(2px)}
 .onb2-opt.sel{border-color:var(--olive);background:var(--sage-pale);color:var(--olive-dark);font-weight:600}
+/* LIFE_STAGE_OPTIONS_V1 — the helper line under an option label. Regular weight even when selected. */
+.onb2-opt-tx{display:flex;flex-direction:column;gap:3px}
+.onb2-opt-help{font-size:12.5px;font-weight:400;color:var(--brown-mid);line-height:1.45}
 .onb2-chip{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:100px;padding:9px 15px;transition:all .3s ease}
 .onb2-chip:hover{border-color:var(--olive)}
 .onb2-chip.sel{border-color:var(--olive);background:var(--olive);color:var(--cream);font-weight:600}
@@ -10162,9 +10165,15 @@ const ONB2_COPY = {
 const ONB2_SCREENS = [
   { id:"preg", key:"preg",  q:ONB2_COPY.s1, kind:"one",
     opts:[["Yes",true],["No",false]] },
+  // LIFE_STAGE_OPTIONS_V1 (copy approved 2026-10-18). Stored values unchanged. The old
+  // perimenopause label led with "My periods have become unpredictable", which a woman
+  // with PCOS or any irregular cycle could fairly pick, so the option now names the
+  // transition itself and the cycle change rides in the helper line beside the symptoms.
+  // An optional third element is a helper line rendered under the label (onb2CardHtml).
   { id:"life", key:"life_stage", q:ONB2_COPY.s2, kind:"one", note:ONB2_COPY.s2note,
-    opts:[["My periods come fairly predictably","premenopause"],
-          ["My periods have become unpredictable, or I notice changes like hot flashes or sleep shifts","perimenopause"],
+    opts:[["I still get periods","premenopause"],
+          ["I think I'm in the transition toward menopause","perimenopause",
+           "Changes like hot flashes, night sweats or sleep shifts, along with changing periods"],
           ["My periods stopped over a year ago","postmenopause"],
           ["Not sure",null]] },
   { id:"cyc",  key:"cycle_status", q:ONB2_COPY.s3, kind:"one", steppers:true,
@@ -10194,7 +10203,9 @@ const ONB2_SCREENS = [
   { id:"cond", key:"cond", q:ONB2_COPY.s7, kind:"groups",
     groups:[
       { key:"known_conditions", label:ONB2_COPY.s7cond, none:"None of these",
-        opts:["Thyroid condition","PCOS","Anemia or low iron","Diabetes or prediabetes",
+        // LIFE_STAGE_OPTIONS_V1 — "Endometriosis" added beside PCOS. Stored as its label, the
+        // same convention as every chip here, into the existing known_conditions column.
+        opts:["Thyroid condition","PCOS","Endometriosis","Anemia or low iron","Diabetes or prediabetes",
               "High blood pressure","High cholesterol","None of these"].map(x=>[x,x]) },
       { key:"symptoms", label:ONB2_COPY.s7symp, none:"None of these",
         opts:["Fatigue or low energy","Poor sleep","Hair loss","Brain fog","Low mood or anxiety",
@@ -10289,16 +10300,26 @@ function onb2Prefill(s){
 //
 // The logic is unchanged, character for character. onb2DeriveMenstrual is now a
 // single line and keeps its name, so every existing caller is untouched.
+// (Corrected 2026-10-18: the logic was unchanged at the lift. LIFE_STAGE_OPTIONS_V1 has
+// since changed the precedence, see the comment inside the function.)
 function deriveMenstrualFrom(a, s){
   a = a || {}; s = s || {};
   const preg = ("preg" in a) ? a.preg : s.pregnant_or_postpartum_within_6_months;
   if(preg === true) return "pregnant";
   const ls = ("life_stage" in a) ? a.life_stage : s.life_stage;
-  if(ls === "perimenopause") return "perimenopausal";
-  if(ls === "postmenopause") return "postmenopausal";
   const cs = ("cycle_status" in a) ? a.cycle_status : s.cycle_status;
-  if(cs === "regular") return "regular";
+  // LIFE_STAGE_OPTIONS_V1 (2026-10-18). A PCOS or irregular cycle answer outranks a
+  // perimenopause life stage. Before this, perimenopause won, so a young woman with PCOS who
+  // picked the old "My periods have become unpredictable" option got menstrual_status
+  // perimenopausal, a status her own cycle answer did not support. This changes only the
+  // DERIVED menstrual_status. life_stage still stores exactly what she picked, and readers
+  // that key on life_stage (Call B's prompt, Sana's cycle sentence) still see it. Pregnancy still comes first, and postmenopause still outranks the cycle answer
+  // exactly as before: it is tested ahead of the new check, and since life_stage holds one
+  // value the two life-stage tests cannot both match, so swapping their order changes nothing.
+  if(ls === "postmenopause") return "postmenopausal";
   if(cs === "irregular" || cs === "pcos") return "irregular";
+  if(ls === "perimenopause") return "perimenopausal";
+  if(cs === "regular") return "regular";
   if(cs === "amenorrheic" || cs === "none") return null;
   return undefined;
 }
@@ -10531,7 +10552,13 @@ function onb2CardHtml(sc, idx){
     h += '<div class="onb2-opts">';
     sc.opts.forEach((o,k)=>{
       const sel = (sc.key in a) && a[sc.key] === o[1] ? " sel" : "";
-      h += '<button type="button" class="onb2-opt' + sel + '" data-i="' + k + '">' + onb2Esc(o[0]) + "</button>";
+      // LIFE_STAGE_OPTIONS_V1 — an option with a third element carries a helper line
+      // inside the same button, so tapping either line selects it. Two-element options
+      // render exactly as before.
+      const body = o[2]
+        ? '<span class="onb2-opt-tx"><span>' + onb2Esc(o[0]) + '</span><span class="onb2-opt-help">' + onb2Esc(o[2]) + "</span></span>"
+        : onb2Esc(o[0]);
+      h += '<button type="button" class="onb2-opt' + sel + '" data-i="' + k + '">' + body + "</button>";
     });
     h += "</div>";
     if(sc.note) h += '<div class="onb2-note">' + onb2Esc(sc.note) + "</div>";

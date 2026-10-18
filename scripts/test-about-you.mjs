@@ -289,7 +289,7 @@ t("C2-NOGOAL: the goal screen is gone", !SCREENS.some((s) => s.id === "goal" || 
   const cond = SCREENS.find((s) => s.id === "cond"), meds = SCREENS.find((s) => s.id === "meds");
   const labels = (g) => g.opts.map((o) => o[0]).join("|");
   t("C2-COND-OPTS: conditions chips as specified",
-    labels(cond.groups[0]) === "Thyroid condition|PCOS|Anemia or low iron|Diabetes or prediabetes|High blood pressure|High cholesterol|None of these" &&
+    labels(cond.groups[0]) === "Thyroid condition|PCOS|Endometriosis|Anemia or low iron|Diabetes or prediabetes|High blood pressure|High cholesterol|None of these" &&
     cond.groups[0].key === "known_conditions");
   t("C2-SYMP-OPTS: symptoms chips as specified",
     labels(cond.groups[1]) === "Fatigue or low energy|Poor sleep|Hair loss|Brain fog|Low mood or anxiety|Mood swings|Bloating|Heavy periods|None of these" &&
@@ -457,6 +457,163 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   t("C2-PREFILL-4: nothing stored prefills nothing", Object.keys(h.api.onb2Prefill({})).length === 0);
 }
 
+// ── LIFE_STAGE_OPTIONS_V1 (2026-10-18): the life-stage options, PCOS precedence, Endometriosis ──
+{
+  const life = SCREENS.find((s) => s.id === "life");
+  const optText = (b) => { let out = b.text; (function walk(x) { for (const c of x.children) { out += c.text; walk(c); } })(b); return out; };
+  const lifeBtns = (el) => qsa(el, ".onb2-opt[data-i]");
+  t("LS-OPTS: the four life-stage labels and their stored values, as approved",
+    JSON.stringify(life.opts.map((o) => [o[0], o[1]])) === JSON.stringify([
+      ["I still get periods", "premenopause"],
+      ["I think I'm in the transition toward menopause", "perimenopause"],
+      ["My periods stopped over a year ago", "postmenopause"],
+      ["Not sure", null]]));
+  t("LS-HELP: only the perimenopause option carries the approved helper line",
+    life.opts[1][2] === "Changes like hot flashes, night sweats or sleep shifts, along with changing periods" &&
+    life.opts.filter((o) => o.length > 2).length === 1);
+  t("LS-OLD-GONE: the old unpredictable and fairly predictably labels are gone from the page",
+    !HTML.includes("My periods have become unpredictable, or I notice") && !HTML.includes("My periods come fairly predictably"));
+  t("LS-OLD-GONE control: the same search finds a label that is still there",
+    HTML.includes('["My periods stopped over a year ago","postmenopause"]'));
+  // the helper renders inside the same button, so a tap on either line selects it
+  {
+    const h = screenHarness({});
+    const el = h.open("life");
+    const bs = lifeBtns(el);
+    const peri = bs[1];
+    t("LS-RENDER-1: four buttons, the helper span inside the perimenopause button only",
+      bs.length === 4 && qsa(peri, ".onb2-opt-help").length === 1 &&
+      qsa(peri, ".onb2-opt-help")[0].text === life.opts[1][2] &&
+      bs.filter((b) => qsa(b, ".onb2-opt-help").length).length === 1);
+    t("LS-RENDER-2: the other three render their label as plain text, exactly as before",
+      bs[0].text === "I still get periods" && bs[2].text === "My periods stopped over a year ago" && bs[3].text === "Not sure");
+    t("LS-RENDER-3: the perimenopause button reads label then helper",
+      optText(peri) === "I think I'm in the transition toward menopause" + life.opts[1][2]);
+    const raw = h.api.onb2CardHtml(life, h.idxOf("life"));
+    t("LS-RENDER-4: the apostrophe goes out escaped as &#39; through onb2Esc",
+      raw.includes("I think I&#39;m in the transition toward menopause") && !raw.includes("I think I'm"));
+    t("LS-RENDER-4 control: the raw label does carry an apostrophe to escape", life.opts[1][0].includes("'"));
+    t("LS-CSS: the helper line has its own rule", /\.onb2-opt-help\{[^}]*font-weight:400/.test(HTML) && /\.onb2-opt-tx\{[^}]*flex-direction:column/.test(HTML));
+  }
+  // each option writes its unchanged stored value
+  for (const [k, v] of [[0, "premenopause"], [1, "perimenopause"], [2, "postmenopause"], [3, null]]) {
+    const h = screenHarness({});
+    click(lifeBtns(h.open("life"))[k]);
+    t(`LS-WRITE-${k}: option ${k} writes life_stage ${v}`, h.patch("life").life_stage === v && "life_stage" in h.patch("life"));
+  }
+  // a returning user sees her prior answer selected under the new label
+  for (const [stored, label] of [["premenopause", "I still get periods"],
+                                 ["perimenopause", "I think I'm in the transition toward menopause"],
+                                 ["postmenopause", "My periods stopped over a year ago"]]) {
+    const h0 = screenHarness({});
+    const a = h0.api.onb2Prefill({ life_stage: stored });
+    const h = screenHarness(a);
+    const sel = lifeBtns(h.open("life")).filter((b) => b.classList.contains("sel"));
+    t(`LS-RETURN-${stored}: stored ${stored} prefills and shows "${label}" selected, alone`,
+      a.life_stage === stored && sel.length === 1 && optText(sel[0]).startsWith(label));
+    t(`LS-RETURN-${stored}-save: Next saves it back unchanged`, h.patch("life").life_stage === stored);
+  }
+  {
+    const h = screenHarness(screenHarness({}).api.onb2Prefill({ life_stage: null }));
+    t("LS-RETURN control: a stored null selects nothing (Not sure cannot be told from unanswered)",
+      lifeBtns(h.open("life")).filter((b) => b.classList.contains("sel")).length === 0);
+  }
+  // copy rules on the new strings, with a checker that is shown to fire
+  const copyBad = (s) => [/—/.test(s) && "em dash", /:/.test(s) && "colon",
+    /\b\d+\s*(%|percent|in\s+\d+)|\bprevalen|\bcommon in\b|\bmost women\b|\bmany women\b/i.test(s) && "prevalence",
+    /\bdiagnos|\bdisease\b|\bdisorder\b|\bsyndrome\b|\byou have\b/i.test(s) && "diagnosis"].filter(Boolean);
+  const NEW_COPY = [life.opts[0][0], life.opts[1][0], life.opts[1][2], "Endometriosis"];
+  t("LS-COPY: no em dash, colon, prevalence or diagnosis language in the new copy",
+    NEW_COPY.every((s) => copyBad(s).length === 0));
+  t("LS-COPY control: the checker fires on each rule",
+    copyBad("a — b").join() === "em dash" && copyBad("note: x").join() === "colon" &&
+    copyBad("1 in 10 women").join() === "prevalence" && copyBad("a diagnosis").join() === "diagnosis");
+
+  // deriveMenstrualFrom: a PCOS or irregular cycle outranks perimenopause
+  const D = run(extract("deriveMenstrualFrom"), {}, "deriveMenstrualFrom");
+  // The pre-change body, verbatim from origin/main ad9949c, as the control: every row
+  // marked `changed` must FAIL against it, which proves the row measures the change.
+  const OLD = new Function(`return function(a, s){
+  a = a || {}; s = s || {};
+  const preg = ("preg" in a) ? a.preg : s.pregnant_or_postpartum_within_6_months;
+  if(preg === true) return "pregnant";
+  const ls = ("life_stage" in a) ? a.life_stage : s.life_stage;
+  if(ls === "perimenopause") return "perimenopausal";
+  if(ls === "postmenopause") return "postmenopausal";
+  const cs = ("cycle_status" in a) ? a.cycle_status : s.cycle_status;
+  if(cs === "regular") return "regular";
+  if(cs === "irregular" || cs === "pcos") return "irregular";
+  if(cs === "amenorrheic" || cs === "none") return null;
+  return undefined;
+}`)();
+  const ROWS = [
+    // [answers, stored, expected, changed?]
+    [{ life_stage: "perimenopause", cycle_status: "pcos" }, {}, "irregular", true],
+    [{ life_stage: "perimenopause", cycle_status: "irregular" }, {}, "irregular", true],
+    [{ life_stage: "perimenopause" }, { cycle_status: "pcos" }, "irregular", true],
+    [{ cycle_status: "pcos" }, { life_stage: "perimenopause" }, "irregular", true],
+    [{ life_stage: "perimenopause", cycle_status: "regular" }, {}, "perimenopausal", false],
+    [{ life_stage: "perimenopause", cycle_status: "amenorrheic" }, {}, "perimenopausal", false],
+    [{ life_stage: "perimenopause", cycle_status: "none" }, {}, "perimenopausal", false],
+    [{ life_stage: "perimenopause" }, {}, "perimenopausal", false],
+    [{ preg: true, life_stage: "perimenopause", cycle_status: "pcos" }, {}, "pregnant", false],
+    [{ life_stage: "postmenopause", cycle_status: "pcos" }, {}, "postmenopausal", false],
+    [{ life_stage: "postmenopause", cycle_status: "irregular" }, {}, "postmenopausal", false],
+    [{ life_stage: "premenopause", cycle_status: "pcos" }, {}, "irregular", false],
+    [{ life_stage: "premenopause", cycle_status: "regular" }, {}, "regular", false],
+    [{ cycle_status: "amenorrheic" }, {}, null, false],
+    [{}, {}, undefined, false],
+  ];
+  ROWS.forEach(([a, s, want, changed], i) => {
+    const label = JSON.stringify(a) + (Object.keys(s).length ? " stored " + JSON.stringify(s) : "");
+    t(`LS-DERIVE-${i}: ${label} -> ${want}`, D(a, s) === want);
+    if (changed) t(`LS-DERIVE-${i} control: the pre-change function returns perimenopausal here`, OLD(a, s) === "perimenopausal");
+    else t(`LS-DERIVE-${i} unchanged: the pre-change function agrees`, OLD(a, s) === want);
+  });
+  // through the shipped write path: the cycle screen's patch carries the derived status
+  {
+    const h = screenHarness({ life_stage: "perimenopause" });
+    click(lifeBtns(h.open("cyc")).find((b) => b.text === "I have PCOS"));
+    const p = h.patch("cyc");
+    t("LS-PATCH-1: perimenopause then I have PCOS writes cycle_status pcos and menstrual_status irregular",
+      p.cycle_status === "pcos" && p.menstrual_status === "irregular");
+    const h2 = screenHarness({ cycle_status: "pcos" });
+    click(lifeBtns(h2.open("life"))[1]);
+    const p2 = h2.patch("life");
+    t("LS-PATCH-2: PCOS then the transition option keeps life_stage perimenopause and writes menstrual_status irregular",
+      p2.life_stage === "perimenopause" && p2.menstrual_status === "irregular");
+    const h3 = screenHarness({ life_stage: "perimenopause" });
+    click(lifeBtns(h3.open("cyc")).find((b) => b.text === "Regular"));
+    t("LS-PATCH-3 control: perimenopause then Regular still writes menstrual_status perimenopausal",
+      h3.patch("cyc").menstrual_status === "perimenopausal");
+  }
+
+  // Endometriosis: a chip stored as its label; the type-in path is untouched
+  {
+    const cond = SCREENS.find((s) => s.id === "cond").groups[0];
+    const toks = cond.opts.map((o) => o[1]);
+    t("LS-ENDO-1: Endometriosis sits right after PCOS, stored as its label",
+      toks.indexOf("Endometriosis") === toks.indexOf("PCOS") + 1 && cond.opts.find((o) => o[0] === "Endometriosis")[1] === "Endometriosis");
+    const h = screenHarness({});
+    click(chip(h.open("cond"), "known_conditions", "Endometriosis"));
+    t("LS-ENDO-2: the chip writes [\"Endometriosis\"] to known_conditions",
+      JSON.stringify(h.patch("cond").known_conditions) === '["Endometriosis"]');
+    const h2 = screenHarness({});
+    h2.open("cond"); typeAndAdd(h2.el(), "known_conditions", "  Endometriosis ");
+    t("LS-ENDO-3: typing Endometriosis stores the same value the chip does, and shows as the chip, not a second entry",
+      JSON.stringify(h2.patch("cond").known_conditions) === '["Endometriosis"]' &&
+      chip(h2.el(), "known_conditions", "Endometriosis").classList.contains("sel") && own(h2.el(), "known_conditions").length === 0);
+    const h3 = screenHarness({});
+    h3.open("cond"); typeAndAdd(h3.el(), "known_conditions", "Adenomyosis");
+    t("LS-ENDO-4 control: any other typed condition is still her own entry, trimmed and stored as typed",
+      own(h3.el(), "known_conditions").join("|") === "Adenomyosis" &&
+      JSON.stringify(h3.patch("cond").known_conditions) === '["Adenomyosis"]');
+    t("LS-ENDO-5: the type-in functions are byte-identical to before",
+      extract("onb2CleanEntry") === 'function onb2CleanEntry(v){\n  const s = String(v == null ? "" : v).trim().slice(0, ONB2_ADD_MAX);\n  return s ? s : null;\n}' &&
+      extract("onb2GroupValue").includes("if(g && g.none){ const i = out.indexOf(g.none); if(i >= 0) out.splice(i, 1); }   // typing means not \"none\""));
+  }
+}
+
 // ── CHANGE 3: the draw card keeps only per-test questions ─────────────────────
 {
   const at = HTML.indexOf('<div id="up-postfile"');
@@ -555,6 +712,10 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
     a.host.innerHTML.includes("My periods stopped over a year ago") && a.host.innerHTML.includes("Not sure") &&
     a.host.innerHTML.includes("PCOS, typed one") && a.host.innerHTML.includes("Vitamin B12, Biotin") &&
     a.host.innerHTML.includes("Steroids") && a.host.innerHTML.includes("A medical reason or treatment"));
+  const ap = await acctWith({ about_you_status: "completed", life_stage: "perimenopause", known_conditions: ["Endometriosis"] });
+  t("LS-ACCT: Account shows a stored perimenopause under the new label, and Endometriosis as its chip label",
+    ap.host.innerHTML.includes("I think I") && ap.host.innerHTML.includes("in the transition toward menopause") &&
+    ap.host.innerHTML.includes("Endometriosis") && !ap.host.innerHTML.includes("become unpredictable"));
   t("C4-PANEL-4: no date of birth or goals row", !/Date of birth|What brings you here/.test(a.host.innerHTML));
   a.btn.onclick();
   t("C4-EDIT-1: Update reopens About-you, forced, whatever the status (here completed)",

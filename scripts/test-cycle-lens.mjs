@@ -281,12 +281,24 @@ const dcases = [
   [{ preg: false, cycle_status: "amenorrheic" }, {}, null],
   [{ preg: false }, {}, undefined],
   [{}, {}, undefined],
+  // LIFE_STAGE_OPTIONS_V1 (2026-10-18): a PCOS or irregular cycle answer outranks perimenopause.
+  [{ preg: false, life_stage: "perimenopause", cycle_status: "pcos" }, {}, "irregular"],
+  [{ preg: false, life_stage: "perimenopause", cycle_status: "irregular" }, {}, "irregular"],
+  [{ preg: false, life_stage: "perimenopause", cycle_status: "regular" }, {}, "perimenopausal"],
+  [{ preg: false, life_stage: "postmenopause", cycle_status: "pcos" }, {}, "postmenopausal"],
+  [{ preg: true, life_stage: "perimenopause", cycle_status: "pcos" }, {}, "pregnant"],
 ];
 for (const [a, st, want] of dcases) {
   const got = D(a, st);
   ok(got === want, "D: " + JSON.stringify(a) + " -> " + String(want) + " (got " + String(got) + ")");
 }
 ok(D(null, null) === undefined, "D-null: null inputs do not throw");
+// LIFE_STAGE_OPTIONS_V1 — the same precedence for a returning user whose answers are all stored,
+// which is the path the last-period lens takes (aboutDrawLensStatus derives with empty answers).
+ok(D({}, { life_stage: "perimenopause", cycle_status: "pcos" }) === "irregular",
+   "D-stored-pcos: stored perimenopause with stored PCOS derives irregular");
+ok(D({}, { life_stage: "perimenopause", cycle_status: "regular" }) === "perimenopausal",
+   "D-stored-pcos CONTROL: stored perimenopause with a regular cycle still derives perimenopausal");
 ok(D({}, { pregnant_or_postpartum_within_6_months: true }) === "pregnant",
    "D-stored: the stored row is the fallback when the answer is absent");
 
