@@ -1,0 +1,5 @@
+session: a300f7a0
+taken: 2026-10-18T15:30:00Z
+scope: QW safety filter fix (website + worker) + interprets v1.1 doc
+repos: biowellth-backend-supa, biowellth-website (bb read-only)
+deploy: process-report-worker only (approved); prod otherwise read-only
