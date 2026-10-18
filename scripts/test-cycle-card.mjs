@@ -178,8 +178,7 @@ const HIDDEN = [
   ["perimenopause", { ...REG, menstrual_status: "perimenopausal", last_period_start_date: ago(6) }],
   ["PCOS", { ...REG, cycle_status: "pcos", last_period_start_date: ago(6) }],
   // "cycle length missing" left this list on 2026-10-18: CYCLE_CARD_DAYCOUNT_V1 shows it (CC-50 on).
-  ["period length out of range, no date", { ...REG, typical_period_duration_days: 20 }],
-  ["cycle length out of range, no date", { ...REG, typical_cycle_length_days: 40 }],
+  // out_of_range_inputs with no date left it the same day: it gets the live Log period card (CC-88).
 ];
 for (const [name, prof] of HIDDEN) {
   const r = await render(prof);
@@ -279,7 +278,8 @@ const NOLEN = { menstrual_status: "regular" };
   const h = r.rail.innerHTML;
   ok(h.includes("Day 10<") && h.includes(SINCE), "CC-50 no cycle length, with a date: Day 10 since your last period (daysSince + 1)");
   ok(h.includes('data-cy="len-open"') && h.includes(">Add your usual cycle length<"), "CC-51 the small Add your usual cycle length link");
-  eq(h.includes('data-cy="open"'), false, "CC-52 no Log period button on this state");
+  ok(h.includes('data-cy="open"') && h.includes(">Log period<"), "CC-52 the Log period button on this state (2026-10-18 ruling)");
+  ok(h.indexOf('data-cy="len-open"') > 0 && h.indexOf('data-cy="len-open"') < h.indexOf('data-cy="open"'), "CC-52b the Log period button sits below the cycle-length link");
   eq(/not sure|unsure/i.test(h), false, "CC-53 no Not sure button");
   eq(h.includes("data-cy-len="), false, "CC-54 the ask stays closed until the link is tapped");
   eq(h.includes(LONG), false, "CC-55 no clinician line on this state");
@@ -317,6 +317,17 @@ const NOLEN = { menstrual_status: "regular" };
   ok(want.status === "phase" && h.includes("Day " + want.cycleDay + "<") && h.includes("of ~28"), `CC-69 the card re-rendered as the phase card (Day ${want.cycleDay} of ~28)`);
   ok(b.calls.filter((c) => c.table === "action_pool").length > poolBefore, "CC-70 the daily card re-rendered too");
   eq(await b.ctx.cySaveCycleLength(" 31 "), "ok", "CC-71 a typed value with spaces saves (onb2Int trims)");
+}
+{
+  const ref = { p: { ...NOLEN, last_period_start_date: ago(9) } };
+  const NEW = ago(2);
+  const b = boot(world(ref, { invoke: (name, opts) => { ref.p = { ...ref.p, last_period_start_date: opts.body.last_period_start_date }; return { data: { ok: true, mode: "log_period", last_period_start_date: NEW }, error: null }; } }));
+  await b.ctx.cyRenderCard({ priorities: [] }, "rep-1");
+  ok(b.hosts["cycle-card-rail"].innerHTML.includes("Day 10<"), "CC-71a CONTROL: Day 10 before logging");
+  eq(await b.ctx.cyLogPeriod(NEW), "ok", "CC-71b no cycle length: Log period succeeds");
+  eq(JSON.stringify(b.invokes[0].opts), JSON.stringify({ body: { mode: "log_period", last_period_start_date: NEW } }), "CC-71c the body is EXACTLY { mode, last_period_start_date }");
+  const h = b.hosts["cycle-card-rail"].innerHTML;
+  ok(h.includes("Day 3<") && h.includes(SINCE) && h.includes('data-cy="len-open"'), "CC-71d re-rendered from the new date as the same state (Day 3, link still there)");
 }
 for (const [v, want] of [["12", "invalid"], ["91", "invalid"], ["abc", "invalid"], ["", "invalid"], ["15", "ok"], ["90", "ok"]]) {
   const ref = { p: { ...NOLEN, last_period_start_date: ago(9) } };
@@ -373,9 +384,20 @@ for (const [name, prof, reason, n, line] of THREE) {
   eq(h.includes("of ~") || h.includes("cy-bar") || h.includes("len-open"), false, `CC-86 ${name}: no phase strip, no Day N of ~L, no cycle-length link`);
   eq(moveLinesIn(h), 0, `CC-87 ${name}: no movement line`);
 }
-for (const prof of [{ ...REG, typical_period_duration_days: 20 }, { ...REG, typical_cycle_length_days: 40 }]) {
-  const want = resolve(prof);
-  ok(want.reason === "out_of_range_inputs" && want.daysSince === null, "CC-88 CONTROL: out_of_range_inputs with no date has daysSince null (CC-18 shows it renders nothing)");
+// out_of_range_inputs with no date: the live Log period card, byte-identical (2026-10-18 ruling).
+{
+  const live = await render({ ...REG });
+  ok(resolve({ ...REG }).reason === "lmp_unknown" && live.rail.innerHTML.includes(CM.STATUS_LINES.log_period), "CC-88 CONTROL: the live log_period/lmp_unknown card renders its line");
+  for (const [name, prof] of [["period length 20", { ...REG, typical_period_duration_days: 20 }], ["cycle length 40", { ...REG, typical_cycle_length_days: 40 }]]) {
+    const want = resolve(prof);
+    ok(want.reason === "out_of_range_inputs" && want.daysSince === null, `CC-88a CONTROL ${name}, no date: the module gives out_of_range_inputs, daysSince null`);
+    const r = await render(prof);
+    eq(r.rail.innerHTML, live.rail.innerHTML, `CC-88b ${name}, no date: byte-identical to the live Log period card`);
+    eq(r.main.innerHTML, live.main.innerHTML, `CC-88c ${name}, no date: the phone host too`);
+    ok(!r.rail.hidden() && !r.main.hidden(), `CC-88d ${name}, no date: the hosts are shown`);
+  }
+  const other = await render({ ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(20) });
+  ok(other.rail.innerHTML !== live.rail.innerHTML, "CC-88e CONTROL: the byte-identity test tells a different card apart (out of range WITH a date)");
 }
 
 // 4. unchanged states carry none of the new pieces.

@@ -9069,11 +9069,12 @@ async function dcRenderDailyCard(p, reportId, late){
 //   the day the period started, as on the phase card. Nothing else is worked out here.
 //   cycle_length_unknown   -> with a date, "Day N since your last period" and a small link that opens
 //                             the cycle-length ask (24 to 35, or typed), saved through onb2Write with
-//                             onb2Int's 15 to 90, then this card and the daily card re-render. With no
-//                             date, the live Log period card above, with the log_period line.
+//                             onb2Int's 15 to 90, then this card and the daily card re-render; Log
+//                             period below the link. With no date, the live Log period card above,
+//                             byte-identical to log_period/lmp_unknown (cyLogCardHTML).
 //   out_of_range_inputs,   -> "Day N since your last period" and Log period. The clinician line shows
-//   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date
-//                             renders nothing, as before.
+//   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date gets
+//                             the live Log period card too (2026-10-18 ruling).
 //   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
 //                             perimenopause, PCOS and unreadable inputs all render no card and never a reason.
 // "Log period" posts process-report mode log_period (supa LOG_PERIOD_V1) through the page's
@@ -9143,17 +9144,22 @@ function cyLenBlock(len){
     +   (len.msg ? '<div class="cy-msg" aria-live="polite">' + dcEsc(len.msg) + '</div>' : '')
     + '</div>';
 }
+/** The live Log period card (log_period/lmp_unknown), with the given line. */
+function cyLogCardHTML(line, open, msg){
+  return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+    + '<div class="cy-ask">' + dcEsc(line) + '</div>' + cyLogBlock(open, msg) + '</div>';
+}
 /** The card's HTML for a module result, or null for NO CARD. */
 function cyCardHTML(cm, open, msg, len){
   if(!cm) return null;
   if(cm.status === 'no_phase' && cm.reason === 'cycle_length_unknown'){
     const n = cyDayN(cm);
-    if(n === null){
-      return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
-        + '<div class="cy-ask">' + dcEsc(CY_COPY.logLine) + '</div>' + cyLogBlock(open, msg) + '</div>';
-    }
+    if(n === null) return cyLogCardHTML(CY_COPY.logLine, open, msg);
     return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
-      + cySinceHTML(n) + cyLenBlock(len) + '</div>';
+      + cySinceHTML(n) + cyLenBlock(len) + cyLogBlock(open, msg) + '</div>';
+  }
+  if(cm.status === 'no_phase' && cm.reason === 'out_of_range_inputs' && cyDayN(cm) === null){
+    return cyLogCardHTML(CY_COPY.logLine, open, msg);
   }
   if((cm.status === 'no_phase' && cm.reason === 'out_of_range_inputs') || (cm.status === 'log_period' && cm.reason === 'overdue')){
     const n = cyDayN(cm);
@@ -9176,10 +9182,7 @@ function cyCardHTML(cm, open, msg, len){
       + cyLogBlock(open, msg)
       + '</div>';
   }
-  if(cm.status === 'log_period' && cm.statusLine){
-    return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
-      + '<div class="cy-ask">' + dcEsc(cm.statusLine) + '</div>' + cyLogBlock(open, msg) + '</div>';
-  }
+  if(cm.status === 'log_period' && cm.statusLine) return cyLogCardHTML(cm.statusLine, open, msg);
   if(cm.status === 'raise_with_clinician' && cm.statusLine){
     return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
       + '<div class="cy-line">' + dcEsc(cm.statusLine) + '</div></div>';
