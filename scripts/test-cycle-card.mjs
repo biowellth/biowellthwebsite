@@ -23,7 +23,7 @@ console.log("CYCLE_CARD_V1");
 const HTML = readFileSync(process.env.DASH || new URL("../dashboard.html", import.meta.url), "utf8");
 const CM = await import(new URL("../js/cycle-movement.js", import.meta.url));
 const APP = extractApp(HTML, "dashboard.html")
-  + "\n;globalThis.__setUser = (u) => { USER = u; }; globalThis.__getCy = () => __cy;\n";
+  + "\n;globalThis.__setUser = (u) => { USER = u; }; globalThis.__getCy = () => __cy; globalThis.__getCopy = () => CY_COPY;\n";
 
 function localTodayN() { const n = new Date(); return Math.round(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 86400000); }
 const ymd = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
@@ -47,7 +47,7 @@ function boot(world) {
     calls.push(rec);
     const result = () => (world[table] ? world[table](rec) : { data: null, error: null });
     const chain = {
-      select(c) { rec.cols = c; return chain; }, eq() { return chain; }, order() { return chain; }, limit() { return chain; },
+      select(c) { rec.cols = c; return chain; }, update(u) { rec.update = u; return chain; }, eq() { return chain; }, order() { return chain; }, limit() { return chain; },
       maybeSingle: async () => result(), single: async () => result(),
       then(res, rej) { return Promise.resolve(result()).then(res, rej); },
       insert: async () => ({ error: null }), delete() { return chain; },
@@ -91,7 +91,14 @@ const POOL = [{ action_id: "a1", priority_marker_id: "ferritin", base_text: "Try
 
 function world(profileRef, extra = {}) {
   return {
-    profiles: () => (extra.profileError ? { data: null, error: { code: "42501" } } : { data: { ...profileRef.p }, error: null }),
+    profiles: (rec) => {
+      if (rec && rec.update) {
+        if (extra.updateError) return { data: null, error: { code: "42501" } };
+        profileRef.p = { ...profileRef.p, ...rec.update };
+        return { data: null, error: null };
+      }
+      return extra.profileError ? { data: null, error: { code: "42501" } } : { data: { ...profileRef.p }, error: null };
+    },
     reports: () => ({ data: { lmp_date_before_draw: extra.reportLmp ?? null }, error: null }),
     action_pool: () => ({ data: POOL, error: null }),
     action_completions: () => ({ data: [], error: null }),
@@ -147,12 +154,13 @@ for (const [name, prof] of VISIBLE) {
   ok([...labels].every((l) => !/ovulat/i.test(l)), "CC-11 CONTROL: the module's four labels carry no ovulation word");
 }
 
-// overdue and no date: the module's line 8 and the control; period stopped: line 10, no control
+// overdue: CYCLE_CARD_DAYCOUNT_V1 replaced the log-period line with the day count (2026-10-18);
+// no date: the module's line 8 and the control; period stopped: line 10, no control
 {
   const r1 = await render({ ...REG, last_period_start_date: ago(40) });
-  ok(r1.rail.innerHTML.includes(CM.STATUS_LINES.log_period), "CC-12 overdue: the module's log-period line");
+  ok(r1.rail.innerHTML.includes("Day 41<") && r1.rail.innerHTML.includes("since your last period"), "CC-12 overdue: Day 41 since your last period");
   ok(r1.rail.innerHTML.includes('data-cy="open"'), "CC-13 overdue: a Log period control");
-  eq(r1.rail.innerHTML.includes("Day "), false, "CC-14 overdue: no wrapped cycle day");
+  eq(r1.rail.innerHTML.includes("of ~"), false, "CC-14 overdue: no wrapped cycle day, no Day N of ~L");
   const r2 = await render({ ...REG });
   ok(r2.rail.innerHTML.includes(CM.STATUS_LINES.log_period), "CC-15 no date: the module's log-period line");
   const r3 = await render({ ...REG, cycle_status: "amenorrheic" });
@@ -169,7 +177,9 @@ const HIDDEN = [
   ["hormone therapy", { ...REG, hormone_therapy_status: "yes", last_period_start_date: ago(6) }],
   ["perimenopause", { ...REG, menstrual_status: "perimenopausal", last_period_start_date: ago(6) }],
   ["PCOS", { ...REG, cycle_status: "pcos", last_period_start_date: ago(6) }],
-  ["cycle length missing", { menstrual_status: "regular", last_period_start_date: ago(6) }],
+  // "cycle length missing" left this list on 2026-10-18: CYCLE_CARD_DAYCOUNT_V1 shows it (CC-50 on).
+  ["period length out of range, no date", { ...REG, typical_period_duration_days: 20 }],
+  ["cycle length out of range, no date", { ...REG, typical_cycle_length_days: 40 }],
 ];
 for (const [name, prof] of HIDDEN) {
   const r = await render(prof);
@@ -192,7 +202,7 @@ for (const [name, prof] of HIDDEN) {
   });
   const b = boot(w);
   await b.ctx.cyRenderCard({ priorities: [] }, "rep-1");
-  ok(b.hosts["cycle-card-rail"].innerHTML.includes(CM.STATUS_LINES.log_period), "CC-22 CONTROL: overdue before logging");
+  ok(b.hosts["cycle-card-rail"].innerHTML.includes("Day 41<"), "CC-22 CONTROL: overdue (day count) before logging");
   const poolReadsBefore = b.calls.filter((c) => c.table === "action_pool").length;
   const out = await b.ctx.cyLogPeriod(NEW);
   eq(out, "ok", "CC-23 the log succeeds");
@@ -251,6 +261,147 @@ for (const [name, prof] of HIDDEN) {
     .split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
   ok(cardCode.includes("function cyCardHTML"), "CC-43a CONTROL: the card's code was found");
   eq(/ovulat|inOvulationWindow/i.test(cardCode), false, "CC-43 the card's code (comments aside) never reads or names ovulation");
+}
+
+// ── CYCLE_CARD_DAYCOUNT_V1 (2026-10-18) ─────────────────────────────────────
+// Every case first asks the module for its own result (the CONTROL), then checks the card shows it.
+const LONG = "A cycle this long is worth looking into with a clinician.";
+const SINCE = "since your last period";
+const resolve = (prof) => CM.resolveCycleMovement(prof, { today: ymd(T) });
+const NOLEN = { menstrual_status: "regular" };
+
+// 1. cycle_length_unknown with a date: day count and the cycle-length link, no Log period, no line.
+{
+  const prof = { ...NOLEN, last_period_start_date: ago(9) };
+  const want = resolve(prof);
+  ok(want.reason === "cycle_length_unknown" && want.daysSince === 9, `CC-48 CONTROL: the module gives cycle_length_unknown, daysSince 9 (got ${want.reason}, ${want.daysSince})`);
+  const r = await render(prof);
+  const h = r.rail.innerHTML;
+  ok(h.includes("Day 10<") && h.includes(SINCE), "CC-50 no cycle length, with a date: Day 10 since your last period (daysSince + 1)");
+  ok(h.includes('data-cy="len-open"') && h.includes(">Add your usual cycle length<"), "CC-51 the small Add your usual cycle length link");
+  eq(h.includes('data-cy="open"'), false, "CC-52 no Log period button on this state");
+  eq(/not sure|unsure/i.test(h), false, "CC-53 no Not sure button");
+  eq(h.includes("data-cy-len="), false, "CC-54 the ask stays closed until the link is tapped");
+  eq(h.includes(LONG), false, "CC-55 no clinician line on this state");
+  eq(r.main.innerHTML, h, "CC-56 the phone host carries the same card");
+  const g = r.ctx.__getCy();
+  g.len = { open: true, sel: null, msg: null }; r.ctx.cyPaint();
+  const o = r.rail.innerHTML;
+  const chips = [...o.matchAll(/data-cy-len="(\d+)"/g)].map((m) => Number(m[1]));
+  eq(JSON.stringify(chips), JSON.stringify([24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]), "CC-57 opened, the ask offers 24 to 35");
+  ok(o.includes('data-cy="len"') && o.includes('min="15"') && o.includes('max="90"'), "CC-58 opened, a type-in field bounded 15 to 90");
+  ok(o.includes('data-cy="len-save"'), "CC-59 opened, a Save control");
+  eq(/not sure|unsure/i.test(o), false, "CC-60 opened, still no Not sure");
+  g.len = { open: true, sel: 30, msg: null }; r.ctx.cyPaint();
+  ok(r.rail.innerHTML.includes('class="cy-chip sel" type="button" data-cy-len="30" aria-pressed="true"'), "CC-61 a tapped chip shows selected");
+  const prof50 = { ...NOLEN, last_period_start_date: ago(49) };
+  ok(resolve(prof50).daysSince === 49, "CC-62 CONTROL: the module gives daysSince 49");
+  const r50 = await render(prof50);
+  ok(r50.rail.innerHTML.includes("Day 50<") && !r50.rail.innerHTML.includes(LONG), "CC-63 no cycle length at Day 50: still no clinician line (that line is for states 3 only)");
+}
+
+// 1b. saving the cycle length: ONE write of exactly { typical_cycle_length_days }, then re-render.
+{
+  const ref = { p: { ...NOLEN, last_period_start_date: ago(9) } };
+  const b = boot(world(ref));
+  await b.ctx.cyRenderCard({ priorities: [] }, "rep-1");
+  ok(b.hosts["cycle-card-rail"].innerHTML.includes(SINCE), "CC-64 CONTROL: the day-count card before saving");
+  const poolBefore = b.calls.filter((c) => c.table === "action_pool").length;
+  eq(await b.ctx.cySaveCycleLength(28), "ok", "CC-65 the save succeeds");
+  const ups = b.calls.filter((c) => c.update);
+  eq(ups.length, 1, "CC-66 exactly one write");
+  eq(ups[0].table, "profiles", "CC-67 to profiles, through onb2Write");
+  eq(JSON.stringify(ups[0].update), JSON.stringify({ typical_cycle_length_days: 28 }), "CC-68 the patch is EXACTLY { typical_cycle_length_days }");
+  const h = b.hosts["cycle-card-rail"].innerHTML;
+  const want = resolve(ref.p);
+  ok(want.status === "phase" && h.includes("Day " + want.cycleDay + "<") && h.includes("of ~28"), `CC-69 the card re-rendered as the phase card (Day ${want.cycleDay} of ~28)`);
+  ok(b.calls.filter((c) => c.table === "action_pool").length > poolBefore, "CC-70 the daily card re-rendered too");
+  eq(await b.ctx.cySaveCycleLength(" 31 "), "ok", "CC-71 a typed value with spaces saves (onb2Int trims)");
+}
+for (const [v, want] of [["12", "invalid"], ["91", "invalid"], ["abc", "invalid"], ["", "invalid"], ["15", "ok"], ["90", "ok"]]) {
+  const ref = { p: { ...NOLEN, last_period_start_date: ago(9) } };
+  const b = boot(world(ref));
+  await b.ctx.cyRenderCard({ priorities: [] }, "rep-1");
+  eq(await b.ctx.cySaveCycleLength(v), want, `CC-72 ${JSON.stringify(v)} reads as ${want} (onb2Int 15 to 90)`);
+  eq(b.calls.filter((c) => c.update).length, want === "ok" ? 1 : 0, `CC-73 ${JSON.stringify(v)}: ${want === "ok" ? "one write" : "no write"}`);
+  if (want === "invalid") ok(b.hosts["cycle-card-rail"].innerHTML.includes("Choose a number of days from 15 to 90.") && b.hosts["cycle-card-rail"].innerHTML.includes('data-cy="len-save"'), `CC-74 ${JSON.stringify(v)}: the calm range line, ask still open`);
+}
+{
+  const ref = { p: { ...NOLEN, last_period_start_date: ago(9) } };
+  const b = boot(world(ref, { updateError: true }));
+  await b.ctx.cyRenderCard({ priorities: [] }, "rep-1");
+  eq(await b.ctx.cySaveCycleLength(28), "failed", "CC-75 a refused write reads as failed");
+  const h = b.hosts["cycle-card-rail"].innerHTML;
+  ok(h.includes("That did not save. Try again in a moment.") && h.includes('data-cy="len-save"'), "CC-76 the retry line, ask still open");
+  eq(b.calls.filter((c) => c.table === "action_pool").length, 0, "CC-77 nothing re-rendered for a refused write");
+}
+
+// 2. cycle_length_unknown with no date: the live Log period card.
+{
+  const want = resolve(NOLEN);
+  ok(want.reason === "cycle_length_unknown" && want.daysSince === null, "CC-78 CONTROL: the module gives cycle_length_unknown, daysSince null");
+  eq(r_copy().logLine, CM.STATUS_LINES.log_period, "CC-49 the card's logLine is the module's STATUS_LINES.log_period word for word");
+  const r = await render(NOLEN);
+  const live = await render({ ...REG });
+  ok(resolve({ ...REG }).reason === "lmp_unknown", "CC-79 CONTROL: REG with no date is the live log_period/lmp_unknown card");
+  eq(r.rail.innerHTML, live.rail.innerHTML, "CC-80 no cycle length, no date: byte-identical to the live Log period card");
+  eq(r.rail.innerHTML.includes(SINCE) || r.rail.innerHTML.includes("len-open"), false, "CC-81 no day count, no cycle-length link");
+}
+function r_copy() { return boot({}).ctx.__getCopy(); }
+
+// 3. out_of_range_inputs and overdue: day count, Log period, the line ONLY when N > 35.
+const THREE = [
+  // [name, profile, reason, N, line?]
+  ["cycle length 40, Day 21", { ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(20) }, "out_of_range_inputs", 21, false],
+  ["cycle length 40, Day 35", { ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(34) }, "out_of_range_inputs", 35, false],
+  ["cycle length 40, Day 36", { ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(35) }, "out_of_range_inputs", 36, true],
+  ["cycle length 40, Day 41", { ...REG, typical_cycle_length_days: 40, last_period_start_date: ago(40) }, "out_of_range_inputs", 41, true],
+  ["period length 20, Day 12", { ...REG, typical_period_duration_days: 20, last_period_start_date: ago(11) }, "out_of_range_inputs", 12, false],
+  ["period length 20, Day 60", { ...REG, typical_period_duration_days: 20, last_period_start_date: ago(59) }, "out_of_range_inputs", 60, true],
+  ["overdue at 24, Day 33", { ...REG, typical_cycle_length_days: 24, last_period_start_date: ago(32) }, "overdue", 33, false],
+  ["overdue at 28, Day 36", { ...REG, last_period_start_date: ago(35) }, "overdue", 36, true],
+  ["overdue at 28, Day 41", { ...REG, last_period_start_date: ago(40) }, "overdue", 41, true],
+];
+for (const [name, prof, reason, n, line] of THREE) {
+  const want = resolve(prof);
+  ok(want.reason === reason && want.daysSince + 1 === n, `CC-82 CONTROL ${name}: the module gives ${reason}, daysSince ${n - 1} (got ${want.reason}, ${want.daysSince})`);
+  const r = await render(prof);
+  const h = r.rail.innerHTML;
+  ok(h.includes("Day " + n + "<") && h.includes(SINCE), `CC-83 ${name}: Day ${n} since your last period`);
+  ok(h.includes('data-cy="open"') && h.includes(">Log period<"), `CC-84 ${name}: the Log period button`);
+  eq(h.includes(LONG), line, `CC-85 ${name}: clinician line ${line ? "SHOWS (N > 35)" : "absent (N <= 35)"}`);
+  eq(h.includes("of ~") || h.includes("cy-bar") || h.includes("len-open"), false, `CC-86 ${name}: no phase strip, no Day N of ~L, no cycle-length link`);
+  eq(moveLinesIn(h), 0, `CC-87 ${name}: no movement line`);
+}
+for (const prof of [{ ...REG, typical_period_duration_days: 20 }, { ...REG, typical_cycle_length_days: 40 }]) {
+  const want = resolve(prof);
+  ok(want.reason === "out_of_range_inputs" && want.daysSince === null, "CC-88 CONTROL: out_of_range_inputs with no date has daysSince null (CC-18 shows it renders nothing)");
+}
+
+// 4. unchanged states carry none of the new pieces.
+{
+  const ph = await render({ ...REG, last_period_start_date: ago(6) });
+  const lu = await render({ ...REG });
+  const ra = await render({ ...REG, cycle_status: "amenorrheic" });
+  for (const [name, r] of [["phase", ph], ["log_period/lmp_unknown", lu], ["raise_with_clinician", ra]]) {
+    eq(r.rail.innerHTML.includes(SINCE) || r.rail.innerHTML.includes(LONG) || r.rail.innerHTML.includes("len-open"), false, `CC-89 ${name}: no day count, clinician line or cycle-length link`);
+  }
+  ok(ph.rail.innerHTML.includes("of ~28") && lu.rail.innerHTML.includes(CM.STATUS_LINES.log_period) && ra.rail.innerHTML.includes(CM.STATUS_LINES.raise_with_clinician), "CC-90 CONTROL: the three unchanged states still render their own content");
+}
+
+// copy and palette for the new pieces, each with a planted control that fires.
+{
+  const c = r_copy();
+  const NEW_KEYS = ["logLine", "since", "long", "lenLink", "lenAsk", "lenHelp", "lenType", "lenDays", "lenGroup", "lenInvalid"];
+  const vals = NEW_KEYS.map((k) => c[k]);
+  ok(vals.every((v) => typeof v === "string" && v.length > 0), "CC-91 CONTROL: every new copy key is present");
+  const BANNED = /[:—!]|\bcommon\b|many women|most women|\bnormal\b|\bfertil|conceiv|pregnan|ovulat|pcos|polycystic|amenorrh|endometri|menopaus|thyroid|disorder|syndrome|diagnos|condition/i;
+  eq(vals.filter((v) => BANNED.test(v)).length, 0, "CC-92 new copy: no colon, em dash, exclamation, prevalence, fertility, diagnosis or condition word");
+  ok(["Common for many women — see PCOS", "Fertile window: day 14"].every((t) => BANNED.test(t)), "CC-93 CONTROL: the banned-word test fires on planted text");
+  const css = HTML.slice(HTML.indexOf("/* CYCLE_CARD_DAYCOUNT_V1"), HTML.indexOf(".comp-head{"));
+  ok(css.includes(".cy-chip.sel{") && css.includes("var(--olive)"), "CC-94 CONTROL: the new CSS block was found");
+  eq(/teal/i.test(css), false, "CC-95 the new CSS names no teal token");
+  ok(/teal/i.test(HTML.slice(HTML.indexOf("/* REVEAL_PALETTE_V1: the teal tokens"), HTML.indexOf(".cy-btn{"))), "CC-96 CONTROL: the teal test fires on the comment just above it");
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

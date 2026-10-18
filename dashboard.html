@@ -1494,6 +1494,17 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .cy-log input{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--brown);border:1px solid var(--brown-light);border-radius:10px;padding:8px 10px;background:var(--cream)}
 .cy-log .cy-btn{margin-top:0}
 .cy-msg{font-size:12.5px;color:var(--brown-mid);margin-top:8px}
+/* CYCLE_CARD_DAYCOUNT_V1: the day-count card and the cycle-length ask (mocks/cycle-card-long-unknown.html
+   revision 3). Olive and sage only. */
+.cy-since .cy-day-of{font-family:'Instrument Sans',sans-serif;font-size:14px}
+.cy-rule{border:0;border-top:1px dashed var(--brown-light);margin:14px 0 2px}
+.cy-link{display:block;font-family:inherit;font-size:13px;font-weight:600;color:var(--olive-dark);background:none;border:0;padding:0;margin-top:14px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.cy-help{font-size:12.5px;color:var(--brown-mid);margin-top:6px}
+.cy-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.cy-chip{font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:500;color:var(--olive-dark);background:rgba(255,255,255,.7);border:1px solid var(--sage-mid);border-radius:100px;padding:7px 13px;cursor:pointer}
+.cy-chip.sel{background:var(--olive);color:var(--cream);border-color:var(--olive)}
+.cy-step{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--brown-mid)}
+.cy-step input{font-family:'JetBrains Mono',monospace;font-size:16px;width:72px;color:var(--brown);border:1px solid var(--brown-light);border-radius:10px;padding:7px 10px;background:var(--cream)}
 .comp-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .comp-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:var(--teal);color:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:16px}
 .comp-title{font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:14px;color:var(--brown)}
@@ -2142,6 +2153,9 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 #view-dashboard .cy-est{color:var(--amber-ink)}
 #view-dashboard .cy-btn{border-radius:100px}
 #view-dashboard .cy-btn.primary{background:var(--olive);color:var(--cream);border-color:var(--olive)}
+#view-dashboard .cy-since .cy-day-of{font-family:var(--sans)}
+#view-dashboard .cy-help,#view-dashboard .cy-step{color:var(--ink-muted)}
+#view-dashboard .cy-step input{color:var(--ink)}
 
 /* ── 5. TODAY ───────────────────────────────────────────────────────────────────────────────── */
 #view-dashboard .daily-card{background:none;border:0;box-shadow:none;padding:0;margin-bottom:6px}
@@ -9049,11 +9063,19 @@ async function dcRenderDailyCard(p, reportId, late){
 //                             luteal, Late luteal; no ovulation state, ruled), next period "estimated",
 //                             the estimate note, Log period. NO movement line: ONE JOB PER CARD
 //                             (2026-10-12), the daily card's movement row is its only home.
-//   log_period             -> the module's STATUS_LINES.log_period and Log period.
+//   log_period/lmp_unknown -> the module's STATUS_LINES.log_period and Log period.
 //   raise_with_clinician   -> the module's line only (line 10; this card is its only home).
+//   CYCLE_CARD_DAYCOUNT_V1 (2026-10-18, mock revision 3). N is the module's daysSince + 1, so day 1 is
+//   the day the period started, as on the phase card. Nothing else is worked out here.
+//   cycle_length_unknown   -> with a date, "Day N since your last period" and a small link that opens
+//                             the cycle-length ask (24 to 35, or typed), saved through onb2Write with
+//                             onb2Int's 15 to 90, then this card and the daily card re-render. With no
+//                             date, the live Log period card above, with the log_period line.
+//   out_of_range_inputs,   -> "Day N since your last period" and Log period. The clinician line shows
+//   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date
+//                             renders nothing, as before.
 //   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
-//                             perimenopause, PCOS, unreadable inputs, and a missing cycle length
-//                             (no control here can set one) all render no card and never a reason.
+//                             perimenopause, PCOS and unreadable inputs all render no card and never a reason.
 // "Log period" posts process-report mode log_period (supa LOG_PERIOD_V1) through the page's
 // sb.functions.invoke pattern (onDdcTap, the retry handler), then re-renders this card and the daily card.
 const CY_HOSTS = ['cycle-card-rail', 'cycle-card-main'];
@@ -9070,8 +9092,21 @@ const CY_COPY = {
   save: 'Save',
   invalidDate: 'That date is later than today. Choose the day your last period started.',
   retry: 'That did not save. Try again in a moment.',
+  // CYCLE_CARD_DAYCOUNT_V1
+  logLine: 'Log your period to see movement ideas for where you are in your cycle.',   // = the module's STATUS_LINES.log_period (CC-49)
+  since: 'since your last period',
+  long: 'A cycle this long is worth looking into with a clinician.',
+  lenLink: 'Add your usual cycle length',
+  lenAsk: 'How long is your cycle, usually?',
+  lenHelp: 'Count from the first day of one period to the first day of the next.',
+  lenType: 'Or type it',
+  lenDays: 'days',
+  lenGroup: 'Usual cycle length in days',
+  lenInvalid: 'Choose a number of days from 15 to 90.',
 };
-let __cy = null;   // { p, reportId, cm, msg, open }
+const CY_LONG_DAYS = 35;   // the clinician line shows only past this day
+const CY_LEN_CHOICES = [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+let __cy = null;   // { p, reportId, cm, msg, open, len: { open, sel, msg } }
 
 function cyNiceDate(ymd){
   const d = dcParseYMD(ymd); if(!d) return '';
@@ -9087,9 +9122,48 @@ function cyLogBlock(open, msg){
     + '</div>'
     + (msg ? '<div class="cy-msg" aria-live="polite">' + dcEsc(msg) + '</div>' : '');
 }
+/** CYCLE_CARD_DAYCOUNT_V1. The day to show, the module's daysSince + 1, or null when it gave none. */
+function cyDayN(cm){
+  return (cm && Number.isInteger(cm.daysSince) && cm.daysSince >= 0) ? cm.daysSince + 1 : null;
+}
+function cySinceHTML(n){
+  return '<div class="cy-day cy-since"><span class="cy-day-n">Day ' + dcEsc(n) + '</span><span class="cy-day-of">' + dcEsc(CY_COPY.since) + '</span></div>';
+}
+function cyLenBlock(len){
+  len = len || {};
+  if(!len.open) return '<button class="cy-link" type="button" data-cy="len-open">' + dcEsc(CY_COPY.lenLink) + '</button>';
+  const chips = CY_LEN_CHOICES.map((n) => '<button class="cy-chip' + (len.sel === n ? ' sel' : '') + '" type="button" data-cy-len="' + n + '"'
+    + (len.sel === n ? ' aria-pressed="true"' : ' aria-pressed="false"') + '>' + n + '</button>').join('');
+  return '<div class="cy-lenask">'
+    +   '<div class="cy-ask">' + dcEsc(CY_COPY.lenAsk) + '</div>'
+    +   '<div class="cy-help">' + dcEsc(CY_COPY.lenHelp) + '</div>'
+    +   '<div class="cy-chips" role="group" aria-label="' + dcEsc(CY_COPY.lenGroup) + '">' + chips + '</div>'
+    +   '<label class="cy-step">' + dcEsc(CY_COPY.lenType) + ' <input type="number" min="15" max="90" inputmode="numeric" data-cy="len" placeholder="' + dcEsc(CY_COPY.lenDays) + '"/> ' + dcEsc(CY_COPY.lenDays) + '</label>'
+    +   '<button class="cy-btn primary" type="button" data-cy="len-save">' + dcEsc(CY_COPY.save) + '</button>'
+    +   (len.msg ? '<div class="cy-msg" aria-live="polite">' + dcEsc(len.msg) + '</div>' : '')
+    + '</div>';
+}
 /** The card's HTML for a module result, or null for NO CARD. */
-function cyCardHTML(cm, open, msg){
+function cyCardHTML(cm, open, msg, len){
   if(!cm) return null;
+  if(cm.status === 'no_phase' && cm.reason === 'cycle_length_unknown'){
+    const n = cyDayN(cm);
+    if(n === null){
+      return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+        + '<div class="cy-ask">' + dcEsc(CY_COPY.logLine) + '</div>' + cyLogBlock(open, msg) + '</div>';
+    }
+    return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+      + cySinceHTML(n) + cyLenBlock(len) + '</div>';
+  }
+  if((cm.status === 'no_phase' && cm.reason === 'out_of_range_inputs') || (cm.status === 'log_period' && cm.reason === 'overdue')){
+    const n = cyDayN(cm);
+    if(n !== null){
+      return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+        + cySinceHTML(n)
+        + (n > CY_LONG_DAYS ? '<hr class="cy-rule"/><div class="cy-line">' + dcEsc(CY_COPY.long) + '</div>' : '')
+        + cyLogBlock(open, msg) + '</div>';
+    }
+  }
   if(cm.status === 'phase' && cm.phaseLabel){
     const pct = Math.max(4, Math.min(100, Math.round((cm.cycleDay / cm.cycleLength) * 100)));
     return '<div class="cy-card" style="--cy-accent:' + (CY_ACCENT[cm.phase] || 'var(--teal)') + '">'
@@ -9113,7 +9187,7 @@ function cyCardHTML(cm, open, msg){
   return null;
 }
 function cyPaint(){
-  const html = __cy ? cyCardHTML(__cy.cm, __cy.open, __cy.msg) : null;
+  const html = __cy ? cyCardHTML(__cy.cm, __cy.open, __cy.msg, __cy.len) : null;
   for(const id of CY_HOSTS){
     const host = document.getElementById(id); if(!host) continue;
     if(html === null){ host.innerHTML = ''; host.classList.add('hidden'); continue; }
@@ -9126,6 +9200,19 @@ function cyPaint(){
       saveBtn.disabled = true;
       cyLogPeriod(input ? input.value : '');
     });
+    // CYCLE_CARD_DAYCOUNT_V1: the cycle-length ask.
+    const lenOpen = host.querySelector('[data-cy="len-open"]');
+    if(lenOpen) lenOpen.addEventListener('click', () => { __cy.len = { open: true, sel: null, msg: null }; cyPaint(); });
+    for(const chip of host.querySelectorAll('[data-cy-len]')){
+      chip.addEventListener('click', () => { __cy.len = { open: true, sel: Number(chip.getAttribute('data-cy-len')), msg: null }; cyPaint(); });
+    }
+    const lenSave = host.querySelector('[data-cy="len-save"]');
+    if(lenSave) lenSave.addEventListener('click', () => {
+      const input = host.querySelector('[data-cy="len"]');
+      const typed = input ? (input.value || '').trim() : '';
+      lenSave.disabled = true;
+      cySaveCycleLength(typed !== '' ? typed : (__cy.len && __cy.len.sel != null ? __cy.len.sel : ''));
+    });
   }
   // DASHBOARD_V2_DESIGN: the hero eyebrow follows the card's phase. Guarded, because the cycle
   // suite boots this block on its own, where the painter does not exist.
@@ -9135,7 +9222,7 @@ function cyPaint(){
 async function cyRenderCard(p, reportId){
   try{
     const cm = await cmResolveFor(reportId || null, dcYMD(dcTodayLocalDate()));
-    __cy = { p, reportId: reportId || null, cm, msg: null, open: false };
+    __cy = { p, reportId: reportId || null, cm, msg: null, open: false, len: { open: false, sel: null, msg: null } };
   } catch(e){ console.error('[cycle_card] render failed (card hidden):', e); __cy = null; }
   cyPaint();
 }
@@ -9161,6 +9248,22 @@ async function cyLogPeriod(date){
     return outcome;
   }
   if(__cy){ __cy.open = true; __cy.msg = outcome === 'invalid_date' ? CY_COPY.invalidDate : CY_COPY.retry; }
+  cyPaint();
+  return outcome;
+}
+/** CYCLE_CARD_DAYCOUNT_V1. Save her usual cycle length. ONE write, exactly { typical_cycle_length_days },
+ *  through onb2Write with onb2Int's 15 to 90. Returns 'ok' | 'invalid' | 'failed'. */
+async function cySaveCycleLength(value){
+  const n = onb2Int(value, 15, 90);
+  let outcome = 'invalid';
+  if(n !== null) outcome = (await onb2Write({ typical_cycle_length_days: n })) ? 'ok' : 'failed';
+  if(outcome === 'ok'){
+    const p = __cy ? __cy.p : null, reportId = __cy ? __cy.reportId : null;
+    await cyRenderCard(p, reportId);
+    if(reportId) await dcRenderDailyCard(p, reportId);
+    return outcome;
+  }
+  if(__cy){ __cy.len = { open: true, sel: __cy.len ? __cy.len.sel : null, msg: outcome === 'invalid' ? CY_COPY.lenInvalid : CY_COPY.retry }; }
   cyPaint();
   return outcome;
 }
