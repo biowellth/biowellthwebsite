@@ -25,8 +25,9 @@ import { extractApp } from "./lib/extract-app.mjs";
 // not on prod) still holds 6aec9b31.
 // DAYS_SINCE_V2, 2026-10-18: MOVED again, 23dfc9e2... -> 14d709cb..., daysSince on cycle_length_unknown,
 // with supa. backend-branches still holds 6aec9b31 and is now TWO changes behind.
-const MODULE_SHA256 = "14d709cb26153ed8a4cf44905e850af17dcbd844f49329ae2d70249e6743907c";
-const CORPUS_SHA256 = "d8c449d26c5bdff6a444de4eed3f0bbe615f2bda77475fc4c02d24d9d2245f5e";
+// REGULAR_CYCLER_V1 + IRREGULAR_DAYS_SINCE_V1, 2026-10-18: MOVED 14d709cb... -> dae3ded6... (corpus d8c449d2 -> b7132986), all three repos together: isRegularCycler exported, daysSince on the irregular reason.
+const MODULE_SHA256 = "dae3ded60c91c9f2779d76ad05a1da31bba705fec9068917246b06f4520f5926";
+const CORPUS_SHA256 = "b7132986bd78ab505bf05c2d640bbc4e9dc2d3c486ec96f25018b9476241356e";
 const MODULE_PATH = new URL("../js/cycle-movement.js", import.meta.url);
 const CORPUS_PATH = new URL("./fixtures/cycle-movement-corpus.json", import.meta.url);
 
@@ -309,6 +310,39 @@ eq((HTML.match(/^\.dc-flavor\{/gm) || []).length, 1, "CM-W39: CONTROL, .dc-flavo
   const noDate = CM.resolveCycleMovement({ menstrual_status: "regular" }, { today: t });
   eq(noDate.reason + ":" + noDate.daysSince, "cycle_length_unknown:null", "CM-W61: cycle_length_unknown without a date carries null");
   eq("daysSince" in noDate, true, "CM-W62: CONTROL, the key is present even when null");
+}
+
+// ── 8. REGULAR_CYCLER_V1 + IRREGULAR_DAYS_SINCE_V1 ───────────────────────────
+{
+  eq(typeof CM.isRegularCycler, "function", "CM-W63: isRegularCycler is exported");
+  // Past the regular-cycler gate a result is a phase or one of these four; everything else stopped at it.
+  const PAST_GATE = new Set(["cycle_length_unknown", "out_of_range_inputs", "lmp_unknown", "overdue"]);
+  const disagree = CORPUS.cases.filter((c) => (c.opts || {}).today && c.expect.reason !== "no_today").filter((c) => {
+    const r = CM.resolveCycleMovement(c.profile, c.opts);
+    return CM.isRegularCycler(c.profile, c.opts) !== (r.status === "phase" || PAST_GATE.has(r.reason));
+  });
+  eq(disagree.length, 0, "CM-W64: on every corpus case isRegularCycler agrees with where resolveCycleMovement stopped" + (disagree.length ? " -- " + disagree.slice(0, 3).map((c) => c.name).join("; ") : ""));
+  const R = { menstrual_status: "regular", typical_cycle_length_days: 28, last_period_start_date: "2026-10-07" };
+  eq(CM.isRegularCycler(R, {}), true, "CM-W65: CONTROL, a regular cycler is one");
+  const NOT = {
+    irregular: { ...R, menstrual_status: "irregular" }, pcos: { ...R, cycle_status: "pcos" },
+    perimenopausal: { ...R, menstrual_status: "perimenopausal" }, perimenopause_stage: { ...R, life_stage: "perimenopause" },
+    unknown: { typical_cycle_length_days: 28 }, none: { ...R, cycle_status: "none" },
+    stale_irregular_cycle_status: { ...R, cycle_status: "irregular" }, pregnant: { ...R, pregnant_or_postpartum_within_6_months: true },
+    breastfeeding: { ...R, amenorrhea_reason: "breastfeeding" }, postmenopause: { ...R, life_stage: "postmenopause" },
+    contraception: { ...R, hormonal_contraception: "current" }, hormone_therapy: { ...R, hormone_therapy_status: "yes" },
+    amenorrheic: { ...R, cycle_status: "amenorrheic" },
+  };
+  for (const [k, p] of Object.entries(NOT)) eq(CM.isRegularCycler(p, {}), false, "CM-W66: " + k + " is not a regular cycler");
+  eq(CM.isRegularCycler(R, { contraceptionUnknown: true }), false, "CM-W67: an unreadable contraception answer is not a regular cycler");
+  eq(CM.isRegularCycler(null, undefined), false, "CM-W68: no profile is not a regular cycler, and does not throw");
+  const t = "2026-10-12";
+  for (const k of ["irregular", "pcos", "perimenopausal", "perimenopause_stage", "none"]) {
+    const r = CM.resolveCycleMovement(NOT[k], { today: t });
+    eq([r.reason, r.daysSince, r.phase, r.cycleDay, r.movementLine].join(":"), "irregular:5:::", "CM-W69: " + k + " carries daysSince and no phase");
+  }
+  const phase = CM.resolveCycleMovement(R, { today: t });
+  eq(phase.status + ":" + ("daysSince" in phase), "phase:false", "CM-W70: CONTROL, a regular cycler still gets a phase and no daysSince");
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

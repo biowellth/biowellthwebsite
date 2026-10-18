@@ -87,6 +87,7 @@ function boot(world) {
 }
 
 const REG = { menstrual_status: "regular", typical_cycle_length_days: 28, typical_period_duration_days: 5 };
+const LONG_LINE = "A cycle this long is worth looking into with a clinician.";   // IRREGULAR_DAYS_SINCE_V1, same copy as LONG below
 const POOL = [{ action_id: "a1", priority_marker_id: "ferritin", base_text: "Try lentils at lunch.", phase_notes: null }];
 
 function world(profileRef, extra = {}) {
@@ -175,8 +176,12 @@ const HIDDEN = [
   ["postmenopausal", { ...REG, menstrual_status: "postmenopausal", last_period_start_date: ago(6) }],
   ["hormonal contraception", { ...REG, hormonal_contraception: "current", last_period_start_date: ago(6) }],
   ["hormone therapy", { ...REG, hormone_therapy_status: "yes", last_period_start_date: ago(6) }],
-  ["perimenopause", { ...REG, menstrual_status: "perimenopausal", last_period_start_date: ago(6) }],
-  ["PCOS", { ...REG, cycle_status: "pcos", last_period_start_date: ago(6) }],
+  // perimenopause and PCOS left this list on 2026-10-18: IRREGULAR_DAYS_SINCE_V1 shows the day count (CC-100 on).
+  // With no date the irregular reason still renders nothing, so those cases stay here.
+  ["perimenopause, no date", { ...REG, menstrual_status: "perimenopausal" }],
+  ["PCOS, no date", { ...REG, cycle_status: "pcos" }],
+  ["irregular, no date", { ...REG, menstrual_status: "irregular", cycle_status: "irregular" }],
+  ["cycle status none, no date", { ...REG, cycle_status: "none" }],
   // "cycle length missing" left this list on 2026-10-18: CYCLE_CARD_DAYCOUNT_V1 shows it (CC-50 on).
   // out_of_range_inputs with no date left it the same day: it gets the Log period card with logPlain (CC-88).
 ];
@@ -184,6 +189,30 @@ for (const [name, prof] of HIDDEN) {
   const r = await render(prof);
   eq(r.rail.innerHTML + r.main.innerHTML, "", `CC-18 ${name}: nothing rendered in either host`);
   ok(r.rail.hidden() && r.main.hidden(), `CC-19 ${name}: both hosts hidden`);
+}
+// ── IRREGULAR_DAYS_SINCE_V1: irregular, PCOS, perimenopause get the day count, NEVER a phase ──
+for (const [name, prof] of [
+  ["irregular", { ...REG, menstrual_status: "irregular", cycle_status: "irregular", last_period_start_date: ago(6) }],
+  ["PCOS", { ...REG, cycle_status: "pcos", last_period_start_date: ago(6) }],
+  ["perimenopause", { ...REG, menstrual_status: "perimenopausal", last_period_start_date: ago(6) }],
+  ["perimenopause life stage", { ...REG, life_stage: "perimenopause", last_period_start_date: ago(6) }],
+]) {
+  const r = await render(prof);
+  const h = r.rail.innerHTML;
+  ok(h.includes("Day 7<") && h.includes("since your last period"), `CC-100 ${name}: Day 7 since your last period`);
+  ok(h.includes('data-cy="open"'), `CC-101 ${name}: a Log period control`);
+  eq(/of ~|Menstrual|Follicular|luteal|Next period|estimated/i.test(h), false, `CC-102 ${name}: no phase, no Day N of ~L, no estimate`);
+  eq(moveLinesIn(h + r.main.innerHTML), 0, `CC-103 ${name}: no movement line`);
+  eq(h.includes(LONG_LINE), false, `CC-104 ${name}: no clinician line`);
+  eq(/irregular|pcos|perimenopaus/i.test(h.replace(/<[^>]+>/g, " ")), false, `CC-105 ${name}: the reason is never named`);
+  ok(!r.rail.hidden() && !r.main.hidden(), `CC-106 ${name}: both hosts shown`);
+}
+{
+  const r = await render({ ...REG, menstrual_status: "irregular", last_period_start_date: ago(60) });
+  ok(r.rail.innerHTML.includes("Day 61<"), "CC-107 irregular, 60 days ago: Day 61, a count however long");
+  eq(r.rail.innerHTML.includes(LONG_LINE), false, "CC-108 irregular, past 35 days: still no clinician line");
+  const c = await render({ ...REG, last_period_start_date: ago(6) });
+  ok(c.rail.innerHTML.includes("of ~28") && /Follicular|Menstrual|luteal/.test(c.rail.innerHTML), "CC-109 CONTROL: a regular cycler on the same date still gets her phase");
 }
 {
   const r = await render({ ...REG, last_period_start_date: ago(6) }, { profileError: true });

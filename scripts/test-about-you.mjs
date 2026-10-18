@@ -292,7 +292,7 @@ t("C2-NOGOAL: the goal screen is gone", !SCREENS.some((s) => s.id === "goal" || 
     labels(cond.groups[0]) === "Thyroid condition|PCOS|Endometriosis|Anemia or low iron|Diabetes or prediabetes|High blood pressure|High cholesterol|None of these" &&
     cond.groups[0].key === "known_conditions");
   t("C2-SYMP-OPTS: symptoms chips as specified",
-    labels(cond.groups[1]) === "Fatigue or low energy|Poor sleep|Hair loss|Brain fog|Low mood or anxiety|Mood swings|Bloating|Heavy periods|None of these" &&
+    labels(cond.groups[1]) === "Fatigue or low energy|Poor sleep|Hair loss|Brain fog|Low mood or anxiety|Mood swings|Bloating|Heavy periods|Painful periods|Pain with sex|Pelvic pain|Acne|Excess hair growth|Weight change|None of these" &&
     cond.groups[1].key === "symptoms");
   t("C2-MEDS-OPTS: medicines chips, label and helper as specified",
     labels(meds.groups[0]) === "Thyroid medicine|Metformin or diabetes medicine|Blood pressure medicine|Cholesterol medicine|Acid reflux medicine|Antidepressant or anxiety medicine|Steroids|None of these" &&
@@ -462,18 +462,28 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   const life = SCREENS.find((s) => s.id === "life");
   const optText = (b) => { let out = b.text; (function walk(x) { for (const c of x.children) { out += c.text; walk(c); } })(b); return out; };
   const lifeBtns = (el) => qsa(el, ".onb2-opt[data-i]");
-  t("LS-OPTS: the four life-stage labels and their stored values, as approved",
+  // LIFE_STAGE_DECLARED_V1 (founder rulings 2026-10-18) superseded the LIFE_STAGE_OPTIONS_V1 labels.
+  t("LS-OPTS: the four life-stage labels and their stored values, as ruled",
     JSON.stringify(life.opts.map((o) => [o[0], o[1]])) === JSON.stringify([
-      ["I still have periods, regular or not", "premenopause"],
-      ["I think I'm in the transition toward menopause", "perimenopause"],
+      ["My periods are predictable", "premenopause"],
+      ["A clinician told me I'm in perimenopause", "perimenopause"],
       ["My periods stopped over a year ago", "postmenopause"],
       ["Not sure", null]]));
-  t("LS-HELP: only the perimenopause option carries the approved helper line",
-    life.opts[1][2] === "Changes like hot flashes, night sweats or sleep shifts, along with changing periods" &&
-    life.opts.filter((o) => o.length > 2).length === 1);
+  {
+    const cyc = SCREENS.find((s) => s.id === "cyc");
+    t("LS-CYC: the cycle option for irregular is relabelled, one option, value irregular, no option added",
+      JSON.stringify(cyc.opts.map((o) => [o[0], o[1]])) === JSON.stringify([["Regular", "regular"], ["Irregular or unpredictable", "irregular"],
+        ["I have PCOS", "pcos"], ["I don't get periods right now", "amenorrheic"], ["Doesn't apply to me", "none"]]) &&
+      cyc.opts.filter((o) => o[1] === "irregular").length === 1);
+    t("LS-CYC control: the old bare Irregular label is gone from the screen definition",
+      !SCREENS_SRC.includes('["Irregular","irregular"]') && SCREENS_SRC.includes('["Regular","regular"]'));
+  }
+  t("LS-HELP: no life-stage option carries a helper line, the transition helper went with its label",
+    life.opts.filter((o) => o.length > 2).length === 0 && !HTML.includes("Changes like hot flashes, night sweats or sleep shifts"));
   t("LS-OLD-GONE: the old unpredictable, fairly predictably and still get periods labels are gone from the page",
     !HTML.includes("My periods have become unpredictable, or I notice") && !HTML.includes("My periods come fairly predictably") &&
-    !HTML.includes('"I still get periods"'));
+    !HTML.includes('"I still get periods"') && !HTML.includes('"I still have periods, regular or not"') &&
+    !HTML.includes("I think I'm in the transition toward menopause"));
   t("LS-OLD-GONE control: the same search finds a label that is still there",
     HTML.includes('["My periods stopped over a year ago","postmenopause"]'));
   // the helper renders inside the same button, so a tap on either line selects it
@@ -482,17 +492,15 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
     const el = h.open("life");
     const bs = lifeBtns(el);
     const peri = bs[1];
-    t("LS-RENDER-1: four buttons, the helper span inside the perimenopause button only",
-      bs.length === 4 && qsa(peri, ".onb2-opt-help").length === 1 &&
-      qsa(peri, ".onb2-opt-help")[0].text === life.opts[1][2] &&
-      bs.filter((b) => qsa(b, ".onb2-opt-help").length).length === 1);
-    t("LS-RENDER-2: the other three render their label as plain text, exactly as before",
-      bs[0].text === "I still have periods, regular or not" && bs[2].text === "My periods stopped over a year ago" && bs[3].text === "Not sure");
-    t("LS-RENDER-3: the perimenopause button reads label then helper",
-      optText(peri) === "I think I'm in the transition toward menopause" + life.opts[1][2]);
+    t("LS-RENDER-1: four buttons, no helper span in any of them",
+      bs.length === 4 && bs.filter((b) => qsa(b, ".onb2-opt-help").length).length === 0);
+    t("LS-RENDER-2: the other three render their label as plain text",
+      bs[0].text === "My periods are predictable" && bs[2].text === "My periods stopped over a year ago" && bs[3].text === "Not sure");
+    t("LS-RENDER-3: the perimenopause button reads the clinician label, nothing else",
+      optText(peri) === "A clinician told me I'm in perimenopause");
     const raw = h.api.onb2CardHtml(life, h.idxOf("life"));
     t("LS-RENDER-4: the apostrophe goes out escaped as &#39; through onb2Esc",
-      raw.includes("I think I&#39;m in the transition toward menopause") && !raw.includes("I think I'm"));
+      raw.includes("A clinician told me I&#39;m in perimenopause") && !raw.includes("told me I'm"));
     t("LS-RENDER-4 control: the raw label does carry an apostrophe to escape", life.opts[1][0].includes("'"));
     t("LS-CSS: the helper line has its own rule", /\.onb2-opt-help\{[^}]*font-weight:400/.test(HTML) && /\.onb2-opt-tx\{[^}]*flex-direction:column/.test(HTML));
   }
@@ -503,8 +511,8 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
     t(`LS-WRITE-${k}: option ${k} writes life_stage ${v}`, h.patch("life").life_stage === v && "life_stage" in h.patch("life"));
   }
   // a returning user sees her prior answer selected under the new label
-  for (const [stored, label] of [["premenopause", "I still have periods, regular or not"],
-                                 ["perimenopause", "I think I'm in the transition toward menopause"],
+  for (const [stored, label] of [["premenopause", "My periods are predictable"],
+                                 ["perimenopause", "A clinician told me I'm in perimenopause"],
                                  ["postmenopause", "My periods stopped over a year ago"]]) {
     const h0 = screenHarness({});
     const a = h0.api.onb2Prefill({ life_stage: stored });
@@ -523,7 +531,8 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   const copyBad = (s) => [/—/.test(s) && "em dash", /:/.test(s) && "colon",
     /\b\d+\s*(%|percent|in\s+\d+)|\bprevalen|\bcommon in\b|\bmost women\b|\bmany women\b/i.test(s) && "prevalence",
     /\bdiagnos|\bdisease\b|\bdisorder\b|\bsyndrome\b|\byou have\b/i.test(s) && "diagnosis"].filter(Boolean);
-  const NEW_COPY = [life.opts[0][0], life.opts[1][0], life.opts[1][2], "Endometriosis"];
+  const NEW_COPY = [life.opts[0][0], life.opts[1][0], "Endometriosis", "Irregular or unpredictable",
+    "Painful periods", "Pain with sex", "Pelvic pain", "Acne", "Excess hair growth", "Weight change"];
   t("LS-COPY: no em dash, colon, prevalence or diagnosis language in the new copy",
     NEW_COPY.every((s) => copyBad(s).length === 0));
   t("LS-COPY control: the checker fires on each rule",
@@ -715,14 +724,15 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
     a.host.innerHTML.includes("Steroids") && a.host.innerHTML.includes("A medical reason or treatment"));
   const ap = await acctWith({ about_you_status: "completed", life_stage: "perimenopause", known_conditions: ["Endometriosis"] });
   const apre = await acctWith({ about_you_status: "completed", life_stage: "premenopause" });
-  t("LS-ACCT-PRE: Account shows a stored premenopause as I still have periods, regular or not",
-    apre.host.innerHTML.includes("I still have periods, regular or not") && !apre.host.innerHTML.includes("I still get periods") &&
+  t("LS-ACCT-PRE: Account shows a stored premenopause as My periods are predictable",
+    apre.host.innerHTML.includes("My periods are predictable") && !apre.host.innerHTML.includes("I still get periods") &&
+    !apre.host.innerHTML.includes("regular or not") &&
     !apre.host.innerHTML.includes("come fairly predictably"));
   t("LS-ACCT: Account shows a stored perimenopause under the new label, and Endometriosis as its chip label",
-    ap.host.innerHTML.includes("I think I") && ap.host.innerHTML.includes("in the transition toward menopause") &&
+    ap.host.innerHTML.includes("A clinician told me I") && ap.host.innerHTML.includes("m in perimenopause") &&
     ap.host.innerHTML.includes("Endometriosis") && !ap.host.innerHTML.includes("become unpredictable"));
   t("LS-ACCT-PRE control: the same row search fires on a label that IS rendered, in the perimenopause fixture, and only there",
-    ap.host.innerHTML.includes("in the transition toward menopause") && !apre.host.innerHTML.includes("in the transition toward menopause"));
+    ap.host.innerHTML.includes("m in perimenopause") && !apre.host.innerHTML.includes("m in perimenopause"));
   t("C4-PANEL-4: no date of birth or goals row", !/Date of birth|What brings you here/.test(a.host.innerHTML));
   a.btn.onclick();
   t("C4-EDIT-1: Update reopens About-you, forced, whatever the status (here completed)",

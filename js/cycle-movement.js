@@ -22,6 +22,13 @@
  *      suggestion to raise it with a clinician. An old period date alone asks her to log one.
  *   R6 the LATER of the profile's current period date and the report's period date is used.
  *   R7 energy is optional; without it each phase has a default tier.
+ *
+ * REGULAR_CYCLER_V1 (2026-10-18): who is a regular cycler, the only woman a phase is ever computed
+ * for, is decided ONCE, by notRegularCycler below, and exported as isRegularCycler so another caller
+ * (backend-branches buildCycleCalendar) gates on this definition instead of writing its own. The
+ * checks and their order are the ones resolveCycleMovement ran inline before, unchanged.
+ * IRREGULAR_DAYS_SINCE_V1 (2026-10-18): the irregular result carries daysSince (no phase, ever),
+ * so the cycle card can show "Day N since your last period" with Log period.
  */
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
@@ -44,6 +51,7 @@ function ymdFromDayNumber(n) {
 // day the period started, so cycleDay is daysSince + 1 wherever both exist. null with no usable date.
 // Read ONLY by the out_of_range_inputs and overdue results; it decides nothing.
 // DAYS_SINCE_V2 (2026-10-18): also the cycle_length_unknown result, same function, same rules.
+// IRREGULAR_DAYS_SINCE_V1 (2026-10-18): also the irregular result. It still decides nothing.
 function daysSinceLmp(p, o, todayN) {
   let best = null;
   for (const v of [p.last_period_start_date, o.reportLmp]) {
@@ -135,6 +143,45 @@ function base(status, reason, extra) {
   );
 }
 
+// REGULAR_CYCLER_V1. null for a regular cycler; otherwise the reason resolveCycleMovement reports.
+// Needs no date: it reads only her stored answers and opts.contraceptionUnknown.
+function notRegularCycler(p, o) {
+  const ms = p.menstrual_status ?? null;
+  const cs = p.cycle_status ?? null;
+  const ls = p.life_stage ?? null;
+  const ar = p.amenorrhea_reason ?? null;
+
+  if (ms === "pregnant" || ls === "pregnant" || p.pregnant_or_postpartum_within_6_months === true) {
+    return "pregnant_or_postpartum";
+  }
+  if (ar === "breastfeeding") return "pregnant_or_postpartum";
+  if (ms === "postmenopausal" || ls === "postmenopause") return "postmenopause";
+  if (o.contraceptionUnknown === true) return "contraception_unknown";
+  if (
+    p.hormonal_contraception === "current" ||
+    p.on_hormonal_contraception === true ||
+    ar === "hormonal_contraception"
+  ) {
+    return "contraception";
+  }
+  if (p.hormone_therapy_status === "yes") return "hormone_therapy";
+  if (cs === "amenorrheic" || ar === "medical" || ar === "not_sure") return "amenorrhea";
+  if (ms === "perimenopausal" || ls === "perimenopause") return "irregular";
+  if (ms === "irregular" || cs === "irregular" || cs === "pcos" || cs === "none") return "irregular";
+  if (ms !== "regular") return "cycle_status_unknown";
+  return null;
+}
+
+/**
+ * REGULAR_CYCLER_V1. True only when every check above passes: menstrual_status regular, not
+ * pregnant, postpartum or breastfeeding, not postmenopausal, contraception known and not current, no
+ * hormone therapy, not amenorrheic, not perimenopausal, and cycle_status not irregular, pcos or none.
+ * A phase may be shown only to her, and still needs a usable cycle length and period date.
+ */
+export function isRegularCycler(profile, opts) {
+  return notRegularCycler(profile || {}, opts || {}) === null;
+}
+
 /**
  * profile: her `profiles` row (any subset of the cycle columns; absent keys read as unanswered).
  * opts.reportLmp: the latest report's `lmp_date_before_draw`, the read-both fallback (R6).
@@ -149,33 +196,12 @@ export function resolveCycleMovement(profile, opts) {
   if (todayN === null) return base("no_phase", "no_today");
   const energy = o.energy === "low" || o.energy === "ok" || o.energy === "high" ? o.energy : null;
 
-  const ms = p.menstrual_status ?? null;
-  const cs = p.cycle_status ?? null;
-  const ls = p.life_stage ?? null;
-  const ar = p.amenorrhea_reason ?? null;
-
-  if (ms === "pregnant" || ls === "pregnant" || p.pregnant_or_postpartum_within_6_months === true) {
-    return base("no_phase", "pregnant_or_postpartum");
-  }
-  if (ar === "breastfeeding") return base("no_phase", "pregnant_or_postpartum");
-  if (ms === "postmenopausal" || ls === "postmenopause") return base("no_phase", "postmenopause");
-  if (o.contraceptionUnknown === true) return base("no_phase", "contraception_unknown");
-  if (
-    p.hormonal_contraception === "current" ||
-    p.on_hormonal_contraception === true ||
-    ar === "hormonal_contraception"
-  ) {
-    return base("no_phase", "contraception");
-  }
-  if (p.hormone_therapy_status === "yes") return base("no_phase", "hormone_therapy");
-  if (cs === "amenorrheic" || ar === "medical" || ar === "not_sure") {
+  const not = notRegularCycler(p, o);
+  if (not === "amenorrhea") {
     return base("raise_with_clinician", "amenorrhea", { statusLine: STATUS_LINES.raise_with_clinician });
   }
-  if (ms === "perimenopausal" || ls === "perimenopause") return base("no_phase", "irregular");
-  if (ms === "irregular" || cs === "irregular" || cs === "pcos" || cs === "none") {
-    return base("no_phase", "irregular");
-  }
-  if (ms !== "regular") return base("no_phase", "cycle_status_unknown");
+  if (not === "irregular") return base("no_phase", "irregular", { daysSince: daysSinceLmp(p, o, todayN) });
+  if (not !== null) return base("no_phase", not);
 
   const L = intOrNull(p.typical_cycle_length_days);
   if (L === null) {

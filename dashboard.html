@@ -8747,7 +8747,7 @@ function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^
 // the first 8 hex of its sha256, so a changed module is a changed URL (the Fastly cache key) and
 // scripts/test-cycle-movement.mjs fails if the two drift. A failed load leaves every row unphased
 // and the movement row absent: the card itself never depends on it.
-const CM_SRC = '/js/cycle-movement.js?v=14d709cb';   // DAYS_SINCE_V2: was v=23dfc9e2 (V1), v=6aec9b31 before that; moves with the module bytes
+const CM_SRC = '/js/cycle-movement.js?v=dae3ded6';   // REGULAR_CYCLER_V1 + IRREGULAR_DAYS_SINCE_V1: was v=14d709cb (DAYS_SINCE_V2), v=23dfc9e2 (V1), v=6aec9b31 before that; moves with the module bytes
 let __cmModule = null;
 function dcLoadCycleMovement(){
   if(!__cmModule) __cmModule = import(CM_SRC).catch(e => { __cmModule = null; console.error('[daily_card] cycle module load failed (unphased):', e); return null; });
@@ -9083,8 +9083,15 @@ async function dcRenderDailyCard(p, reportId, late){
 //   out_of_range_inputs,   -> "Day N since your last period" and Log period. The clinician line shows
 //   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date gets
 //                             the same logPlain card (2026-10-18 rulings).
-//   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy,
-//                             perimenopause, PCOS and unreadable inputs all render no card and never a reason.
+//   no_phase/irregular     -> IRREGULAR_DAYS_SINCE_V1 (2026-10-18). Irregular, PCOS and perimenopause:
+//                             with a date, "Day N since your last period" and Log period. NEVER a phase,
+//                             a day of ~L or an estimate, and never the reason. With no date, NOTHING: the
+//                             reason also covers cycle_status "none" ("Doesn't apply to me"), and a bare
+//                             Log period prompt would ask her for a period she said does not apply.
+//   EVERYTHING ELSE        -> NOTHING. Pregnancy, postmenopause, contraception, hormone therapy and
+//                             unreadable inputs all render no card and never a reason.
+//                             (Corrected 2026-10-18: this line listed perimenopause and PCOS here until
+//                             IRREGULAR_DAYS_SINCE_V1 gave them the day count above.)
 // "Log period" posts process-report mode log_period (supa LOG_PERIOD_V1) through the page's
 // sb.functions.invoke pattern (onDdcTap, the retry handler), then re-renders this card and the daily card.
 const CY_HOSTS = ['cycle-card-rail', 'cycle-card-main'];
@@ -9177,6 +9184,13 @@ function cyCardHTML(cm, open, msg, len){
         + (n > CY_LONG_DAYS ? '<hr class="cy-rule"/><div class="cy-line">' + dcEsc(CY_COPY.long) + '</div>' : '')
         + cyLogBlock(open, msg) + '</div>';
     }
+  }
+  // IRREGULAR_DAYS_SINCE_V1: the day count and Log period only, never a phase, and only with a date.
+  if(cm.status === 'no_phase' && cm.reason === 'irregular'){
+    const n = cyDayN(cm);
+    if(n === null) return null;
+    return '<div class="cy-card"><div class="cy-eyebrow">' + dcEsc(CY_COPY.eyebrow) + '</div>'
+      + cySinceHTML(n) + cyLogBlock(open, msg) + '</div>';
   }
   if(cm.status === 'phase' && cm.phaseLabel){
     const pct = Math.max(4, Math.min(100, Math.round((cm.cycleDay / cm.cycleLength) * 100)));
@@ -10170,14 +10184,20 @@ const ONB2_SCREENS = [
   // with PCOS or any irregular cycle could fairly pick, so the option now names the
   // transition itself and the cycle change rides in the helper line beside the symptoms.
   // An optional third element is a helper line rendered under the label (onb2CardHtml).
+  // LIFE_STAGE_DECLARED_V1 (founder rulings 2026-10-18, superseding the labels above them):
+  // perimenopause is now stored ONLY when a clinician has told her so, never inferred from
+  // changing periods, so the option names the clinician and carries no helper line. The
+  // premenopause label is "My periods are predictable". Unpredictable periods are a CYCLE
+  // answer: on the cycle question the "Irregular" option is relabelled "Irregular or unpredictable"
+  // (value irregular). Stored values unchanged; no new value, no new column. (No apostrophes in
+  // comments inside ONB2_SCREENS: test-about-you extractConst reads them as string quotes.)
   { id:"life", key:"life_stage", q:ONB2_COPY.s2, kind:"one", note:ONB2_COPY.s2note,
-    opts:[["I still have periods, regular or not","premenopause"],
-          ["I think I'm in the transition toward menopause","perimenopause",
-           "Changes like hot flashes, night sweats or sleep shifts, along with changing periods"],
+    opts:[["My periods are predictable","premenopause"],
+          ["A clinician told me I'm in perimenopause","perimenopause"],
           ["My periods stopped over a year ago","postmenopause"],
           ["Not sure",null]] },
   { id:"cyc",  key:"cycle_status", q:ONB2_COPY.s3, kind:"one", steppers:true,
-    opts:[["Regular","regular"],["Irregular","irregular"],["I have PCOS","pcos"],
+    opts:[["Regular","regular"],["Irregular or unpredictable","irregular"],["I have PCOS","pcos"],
           ["I don't get periods right now","amenorrheic"],["Doesn't apply to me","none"]] },
   { id:"hbc",  key:"hormonal_contraception", q:ONB2_COPY.s4, kind:"one", when:true,
     opts:[["Yes, currently","current"],
@@ -10207,9 +10227,12 @@ const ONB2_SCREENS = [
         // same convention as every chip here, into the existing known_conditions column.
         opts:["Thyroid condition","PCOS","Endometriosis","Anemia or low iron","Diabetes or prediabetes",
               "High blood pressure","High cholesterol","None of these"].map(x=>[x,x]) },
+      // LIFE_STAGE_DECLARED_V1 — six symptom chips added (2026-10-18), stored as their labels in the
+      // existing symptoms column like every chip here: values only, same category.
       { key:"symptoms", label:ONB2_COPY.s7symp, none:"None of these",
         opts:["Fatigue or low energy","Poor sleep","Hair loss","Brain fog","Low mood or anxiety",
-              "Mood swings","Bloating","Heavy periods","None of these"].map(x=>[x,x]) },
+              "Mood swings","Bloating","Heavy periods","Painful periods","Pain with sex","Pelvic pain",
+              "Acne","Excess hair growth","Weight change","None of these"].map(x=>[x,x]) },
     ] },
   { id:"meds", key:"meds", q:ONB2_COPY.s8, kind:"groups", note:true,
     groups:[
