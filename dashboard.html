@@ -10187,12 +10187,13 @@ const ONB2_SCREENS = [
   // LIFE_STAGE_DECLARED_V1 (founder rulings 2026-10-18, superseding the labels above them):
   // perimenopause is now stored ONLY when a clinician has told her so, never inferred from
   // changing periods, so the option names the clinician and carries no helper line. The
-  // premenopause label is "My periods are predictable". Unpredictable periods are a CYCLE
+  // premenopause label is the approved copy, restored 2026-10-19 (it read My periods are
+  // predictable for one day, which was never approved). Unpredictable periods are a CYCLE
   // answer: on the cycle question the "Irregular" option is relabelled "Irregular or unpredictable"
   // (value irregular). Stored values unchanged; no new value, no new column. (No apostrophes in
   // comments inside ONB2_SCREENS: test-about-you extractConst reads them as string quotes.)
   { id:"life", key:"life_stage", q:ONB2_COPY.s2, kind:"one", note:ONB2_COPY.s2note,
-    opts:[["My periods are predictable","premenopause"],
+    opts:[["I still have periods, regular or not","premenopause"],
           ["A clinician told me I'm in perimenopause","perimenopause"],
           ["My periods stopped over a year ago","postmenopause"],
           ["Not sure",null]] },

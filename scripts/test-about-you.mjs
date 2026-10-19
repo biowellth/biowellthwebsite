@@ -465,7 +465,7 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   // LIFE_STAGE_DECLARED_V1 (founder rulings 2026-10-18) superseded the LIFE_STAGE_OPTIONS_V1 labels.
   t("LS-OPTS: the four life-stage labels and their stored values, as ruled",
     JSON.stringify(life.opts.map((o) => [o[0], o[1]])) === JSON.stringify([
-      ["My periods are predictable", "premenopause"],
+      ["I still have periods, regular or not", "premenopause"],
       ["A clinician told me I'm in perimenopause", "perimenopause"],
       ["My periods stopped over a year ago", "postmenopause"],
       ["Not sure", null]]));
@@ -480,9 +480,9 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
   }
   t("LS-HELP: no life-stage option carries a helper line, the transition helper went with its label",
     life.opts.filter((o) => o.length > 2).length === 0 && !HTML.includes("Changes like hot flashes, night sweats or sleep shifts"));
-  t("LS-OLD-GONE: the old unpredictable, fairly predictably and still get periods labels are gone from the page",
+  t("LS-OLD-GONE: the old unpredictable, fairly predictably, still get periods and predictable labels are gone from the page",
     !HTML.includes("My periods have become unpredictable, or I notice") && !HTML.includes("My periods come fairly predictably") &&
-    !HTML.includes('"I still get periods"') && !HTML.includes('"I still have periods, regular or not"') &&
+    !HTML.includes('"I still get periods"') && !HTML.includes('"My periods are predictable"') &&
     !HTML.includes("I think I'm in the transition toward menopause"));
   t("LS-OLD-GONE control: the same search finds a label that is still there",
     HTML.includes('["My periods stopped over a year ago","postmenopause"]'));
@@ -495,7 +495,7 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
     t("LS-RENDER-1: four buttons, no helper span in any of them",
       bs.length === 4 && bs.filter((b) => qsa(b, ".onb2-opt-help").length).length === 0);
     t("LS-RENDER-2: the other three render their label as plain text",
-      bs[0].text === "My periods are predictable" && bs[2].text === "My periods stopped over a year ago" && bs[3].text === "Not sure");
+      bs[0].text === "I still have periods, regular or not" && bs[2].text === "My periods stopped over a year ago" && bs[3].text === "Not sure");
     t("LS-RENDER-3: the perimenopause button reads the clinician label, nothing else",
       optText(peri) === "A clinician told me I'm in perimenopause");
     const raw = h.api.onb2CardHtml(life, h.idxOf("life"));
@@ -511,7 +511,7 @@ for (const id of ["preg", "life", "cyc", "hbc", "hbc-ht", "diet", "cond", "meds"
     t(`LS-WRITE-${k}: option ${k} writes life_stage ${v}`, h.patch("life").life_stage === v && "life_stage" in h.patch("life"));
   }
   // a returning user sees her prior answer selected under the new label
-  for (const [stored, label] of [["premenopause", "My periods are predictable"],
+  for (const [stored, label] of [["premenopause", "I still have periods, regular or not"],
                                  ["perimenopause", "A clinician told me I'm in perimenopause"],
                                  ["postmenopause", "My periods stopped over a year ago"]]) {
     const h0 = screenHarness({});
@@ -724,9 +724,9 @@ t("C3-SAVED: onb2Write mirrors every saved answer into PROFILE", /PROFILE = Obje
     a.host.innerHTML.includes("Steroids") && a.host.innerHTML.includes("A medical reason or treatment"));
   const ap = await acctWith({ about_you_status: "completed", life_stage: "perimenopause", known_conditions: ["Endometriosis"] });
   const apre = await acctWith({ about_you_status: "completed", life_stage: "premenopause" });
-  t("LS-ACCT-PRE: Account shows a stored premenopause as My periods are predictable",
-    apre.host.innerHTML.includes("My periods are predictable") && !apre.host.innerHTML.includes("I still get periods") &&
-    !apre.host.innerHTML.includes("regular or not") &&
+  t("LS-ACCT-PRE: Account shows a stored premenopause as I still have periods, regular or not",
+    apre.host.innerHTML.includes("I still have periods, regular or not") && !apre.host.innerHTML.includes("I still get periods") &&
+    !apre.host.innerHTML.includes("My periods are predictable") &&
     !apre.host.innerHTML.includes("come fairly predictably"));
   t("LS-ACCT: Account shows a stored perimenopause under the new label, and Endometriosis as its chip label",
     ap.host.innerHTML.includes("A clinician told me I") && ap.host.innerHTML.includes("m in perimenopause") &&
