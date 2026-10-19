@@ -1,5 +1,5 @@
-session: a300f7a0
-taken: 2026-10-18T16:39:36Z
-scope: CYCLE rulings P1-P4 (amendments 1-3): REGULAR_CYCLER_V1 module export + irregular daysSince (3 repos), cycle card, life-stage/cycle labels, symptom chips, counsel note; bb calendar gate + CYCLE_SUMMARY. Website+supa push; bb held branch push only, NO prod push.
+session: 2b386ee9
+taken: 2026-10-19T16:11:45Z
+scope: Resume of a300f7a0: twin restore, bb eval twin gate (BEFORE/AFTER) on 47b0b94, website premenopause label revert, counsel record line. bb held: NO prod push.
 repos: biowellth-backend-supa, biowellth-website, backend-branches (branch aditi/cycle-movement-2026-10-12)
-note: takes over from 12933fc9 (released; website 8eb8e09, bb 5f7607d) at the founder's instruction.
+note: takes over stale lock a300f7a0 (session died mid-gate 2026-10-18) at the founder's instruction.
