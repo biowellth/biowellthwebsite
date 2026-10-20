@@ -1,5 +1,5 @@
-session: 2b386ee9
-taken: 2026-10-19T16:11:45Z
-scope: Resume of a300f7a0: twin restore, bb eval twin gate (BEFORE/AFTER) on 47b0b94, website premenopause label revert, counsel record line. bb held: NO prod push.
-repos: biowellth-backend-supa, biowellth-website, backend-branches (branch aditi/cycle-movement-2026-10-12)
-note: takes over stale lock a300f7a0 (session died mid-gate 2026-10-18) at the founder's instruction.
+session: 657b0fac
+taken: 2026-10-20T10:31:38Z
+scope: Supersede and release only. Lock file change only; no other website write.
+repos: biowellth-website
+supersedes: session 2b386ee9, taken 2026-10-19T16:11:45Z, last commit 49adcbd at 2026-10-19T16:19:00Z, no activity since. Judged abandoned at founder's instruction 2026-10-20 (scope unfinished: twin restore, bb eval twin gate). Released in the next commit.
