@@ -40,6 +40,7 @@ console.log("CYCLE_MOVEMENT_V1");
 const HTML = readFileSync(process.env.DASH || new URL("../dashboard.html", import.meta.url), "utf8");
 const CM = await import(MODULE_PATH);
 const PNG = await import(new URL("../js/phase-note-guard.js", import.meta.url));   // the real guard, injected below
+const FG = await import(new URL("../js/food-guard.js", import.meta.url));   // FOOD_GUARD_V1, the real guard, injected below
 const CORPUS = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 
 // ── 1. pins ──────────────────────────────────────────────────────────────────
@@ -166,6 +167,7 @@ function boot(world) {
   // the dynamic import cannot resolve inside the vm, so the loader is pointed at the real module
   ctx.dcLoadCycleMovement = async () => (world.moduleFails ? null : CM);
   ctx.dcLoadPhaseNoteGuard = async () => (world.guardFails ? null : PNG);
+  ctx.dcLoadFoodGuard = async () => FG;
   return { ctx, host, calls };
 }
 

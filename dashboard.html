@@ -8765,6 +8765,18 @@ function dcLoadPhaseNoteGuard(){
   if(!__pngModule) __pngModule = import(PNG_SRC).catch(e => { __pngModule = null; console.error('[daily_card] phase-note guard load failed (no notes shown):', e); return null; });
   return __pngModule;
 }
+// FOOD_GUARD_V1 — never red meat, ruled 2026-10-20. The SAME file supa runs at write time
+// (js/food-guard.js, byte-identical to supa _shared/food-guard.js, pinned by scripts/test-food-guard.mjs;
+// the query is its sha256 prefix, the cache key). Applied to the whole pool before scheduling, with the
+// write-time rules: a banned base_text drops the action, a banned phase note drops only that note. No diet
+// is passed (phase 1), which reads as Vegetarian. This covers the actions stored before the write-time
+// guard existed. A failed load shows NO card: an unchecked action is the thing the guard exists to keep out.
+const FG_SRC = '/js/food-guard.js?v=91e0e2c8';
+let __fgModule = null;
+function dcLoadFoodGuard(){
+  if(!__fgModule) __fgModule = import(FG_SRC).catch(e => { __fgModule = null; console.error('[daily_card] food guard load failed (card hidden):', e); return null; });
+  return __fgModule;
+}
 // Every column the module reads. All are read elsewhere on this page as her own row (ONB2_STORED_COLS)
 // except last_period_start_date, which the 0058 capture has written since 2026-09-20 and nothing here
 // read until now.
@@ -9032,6 +9044,10 @@ async function dcRenderDailyCard(p, reportId, late){
       if(!late) dcStartLatePoll(p, reportId);
       return false;
     }
+    const foodGuard = await dcLoadFoodGuard();   // FOOD_GUARD_V1; null -> no card
+    if(!foodGuard || typeof foodGuard.applyFoodGuard !== 'function') return false;
+    const safePool = foodGuard.applyFoodGuard(pool, null).rows;
+    if(safePool.length === 0) return false;
     const rankMap = new Map();
     const prios = (p && Array.isArray(p.priorities)) ? p.priorities : [];
     for(const pr of prios){
@@ -9039,7 +9055,7 @@ async function dcRenderDailyCard(p, reportId, late){
       const mk = pm && pm.marker_id;
       if(mk && typeof pr.rank === 'number' && !rankMap.has(mk)) rankMap.set(mk, pr.rank);
     }
-    const three = dcSchedule(pool, reportId, rankMap);
+    const three = dcSchedule(safePool, reportId, rankMap);
     if(three.length === 0) return false;
     const todayYMD = dcYMD(dcTodayLocalDate());
     const cm = await cmResolveFor(reportId, todayYMD);   // CYCLE_MOVEMENT_V1: one read, shared with the cycle card
