@@ -1,0 +1,4 @@
+session: 65182c38
+taken: 2026-10-24T13:27:59Z
+scope: WAITLIST_INLINE_V1 docs only: commit docs/waitlist-inline-plan.md (section 5c, hero link), push, release. No code, no mocks.
+repos: biowellth-website
