@@ -1,0 +1,4 @@
+session: 65182c38
+taken: 2026-10-24T16:33:23Z
+scope: WAITLIST_INLINE_V1 welcome email copy: new first paragraph, reply line moved after the removal paragraph, two-line sign-off; welcome-email.ts, WL-E1, plan 4d; redeploy waitlist-signup; one live test signup removed afterwards.
+repos: biowellth-backend-supa, biowellth-website
