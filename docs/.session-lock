@@ -1,4 +1,0 @@
-session: 65182c38
-taken: 2026-10-24T10:42:42Z
-scope: WAITLIST_INLINE_V1 docs only: commit docs/waitlist-inline-plan.md and docs/counsel-request-waitlist-2026-10.md, push, release. No code, no mocks.
-repos: biowellth-website
