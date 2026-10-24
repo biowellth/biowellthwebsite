@@ -184,6 +184,8 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
   ```text
   Thank you for joining the BioWellth waitlist. Early access opens in small groups, and we'll email you when there's a place for you.
 
+  Have a question? Just reply to this email.
+
   One quick question, if you'd like to help. It's optional, and we use your answer only to plan where early access opens first. Tap one answer, and tap a different one to change it.
 
   Where do you live?
