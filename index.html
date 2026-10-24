@@ -387,6 +387,55 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .final-privacy{font-size:13.5px;color:var(--ink-muted);margin-top:14px}
 .final-privacy a{color:var(--coral-deep-text);text-decoration:underline;text-underline-offset:3px}
 
+/* WAITLIST_INLINE_V1. The first-party waitlist signup (backend waitlist-signup, migration 0076),
+   verified in mocks/waitlist-inline.html at a true 375px and at 1280px before it came here. The
+   pill is the .cta-pill shape above with an input in it. A container query, not a viewport query,
+   decides when it stacks, so each instance stacks by its own width wherever it sits.
+   .wl-block carries [hidden] in the markup and the script removes it once bound: a form without
+   its script would submit as a GET with the address in the URL, so it is never shown unbound.
+   Classes below that set display would override [hidden], hence the explicit rule. */
+.wl-block[hidden],.wl-done[hidden],.wl-form[hidden]{display:none!important}
+.wl-block{width:100%}
+.wl-form{container-type:inline-size;width:100%;margin:16px auto 0;text-align:left}
+.wl-pill{display:flex;align-items:center;gap:6px;padding:6px;border-radius:100px;background:rgba(255,255,255,.75);border:1px solid var(--glass-edge);transition:border-color .2s ease,box-shadow .2s ease}
+.wl-pill:focus-within{border-color:var(--olive);box-shadow:0 0 0 1px var(--olive)}
+.wl-input{flex:1 1 auto;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:transparent;border:0;padding:12px 16px;border-radius:100px}
+.wl-input::placeholder{color:var(--ink-muted);opacity:1}
+.wl-input:focus,.wl-input:focus-visible{outline:none}
+.wl-pill .btn{flex:0 0 auto}
+.wl-pill .btn[disabled]{cursor:progress;opacity:.75;transform:none;box-shadow:none}
+.wl-form.is-invalid .wl-pill{border-color:var(--coral-dark);box-shadow:0 0 0 1px var(--coral-dark)}
+.wl-msg{min-height:0;font-size:14px;line-height:1.5;color:var(--coral-deep-text);margin-top:10px;text-align:center}
+.wl-msg:empty{display:none}
+/* Honeypot. Off screen rather than display:none, because some bots skip display:none fields. */
+.wl-hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.wl-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wl-done{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px auto 0;padding:14px 18px;border-radius:100px;background:var(--sage-pale);border:1px solid var(--sage-soft);color:var(--ink);font-size:15.5px;font-weight:500;text-align:center}
+.wl-done:focus{outline:none}
+.wl-done:focus-visible{outline:2px solid var(--olive);outline-offset:3px}
+.wl-tick{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--sage);display:grid;place-items:center}
+@container (max-width:400px){
+  .wl-pill{flex-direction:column;align-items:stretch;border-radius:24px}
+  .wl-input{text-align:center}
+  .wl-pill .btn{width:100%}
+  .wl-done{border-radius:20px}
+}
+/* Hero placement. .wl-hero takes the whole first row of .hero-ctas (flex:0 0 100%), so the
+   "How we read a panel" link always wraps beneath it. The form is capped at 460px and centred. */
+.wl-hero{flex:0 0 100%;display:flex;flex-direction:column;align-items:center}
+.wl-hero .wl-form,.wl-hero .wl-done{max-width:460px;width:100%;margin-top:0}
+/* In the hero the signup notice, the error message and the link sit on the orb, not on a glass
+   panel. Bare over the pearl, in the mock, the old privacy line measured 2.51:1 (text) and 2.18:1
+   (link) at 375px, the error 2.20:1 and the link 2.05:1, all under 4.5:1. A chip at the --glass the
+   site already tunes for small text over the orb clears it (5.04:1 to 6.36:1 measured). The notice
+   is counsel's wording and wraps on phones, so its chip is a rounded box, not a pill. Re-measured
+   on the live page after this landed (plan section 5c). */
+.wl-hero .final-privacy{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:4px 12px;border-radius:16px;max-width:460px;text-align:center}
+.wl-hero .wl-msg{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:6px 14px;border-radius:16px;max-width:460px}
+/* "How we read a panel" in the hero is a plain text link, not the .btn-glass pill (Aditi,
+   2026-10-24): olive, the 15px / 600 of .btn, underlined. The 8px margin adds to the 12px row gap. */
+.wl-hero-link{font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:-.005em;color:var(--olive);text-decoration:underline;text-underline-offset:3px;margin-top:8px;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:3px 12px;border-radius:100px}
+
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
 .foot-inner{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:baseline;justify-content:space-between}
@@ -547,7 +596,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       <a href="#sana" class="nav-link">Sana</a>
       <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
       <a href="/science" class="nav-link">About</a>
-      <a href="#" onclick="showPage('early-access')" class="btn btn-ink nav-cta">Join the waitlist</a>
+      <!-- WAITLIST_INLINE_V1: scrolls to the final CTA form (#join). route() and goToSection()
+           handle it from any page, exactly as the #sana link above does. -->
+      <a href="#join" class="btn btn-ink nav-cta">Join the waitlist</a>
     </div>
   </div>
 </nav>
@@ -568,9 +619,25 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
     <p class="lede" data-intro>We test the markers your checkup skips with a home blood draw, read them for where you feel your best, not just okay, and track them over time. Sana, your own personal companion, explains what they mean. Already have reports? You can upload them too.</p>
     <div class="hero-ctas" data-intro>
-      <a href="#" onclick="showPage('early-access')" class="btn btn-ink">Join the waitlist</a>
+      <!-- WAITLIST_INLINE_V1: form instance 1. Replaces the button that opened the early-access page. -->
+      <div class="wl-hero">
+      <div class="wl-block" hidden>
+        <form class="wl-form" data-wl="inline-v1" novalidate>
+          <div class="wl-pill">
+            <label class="wl-sr" for="wl-email-hero">Email address</label>
+            <input class="wl-input" id="wl-email-hero" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" required placeholder="Your email" aria-describedby="wl-msg-hero">
+            <button class="btn btn-ink" type="submit">Join the waitlist</button>
+          </div>
+          <div class="wl-hp" aria-hidden="true"><label>Leave this empty <input type="text" name="company" tabindex="-1" autocomplete="off"></label></div>
+          <p class="wl-msg" id="wl-msg-hero" role="status" aria-live="polite"></p>
+        </form>
+        <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
+        <p class="final-privacy wl-notice">We'll email you about early access. You can remove yourself at any time. <a href="/privacy">Privacy Policy</a>.</p>
+      </div>
+      </div>
       <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
-      <a href="/science" class="btn btn-glass">How we read a panel</a>
+      <!-- WAITLIST_INLINE_V1: a text link with a glass chip, not the .btn-glass pill (Aditi, 2026-10-24) -->
+      <a href="/science" class="wl-hero-link">How we read a panel</a>
     </div>
   </div>
   <div class="wrap hero-foot">
@@ -773,13 +840,24 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
       <!-- WAITLIST_INDIA_REMOVE_V1: the opening sentence naming the waitlist region was removed at Aditi's call. -->
       <p class="lede">Early access opens in small groups.</p>
-      <!-- HOMEPAGE_MOTION_V1: the waitlist is the existing Typeform on /early-access, and this
-           repo has no email-capture endpoint. An email field here would collect an address and
-           then drop it, so the pill keeps the existing wiring as one button instead. -->
-      <div class="cta-pill">
-        <a href="#" onclick="showPage('early-access')" class="btn btn-ink">Join the waitlist</a>
+      <!-- HOMEPAGE_MOTION_V1 said this repo had no email-capture endpoint, so an email field here
+           would collect an address and then drop it, and the pill kept one button instead.
+           SUPERSEDED by WAITLIST_INLINE_V1, which added that endpoint (backend waitlist-signup).
+           Form instance 2. The signup notice under it is counsel's wording and replaces "Your data
+           is yours. Never sold." -->
+      <div class="wl-block" hidden>
+        <form class="wl-form" data-wl="inline-v1" novalidate>
+          <div class="wl-pill">
+            <label class="wl-sr" for="wl-email-join">Email address</label>
+            <input class="wl-input" id="wl-email-join" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" required placeholder="Your email" aria-describedby="wl-msg-join">
+            <button class="btn btn-ink" type="submit">Join the waitlist</button>
+          </div>
+          <div class="wl-hp" aria-hidden="true"><label>Leave this empty <input type="text" name="company" tabindex="-1" autocomplete="off"></label></div>
+          <p class="wl-msg" id="wl-msg-join" role="status" aria-live="polite"></p>
+        </form>
+        <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
+        <p class="final-privacy wl-notice">We'll email you about early access. You can remove yourself at any time. <a href="/privacy">Privacy Policy</a>.</p>
       </div>
-      <p class="final-privacy">Your data is yours. Never sold. <a href="/privacy">Privacy Policy</a></p>
     </div>
   </div>
 </section>
@@ -1506,6 +1584,113 @@ function orbEngine(scope,inWorker){
   };
 }
 });
+</script>
+<script>
+/* WAITLIST_INLINE_V1. Binds every .wl-block on the page (hero, final CTA, early-access page) to
+   the backend's waitlist-signup function. Copy follows the house rules, no colons, no em dashes.
+   The campaign tags use the rule the former waitlist embed used on this page: utm_source,
+   utm_medium, utm_campaign and utm_content, lowercased, kept only if the whole value matches
+   [a-z0-9_.-]{1,64}, otherwise empty, and absent means empty, never a default. The referrer goes
+   as an origin only. The server re-checks all of it. The address is never put in a URL, a log or
+   an error message. */
+(function(){
+  var ENDPOINT = "https://clacgutnrktdwhglvyua.supabase.co/functions/v1/waitlist-signup";
+  var COPY = {
+    button: "Join the waitlist",
+    sending: "Joining…",
+    invalid: "That email doesn't look quite right. Please check it and try again.",
+    failed: "Something went wrong, so you're not on the list yet. Please try again in a moment.",
+    limited: "Too many tries from this connection. Please wait a little and try again.",
+    done: "You're on the list. Check your inbox.",
+    // The row was saved but the welcome email did not send, so "Check your inbox" would be false.
+    doneNoMail: "You're on the list. We'll email you when early access opens."
+  };
+  var UTM_KEYS = ["utm_source","utm_medium","utm_campaign","utm_content"];
+  var EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+
+  function readTags(){
+    var out = {};
+    UTM_KEYS.forEach(function(k){ out[k] = ""; });
+    try{
+      var q = new URLSearchParams(location.search);
+      UTM_KEYS.forEach(function(k){
+        var v = (q.get(k) || "").toLowerCase();
+        out[k] = /^[a-z0-9_.-]{1,64}$/.test(v) ? v : "";
+      });
+    }catch(_){}
+    var ref = "";
+    try{ ref = document.referrer ? new URL(document.referrer).origin : ""; }catch(_){}
+    out.referrer = ref.slice(0, 200);
+    return out;
+  }
+
+  function bind(block){
+    var form = block.querySelector(".wl-form");
+    var input = form.querySelector(".wl-input");
+    var btn = form.querySelector("button");
+    var msg = form.querySelector(".wl-msg");
+    var hp = form.querySelector('[name="company"]');
+    var done = block.querySelector(".wl-done");
+
+    function setState(s, text){
+      form.classList.toggle("is-invalid", s === "invalid");
+      input.setAttribute("aria-invalid", s === "invalid" ? "true" : "false");
+      btn.disabled = s === "sending";
+      form.setAttribute("aria-busy", s === "sending" ? "true" : "false");
+      btn.textContent = s === "sending" ? COPY.sending : COPY.button;
+      msg.textContent = text || "";
+      if(s === "done" || s === "done-nomail"){
+        done.querySelector(".wl-done-text").textContent = s === "done" ? COPY.done : COPY.doneNoMail;
+        form.hidden = true;
+        done.hidden = false;
+        done.focus();
+      }
+    }
+
+    input.addEventListener("input", function(){
+      if(form.classList.contains("is-invalid")) setState("idle");
+    });
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(btn.disabled) return;
+      var email = input.value.trim();
+      if(email.length > 254 || !EMAIL_RE.test(email)){
+        setState("invalid", COPY.invalid);
+        input.focus();
+        return;
+      }
+      var body = readTags();
+      body.email = email;
+      body.company = hp ? hp.value : "";
+      setState("sending");
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, 15000);
+      fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctl ? ctl.signal : undefined
+      }).then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(j){
+          clearTimeout(timer);
+          if(r.status === 200) setState(j && j.notice === "listed" ? "done-nomail" : "done");
+          else if(r.status === 429) setState("limited", COPY.limited);
+          else if(r.status === 400) setState("invalid", COPY.invalid);
+          else setState("failed", COPY.failed);
+        });
+      }).catch(function(){
+        clearTimeout(timer);
+        setState("failed", COPY.failed);
+      });
+    });
+    block.hidden = false;
+  }
+
+  var blocks = document.querySelectorAll(".wl-block");
+  for(var i = 0; i < blocks.length; i++){
+    try{ bind(blocks[i]); }catch(_){}
+  }
+})();
 </script>
 <script src="https://embed.typeform.com/next/embed.js"></script>
 
