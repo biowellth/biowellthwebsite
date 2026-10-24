@@ -1,4 +1,0 @@
-session: 65182c38
-taken: 2026-10-24T16:20:47Z
-scope: WAITLIST_INLINE_V1: welcome email subject gains "!", then (scope widened, founder request) a new paragraph "Have a question? Just reply to this email." after the first; welcome-email.ts, WL-E1, plan 4d; redeploy waitlist-signup; one live test signup removed afterwards.
-repos: biowellth-backend-supa, biowellth-website
