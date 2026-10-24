@@ -423,6 +423,12 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 /* Hero placement. .wl-hero takes the whole first row of .hero-ctas (flex:0 0 100%), so the
    "How we read a panel" link always wraps beneath it. The form is capped at 460px and centred. */
 .wl-hero{flex:0 0 100%;display:flex;flex-direction:column;align-items:center}
+/* .hero-copy centres its children, so .hero-ctas is only as wide as its content, and a container
+   (.wl-form) contributes no content width. While the hero carried the signup notice, that sentence
+   was what gave the row its width. Without it the form collapsed to the link's width and stacked
+   even at 1280px (caught in the 2026-10-24 screenshots). Full width gives the form its 460px back;
+   justify-content:center keeps everything centred. */
+.hero-ctas{width:100%}
 .wl-hero .wl-form,.wl-hero .wl-done{max-width:460px;width:100%;margin-top:0}
 /* In the hero the error message and the link sit on the orb, not on a glass panel. Bare over the
    pearl, in the mock, the error measured 2.20:1 and the link 2.05:1 at 375px, under 4.5:1. A chip at

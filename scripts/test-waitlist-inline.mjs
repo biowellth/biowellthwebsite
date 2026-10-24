@@ -148,6 +148,13 @@ ok(r.calls.length === 0 && r.invalid, "WI-16 a bad address is caught before any 
 r = await submit("ea", "bot@example.com", { status: 200, body: { ok: true, notice: "inbox" } }, "Acme");
 ok(r.calls.length === 1 && r.calls[0].body.company === "Acme", "WI-17 the honeypot value is sent for the server to judge");
 
+// The hero row is only as wide as its content and a container (.wl-form) has none, so without
+// .hero-ctas{width:100%} the form collapses to the link's width. Caught on 2026-10-24.
+// A fresh load: the cases above leave the hero form in its success state, hidden.
+await open("index.html", 1280);
+const wide = JSON.parse(await ev(`JSON.stringify({ w: document.querySelector('.wl-hero .wl-form').getBoundingClientRect().width, dir: getComputedStyle(document.querySelector('.wl-hero .wl-pill')).flexDirection })`));
+ok(wide.w === 460 && wide.dir === "row", `WI-18a at 1280px the hero form is 460px wide and one row (${wide.w}px, ${wide.dir})`);
+
 await open("index.html", 375);
 const m = JSON.parse(await ev(`JSON.stringify({ sw: document.documentElement.scrollWidth, iw: innerWidth, dir: getComputedStyle(document.querySelector('.wl-hero .wl-pill')).flexDirection })`));
 ok(m.sw === m.iw && m.dir === "column", `WI-18 at 375px nothing overflows and the hero pill stacks (${m.sw}/${m.iw}, ${m.dir})`);
