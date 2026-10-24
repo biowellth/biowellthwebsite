@@ -182,9 +182,7 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
   Body
 
   ```text
-  Thank you for joining the BioWellth waitlist. Early access opens in small groups, and we'll email you when there's a place for you.
-
-  Have a question? Just reply to this email.
+  Thank you for joining the BioWellth waitlist. We're opening early access in small groups, and you'll hear from us as soon as we open in your city.
 
   One quick question, if you'd like to help. It's optional, and we use your answer only to plan where early access opens first. Tap one answer, and tap a different one to change it.
 
@@ -203,7 +201,10 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
 
   If you didn't sign up, or you'd rather not hear from us, you can remove yourself from the waitlist here. That deletes your email and your answer from our list.
 
-  BioWellth
+  Have a question? Just reply to this email.
+
+  With care,
+  Team BioWellth
   ```
 
   City label to stored code
