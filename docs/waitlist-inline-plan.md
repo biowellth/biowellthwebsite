@@ -1,233 +1,179 @@
 # WAITLIST_INLINE_V1 plan
 
-Status: **PLAN ONLY. Not built.** Revised 2026-10-24. Line numbers were re-verified that day
-against `biowellth-website` `1bb00af`, which is still `origin/main` (no commit has touched
-`index.html` since), and against `biowellth-backend-supa` `27bb0e0`. Re-check them before editing.
+Status, 2026-10-24: **Stage B1 built and deployed on the backend. Nothing user-facing is live on
+biowellth.ai.** Stage B2 waits for Aditi to confirm that counsel approved the final privacy policy
+v1.4 text.
 
-**Gate.** Nothing here is built until counsel clears it under condition 6. Privacy policy v1.3
-does not cover a website signup: `privacy.html:158` covers account holders only, `:179` limits
-Resend to transactional account emails, and `:194` stores "account and wellness information" with
-Supabase. The request is `docs/counsel-request-waitlist-2026-10.md`.
+**Counsel's ruling** is `biowellth-backend-supa`
+`docs/evidence/counsel-reply-waitlist-2026-10.md`. Part A (email-only) is approved with
+conditions, and Part B's interest question is deferred. The original request is
+`docs/counsel-request-waitlist-2026-10.md`.
 
-**Scope.** The inline form is a **separate, website-only signup alongside the Typeform**. The
-Typeform is not touched. Specifically, this plan makes **no edit** to:
+**Line numbers** were re-verified on 2026-10-24 against `index.html` and `dashboard.html` as last
+changed at `f8fdde7`. No commit has touched either file since `1bb00af`. Re-check them before B2
+edits anything.
 
-- the Typeform iframe (`index.html:801`) or popup (`:804`)
-- `TYPEFORM_UTM_HIDDEN_V1/V2` (`:806-859`) or the embed script (`:1510`)
-- the early-access page (`:791-884`) or `waitlist/index.html`
-- the Sentry `denyUrls` (`index.html:1702`, `dashboard.html:2649`)
+**Scope.** The website goes inline, email-only. **B2 removes the Typeform from the website
+entirely**:
+- the iframe and the popup
+- `TYPEFORM_UTM_HIDDEN_V1/V2`
+- the embed script
+- the Sentry `denyUrls`
 
-The mock is `mocks/waitlist-inline.html` (untracked). It shows **both placements**: the hero
-(`index.html:570-573`, over the orb, with the glass button wrapping beneath) and the final CTA
-(`:768-785`). It also shows all seven states. Both placements were checked over CDP at a true 375px
-and at 1280px:
-- no horizontal overflow
-- the privacy line sits under the hero form, with the glass button beneath it
-- the hero form is no wider than 460px
-- the pill stacks at 375px
-- every text over the orb clears 4.5:1
+Only the website stops using it. **The Typeform form `t0eULTZa` and all its responses are preserved,
+untouched.** Nothing is migrated out of it and nothing is deleted from it, by code or runbook, except
+one case: when a removal request names someone with a Typeform response, the founder deletes that
+response by hand (backend `docs/waitlist-delete-request.md`, A2).
 
-## 1. Decisions recorded (Aditi, 2026-10-24)
+**The mock** is `mocks/waitlist-inline.html` (untracked). It shows both homepage placements and
+every state, checked at a true 375px and at 1280px. It still shows the old privacy line and has no
+early-access-page instance. Both are B2 mock updates (section 5).
 
-- **Placement.** One form in the homepage hero and one in the final CTA, each replacing its "Join
-  the waitlist" button's jump to `/early-access`. The nav "Join the waitlist" button scrolls to the
-  final CTA form. The early-access page and its Typeform stay as they are, still reachable at
-  `/early-access`, `/waitlist` and `science.html:272`.
-- **Four UTM keys:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, plus `referrer`
-  and `created_at`. The form reads the same keys and the same rule as `TYPEFORM_UTM_HIDDEN_V1`
+## 1. Decisions and rulings
+
+**Founder decisions (Aditi, 2026-10-24)**
+- **Placement.** One form in the homepage hero and one in the final CTA. The nav "Join the
+  waitlist" button scrolls to the final CTA form. B2 adds a third instance on the early-access page,
+  where the Typeform was, because `/early-access`, `/waitlist` and `science.html:272` all land there.
+- **Four UTM keys**, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, plus `referrer`
+  and `created_at`. The form reads them with the rule `TYPEFORM_UTM_HIDDEN_V1` used
   (`index.html:843`): lowercased, kept only if the whole value matches `^[a-z0-9_.-]{1,64}$`,
-  otherwise empty, and absent means empty. It adds `utm_campaign`, which `waitlist/index.html`
-  already passes through untouched, so links via `/waitlist` keep working with no change there.
-- **`signup_source = 'website_inline'`** on every row, so these rows can later be told apart from
-  Typeform signups.
-- **Two optional one-tap question sets in the welcome email**, interest and region, stored as
-  nullable `interest_tag` and `region_tag`.
-- **Retention: counsel to confirm.** There is an unsubscribe link in the welcome email and a
-  delete-on-request route.
-- **Glass backing on the hero privacy line and error message (Aditi, 2026-10-24).** In the hero,
-  both texts sit on the orb instead of a glass panel. Measured over the static pearl in the mock:
+  otherwise empty, and absent means empty. `waitlist/index.html` needs no change.
+- **`signup_source = 'website_inline'`** on every row. The CHECK allows only that value. Typeform
+  records are not imported (founder amendment, 2026-10-24).
+- **Glass backing on hero texts over the orb.** These are the privacy line, the error message and
+  the "How we read a panel" text link. The numbers are in section 5c.
 
-  | Hero text | Bare, 375px | Bare, 1280px | With glass, 375px | With glass, 1280px |
-  |---|---|---|---|---|
-  | Privacy text (`--ink-muted`) | 2.51:1 | 4.46:1 | 5.93:1 | 6.36:1 |
-  | Privacy link (`--coral-deep-text`) | 2.18:1 | 3.88:1 | 5.16:1 | 5.53:1 |
-  | Error message (`--coral-deep-text`) | 2.20:1 | 3.99:1 | 5.04:1 | 5.57:1 |
+**Counsel's rulings, as implemented**
 
-  - The fix is a chip at the site's existing `--glass` with `--glass-edge`. It is a pill behind the
-    privacy line, and a 16px-radius box behind the error message, which can wrap.
-  - The text and type stay exactly as `.final-privacy` and `.wl-msg`.
-  - The final CTA's line already sits on the `.final-panel` glass and measured 5.10:1 or better.
-  - The numbers are against `pearl.png`. Phase B re-measures on the live WebGL orb.
+| Ruling | Implemented as | Status |
+|---|---|---|
+| Email-only Part A | The inline form. The function takes only email, tags, referrer and honeypot. | Backend live (B1). Website in B2. |
+| Interest question DEFERRED | No `interest_tag` column, no interest codes, links or copy anywhere. The tag route refuses `hormones_cycle` (live 400). | Done (B1) |
+| City optional, purpose stated | `region_tag` (11 city codes). The email says "It's optional, and we use your answer only to plan where early access opens first." | Done (B1) |
+| Delete 12 months after signup | `waitlist-retention-nightly`, 03:53 UTC, **ARMED** | Done, proven on a synthetic row |
+| Delete earlier on account creation | The same job, matching lowercased email against `auth.users` | Done, proven against the E2E account |
+| Delete earlier on invitation | Manual, backend runbook section B | Runbook written |
+| The removal link deletes the record | `POST /unsubscribe` deletes the row. GET refuses. | Done, proven live |
+| The IP hash is for abuse prevention only and expires as stated | Purged once its hour has passed (hourly job and every call). No hash outlives 24 hours. | Done, proven (section 4g) |
+| Signup notice under the button | "We'll email you about early access. You can remove yourself at any time. Privacy Policy." in every placement | B2 |
+| Welcome email limited to the signup and what happens next | See section 4d. **One open point** is flagged there. | Open |
+| Typeform disposition | **Retained in Typeform, not migrated, not deleted, used only for early-access invitations within 12 months of each signup.** | Recorded. See the open point in 4g. |
 
-## 2. Tables (backend migration `0076_waitlist.sql`)
+## 2. Tables, as built (backend `migrations/0076_waitlist.sql`)
 
-```sql
--- WAITLIST_INLINE_V1. Website-only waitlist signups. The Typeform is separate and untouched.
--- Written only by the waitlist-signup edge function (service_role). No anon or authenticated
--- access. No policies, so RLS denies every non-service role.
-create table public.waitlist (
-  id                uuid primary key default gen_random_uuid(),
-  email             text not null check (email = lower(email) and length(email) between 3 and 254),
-  signup_source     text not null default 'website_inline'
-                      check (signup_source in ('website_inline')),
-  utm_source        text not null default '' check (length(utm_source)   <= 64),
-  utm_medium        text not null default '' check (length(utm_medium)   <= 64),
-  utm_campaign      text not null default '' check (length(utm_campaign) <= 64),
-  utm_content       text not null default '' check (length(utm_content)  <= 64),
-  referrer          text not null default '' check (length(referrer)     <= 200),
-  created_at        timestamptz not null default now(),
-  -- Unsubscribe, delete and tagging all key on this token. Never shown anywhere but the email.
-  unsubscribe_token uuid not null default gen_random_uuid(),
-  welcome_sent_at   timestamptz,
-  -- Optional one-tap answers from the welcome email. NULL means never answered.
-  interest_tag      text check (interest_tag in ('hormones_cycle','energy','gut','metabolism','skin_hair')),
-  region_tag        text check (region_tag in ('bangalore','mumbai','delhi_ncr','chennai','hyderabad',
-                                                'pune','kolkata','india_other','us','uk','outside_other')),
-  tagged_at         timestamptz
-);
-create unique index waitlist_email_key on public.waitlist (email);
-create unique index waitlist_unsubscribe_token_key on public.waitlist (unsubscribe_token);
+The migration was applied and read back on 2026-10-24 (backend `docs/migration-0076-readback.md`).
+In short:
 
--- Per-IP rate limit. ip_hash is sha256(WAITLIST_IP_SALT || ip), never the raw IP.
--- Rows older than one day are deleted on every call, so nothing here outlives 24h.
-create table public.waitlist_rate (
-  ip_hash      text not null,
-  window_start timestamptz not null,
-  hits         int not null default 1,
-  primary key (ip_hash, window_start)
-);
+- **`public.waitlist`:**
+  - `id`, `email` (unique, CHECK lowercased, 3 to 254 characters)
+  - `signup_source` (CHECK `'website_inline'` only)
+  - `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` (at most 64 each)
+  - `referrer` (an origin only, at most 200)
+  - `created_at`, `unsubscribe_token` (unique random UUID), `welcome_sent_at`
+  - `region_tag`, nullable, with a CHECK of `bangalore, mumbai, delhi_ncr, chennai, hyderabad, pune,
+    kolkata, india_other, us, uk, outside_other`
+  - `tagged_at`
+- **`public.waitlist_rate`:** `ip_hash` (CHECK 64 hex characters), `window_start` (the clock hour)
+  and `hits`.
+- **Grants and RLS:** RLS is on with no policies. `service_role` holds select, insert, update and
+  delete on both tables, and nothing else holds any grant.
+- **Functions:** `waitlist_rate_hit(text)` is executable by `service_role` only.
+  `waitlist_rate_purge()` and `waitlist_retention_run()` are executable by no API role; pg_cron runs
+  them as `postgres`.
+- **Jobs, both ARMED:** `waitlist-retention-nightly` (`53 3 * * *`) and `waitlist-rate-purge-hourly`
+  (`7 * * * *`).
 
-alter table public.waitlist      enable row level security;
-alter table public.waitlist_rate enable row level security;
-
--- DEFAULT_PRIVS_V1 (backend CLAUDE.md): revoke first, BY NAME, then grant the minimum back.
-revoke all on public.waitlist      from anon, authenticated, service_role, public;
-revoke all on public.waitlist_rate from anon, authenticated, service_role, public;
-grant select, insert, update, delete on public.waitlist      to service_role;
-grant select, insert, update, delete on public.waitlist_rate to service_role;
-
--- One round trip, atomic. Returns this window's hit count after counting this one.
-create function public.waitlist_rate_hit(p_ip_hash text) returns int
-language sql security invoker set search_path = public as $$
-  with purge as (delete from public.waitlist_rate where window_start < now() - interval '1 day')
-  insert into public.waitlist_rate as r (ip_hash, window_start, hits)
-  values (p_ip_hash, date_trunc('hour', now()), 1)
-  on conflict (ip_hash, window_start) do update set hits = r.hits + 1
-  returning hits;
-$$;
-revoke all on function public.waitlist_rate_hit(text) from anon, authenticated, service_role, public;
-grant execute on function public.waitlist_rate_hit(text) to service_role;
-```
-
-- **`signup_source`'s CHECK allows only `'website_inline'` today.** If Typeform rows are ever
-  brought in, widening it is its own migration and its own counsel question. Nothing here imports
-  them.
-- **The tag values are stored codes, not labels.** The labels live in the email copy (4d), so
-  rewording a label never changes stored data. The region set is the city list Aditi approved on
-  2026-10-24: 11 codes, 7 of them Indian cities. Adding a city later is a CHECK change, so its own
-  migration.
-- **Email is unique and lowercased**, enforced twice: the function lowercases it, and the CHECK
-  refuses anything that is not already lowercase.
-- **Referrer is stored as an origin only** (`https://www.linkedin.com`), never a path or query.
-  When someone arrives via `/waitlist`, the referrer reads `https://biowellth.ai`, because that
+Design points that still hold:
+- **Tags are stored codes, not labels.** Rewording a label never changes data. Adding a city is a
+  CHECK change, so its own migration.
+- **The referrer is an origin only.** Via `/waitlist` it reads `https://biowellth.ai`, because that
   redirect has already recorded the source in `utm_source`.
-- **First touch wins.** A duplicate signup changes nothing, including its tags.
-- **Applied how.** DDL goes through the claude.ai Supabase connector (`apply_migration`, as
-  `postgres`) under the founder-approved brief, recorded in the migration's docs entry (backend
-  CLAUDE.md:122).
-- **Read back:** `information_schema.columns`, the CHECK definitions from `pg_constraint`,
-  `pg_indexes`, `pg_class.relrowsecurity`, `pg_policies` (expect zero rows),
-  `information_schema.role_table_grants` (expect `service_role` only), and
-  `pg_get_functiondef` with `routine_privileges` for `waitlist_rate_hit`.
+- **First touch wins.** A duplicate changes nothing.
 
 ## 3. RLS
 
-RLS is on with **no policies**, and `anon` and `authenticated` have no grants, so there is no
-public select and no public write. The only writer is `waitlist-signup` with the service-role key.
+RLS is on with no policies, and there are no `anon` or `authenticated` grants, so there is no public
+read or write. The only writer is `waitlist-signup` with the service-role key.
 
-## 4. Edge function `waitlist-signup`
+## 4. Edge function `waitlist-signup`, as built and deployed
 
-`supabase/functions/waitlist-signup/index.ts`, with the pure parts in `validate.ts` and the email in
-`welcome-email.ts`, so the Deno tests need no network. **One function, three routes**, so Phase B
-is still one deploy.
+Backend files: `supabase/functions/waitlist-signup/` contains `index.ts` (wiring), `handler.ts`
+(routes), `validate.ts` and `welcome-email.ts`, with 21 Deno tests in `waitlist-signup.test.ts`.
 
-**`verify_jwt = false`, declared in `supabase/config.toml`** in a `[functions.waitlist-signup]`
-block, never as a deploy flag (backend CLAUDE.md:490-495). Mail providers' one-click unsubscribe
-POSTs carry no JWT, and an anon key in front of a public form protects nothing. The protections are
-CORS, the honeypot, the rate limit and the token.
+**Deployed** 2026-10-24 as **version 1, `verify_jwt: false`**, from backend `a3b9020` with
+`supabase functions deploy waitlist-signup --project-ref clacgutnrktdwhglvyua`. Every other
+function's version was unchanged, and **shen-token is still v2**.
 
-**CORS.** `Access-Control-Allow-Origin` is `https://biowellth.ai` only. OPTIONS answers 204.
-
-**Logging.** The email address and the token are never logged. Logs carry outcome codes only.
-
-**Rate limit.** All three routes share it. The IP comes from the first entry of
-`x-forwarded-for`, and `ip_hash = sha256(WAITLIST_IP_SALT + ip)` is passed to
-`rpc('waitlist_rate_hit')`. **More than 20 calls in the hour across all routes returns 429**, and
-signup alone is capped at 5. With no IP present, the limit is skipped and that fact is logged.
+- **`verify_jwt = false`**, declared in `supabase/config.toml`. Mail providers' one-click POSTs
+  carry no JWT, and an anon key protects nothing on a public form.
+- **CORS:** `Access-Control-Allow-Origin: https://biowellth.ai` only (verified live).
+- **Logs:** outcome codes only. Verified live: `new`, `dup`, `honeypot`, `invalid`, `city_saved`,
+  `city_no_row`, `unsubscribed`, `unsubscribe_no_row` and `limited`. No address and no token.
+- **Rate limit:** 10 calls per salted IP hash per clock hour, across signup and the city tag
+  together. The 11th returns 429 (verified live). **Unsubscribe is exempt**: it needs a valid
+  random token, and mail providers' one-click POSTs come from a few shared IPs, so a limit there
+  would block real removals. With no IP present, the limit is skipped and that is logged.
+- **The salt.** `WAITLIST_IP_SALT` when set. Otherwise it is
+  `sha256("biowellth-waitlist-ip-salt-v1:" + service-role key)`, derived inside the function. The
+  CLI's Management token lacks `edge_functions_secrets_write`, and setting a secret any other way
+  would have routed its value through a transcript. With no salt at all, the handler fails closed
+  with a 500.
 
 ### 4a. `POST /functions/v1/waitlist-signup` (signup)
 
-Body: `{email, utm_source, utm_medium, utm_campaign, utm_content, referrer, company}`. `company` is
-the honeypot.
+Body: `{email, utm_source, utm_medium, utm_campaign, utm_content, referrer, company}`.
 
-1. A body over 2 KB returns 400.
-2. **Honeypot.** If `company` is non-empty, return `200 {ok:true, notice:"inbox"}` with no row
-   and no email.
-3. **Rate limit**, as above.
-4. **Validate.** Trim, lowercase, length 3 to 254, no whitespace or control characters, matching
-   `^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$`. Failure returns `400 {error:"invalid_email"}`. UTMs are
-   re-checked against the allowlist and `referrer` is reduced to an origin, otherwise each is
-   stored empty. `signup_source` is set by the server and never read from the body.
-5. **Insert.** `insert ... on conflict (email) do nothing returning id, unsubscribe_token`.
-   - **New row:** send the welcome email (4d). On success, set `welcome_sent_at` and return
-     `200 {ok:true, notice:"inbox"}`. If Resend fails, keep the row and return
-     `200 {ok:true, notice:"listed"}`, so the page does not say "Check your inbox" (mock state 7).
-   - **Duplicate:** return `200 {ok:true, notice:"inbox"}` and send **no second email**. The
-     answer matches a new signup, so the form cannot reveal whether an address is listed, or be
-     used to flood someone's inbox.
-6. Anything else returns `500 {error:"server"}`.
+The order is: the body (over 2 KB returns 400), then the rate limit, then the honeypot (a non-empty
+`company` answers success, with no row and no email), then validation (400 `invalid_email`), then
+the insert, which is `on conflict (email) do nothing`.
 
-### 4b. `POST /functions/v1/waitlist-signup/tag` (the waitlist-tag endpoint)
+- **New row:** the welcome email is sent, then `welcome_sent_at` is set, and the answer is
+  `{ok:true, notice:"inbox"}`. If Resend fails, the row stays and the answer is
+  `{ok:true, notice:"listed"}`.
+- **Duplicate:** `{ok:true, notice:"inbox"}` and **no second email**. The answer is identical to a
+  new signup.
+- `signup_source` is never read from the body. Proven live: a body claiming `typeform` stored
+  `website_inline`.
 
-Body: `{t, set, value}`. `set` is `"interest"` or `"region"`, `value` is one stored code from
-section 2, and `t` is the unsubscribe token.
+### 4b. `POST /functions/v1/waitlist-signup/tag` (city tag)
 
-- Validate `t` as a UUID, and `set` and `value` against the allowlists. Anything else returns 400.
-- `update waitlist set interest_tag = $v, tagged_at = now() where unsubscribe_token = $t returning id`
-  (or `region_tag`). **The last tap wins**, so tapping a different answer changes it.
-- Returns `200 {ok:true, saved:true}`, or `{ok:true, saved:false}` when no row matched (removed or
-  never existed). The token is a random UUID, so this reveals nothing to someone without the
-  email.
-- **GET returns 405.** Tag writes are POST only, made by the thank-you page (4e).
+Body: `{t, city}`. `t` is the unsubscribe token and `city` is one of the 11 codes. Anything else is
+400, including `hormones_cycle`. The last tap wins. The answer is `{ok:true, saved}`, where `saved`
+is false when no row matched. GET returns 405.
 
-### 4c. `POST /functions/v1/waitlist-signup/unsubscribe` (unsubscribe, which is also delete)
+### 4c. `POST /functions/v1/waitlist-signup/unsubscribe` (removal, which is deletion)
 
-- `?t=TOKEN` in the URL (the one-click unsubscribe header form) or `{t}` in the body (the confirm
-  page). It runs `delete from waitlist where unsubscribe_token = $1` and returns 200 whether or not
-  a row matched. Deleting the row removes the tags with it.
-- **GET returns 405.** Mail link scanners prefetch GET links, so a deleting GET would remove people
-  who never clicked.
+The token comes from `?t=` (RFC 8058 one-click, form-encoded body) or from a JSON body `{t}`. It
+deletes the row, tag included, and answers `{ok:true}` whether or not a row matched. GET returns
+405.
 
-### 4d. Welcome email (existing Resend setup)
+### 4d. Welcome email
 
-- Uses the same `RESEND_API_KEY` as `review-action` (`review-action/index.ts:34`) and the same
-  sender as `RELEASE_FROM`, `BioWellth <no-reply@send.mybiowellth.com>`
-  (`review-action/release-email.ts:13`). The module is shaped like `release-email.ts`, with both
-  an HTML and a text part.
-- Headers: `List-Unsubscribe: <https://clacgutnrktdwhglvyua.supabase.co/functions/v1/waitlist-signup/unsubscribe?t=TOKEN>, <mailto:support@mybiowellth.com?subject=unsubscribe>`
-  and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
-- **Answer links** go to `https://biowellth.ai/waitlist-tag?t=TOKEN&set=interest&v=energy` and so
-  on. There are **16 in all: 5 interest and 11 region**. **The removal link** goes to
-  `https://biowellth.ai/unsubscribe?t=TOKEN`.
-- **Resend click tracking must be off** for this sending domain. With it on, Resend rewrites every
-  link through its tracking domain, so each tap would also be recorded at Resend. Check the domain
-  setting before the first send and record what it was.
-- **Copy. APPROVED 2026-10-24 (Aditi).** It is pinned verbatim below, and
-  `welcome-email.test.ts` asserts it byte for byte. Changing it is a product decision, not an edit.
-  - The blocks below hold only the copy. Labels such as subject and body sit outside them.
-  - Checked 2026-10-24: no colons, no em dashes (U+2014) and no en dashes (U+2013) in any block.
-  - Each answer line is one link. The removal link is the word "here".
-  - The HTML part is the same text, with each answer as a link and the questions in bold.
+- **Sender and key:** the same as review-action's release email, `BioWellth
+  <no-reply@send.mybiowellth.com>` with `RESEND_API_KEY`.
+- **Headers:** `List-Unsubscribe` pointing at the function's unsubscribe URL plus a `mailto:`, and
+  `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+- **Links:**
+  - 11 city links: `https://biowellth.ai/waitlist-tag?t=TOKEN&city=CODE`
+  - the removal link, the word "here": `https://biowellth.ai/unsubscribe?t=TOKEN`
+- **Resend click tracking must be off** for this sending domain, or every tap is also recorded at
+  Resend. **Not yet checked.** The local credentials cannot read Resend's domain settings. Check it
+  in the Resend dashboard before B2.
+- **Copy.** It was APPROVED 2026-10-24 (Aditi), then **AMENDED the same day for counsel's rulings**:
+  - the interest question was removed
+  - "Two quick questions..." became a one-question paragraph that states the purpose counsel asked
+    for
+  - "your answers" became "your answer"
+
+  `welcome-email.test.ts` (`WL-E1`) pins it byte for byte. Checked: no colons, em dashes or en
+  dashes (`WL-E2`), and exactly 11 city links with no interest wording (`WL-E3`). **The amended
+  wording needs Aditi's re-approval.**
+- **Open point on scope.** Counsel asked that the welcome email be "limited to confirming the
+  signup and explaining what happens next". The second paragraph ("BioWellth reads your full blood
+  panel...") describes the product rather than the signup. It is kept because it was approved, but
+  **it should be confirmed with counsel or dropped before B2**. Dropping it is a one-line change
+  plus its test.
 
   Subject
 
@@ -242,14 +188,7 @@ section 2, and `t` is the unsubscribe token.
 
   BioWellth reads your full blood panel against functional ranges, tracks how it changes over time, and Sana helps you understand what it means for you.
 
-  Two quick questions, if you'd like to help us plan. Tap one answer for each. Both are optional, and you can change an answer by tapping a different one. We use your answers only to plan early access.
-
-  What do you most want to understand about your body?
-  Hormones and cycle
-  Energy
-  Gut
-  Metabolism
-  Skin and hair
+  One quick question, if you'd like to help. It's optional, and we use your answer only to plan where early access opens first. Tap one answer, and tap a different one to change it.
 
   Where do you live?
   Bangalore
@@ -264,166 +203,144 @@ section 2, and `t` is the unsubscribe token.
   UK
   Elsewhere outside India
 
-  If you didn't sign up, or you'd rather not hear from us, you can remove yourself from the waitlist here. That deletes your email and your answers from our list.
+  If you didn't sign up, or you'd rather not hear from us, you can remove yourself from the waitlist here. That deletes your email and your answer from our list.
 
   BioWellth
   ```
 
-  Answer label to stored code
+  City label to stored code
 
-  | Set | Label | Code |
-  |---|---|---|
-  | interest | Hormones and cycle | `hormones_cycle` |
-  | interest | Energy | `energy` |
-  | interest | Gut | `gut` |
-  | interest | Metabolism | `metabolism` |
-  | interest | Skin and hair | `skin_hair` |
-  | region | Bangalore | `bangalore` |
-  | region | Mumbai | `mumbai` |
-  | region | Delhi NCR | `delhi_ncr` |
-  | region | Chennai | `chennai` |
-  | region | Hyderabad | `hyderabad` |
-  | region | Pune | `pune` |
-  | region | Kolkata | `kolkata` |
-  | region | Elsewhere in India | `india_other` |
-  | region | US | `us` |
-  | region | UK | `uk` |
-  | region | Elsewhere outside India | `outside_other` |
+  | Label | Code |
+  |---|---|
+  | Bangalore | `bangalore` |
+  | Mumbai | `mumbai` |
+  | Delhi NCR | `delhi_ncr` |
+  | Chennai | `chennai` |
+  | Hyderabad | `hyderabad` |
+  | Pune | `pune` |
+  | Kolkata | `kolkata` |
+  | Elsewhere in India | `india_other` |
+  | US | `us` |
+  | UK | `uk` |
+  | Elsewhere outside India | `outside_other` |
 
-  The text part needs each answer's URL visible. It goes on its own line under the label, so the
-  copy above is unchanged.
+  In the text part each URL sits on its own line under its label, so the copy above is unchanged.
 
-### 4e. Website pages for the email links (website repo, new files)
+### 4e. Website pages for the email links (B2, new files)
 
-Supabase serves function HTML on `*.supabase.co` as `text/plain`, so both pages live on the site.
-Both are static, `noindex`, use the site's tokens and fonts, and send nothing to Sentry beyond
-the existing error-only setup.
+Supabase serves function HTML as `text/plain`, so both pages live on the site. Both are static,
+`noindex`, and use the site's tokens.
 
-- **`waitlist-tag/index.html`** reads `t`, `set` and `v` from the URL, **POSTs to 4b from script on
-  load**, and then shows:
-  - saved: "Thank you. That helps us plan early access."
+- **`waitlist-tag/index.html`** reads `t` and `city`, **POSTs to 4b from script on load**, and then
+  replaces the URL with the bare path. It shows:
+  - saved: "Thank you. That helps us plan where early access opens first."
   - `saved:false`: "You're no longer on the waitlist, so nothing was saved."
   - error: "Something went wrong and your answer wasn't saved. Please tap the link again."
-  - It then replaces the URL with the bare path, so the token is not left in history.
-- **Why a page that POSTs, not a link that writes.** Link scanners fetch GET URLs without running
-  script, so most scanners never record an answer. **Known limitation:** scanners that do run
-  script (some corporate mail filters) could record an answer nobody chose. The tags are planning
-  data only, nothing acts on them per person, and the last tap wins, so a real tap later
-  overwrites a scanner's. This is accepted, not solved.
+- **Why a page that POSTs.** Link scanners fetch GET URLs without running script. **Known
+  limitation:** scanners that do run script could record an answer nobody chose. City is planning
+  data only, and a real tap overwrites it.
 - **`unsubscribe/index.html`** has one button, "Remove me from the waitlist". It POSTs to 4c and
-  then says "You've been removed from the waitlist. Your email and your answers have been deleted."
-  It needs a tap because removal is not reversible.
+  then says "You've been removed from the waitlist. Your email and your answer have been deleted."
 
-### 4f. Delete on request
+### 4f. Removal requests and invitations
 
-Requests to support@mybiowellth.com follow a runbook in the backend repo,
-`docs/waitlist-delete-request.md`:
-`delete from public.waitlist where email = lower(trim($1)) returning id, created_at;` through the
-connector, a read-back select returning zero rows, a reply to the requester, and a log line with
-date and outcome only. The runbook also lists the copies outside our database:
-- Resend's sent-email logs, kept for its own retention period
-- the person's Typeform response, if they also used the Typeform, deleted by hand in the Typeform
-  admin (no code change)
+Both follow backend `docs/waitlist-delete-request.md`:
+- **A removal request** covers both places. The Supabase row is deleted by SQL and read back as 0,
+  and **the founder deletes that person's Typeform response by hand**.
+- **An invitation** deletes a website signup's row after the invite is sent. Nothing is deleted
+  from Typeform on invitation.
 
-### 4g. Retention: counsel to confirm
+Resend's own sent-email logs are outside both places.
 
-- Period: **[RETENTION: counsel to confirm]**.
-- Mechanism: a nightly `pg_cron` job, `waitlist-retention-nightly`, running
-  `delete ... where created_at < now() - interval '[RETENTION]'`. **It ships disarmed**, with an
-  empty body (backend CLAUDE.md:449-454, the 0029 and 0032 lesson), and is armed in its own commit
-  once counsel sets the period.
-- `waitlist_rate` holds nothing past 24 hours, by construction.
+### 4g. Retention and the IP hash, as built
 
-### 4h. Secrets, tests, deploy
+- **12 months after signup, or account creation:** the nightly job, ARMED. Proven on synthetic
+  rows: `{"expired_12_months":1,"has_account":1}`, and the fresh row survived.
+- **Invitation:** manual, by the runbook.
+- **IP hash.** Its purpose is abuse prevention only: the signup and city-tag rate limit. It is
+  never joined to a waitlist row, never logged, and never used for anything else.
+  - **Deletion window:** a row is purged once its one-hour window has passed, by the hourly job and
+    by every rate-limit call. So no hash outlives 24 hours, and in practice none lasts much over two.
+  - Proven on synthetic rows: rows 25 hours and 3 hours old were purged and the current hour kept,
+    and the per-call purge removed a 5-hour-old row.
+  - The live scheduled run is recorded in backend
+    `docs/evidence/waitlist-b1-verification-2026-10-24.md`.
+- **Open point for counsel (Typeform).** v1.4 says Typeform responses are kept "under the 12-month
+  retention rule". **Nothing deletes them at 12 months.** By the 2026-10-24 ruling, nothing is
+  deleted from Typeform except on a removal request. Counsel's condition is that retention be
+  "implemented, not just documented". So before v1.4 is final, one of two things has to happen:
+  - a dated manual step deletes Typeform responses as they pass 12 months, or
+  - the v1.4 sentence changes.
 
-- **Secrets.** `RESEND_API_KEY` exists already. Add `WAITLIST_IP_SALT` (32 random bytes) with
-  `supabase secrets set`, and never print it.
-- **`validate.test.ts`** covers:
-  - email normalisation and rejection, the UTM allowlist, and referrer reduced to an origin
-  - the honeypot, duplicates answering like new signups, and a failed mail answering `listed`
-  - tag set and value allowlists, and that GET returns 405 on `tag` and `unsubscribe`
-  - that `signup_source` from the body is ignored
-- **`welcome-email.test.ts`** covers:
-  - the headers
-  - the subject and body byte-identical to 4d
-  - **exactly 16 answer links (5 interest, 11 region)**, each carrying the token and a code allowed
-    by the CHECK
-  - no colons, em dashes or en dashes in the copy
-- **Deploy:**
-  `supabase functions deploy waitlist-signup --project-ref clacgutnrktdwhglvyua`. Run
-  `list_edge_functions` before and after: **`shen-token` must still be version 2**, every other
-  version unchanged, and exactly one new slug.
+  Also, the age of the oldest Typeform response has not been checked. If any is already over 12
+  months old, the sentence is untrue on the day it is published.
 
-## 5. `index.html` insertion points (verified 2026-10-24 at `1bb00af`)
+## 5. B2 website changes (line numbers verified 2026-10-24, `index.html` and `dashboard.html` at `f8fdde7`)
+
+### 5a. Add the inline form
 
 | # | Line(s) now | Change |
 |---|---|---|
-| a | after `:388` (`.final-privacy a{...}`) | Add the `.wl-*` rules from the mock's `WAITLIST_INLINE_V1` block. The container query stacks the pill under 400px of form width, wherever the form sits. |
-| b | `:550` nav button `<a href="#" onclick="showPage('early-access')" class="btn btn-ink nav-cta">` | Becomes `<a href="#join" class="btn btn-ink nav-cta">`, with the onclick removed. `#join` is the final CTA section (`:768`). `#sana` at `:547` already works this way: `route()` scrolls to the section via `goToSection()` (`:946`), and from `/early-access` it goes home first (`:984-999`). `[id]{scroll-margin-top:96px}` (`:184`) clears the nav. The label stays. |
-| c | `:571` hero button `<a href="#" onclick="showPage('early-access')" class="btn btn-ink">` | Replace it with `<div class="wl-hero">` holding form instance 1, its done message and a `.final-privacy` line, inside `.hero-ctas` (`:570`). `.wl-hero` is `flex:0 0 100%`, so whatever follows it wraps beneath, and the form is capped at 460px and centred. "How we read a panel" (`:573`) **changes from `class="btn btn-glass"` to a plain text link, `class="wl-hero-link"` (Aditi, 2026-10-24)**, with the href `/science` and label unchanged. The link uses olive (`--olive`), the button label's 15px / 600, an underline with `text-underline-offset:3px`, and `margin-top:8px`, so it sits 20px under the privacy line (12px row gap plus 8). Bare over the orb it measured **2.05:1 at 375px** (5.39:1 at 1280px), under 4.5:1, so it gets the privacy line's glass chip at every width. With the chip it measures **5.85:1 at 375px and 5.86:1 at 1280px**. This is a hero-only change: `.btn-glass` and the final CTA are untouched. **Mocked and verified** at a true 375px and at 1280px (no overflow, 20.0px gap, link centred). |
-| d | `:776-778` the `HOMEPAGE_MOTION_V1` comment | **Supersede it, do not delete it.** Keep the text and add "SUPERSEDED by WAITLIST_INLINE_V1: a website signup endpoint now exists (waitlist-signup). The Typeform on /early-access is unchanged." |
-| e | `:779-781` the `.cta-pill` div and its button | Replace with form instance 2 (the mock's markup). `.lede` (`:775`) and `.final-privacy` (`:782`) stay. |
-| f | before `:1510` (the Typeform embed script, **left untouched**) | Add one `<script>` (`WAITLIST_INLINE_V1`) that binds every `.wl-form`, with unique ids per instance. It reads the four UTM keys and the referrer origin, validates, and POSTs to `.../functions/v1/waitlist-signup`. It maps 200 inbox, 200 listed, 400, 429 and anything else to the mock's states. Placing it before the embed script means a Typeform load failure cannot stop it, and it never reads or writes anything the Typeform blocks use. |
+| a | after `:388` (`.final-privacy a{...}`) | The `.wl-*` rules from the mock's `WAITLIST_INLINE_V1` block, including `.wl-hero`, the glass chips and `.wl-hero-link`. |
+| b | `:550` nav button | `<a href="#join" class="btn btn-ink nav-cta">`, with the onclick removed. `#join` is the final CTA (`:768`), and `route()` and `goToSection()` (`:946`, `:984-999`) handle it from any page, as `#sana` (`:547`) already does. |
+| c | `:571` hero button, plus `:573` | `<div class="wl-hero">` holds form instance 1, its done message and the signup notice. "How we read a panel" becomes `class="wl-hero-link"`: olive, 15px / 600, underlined with a 3px offset, a glass chip, and `margin-top:8px`. Measured with the chip: **5.85:1 at 375px and 5.86:1 at 1280px**, against 2.05:1 bare at 375px. |
+| d | `:776-778` `HOMEPAGE_MOTION_V1` comment | Supersede it, but **the replacement must not contain the word "typeform"** (5c). For example: "HOMEPAGE_MOTION_V1 said this repo had no email-capture endpoint. SUPERSEDED by WAITLIST_INLINE_V1, which added one (waitlist-signup)." |
+| e | `:779-781` `.cta-pill` and its button | Form instance 2. `.lede` (`:775`) stays. `.final-privacy` (`:782`) becomes the signup notice. |
+| f | before `:1510` | One `<script>` (`WAITLIST_INLINE_V1`) that binds every `.wl-form`, with unique ids, and POSTs to `.../functions/v1/waitlist-signup`. |
 
-- **Hero privacy line and error message need a glass backing.** The hero form has the same
-  "Your data is yours. Never sold. Privacy Policy" line, with the same text and type as
-  `.final-privacy`. In the hero it sits on the orb, not on a glass panel.
-  - Measured bare over the static pearl in the mock: **2.51:1 text and 2.18:1 link at 375px, 4.46:1
-    and 3.88:1 at 1280px**. The error message (`.wl-msg`) measured 2.20:1 and 3.99:1. All are under
-    4.5:1.
-  - The mock gives both a chip at the site's existing `--glass`, the value `index.html` tunes for
-    small text over the orb. Measured after: privacy text 5.93 and 6.36:1, link 5.16 and 5.53:1,
-    error 5.04 and 5.57:1. The final CTA's line is already on glass and measures 5.10:1 or better.
-  - These numbers are against `pearl.png`. The live hero draws the orb in WebGL, so Phase B
-    re-measures on the live render.
-  - If counsel asks for wording at the field (question 2), it replaces this line in both
-    placements.
-- **No-JS.** Both forms carry `hidden` in the markup and the script removes it once bound. A form
-  without its script would submit as a GET with the address in the URL, so it is not rendered at
-  all.
-- **Unique live marker.** Each form carries `data-wl="inline-v1"`. Phase B's live check is
-  `curl https://biowellth.ai | grep -c 'data-wl="inline-v1"'`, which should return 2.
-- **Tests.** Add `scripts/test-waitlist-inline.mjs` in the repo's Chrome-over-CDP pattern. It
-  checks:
-  - every state, for both instances
-  - the UTM sanitising
+### 5b. Remove the Typeform from the website
+
+| # | Line(s) now | Change |
+|---|---|---|
+| g | `:800-802` `.ea-form-desktop` with the iframe (`:801`) | Remove. Form instance 3 (early-access page) goes here, in a `.final-panel glass`-style card with the signup notice. |
+| h | `:803-805` `.ea-form-mobile` with the popup (`:804`) | Remove. |
+| i | `:806-859` `TYPEFORM_UTM_HIDDEN_V1/V2`, the comment `:806-836` and the script `:837-859` | Remove. Its UTM rule lives on in the WAITLIST_INLINE_V1 script, which credits the rule's origin without naming the vendor. |
+| j | CSS `:409-412`, and `:457-458` and `:460` in the 767px block | Remove `.ea-form`, `.ea-form-mobile`, `.ea-mobile-btn`, `.ea-form iframe`, and their mobile overrides. |
+| k | `:1510` the embed script | Remove. |
+| l | `index.html:1702` and `dashboard.html:2649` | Remove the `denyUrls` entries. If an array is left empty, remove the property. |
+| m | `CLAUDE.md:102` (not served) | Drop "and a Typeform embed on the marketing page". |
+
+### 5c. B2 checks
+
+- **Zero "typeform" in served HTML.** That means comments too, so step (d) rewords rather than
+  quotes. The check is `curl -s https://biowellth.ai/ https://biowellth.ai/dashboard ... | grep -ci
+  typeform`, which must be 0 for every page in `git ls-files '*.html'`.
+- **The signup notice** replaces "Your data is yours. Never sold." in all three placements. It is
+  longer, so in the hero it may wrap to two lines inside its chip. **Update the mock first and
+  re-measure contrast at 375px and 1280px.** The pill radius may need to become a box radius when
+  it wraps, as the error message's did.
+- **No-JS.** Each form carries `hidden` and the script removes it once bound.
+- **Live marker.** `data-wl="inline-v1"` on each form. The homepage should count 2, plus 1 on the
+  early-access page, which is the same document, so 3 in `/`.
+- **`scripts/test-waitlist-inline.mjs`** (Chrome over CDP) covers:
+  - every state for all three instances, and the UTM sanitising
   - the honeypot is off screen and sent
-  - no `@` is ever in `location.href`
-  - the nav `#join` scroll lands on the form
-  - no horizontal overflow at a true 375px
-  - **that the Typeform iframe `src`, the popup's `data-tf-hidden` and the `embed.js` tag are
-    byte-identical to `1bb00af`**, as a guard that this change never touched them
-  `scripts/test-leftovers-palette.mjs` must stay green.
+  - no `@` in `location.href`, and the nav `#join` lands on the form
+  - no overflow at a true 375px
+  - **no `typeform` in the DOM or in any script src**
+  - `scripts/test-leftovers-palette.mjs` stays green
+- **End to end from biowellth.ai.** Sign up with UTMs, confirm the row and the welcome email, tap a
+  city link and confirm the tag, use the removal link and confirm the row is gone, then read back 0.
+- After every push, `scripts/check-live-exclusions.mjs`.
 
-## 6. Phase B order (one verifiable change per commit, explicit-path `git add`)
+## 6. Order
 
-Backend first, so the forms never point at a missing endpoint.
+**B1 (done 2026-10-24).** Counsel evidence, migration 0076 and its read-back, the function and
+tests, the derived salt, the deploy, the live curl tests, the runbook, this plan and the
+`docs/privacy-v1.4-draft.md`. The commit hashes are in the B1 report.
 
-1. Backend: take `docs/.session-lock`.
-2. Backend: `migrations/0076_waitlist.sql` plus its docs entry. Apply it, then read back and paste
-   the output.
-3. Backend: the `waitlist-signup` function, its tests and the `config.toml` block, plus
-   `docs/waitlist-delete-request.md`. Set the secret, check Resend click tracking, and deploy.
-   Confirm shen-token v2. Then curl through:
-   - a new address (row with `signup_source = website_inline`, email arrives)
-   - a duplicate (no second email)
-   - the honeypot (no row)
-   - a tag POST (tag stored)
-   - an unsubscribe POST (row gone)
-4. Website: take `docs/.session-lock`.
-5. Website: `waitlist-tag/index.html` and `unsubscribe/index.html`.
-6. Website: wire `index.html` (a to f) plus `scripts/test-waitlist-inline.mjs`. Push (the deploy),
-   then:
-   - run the live grep and `scripts/check-live-exclusions.mjs`
-   - sign up end to end from biowellth.ai with UTMs, and confirm the row, its tags and the welcome
-     email
-   - tap one interest and one region link, and confirm both tags
-   - delete the test row and read back zero rows
-7. Release both locks.
+**B2 (only after Aditi confirms counsel approved the final v1.4 text).**
+1. Take both locks.
+2. Publish v1.4 in `privacy.html` as a new version (its paragraphs are "do not edit in place").
+3. Update the mock (notice text, early-access instance) and re-measure.
+4. Add `waitlist-tag/index.html` and `unsubscribe/index.html`.
+5. Make the 5a changes, then the 5b removal, as separate commits.
+6. Push, then run the 5c checks.
+7. Release the locks.
 
 ## Not in scope
 
-- **Any change to the Typeform** or anything around it (listed under Scope above).
-- Importing Typeform signups.
-- The invite flow.
-- Any reporting on the tags.
+- Importing or deleting Typeform responses (except a removal request, by hand).
+- The interest question (deferred by counsel).
+- Any marketing or newsletter use of the list (counsel: bring back for review).
+- Any reporting on city tags.
