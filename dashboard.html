@@ -2645,8 +2645,8 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       // ERRORS ONLY. Release health would send a session envelope per page view, which is
       // a request about a person's visit rather than about a fault.
       autoSessionTracking: false,
-      // Their embed's exceptions are not ours to carry, and they would fill the quota.
-      denyUrls: [/embed\.typeform\.com/i, /form\.typeform\.com/i],
+      // WAITLIST_INLINE_V1: denyUrls existed only to drop a third-party form embed's exceptions.
+      // The embed is gone from the site, so the list went with it.
 
       beforeSend: function (event) {
         try {

@@ -449,16 +449,14 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .page{display:none;min-height:100vh}
 .page.active{display:block}
 
-/* EARLY ACCESS PAGE. Light treatment to match the new palette; form wiring untouched. */
+/* EARLY ACCESS PAGE. Light treatment to match the new palette. WAITLIST_INLINE_V1: the embedded
+   third-party form and its rules are gone; the inline signup sits in .ea-inline. */
 .ea-body{max-width:1100px;margin:0 auto;padding:116px var(--gutter) 64px;position:relative;z-index:1}
 .ea-hero{text-align:center;padding:12px 0 26px;position:relative}
 .ea-orb{display:none}
 .ea-hero h2{font-family:var(--serif);font-weight:400;font-size:clamp(2.2rem,4vw,3.2rem);letter-spacing:-.02em;color:var(--ink);margin-bottom:6px}
 .ea-hero p{font-size:16px;color:var(--ink-muted)}
-.ea-form{background:var(--white);border-radius:24px;overflow:hidden;border:1px solid rgba(71,55,43,.1);margin-bottom:36px;box-shadow:var(--shadow)}
-.ea-form-mobile{display:none}
-.ea-mobile-btn{width:100%;padding:18px 32px;font-size:17px}
-.ea-form iframe{width:100%;height:620px;border:none;display:block}
+.ea-inline{margin:0 auto 36px;text-align:center}
 .ea-perks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .perk{background:var(--white);border-radius:16px;padding:20px;border:1px solid rgba(71,55,43,.1);text-align:center}
 .perk-dot{width:7px;height:7px;border-radius:50%;background:var(--sage);margin:0 auto 12px}
@@ -503,10 +501,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   .founder{padding:12vh 0}
   .final{min-height:90vh}
   .ea-body{padding-top:96px}
-  .ea-form-desktop{display:none}
-  .ea-form-mobile{display:block;margin:12px 0 24px;text-align:center}
   .ea-perks{grid-template-columns:1fr}
-  .ea-form iframe{height:480px}
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -875,66 +870,26 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       <h2>Join the waitlist.</h2>
       <p>Be one of the first women to use BioWellth.</p>
     </section>
-    <div class="ea-form ea-form-desktop">
-      <iframe id="ea-tf-iframe" data-tf-base="https://form.typeform.com/to/t0eULTZa" allow="camera; microphone; autoplay; encrypted-media;" title="BioWellth early access"></iframe>
+    <!-- WAITLIST_INLINE_V1: form instance 3. It replaces the third-party embedded form, its popup
+         and the script that passed campaign tags into it. The tag rule lives on in the
+         WAITLIST_INLINE_V1 script at the end of body. The former provider's responses are kept
+         there and are not touched by this site (privacy policy v1.4, section 3). -->
+    <div class="final-panel glass ea-inline">
+      <p class="lede">Early access opens in small groups.</p>
+      <div class="wl-block" hidden>
+        <form class="wl-form" data-wl="inline-v1" novalidate>
+          <div class="wl-pill">
+            <label class="wl-sr" for="wl-email-ea">Email address</label>
+            <input class="wl-input" id="wl-email-ea" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" required placeholder="Your email" aria-describedby="wl-msg-ea">
+            <button class="btn btn-ink" type="submit">Join the waitlist</button>
+          </div>
+          <div class="wl-hp" aria-hidden="true"><label>Leave this empty <input type="text" name="company" tabindex="-1" autocomplete="off"></label></div>
+          <p class="wl-msg" id="wl-msg-ea" role="status" aria-live="polite"></p>
+        </form>
+        <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
+        <p class="final-privacy wl-notice">We'll email you about early access. You can remove yourself at any time. <a href="/privacy">Privacy Policy</a>.</p>
+      </div>
     </div>
-    <div class="ea-form-mobile">
-      <button id="ea-tf-popup" data-tf-popup="t0eULTZa" data-tf-size="100" class="btn btn-ink ea-mobile-btn">Open the waitlist form</button>
-    </div>
-    <!-- TYPEFORM_UTM_HIDDEN_V1. Carries utm_source, utm_medium and utm_content from
-         this page's URL into the form's hidden fields of the same names. Two embeds,
-         two mechanisms, one set of values:
-           desktop  raw iframe   -> hidden fields go in the form URL's #hash, which is
-                                    exactly what embed.js itself builds for its embeds
-           mobile   data-tf-popup -> data-tf-hidden="k=v,k=v", read by embed.js at init,
-                                    so this must run before the embed.js tag at the end
-                                    of body, and it does
-         The iframe's src moved here from the markup, otherwise the form loads once bare
-         and again with the hash. No-JS loses nothing: .page is display:none until the
-         router activates it.
-         Values are lowercased and passed only if the whole value matches [a-z0-9_.-]
-         and is at most 64 chars, otherwise passed empty. Dropping the whole value rather
-         than stripping characters keeps a mangled tag from reading as a real one, and the
-         allowlist is also what keeps a comma, ampersand or equals out of both encodings.
-         Absent keys pass empty, never a default: /waitlist sets direct upstream. Note
-         embed.js omits empty values from the popup URL, which lands identically, a blank
-         hidden field. fbclid and every other param are never read here.
-         THIS BLOCK reads the params and sets attributes the embed already reads. It
-         issues no request of its own and sends nothing anywhere. Scoped to this block
-         on purpose: it is not a claim about the page, which does load third-party
-         script (the Typeform embed below, and error monitoring at the end of body).
-         TYPEFORM_UTM_HIDDEN_V2: the form loading is non-negotiable, the tags are best
-         effort. V1 read the params first and returned on a throw, which left the
-         desktop iframe with no src at all and no signup path. Now src is assigned
-         exactly once, in a finally, so no path out of the try can skip it: base plus
-         the hidden pairs on success, the bare base on any throw, with nothing set on
-         the popup. It is deliberately NOT "bare first, then overwrite": measured
-         2026-09-16 in Chrome, two src assignments in one task send two requests for
-         the form (3 of 3 runs, against a one-assignment control that sent 1). No
-         URLSearchParams polyfill: without it the bare form is the right outcome. -->
-    <script>
-    (function(){
-      var iframe = document.getElementById("ea-tf-iframe");
-      var base = iframe && iframe.getAttribute("data-tf-base");
-      var src = base;
-      try{
-        var KEYS = ["utm_source","utm_medium","utm_content"];
-        var q = new URLSearchParams(location.search);
-        var pairs = KEYS.map(function(k){
-          var v = (q.get(k) || "").toLowerCase();
-          return k + "=" + (/^[a-z0-9_.-]{1,64}$/.test(v) ? v : "");
-        });
-        var hashed = base + "#" + pairs.join("&");
-        var popup = document.getElementById("ea-tf-popup");
-        if(popup) popup.setAttribute("data-tf-hidden", pairs.join(","));
-        src = hashed;
-      }catch(_){
-        src = base;
-      }finally{
-        if(base) iframe.src = src;
-      }
-    })();
-    </script>
     <div class="ea-perks">
       <div class="perk">
         <div class="perk-dot"></div>
@@ -1692,7 +1647,6 @@ function orbEngine(scope,inWorker){
   }
 })();
 </script>
-<script src="https://embed.typeform.com/next/embed.js"></script>
 
 <!-- ERROR_MONITORING_V1 — Sentry browser SDK, ERRORS ONLY.
      Added 2026-09-20. There was no client-side error capture of any kind before this:
@@ -1883,8 +1837,8 @@ function orbEngine(scope,inWorker){
       // ERRORS ONLY. Release health would send a session envelope per page view, which is
       // a request about a person's visit rather than about a fault.
       autoSessionTracking: false,
-      // Their embed's exceptions are not ours to carry, and they would fill the quota.
-      denyUrls: [/embed\.typeform\.com/i, /form\.typeform\.com/i],
+      // WAITLIST_INLINE_V1: denyUrls existed only to drop a third-party form embed's exceptions.
+      // The embed is gone from this site, so the list went with it.
 
       beforeSend: function (event) {
         try {
