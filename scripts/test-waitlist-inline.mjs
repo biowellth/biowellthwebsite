@@ -110,12 +110,18 @@ const st = JSON.parse(await ev(`JSON.stringify({ blocks: document.querySelectorA
   nav: document.querySelector('.nav-cta').getAttribute('href'), navClick: document.querySelector('.nav-cta').getAttribute('onclick'),
   joinHasForm: !!document.querySelector('#join .wl-form'), iframes: document.querySelectorAll('iframe').length,
   tfScripts: [...document.scripts].filter(s => /typeform/i.test(s.src)).length,
-  notices: [...document.querySelectorAll('.wl-notice')].map(n => n.textContent), errs: window.__errs })`));
+  notices: [...document.querySelectorAll('.wl-notice')].map(n => ({ text: n.textContent, form: n.closest('.wl-block').querySelector('.wl-input').id })),
+  heroNotice: !!document.querySelector('.wl-hero .wl-notice'),
+  heroGap: (() => { const f = document.querySelector('.wl-hero .wl-form').getBoundingClientRect(), l = document.querySelector('.wl-hero-link').getBoundingClientRect(); return Math.round((l.top - f.bottom) * 10) / 10; })(),
+  errs: window.__errs })`));
 ok(st.blocks === 3 && st.unbound === 0, `WI-1 three forms, all bound by the script (${st.blocks}, unbound ${st.unbound})`);
 ok(st.nav === "#join" && st.navClick === null && st.joinHasForm, "WI-2 the nav button goes to #join, which holds a form");
 ok(st.iframes === 0 && st.tfScripts === 0, "WI-3 no iframe and no third-party form script in the page");
-ok(st.notices.length === 3 && st.notices.every(n => n === "We'll email you about early access. You can remove yourself at any time. Privacy Policy."),
-  "WI-4 counsel's signup notice, exactly, under all three forms");
+// The hero carries no signup notice (founder, 2026-10-24); the final CTA and early-access forms keep it.
+ok(st.notices.length === 2 && st.notices.every(n => n.text === "We'll email you about early access. You can remove yourself at any time. Privacy Policy.")
+  && st.notices.map(n => n.form).sort().join() === "wl-email-ea,wl-email-join",
+  "WI-4 counsel's signup notice, exactly, under the final CTA and early-access forms " + JSON.stringify(st.notices.map(n => n.form)));
+ok(!st.heroNotice && st.heroGap === 20, "WI-4b the hero has no notice, and How we read a panel sits 20px under the form (" + st.heroGap + "px)");
 ok(st.errs.length === 0, "WI-5 no page errors on load " + (st.errs[0] || ""));
 
 let r = await submit("hero", " Priya@Example.com ", { status: 200, body: { ok: true, notice: "inbox" } });

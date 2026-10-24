@@ -424,13 +424,13 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    "How we read a panel" link always wraps beneath it. The form is capped at 460px and centred. */
 .wl-hero{flex:0 0 100%;display:flex;flex-direction:column;align-items:center}
 .wl-hero .wl-form,.wl-hero .wl-done{max-width:460px;width:100%;margin-top:0}
-/* In the hero the signup notice, the error message and the link sit on the orb, not on a glass
-   panel. Bare over the pearl, in the mock, the old privacy line measured 2.51:1 (text) and 2.18:1
-   (link) at 375px, the error 2.20:1 and the link 2.05:1, all under 4.5:1. A chip at the --glass the
-   site already tunes for small text over the orb clears it (5.04:1 to 6.36:1 measured). The notice
-   is counsel's wording and wraps on phones, so its chip is a rounded box, not a pill. Re-measured
-   on the live page after this landed (plan section 5c). */
-.wl-hero .final-privacy{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:4px 12px;border-radius:16px;max-width:460px;text-align:center}
+/* In the hero the error message and the link sit on the orb, not on a glass panel. Bare over the
+   pearl, in the mock, the error measured 2.20:1 and the link 2.05:1 at 375px, under 4.5:1. A chip at
+   the --glass the site already tunes for small text over the orb clears it (5.04:1 or better,
+   re-measured live, plan section 5c). The hero used to carry the signup notice on a chip too; it
+   was REMOVED from the hero by the founder on 2026-10-24 and stays under the final CTA and
+   early-access forms (plan, end-of-build counsel list). The link keeps its 20px gap, now below the
+   form: the 12px row gap plus its own 8px margin. */
 .wl-hero .wl-msg{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:6px 14px;border-radius:16px;max-width:460px}
 /* "How we read a panel" in the hero is a plain text link, not the .btn-glass pill (Aditi,
    2026-10-24): olive, the 15px / 600 of .btn, underlined. The 8px margin adds to the 12px row gap. */
@@ -627,7 +627,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
           <p class="wl-msg" id="wl-msg-hero" role="status" aria-live="polite"></p>
         </form>
         <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
-        <p class="final-privacy wl-notice">We'll email you about early access. You can remove yourself at any time. <a href="/privacy">Privacy Policy</a>.</p>
       </div>
       </div>
       <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
