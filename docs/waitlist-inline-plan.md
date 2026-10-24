@@ -176,7 +176,7 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
   Subject
 
   ```text
-  You're on the BioWellth waitlist
+  You're on the BioWellth waitlist!
   ```
 
   Body
