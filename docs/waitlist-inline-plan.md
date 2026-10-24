@@ -345,6 +345,20 @@ tests, the derived salt, the deploy, the live curl tests, the runbook, this plan
 6. Push, then the 5c checks live. The results and commit hashes are in the B2 report and
    `docs/evidence` in the backend repo.
 
+## End-of-build counsel list
+
+Everything counsel reviews once, at the end of the build (founder instruction, 2026-10-24):
+
+1. **Privacy policy v1.4 as published** in `privacy.html`, effective October 24, 2026. It went live
+   before counsel saw the final text (status note at the top).
+2. **The old Typeform collected health information**: symptoms, dismissed symptoms with free
+   text, and health tracking. v1.4's past-tense disclosure names these categories (section 4g).
+3. **The Typeform's "short conversation" question.** Contacting anyone for that would go beyond
+   v1.4's "used only to invite people to early access" (section 4g).
+4. **Typeform retention.** v1.4 gives no number. The disposition line's "within 12 months of each
+   signup" is a use limit that nothing enforces (section 4g).
+5. Hero form has no signup notice (founder, 2026-10-24); the notice remains under the final CTA and early-access forms.
+
 ## Not in scope
 
 - Importing or deleting Typeform responses (except a removal request, by hand).
