@@ -1,4 +1,4 @@
 session: 65182c38
 taken: 2026-10-24T13:43:53Z
-scope: WAITLIST_INLINE_V1 stage B1: counsel reply evidence, migration 0076 + waitlist-signup function + armed retention, tests, deploy, docs (plan, privacy v1.4 draft, runbook). Nothing user-facing on biowellth.ai.
+scope: WAITLIST_INLINE_V1 stage B1 docs, then stage B2 (scope widened 2026-10-24, founder instruction): privacy v1.4 published, inline forms in index.html, Typeform removed from the site, waitlist-tag/ and unsubscribe/ pages, test script, plan. Pushes deploy.
 repos: biowellth-backend-supa, biowellth-website
