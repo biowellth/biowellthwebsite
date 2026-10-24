@@ -1,8 +1,11 @@
 # WAITLIST_INLINE_V1 plan
 
-Status, 2026-10-24: **Stage B1 built and deployed on the backend. Nothing user-facing is live on
-biowellth.ai.** Stage B2 waits for Aditi to confirm that counsel approved the final privacy policy
-v1.4 text.
+Status, 2026-10-24: **Stage B1 and stage B2 are built and live.** On 2026-10-24 the founder
+dropped the counsel gates: counsel reviews everything once, at the end of the build. **Counsel
+review of v1.4 is pending, batched for the end of the build.** Privacy policy v1.4 was published to
+`privacy.html` (effective October 24, 2026), and the inline forms went live, before counsel saw the
+final v1.4 text. Counsel's own launch conditions put v1.4 first. Sequencing is the founder's call
+and is recorded here so it is not mistaken for a sign-off.
 
 **Counsel's ruling** is `biowellth-backend-supa`
 `docs/evidence/counsel-reply-waitlist-2026-10.md`. Part A (email-only) is approved with
@@ -57,8 +60,8 @@ early-access-page instance. Both are B2 mock updates (section 5).
 | The removal link deletes the record | `POST /unsubscribe` deletes the row. GET refuses. | Done, proven live |
 | The IP hash is for abuse prevention only and expires as stated | Purged once its hour has passed (hourly job and every call). No hash outlives 24 hours. | Done, proven (section 4g) |
 | Signup notice under the button | "We'll email you about early access. You can remove yourself at any time. Privacy Policy." in every placement | B2 |
-| Welcome email limited to the signup and what happens next | See section 4d. **One open point** is flagged there. | Open |
-| Typeform disposition | **Retained in Typeform, not migrated, not deleted, used only for early-access invitations within 12 months of each signup.** | Recorded. See the open point in 4g. |
+| Welcome email limited to the signup and what happens next | The product paragraph was removed (founder, 2026-10-24). Only the signup, what happens next, the optional city question and removal remain. | Done, deployed as waitlist-signup v2 |
+| Typeform disposition | **Retained in Typeform, not migrated, not deleted, used only for early-access invitations within 12 months of each signup.** v1.4 as published says "Responses submitted through Typeform before October 24, 2026 are kept in Typeform and used only to invite people to early access", with no retention number (founder, 2026-10-24). | Recorded. See the finding in 4g. |
 
 ## 2. Tables, as built (backend `migrations/0076_waitlist.sql`)
 
@@ -160,20 +163,15 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
 - **Resend click tracking must be off** for this sending domain, or every tap is also recorded at
   Resend. **Not yet checked.** The local credentials cannot read Resend's domain settings. Check it
   in the Resend dashboard before B2.
-- **Copy.** It was APPROVED 2026-10-24 (Aditi), then **AMENDED the same day for counsel's rulings**:
-  - the interest question was removed
-  - "Two quick questions..." became a one-question paragraph that states the purpose counsel asked
-    for
-  - "your answers" became "your answer"
+- **Copy. APPROVED 2026-10-24 (Aditi).** It was amended the same day, in two steps:
+  - for counsel's rulings: the interest question was removed, a one-question paragraph now states
+    the purpose, and "your answers" became "your answer"
+  - by the founder: the product paragraph ("BioWellth reads your full blood panel...") was removed,
+    so the email stays limited to the signup and what happens next, as counsel asked
 
-  `welcome-email.test.ts` (`WL-E1`) pins it byte for byte. Checked: no colons, em dashes or en
-  dashes (`WL-E2`), and exactly 11 city links with no interest wording (`WL-E3`). **The amended
-  wording needs Aditi's re-approval.**
-- **Open point on scope.** Counsel asked that the welcome email be "limited to confirming the
-  signup and explaining what happens next". The second paragraph ("BioWellth reads your full blood
-  panel...") describes the product rather than the signup. It is kept because it was approved, but
-  **it should be confirmed with counsel or dropped before B2**. Dropping it is a one-line change
-  plus its test.
+  `waitlist-signup.test.ts` pins the copy byte for byte (`WL-E1`), guards against the product
+  paragraph coming back (`WL-E1b`), and checks for no colons, em dashes or en dashes (`WL-E2`) and
+  exactly 11 city links with no interest wording (`WL-E3`). The live version is waitlist-signup v2.
 
   Subject
 
@@ -185,8 +183,6 @@ deletes the row, tag included, and answers `{ok:true}` whether or not a row matc
 
   ```text
   Thank you for joining the BioWellth waitlist. Early access opens in small groups, and we'll email you when there's a place for you.
-
-  BioWellth reads your full blood panel against functional ranges, tracks how it changes over time, and Sana helps you understand what it means for you.
 
   One quick question, if you'd like to help. It's optional, and we use your answer only to plan where early access opens first. Tap one answer, and tap a different one to change it.
 
@@ -265,15 +261,24 @@ Resend's own sent-email logs are outside both places.
     and the per-call purge removed a 5-hour-old row.
   - The live scheduled run is recorded in backend
     `docs/evidence/waitlist-b1-verification-2026-10-24.md`.
-- **Open point for counsel (Typeform).** v1.4 says Typeform responses are kept "under the 12-month
-  retention rule". **Nothing deletes them at 12 months.** By the 2026-10-24 ruling, nothing is
-  deleted from Typeform except on a removal request. Counsel's condition is that retention be
-  "implemented, not just documented". So before v1.4 is final, one of two things has to happen:
-  - a dated manual step deletes Typeform responses as they pass 12 months, or
-  - the v1.4 sentence changes.
+- **Typeform retention, resolved in the text.** The draft's "under the 12-month retention rule"
+  was dropped. v1.4 as published gives no retention number for Typeform responses (founder,
+  2026-10-24), so it promises nothing that no step carries out. Counsel's disposition line above
+  still says "within 12 months of each signup". That is a use limit, and it is not enforced by any
+  code or step. **Raise it with counsel at the end review.**
+- **Finding, 2026-10-24: the Typeform collected health information.** The form's own questions were
+  read from the public form while writing v1.4. Besides name, email, phone, age range and city, it
+  asked:
+  - which symptoms are "showing up for you right now"
+  - whether symptoms were dismissed, with free text about it
+  - how the person tracks their health
 
-  Also, the age of the oldest Typeform response has not been checked. If any is already over 12
-  months old, the sentence is untrue on the day it is published.
+  That is the category counsel flagged for the deferred interest question (possible consumer
+  health data under Washington's My Health My Data Act, or special-category data under GDPR or UK
+  GDPR). v1.4 names these categories so the past-tense disclosure "accurately reflects the
+  historical processing". **For counsel's end review.** It also asked whether the person "would be
+  open to a short conversation". Contacting anyone for that would go beyond the published "used
+  only to invite people to early access".
 
 ## 5. B2 website changes (line numbers verified 2026-10-24, `index.html` and `dashboard.html` at `f8fdde7`)
 
@@ -329,14 +334,16 @@ Resend's own sent-email logs are outside both places.
 tests, the derived salt, the deploy, the live curl tests, the runbook, this plan and the
 `docs/privacy-v1.4-draft.md`. The commit hashes are in the B1 report.
 
-**B2 (only after Aditi confirms counsel approved the final v1.4 text).**
-1. Take both locks.
-2. Publish v1.4 in `privacy.html` as a new version (its paragraphs are "do not edit in place").
-3. Update the mock (notice text, early-access instance) and re-measure.
-4. Add `waitlist-tag/index.html` and `unsubscribe/index.html`.
-5. Make the 5a changes, then the 5b removal, as separate commits.
-6. Push, then run the 5c checks.
-7. Release the locks.
+**B2 (done 2026-10-24, one pass by founder instruction, no mock round).**
+1. The welcome email paragraph was dropped and the function redeployed as v2. shen-token is still
+   v2 and no other version changed.
+2. v1.4 was published in `privacy.html`.
+3. The 5a changes and the 5b removal were made as separate commits.
+4. The two email-link pages and `scripts/test-waitlist-inline.mjs` (31 checks) were added.
+5. Contrast was re-measured on the real page at 375px and 1280px, with both the pearl and the live
+   WebGL orb. Every hero text is 5.04:1 or better, and the final CTA notice is 5.14:1 or better.
+6. Push, then the 5c checks live. The results and commit hashes are in the B2 report and
+   `docs/evidence` in the backend repo.
 
 ## Not in scope
 
