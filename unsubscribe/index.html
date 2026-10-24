@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Leave the waitlist · BioWellth</title>
+<meta name="robots" content="noindex"/>
+<meta name="referrer" content="no-referrer"/>
+<!-- WAITLIST_INLINE_V1. The page behind "remove yourself from the waitlist here" in the welcome
+     email. Removal deletes the waitlist row (backend waitlist-signup, POST /unsubscribe), so it
+     takes one tap on a button: a page that deleted on load would be triggered by mail link
+     scanners and would remove people who never clicked. Mail providers' own one-click unsubscribe
+     goes straight to the function and needs no page. The token is taken out of the address bar
+     straight away. Copy follows the house rules, no colons, no em dashes. -->
+<link rel="icon" type="image/png" href="/favicon-96x96.png?v=olive1" sizes="96x96"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=olive1"/>
+<link rel="shortcut icon" href="/favicon.ico?v=olive1"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=olive1"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#F8F2EC;
+  --ink:#47372B;
+  --ink-hover:#2F241C;
+  --ink-muted:#6B5545;
+  --coral-deep-text:#8E5340;
+  --olive:#59663A;
+  --glass:rgba(251,250,249,0.8);
+  --glass-edge:rgba(255,255,255,0.8);
+  --shadow:0 24px 60px -24px rgba(156,94,71,0.28),0 2px 8px rgba(71,55,43,0.05);
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;-webkit-font-smoothing:antialiased}
+.card{max-width:460px;width:100%;text-align:center;padding:32px 26px;border-radius:28px;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--shadow)}
+.brand{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+h1{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:18px 0 10px}
+p{font-size:16px;color:var(--ink-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:15px;font-weight:600;padding:14px 28px;border-radius:100px;border:0;cursor:pointer;background:var(--ink);color:var(--cream);margin-top:22px;width:100%;max-width:320px}
+.btn:hover{background:var(--ink-hover)}
+.btn[disabled]{cursor:progress;opacity:.75}
+.btn[hidden]{display:none}
+.msg{margin-top:16px}
+.msg:empty{display:none}
+.msg.ok{color:var(--ink)}
+.msg.err{color:var(--coral-deep-text)}
+.back{display:inline-block;margin-top:22px;font-size:15px;font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
+</style>
+</head>
+<body>
+<main class="card">
+  <a class="brand" href="/">BioWellth</a>
+  <h1>Leave the waitlist</h1>
+  <p id="lede">This deletes your email and your answer from the BioWellth waitlist.</p>
+  <button class="btn" id="go" type="button">Remove me from the waitlist</button>
+  <p class="msg" id="msg" role="status" aria-live="polite"></p>
+  <a class="back" href="/">Back to BioWellth</a>
+</main>
+<script>
+(function(){
+  var ENDPOINT = "https://clacgutnrktdwhglvyua.supabase.co/functions/v1/waitlist-signup/unsubscribe";
+  var COPY = {
+    removing: "Removing…",
+    done: "You've been removed from the waitlist. Your email and your answer have been deleted.",
+    failed: "Something went wrong and you haven't been removed yet. Please try again, or write to support@mybiowellth.com.",
+    incomplete: "This link isn't complete. Please use the link in your email, or write to support@mybiowellth.com."
+  };
+  var go = document.getElementById("go"), msg = document.getElementById("msg");
+  function show(text, cls){ msg.textContent = text; msg.className = "msg " + cls; }
+
+  var t = "";
+  try{ t = new URLSearchParams(location.search).get("t") || ""; }catch(_){}
+  // The token is kept in memory only, never left in the address bar or history.
+  try{ history.replaceState(null, "", location.pathname); }catch(_){}
+
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(t)){
+    go.hidden = true;
+    show(COPY.incomplete, "err");
+    return;
+  }
+  go.addEventListener("click", function(){
+    if(go.disabled) return;
+    go.disabled = true;
+    go.textContent = COPY.removing;
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ t: t })
+    }).then(function(r){
+      if(r.status === 200){
+        go.hidden = true;
+        document.getElementById("lede").hidden = true;
+        show(COPY.done, "ok");
+      }else{
+        throw new Error("status");
+      }
+    }).catch(function(){
+      go.disabled = false;
+      go.textContent = "Remove me from the waitlist";
+      show(COPY.failed, "err");
+    });
+  });
+})();
+</script>
+</body>
+</html>

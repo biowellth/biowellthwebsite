@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Thank you · BioWellth</title>
+<meta name="robots" content="noindex"/>
+<meta name="referrer" content="no-referrer"/>
+<!-- WAITLIST_INLINE_V1. The page behind the city links in the waitlist welcome email
+     (backend supabase/functions/waitlist-signup/welcome-email.ts). Each link carries the person's
+     unsubscribe token and one city code. The answer is saved by a POST from script on load, never
+     by the GET itself: mail link scanners fetch GET URLs, and most run no script, so a scanner
+     opening the link saves nothing. The token is taken out of the address bar straight away.
+     Copy follows the house rules, no colons, no em dashes. -->
+<link rel="icon" type="image/png" href="/favicon-96x96.png?v=olive1" sizes="96x96"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=olive1"/>
+<link rel="shortcut icon" href="/favicon.ico?v=olive1"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=olive1"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#F8F2EC;
+  --ink:#47372B;
+  --ink-muted:#6B5545;
+  --coral-deep-text:#8E5340;
+  --olive:#59663A;
+  --sage:#8C9A5B;
+  --sage-soft:#E3E7D3;
+  --sage-pale:#F2F4EA;
+  --glass:rgba(251,250,249,0.8);
+  --glass-edge:rgba(255,255,255,0.8);
+  --shadow:0 24px 60px -24px rgba(156,94,71,0.28),0 2px 8px rgba(71,55,43,0.05);
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;-webkit-font-smoothing:antialiased}
+.card{max-width:460px;width:100%;text-align:center;padding:32px 26px;border-radius:28px;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--shadow)}
+.brand{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink);text-decoration:none}
+h1{font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:18px 0 10px}
+p{font-size:16px;color:var(--ink-muted)}
+.msg.ok{color:var(--ink)}
+.msg.err{color:var(--coral-deep-text)}
+.back{display:inline-block;margin-top:22px;font-size:15px;font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
+</style>
+</head>
+<body>
+<main class="card">
+  <a class="brand" href="/">BioWellth</a>
+  <h1>Where you live</h1>
+  <p class="msg" id="msg" role="status" aria-live="polite">Saving your answer…</p>
+  <a class="back" href="/">Back to BioWellth</a>
+</main>
+<script>
+(function(){
+  var ENDPOINT = "https://clacgutnrktdwhglvyua.supabase.co/functions/v1/waitlist-signup/tag";
+  var CITIES = ["bangalore","mumbai","delhi_ncr","chennai","hyderabad","pune","kolkata","india_other","us","uk","outside_other"];
+  var COPY = {
+    saved: "Thank you. That helps us plan where early access opens first.",
+    gone: "You're no longer on the waitlist, so nothing was saved.",
+    failed: "Something went wrong and your answer wasn't saved. Please tap the link again."
+  };
+  var msg = document.getElementById("msg");
+  function show(text, cls){ msg.textContent = text; msg.className = "msg " + cls; }
+
+  var t = "", city = "";
+  try{
+    var q = new URLSearchParams(location.search);
+    t = q.get("t") || ""; city = q.get("city") || "";
+  }catch(_){}
+  // The token never stays in the address bar or in history.
+  try{ history.replaceState(null, "", location.pathname); }catch(_){}
+
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(t) || CITIES.indexOf(city) < 0){
+    show(COPY.failed, "err");
+    return;
+  }
+  fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ t: t, city: city })
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(r.status === 200 && j && j.saved === true) show(COPY.saved, "ok");
+      else if(r.status === 200 && j && j.saved === false) show(COPY.gone, "ok");
+      else show(COPY.failed, "err");
+    });
+  }).catch(function(){ show(COPY.failed, "err"); });
+})();
+</script>
+</body>
+</html>
