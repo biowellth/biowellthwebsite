@@ -257,13 +257,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:100px;background:var(--coral-soft);color:var(--ink);white-space:nowrap}
 
-/* TICKER */
-.ticker{position:relative;z-index:2;padding:30px 0;overflow:hidden;border-top:1px solid rgba(71,55,43,.08);border-bottom:1px solid rgba(71,55,43,.08);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
-.ticker-track{display:flex;width:max-content;animation:ticker 70s linear infinite}
-.ticker ul{list-style:none;display:flex;align-items:center;flex-shrink:0}
-.ticker li{font-family:var(--serif);font-size:clamp(26px,3vw,40px);color:var(--ink);display:flex;align-items:center;white-space:nowrap}
-.ticker li::after{content:'';width:9px;height:9px;border-radius:50%;background:var(--coral);margin:0 clamp(22px,2.6vw,40px)}
-@keyframes ticker{to{transform:translateX(-50%)}}
+/* HOME_CLEANUP_V1 (2026-10-26, Aditi): the marker ticker after the hero was removed, and its rules with it. */
 
 /* DRIFT */
 .drift{position:relative;height:230vh}
@@ -328,12 +322,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .shots-browser img{display:block;width:100%;height:auto;aspect-ratio:958/600;object-fit:cover;object-position:top}
 .shots-phone{position:absolute;right:0;top:70px;width:262px;height:560px;padding:10px;border-radius:40px;background:#47372B;box-shadow:0 40px 80px -32px rgba(71,55,43,.45)}
 .shots-phone img{display:block;width:100%;height:100%;border-radius:30px;object-fit:cover;object-position:top}
-.shots-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center;margin-top:72px}
-.shots-trends{border-radius:20px;overflow:hidden}
-.shots-trends img{display:block;width:100%;height:auto}
-.shots-copy h3{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.15;letter-spacing:-.01em;color:var(--ink)}
-.shots-copy h3 em{font-style:italic;color:var(--coral-deep)}
-.shots-copy p{margin-top:14px;font-size:17px;line-height:1.6;color:var(--ink-muted)}
+/* HOME_CLEANUP_V1 (2026-10-26, Aditi): the second row ("See what changed, not just what is." with the trends shot)
+   was removed, and the .shots-row2, .shots-trends and .shots-copy rules with it. */
 .shots .chat-caption{margin-top:28px}
 @media(max-width:767px){
   .shots{padding:6vh 0}
@@ -342,9 +332,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   .shots-row1{margin-top:36px;padding-bottom:0}
   .shots-browser{display:none}
   .shots-phone{position:relative;right:auto;top:auto;width:290px;height:620px;margin:0 auto}
-  .shots-row2{display:block;margin-top:32px}
-  .shots-trends img{height:150px;object-fit:cover;object-position:left top}
-  .shots-copy{display:none}
 }
 
 /* SANA. Olive and sage belong to Sana. */
@@ -522,11 +509,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 }
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  .ticker-track{animation:none}
-  .ticker{-webkit-mask-image:none;mask-image:none}
-  .ticker-track{flex-wrap:wrap;width:auto;justify-content:center;padding:0 var(--gutter)}
-  .ticker ul[aria-hidden]{display:none}
-  .ticker ul{flex-wrap:wrap;justify-content:center;row-gap:8px}
   .hcard-wrap{transform:none}
 }
 </style>
@@ -693,17 +675,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   </div>
 </section>
 
-<!-- Marker ticker. Only markers already named on this site. -->
-<section class="ticker" data-orb="0.34,0.02,0.34" data-orb-m="0.32,0.05,0.55" aria-label="Markers we read">
-  <div class="ticker-track">
-    <ul>
-      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
-    </ul>
-    <ul aria-hidden="true">
-      <li>Ferritin</li><li>Free T3</li><li>Free T4</li><li>TSH</li><li>Vitamin D</li><li>B12</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li><li>AMH</li><li>Homocysteine</li><li>HbA1c</li>
-    </ul>
-  </div>
-</section>
+<!-- HOME_CLEANUP_V1: the marker ticker that sat here was removed (Aditi, 2026-10-26). -->
 
 <!-- Drift. The chart is olive: it is BioWellth's read of the trend. -->
 <section class="drift" id="drift" data-orb="-0.3,0.02,0.46" data-orb-m="-0.3,-0.25,0.62" aria-labelledby="drift-h">
@@ -812,15 +784,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
         <img src="assets/landing/shot-03-mobile.webp" width="242" height="540" loading="lazy" decoding="async" alt="The same sample dashboard on a phone, with the greeting to Priya, the Steady label and the vitality score of 74.">
       </div>
     </div>
-    <div class="shots-row2" data-reveal>
-      <div class="shots-trends glass">
-        <img src="assets/landing/shot-02-trends.webp" width="1600" height="456" loading="lazy" decoding="async" alt="A sample comparison with the January 2026 panel. Six markers held steady, vitamin B12 came back into range, and vitamin D is still worth a closer look.">
-      </div>
-      <div class="shots-copy">
-        <h3>See what changed, <em>not just what is.</em></h3>
-        <p>Each new panel is read against your last one, so a slow slide shows up before it becomes a problem.</p>
-      </div>
-    </div>
+    <!-- HOME_CLEANUP_V1: the "See what changed, not just what is." row (trends shot, heading, paragraph) was removed
+         (Aditi, 2026-10-26). The caption below stays because it also labels the dashboard mockup above as sample data. -->
     <p class="chat-caption">Sample report with illustrative data.</p>
   </div>
 </section>

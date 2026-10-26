@@ -8,6 +8,8 @@
 //   LS-4  the three WebP files exist, are real WebP, are 1600 / 1600 / 780 px wide and under 200KB each
 //   LS-5  no PNG is tracked under assets/landing
 //   LS-6  scripts/capture-landing-shots.mjs --check renders the synthetic panel and every crop is clean
+//   LS-9  HOME_CLEANUP_V1: the "See what changed" row (trends shot, heading, paragraph) is gone; the caption stays
+//   LS-10 HOME_CLEANUP_V1: the marker ticker after the hero is gone, and the hero is followed by #drift
 //
 // CONTROLS. Two mutants must fail the capture check, one planting "functional" and one planting a
 // "Healthy N to N" range into each crop, so a screen that never runs cannot pass by being empty.
@@ -35,11 +37,13 @@ const between = html.slice(iShots, iSana).match(/<section\b/g) || [];
 ok(between.length === 1, "LS-1 nothing else sits between it and #sana");
 const orb = sec.match(/data-orb="([^"]+)" data-orb-m="([^"]+)"/);
 ok(orb && orb[1].split(",").length === 3 && orb[2].split(",").length === 3, "LS-1 data-orb and data-orb-m are x,y,size triples");
-ok((sec.match(/data-reveal/g) || []).length >= 3, "LS-1 the head and both rows carry data-reveal");
+// HOME_CLEANUP_V1: the second row was removed, so the head and the one remaining row carry data-reveal.
+ok((sec.match(/data-reveal/g) || []).length >= 2, "LS-1 the head and the dashboard row carry data-reveal");
 
 // LS-2 images
 const imgs = sec.match(/<img\b[^>]*>/g) || [];
-ok(imgs.length === 3, "LS-2 three images (" + imgs.length + ")");
+// HOME_CLEANUP_V1: two images now, the dashboard and the phone. The trends shot left with the second row.
+ok(imgs.length === 2, "LS-2 two images (" + imgs.length + ")");
 for (const t of imgs) {
   const src = (t.match(/src="([^"]+)"/) || [])[1];
   const alt = (t.match(/alt="([^"]*)"/) || [])[1] || "";
@@ -76,7 +80,29 @@ for (const [f, w] of Object.entries(WANT)) {
   const b = readFileSync(p), kb = statSync(p).size / 1024;
   ok(webpWidth(b) === w, "LS-4 " + f + " is WebP, " + webpWidth(b) + "px wide (expect " + w + ")");
   ok(kb < 200, "LS-4 " + f + " is " + kb.toFixed(1) + "KB (under 200KB)");
-  ok(sec.includes('src="assets/landing/' + f + '"'), "LS-4 " + f + " is used by the section");
+  // HOME_CLEANUP_V1: shot-02-trends.webp stays in the repo (the capture script still makes it) but the page no longer uses it.
+  if (f === "shot-02-trends.webp") ok(!sec.includes('src="assets/landing/' + f + '"'), "LS-4 " + f + " is no longer used by the section");
+  else ok(sec.includes('src="assets/landing/' + f + '"'), "LS-4 " + f + " is used by the section");
+}
+
+// LS-9 HOME_CLEANUP_V1 (2026-10-26). The "See what changed" row is gone. Read with comments stripped, because the
+// removal comment quotes the old heading.
+{
+  const live = sec.replace(/<!--[\s\S]*?-->/g, "");
+  ok(!/shots-row2|shots-trends|shots-copy/.test(live), "LS-9 no second-row markup in the section");
+  ok(!/See what changed|slow slide shows up/.test(live), "LS-9 neither the heading nor its paragraph is on the page");
+  ok(live.includes("Sample report with illustrative data."), "LS-9 the caption stays, since it also labels the dashboard mockup");
+}
+
+// LS-10 HOME_CLEANUP_V1 (2026-10-26). The marker ticker after the hero is gone.
+{
+  const page = html.replace(/<!--[\s\S]*?-->/g, "");
+  ok(!/<section class="ticker"|class="ticker-track"/.test(page), "LS-10 no ticker section or track in the page");
+  const css = (page.match(/<style>[\s\S]*?<\/style>/) || [""])[0];
+  ok(css.length > 1000 && !/\.ticker[\s{.\-]|@keyframes ticker/.test(css), "LS-10 no .ticker CSS left in the stylesheet");
+  const iHeroEnd = page.indexOf("</section>", page.indexOf('<section class="hero"'));
+  const next = page.slice(iHeroEnd + 10).match(/<section\b[^>]*>/);
+  ok(!!next && /id="drift"/.test(next[0]), "LS-10 the section after the hero is #drift (" + (next ? next[0].slice(0, 40) : "none") + ")");
 }
 
 // LS-5 no PNGs tracked
