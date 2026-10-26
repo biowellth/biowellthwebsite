@@ -391,7 +391,9 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
         <div>
           <div class="mock-label" style="color:var(--coral-deep);font-weight:600">⚑ Not tested</div>
           <!-- ABOUT_COPY_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-          <div style="font-size:12px;color:var(--brown-mid);line-height:1.5;margin-top:4px">Free T3, Free T4, Progesterone, DHEA-S, hsCRP, Cortisol. These markers matter for how you feel. Our panel includes them.</div>
+          <!-- SCIENCE_PANEL_DHEAS_V1: "Our panel includes them." became "Our panel adds them." to match the homepage
+               card (2026-10-26). Ferritin is not in this row because the sample above shows it as tested. -->
+          <div style="font-size:12px;color:var(--brown-mid);line-height:1.5;margin-top:4px">Free T3, Free T4, Progesterone, DHEA-S, hsCRP, Cortisol. These markers matter for how you feel. Our panel adds them.</div>
         </div>
       </div>
     </div>
@@ -565,6 +567,21 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
               <div class="gap-item-detail">
                 <!-- ABOUT_COPY_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
                 <div class="gap-item-why">Morning cortisol typically runs 6 to 23 µg/dL on clinical labs, but the pattern, rhythm and ratios matter more than any single number. Chronically high or flat cortisol rhythms are linked to broken sleep, afternoon energy crashes, and stubborn weight, though it's rarely the only factor. (Endocrine Society; NIH)</div>
+              </div>
+            </div>
+            <!-- SCIENCE_PANEL_DHEAS_V1: DHEA-S entry, copy approved by Aditi 2026-10-26, so the list covers all seven
+                 markers the panel adds and matches the homepage card. Sources verified by Aditi: MedlinePlus "DHEA
+                 Sulfate Test" and Mayo Clinic Laboratories test DHES1. Unlinked, like the other entries. -->
+            <div class="gap-item" onclick="this.classList.toggle('open')">
+              <div class="gap-item-header">
+                <div class="gap-item-left">
+                  <div class="gap-item-name">DHEA-S</div>
+                  <div class="gap-item-hook">Made by your adrenals alongside cortisol, but steady through the day, so one draw gives a clear read.</div>
+                </div>
+                <div class="gap-item-toggle">▾</div>
+              </div>
+              <div class="gap-item-detail">
+                <div class="gap-item-why">DHEA-S is the stable form of DHEA, a hormone your adrenal glands make and your body uses to build others, including some of your testosterone. High levels can point to excess androgens, linked with acne, hair changes and irregular cycles, which is worth raising with your doctor. Hormonal birth control can lower it. (MedlinePlus; Mayo Clinic Laboratories)</div>
               </div>
             </div>
           </div>
