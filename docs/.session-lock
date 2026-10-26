@@ -1,0 +1,4 @@
+session: hero-card-rows-144750
+taken: 2026-10-26T14:47:50Z
+scope: HERO_CARD_ROWS_V1 index.html: rebuild hero card .hcard-b as Typical checkup / BioWellth draw rows mirroring the ferritin card; tests that pin the old card text. Held for screenshot approval before the change commit.
+repos: biowellth-website
