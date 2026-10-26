@@ -447,7 +447,12 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .wl-hero .wl-msg{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:6px 14px;border-radius:16px;max-width:460px}
 /* "How we read a panel" in the hero is a plain text link, not the .btn-glass pill (Aditi,
    2026-10-24): olive, the 15px / 600 of .btn, underlined. The 8px margin adds to the 12px row gap. */
-.wl-hero-link{font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:-.005em;color:var(--olive);text-decoration:underline;text-underline-offset:3px;margin-top:8px;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:3px 12px;border-radius:100px}
+/* HERO_COPY_V1: .wl-hero-link is now the whole line (offer text plus link) and carries the chip and
+   the 8px margin, so the 20px gap under the form is unchanged. The link inside keeps the olive, 600,
+   underlined treatment as .wl-hero-a. The line can wrap at phone width, so the chip rounds at 16px
+   (as .wl-msg does) rather than the 100px pill, which would bulge on two lines. */
+.wl-hero-link{font-family:var(--sans);font-size:15px;letter-spacing:-.005em;color:var(--ink);margin-top:8px;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:3px 12px;border-radius:16px;max-width:460px;text-align:center}
+.wl-hero-a{font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px}
 
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
@@ -625,7 +630,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <h1 class="display" id="hero-h">Your tests came back normal. <em class="l2" data-intro>You're still exhausted.</em></h1>
     <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
     <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-    <p class="lede" data-intro>We test the markers your checkup skips with a home blood draw, read them for where you feel your best, not just okay, and track them over time. Sana, your own personal companion, explains what they mean. Already have reports? You can upload them too.</p>
+    <!-- HERO_COPY_V1: lede rewritten and the upload line removed from the hero at Aditi's call (2026-10-26).
+         "feel&nbsp;your&nbsp;best." is joined so "best." does not sit alone on a line at 375px. -->
+    <p class="lede" data-intro>A home blood test for the markers your checkup skips, read for where you feel&nbsp;your&nbsp;best.</p>
     <div class="hero-ctas" data-intro>
       <!-- WAITLIST_INLINE_V1: form instance 1. Replaces the button that opened the early-access page. -->
       <div class="wl-hero">
@@ -644,7 +651,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
       </div>
       <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
       <!-- WAITLIST_INLINE_V1: a text link with a glass chip, not the .btn-glass pill (Aditi, 2026-10-24) -->
-      <a href="/science" class="wl-hero-link">How we read a panel</a>
+      <!-- HERO_COPY_V1: one line, the offer then the link. The glass chip moved from the link to the line. -->
+      <p class="wl-hero-link">Early access opens in small groups. <a href="/science" class="wl-hero-a">How we read a panel</a></p>
     </div>
   </div>
   <div class="wrap hero-foot">
@@ -669,7 +677,10 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
         <p class="eyebrow">Your checkup skipped these</p>
         <div class="hc-big"><span class="hc-num">6</span><span class="hc-cap">markers our panel includes</span></div>
         <ul class="chips">
-          <li>Free T3</li><li>Free T4</li><li>hsCRP</li><li>AM cortisol</li><li>DHEA-S</li><li>Progesterone</li>
+          <!-- HERO_COPY_V1: Free T3 and Free T4 become Full thyroid, hsCRP becomes Inflammation, and Adrenal
+               hormones covers AM cortisol and DHEA-S. Progesterone keeps its name. Still six markers, so the 6
+               above holds. -->
+          <li>Full thyroid</li><li>Inflammation</li><li>Adrenal hormones</li><li>Progesterone</li>
         </ul>
       </div>
     </div>
@@ -778,7 +789,8 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <div class="shots-head" data-reveal>
       <p class="eyebrow">What you get back</p>
       <h2 class="h2" id="shots-h">Your panel, <em>read for you.</em></h2>
-      <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana reads it with you.</p>
+      <!-- HERO_COPY_V1: "Sana reads it with you." became "Sana walks you through it." (Aditi, 2026-10-26) -->
+      <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana walks you through it.</p>
     </div>
     <div class="shots-row1" data-reveal>
       <div class="shots-browser">
@@ -808,7 +820,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <div class="sana-panel">
       <div data-reveal>
         <div class="sana-avatar" aria-hidden="true"></div>
-        <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana answers from your data.</em></h2>
+        <!-- HERO_COPY_V1: "your AI companion" added where Sana is first named in this section, since the hero
+             no longer introduces her (Aditi, 2026-10-26) -->
+        <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana, your AI companion, answers from your data.</em></h2>
       </div>
       <div data-reveal>
         <!-- TODO(HOMEPAGE_MOTION_V1): the Sana reply copy below needs reviewer sign-off before launch. -->
