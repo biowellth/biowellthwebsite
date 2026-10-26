@@ -236,7 +236,10 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .hero .lede{margin:20px auto 0;max-width:30em;color:var(--ink-muted)}
 .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 .hero-foot{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,330px) 1fr minmax(0,330px);align-items:end;gap:24px;margin-top:28px}
-.hero-caption{grid-column:2;text-align:center;font-size:12.5px;color:var(--ink-muted);align-self:end;padding-bottom:6px}
+.hero-caption{grid-column:2;text-align:center;font-size:12.5px;color:var(--ink-muted);align-self:end;padding-bottom:6px;max-width:228px;margin-inline:auto}
+/* HERO_CARD_ROWS_V1 (2026-10-26, Aditi): max-width 228px is the middle column's live width at 1440. The longer caption
+   ("What a panel skips varies by person.") would otherwise widen that column and push both cards outward; capped, it
+   wraps instead and the cards keep their positions. Lifted at 1100px and below, where the caption spans the row. */
 .hcard-wrap{transform:translate3d(calc(var(--px,0)*-12px),calc(var(--py,0)*-8px),0);will-change:transform}
 .hcard{padding:18px 20px}
 .hcard .eyebrow{font-size:11px}
@@ -252,9 +255,12 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 /* Dims to ink-muted rather than by opacity, so the struck line still clears 4.5:1. */
 .hc-lab.dim .hc-what{color:var(--ink-muted)}
 .hc-bw .hc-who,.hc-bw .hc-what{color:var(--olive)}
+/* HERO_CARD_ROWS_V1 (2026-10-26, Aditi): the numeral layout stays. The caption now runs on two lines, the second
+   ("We test them.") in semibold, a weight the page already loads (Instrument Sans 600). */
 .hc-big{display:flex;align-items:baseline;gap:12px;margin:6px 0 12px}
 .hc-num{font-family:var(--serif);font-size:56px;line-height:.9;color:var(--ink)}
 .hc-cap{font-size:14px;color:var(--ink-muted);line-height:1.35;max-width:12em}
+.hc-cap strong{font-weight:600}
 .chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:100px;background:var(--coral-soft);color:var(--ink);white-space:nowrap}
 
@@ -475,13 +481,15 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .motion .hero [data-intro]{opacity:0}
 .motion .hcard{opacity:0}
 .motion .hc-lab .strike{--s:0%}
-.motion .hc-bw{opacity:0}
+/* HERO_CARD_ROWS_V1: was .motion .hc-bw. Scoped to the ferritin card, which is the only card the 2.85s read reveal is
+   for. Kept on Aditi's call after a row-layout draft of the home-draw card, where an unscoped rule hid its chips. */
+.motion .hcard-a .hc-bw{opacity:0}
 .motion .hcard-b .chips li{opacity:0}
 .motion .chat-card .b-user,.motion .chat-card .b-sana{opacity:0}
 
 @media(max-width:1100px){
   .hero-foot{grid-template-columns:1fr 1fr}
-  .hero-caption{grid-column:1/-1;order:3}
+  .hero-caption{grid-column:1/-1;order:3;max-width:none}
 }
 /* Under 768px: no pinning, hero cards stack under the copy, nav links hide, orb smaller. */
 @media(max-width:767px){
@@ -649,15 +657,20 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
         </div>
       </div>
     </div>
-    <p class="hero-caption">Illustrative example. Not medical advice.</p>
+    <!-- HERO_CARD_ROWS_V1 (2026-10-26, Aditi): was "Illustrative example. Not medical advice." -->
+    <p class="hero-caption">Illustrative example. What a panel skips varies by person. Not medical advice.</p>
     <div class="hcard-wrap">
       <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
       <!-- HOME_DRAW_COPY_V1 (2026-10-26, Aditi): the card now frames one home draw as your usual checkup plus 4 areas
            it skips. No verified draw count exists yet, so no total is shown. Replace with the lab partner's count when
-           the panel is final. "your&nbsp;usual&nbsp;checkup" is joined so "checkup" does not sit alone on a line. -->
-      <div class="hcard hcard-b glass" role="group" aria-label="Illustrative example. One home draw covers your usual checkup plus 4 areas it skips.">
-        <p class="eyebrow">One home draw</p>
-        <div class="hc-big"><span class="hc-num">+4</span><span class="hc-cap">areas on top of your&nbsp;usual&nbsp;checkup</span></div>
+           the panel is final. "your&nbsp;usual&nbsp;checkup" is joined so "checkup" does not sit alone on a line.
+           Superseded 2026-10-26 by HERO_CARD_ROWS_V1: the eyebrow is "Your panel skipped these", the numeral is "4"
+           and the caption is "categories." over "We test them." The 4 is an illustrative example, not a universal
+           count: what a panel skips varies by person, which the hero caption under the cards now says. The 01 card
+           carries the 170+ draw count (PANEL_COUNT_V1). -->
+      <div class="hcard hcard-b glass" role="group" aria-label="Illustrative example. Your panel skipped these 4 categories: thyroid, iron stores, inflammation, and stress and cycle hormones. We test them.">
+        <p class="eyebrow">Your panel skipped these</p>
+        <div class="hc-big"><span class="hc-num">4</span><span class="hc-cap">categories.<br><strong>We test them.</strong></span></div>
         <ul class="chips">
           <!-- HERO_COPY_V1: Free T3 and Free T4 become Full thyroid, hsCRP becomes Inflammation, and Adrenal
                hormones covers AM cortisol and DHEA-S. Progesterone keeps its name. Still six markers, so the 6
@@ -1135,7 +1148,8 @@ if(motion){
     .fromTo('.hcard-b .chips li',{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:'back.out(2.2)',stagger:0.09},1.35)
     .fromTo('.hc-lab .strike',{'--s':'0%'},{'--s':'100%',duration:0.75,ease:'power2.inOut'},2.0)
     .add(function(){ document.querySelector('.hc-lab').classList.add('dim'); },2.6)
-    .fromTo('.hc-bw',{opacity:0,y:8},{opacity:1,y:0,duration:0.85,ease:'power2.out'},2.85);
+    /* HERO_CARD_ROWS_V1: was '.hc-bw'; scoped to the ferritin card, see the .motion rule. */
+    .fromTo('.hcard-a .hc-bw',{opacity:0,y:8},{opacity:1,y:0,duration:0.85,ease:'power2.out'},2.85);
 }else{
   var lab=document.querySelector('.hc-lab'); if(lab) lab.classList.add('dim');
 }
