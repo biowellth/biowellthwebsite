@@ -428,7 +428,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   .wl-done{border-radius:20px}
 }
 /* Hero placement. .wl-hero takes the whole first row of .hero-ctas (flex:0 0 100%), so the
-   "How we read a panel" link always wraps beneath it. The form is capped at 460px and centred. */
+   "How we read a panel" link always wraps beneath it. The form is capped at 460px and centred.
+   Corrected 2026-10-26 by HERO_LINE_REMOVE_V1: the link is gone, so .wl-hero is now the only thing in
+   .hero-ctas. The full-width rule stays, since it is also what gives the form its 460px (below). */
 .wl-hero{flex:0 0 100%;display:flex;flex-direction:column;align-items:center}
 /* .hero-copy centres its children, so .hero-ctas is only as wide as its content, and a container
    (.wl-form) contributes no content width. While the hero carried the signup notice, that sentence
@@ -443,17 +445,13 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    re-measured live, plan section 5c). The hero used to carry the signup notice on a chip too; it
    was REMOVED from the hero by the founder on 2026-10-24 and stays under the final CTA and
    early-access forms (plan, end-of-build counsel list). The link keeps its 20px gap, now below the
-   form: the 12px row gap plus its own 8px margin. */
+   form: the 12px row gap plus its own 8px margin. Corrected 2026-10-26 by HERO_LINE_REMOVE_V1: the link
+   and its line were removed from the hero, so only the error message still uses this chip here. */
 .wl-hero .wl-msg{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:6px 14px;border-radius:16px;max-width:460px}
-/* "How we read a panel" in the hero is a plain text link, not the .btn-glass pill (Aditi,
-   2026-10-24): olive, the 15px / 600 of .btn, underlined. The 8px margin adds to the 12px row gap. */
-/* HERO_COPY_V1: .wl-hero-link is now the whole line (offer text plus link) and carries the chip and
-   the 8px margin, so the 20px gap under the form is unchanged. The link inside keeps the olive, 600,
-   underlined treatment as .wl-hero-a, held on one line with nowrap so it never splits as "How we" /
-   "read a panel" (caught at 375px, 2026-10-26). The line can wrap at phone width, so the chip rounds at 16px
-   (as .wl-msg does) rather than the 100px pill, which would bulge on two lines. */
-.wl-hero-link{font-family:var(--sans);font-size:15px;letter-spacing:-.005em;color:var(--ink);margin-top:8px;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:3px 12px;border-radius:16px;max-width:460px;text-align:center}
-.wl-hero-a{font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+/* HERO_LINE_REMOVE_V1: the line under the hero form ("Early access opens in small groups. How we read
+   a panel", HERO_COPY_V1) was removed at Aditi's call on 2026-10-26, and with it the .wl-hero-link and
+   .wl-hero-a rules, which nothing else on the site used. The science page is still one click away from
+   the nav's How it works and About links. */
 
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
@@ -650,10 +648,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
         <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
       </div>
       </div>
-      <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
-      <!-- WAITLIST_INLINE_V1: a text link with a glass chip, not the .btn-glass pill (Aditi, 2026-10-24) -->
-      <!-- HERO_COPY_V1: one line, the offer then the link. The glass chip moved from the link to the line. -->
-      <p class="wl-hero-link">Early access opens in small groups. <a href="/science" class="wl-hero-a">How we read a panel</a></p>
+      <!-- HERO_LINE_REMOVE_V1: the offer line and "How we read a panel" link that sat here were removed (Aditi, 2026-10-26) -->
     </div>
   </div>
   <div class="wrap hero-foot">

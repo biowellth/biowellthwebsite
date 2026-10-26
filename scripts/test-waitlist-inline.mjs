@@ -112,7 +112,12 @@ const st = JSON.parse(await ev(`JSON.stringify({ blocks: document.querySelectorA
   tfScripts: [...document.scripts].filter(s => /typeform/i.test(s.src)).length,
   notices: [...document.querySelectorAll('.wl-notice')].map(n => ({ text: n.textContent, form: n.closest('.wl-block').querySelector('.wl-input').id })),
   heroNotice: !!document.querySelector('.wl-hero .wl-notice'),
-  heroGap: (() => { const f = document.querySelector('.wl-hero .wl-form').getBoundingClientRect(), l = document.querySelector('.wl-hero-link').getBoundingClientRect(); return Math.round((l.top - f.bottom) * 10) / 10; })(),
+  // HERO_LINE_REMOVE_V1: the line under the hero form is gone. This replaced the 20px gap check on it.
+  heroLine: document.querySelectorAll('.wl-hero-link, .wl-hero-a').length,
+  heroCtas: [...document.querySelector('.hero-ctas').children].map(c => c.className),
+  heroLinks: document.querySelectorAll('.hero-ctas a').length,
+  heroText: document.querySelector('.hero').textContent.replace(/\\s+/g, ' '),
+  finalText: document.querySelector('#join').textContent.replace(/\\s+/g, ' '),
   errs: window.__errs })`));
 ok(st.blocks === 3 && st.unbound === 0, `WI-1 three forms, all bound by the script (${st.blocks}, unbound ${st.unbound})`);
 ok(st.nav === "#join" && st.navClick === null && st.joinHasForm, "WI-2 the nav button goes to #join, which holds a form");
@@ -121,7 +126,14 @@ ok(st.iframes === 0 && st.tfScripts === 0, "WI-3 no iframe and no third-party fo
 ok(st.notices.length === 2 && st.notices.every(n => n.text === "We'll email you about early access. You can remove yourself at any time. Privacy Policy.")
   && st.notices.map(n => n.form).sort().join() === "wl-email-ea,wl-email-join",
   "WI-4 counsel's signup notice, exactly, under the final CTA and early-access forms " + JSON.stringify(st.notices.map(n => n.form)));
-ok(!st.heroNotice && st.heroGap === 20, "WI-4b the hero has no notice, and How we read a panel sits 20px under the form (" + st.heroGap + "px)");
+ok(!st.heroNotice, "WI-4b the hero has no signup notice");
+// HERO_LINE_REMOVE_V1 (2026-10-26). The offer line and How we read a panel link under the hero form are gone.
+ok(st.heroLine === 0 && st.heroLinks === 0 && st.heroCtas.join() === "wl-hero",
+  "WI-4c nothing under the hero form, the form block is the only child of .hero-ctas " + JSON.stringify(st.heroCtas));
+ok(!st.heroText.includes("How we read a panel") && !st.heroText.includes("Early access opens in small groups"),
+  "WI-4d the hero text has neither How we read a panel nor the early access line");
+// CONTROL. The same sentence is still under the final CTA, so WI-4d cannot pass because the text failed to load.
+ok(st.finalText.includes("Early access opens in small groups."), "WI-4e control, the final CTA still says Early access opens in small groups.");
 ok(st.errs.length === 0, "WI-5 no page errors on load " + (st.errs[0] || ""));
 
 let r = await submit("hero", " Priya@Example.com ", { status: 200, body: { ok: true, notice: "inbox" } });
