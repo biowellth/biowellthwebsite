@@ -449,10 +449,11 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    2026-10-24): olive, the 15px / 600 of .btn, underlined. The 8px margin adds to the 12px row gap. */
 /* HERO_COPY_V1: .wl-hero-link is now the whole line (offer text plus link) and carries the chip and
    the 8px margin, so the 20px gap under the form is unchanged. The link inside keeps the olive, 600,
-   underlined treatment as .wl-hero-a. The line can wrap at phone width, so the chip rounds at 16px
+   underlined treatment as .wl-hero-a, held on one line with nowrap so it never splits as "How we" /
+   "read a panel" (caught at 375px, 2026-10-26). The line can wrap at phone width, so the chip rounds at 16px
    (as .wl-msg does) rather than the 100px pill, which would bulge on two lines. */
 .wl-hero-link{font-family:var(--sans);font-size:15px;letter-spacing:-.005em;color:var(--ink);margin-top:8px;background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:3px 12px;border-radius:16px;max-width:460px;text-align:center}
-.wl-hero-a{font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px}
+.wl-hero-a{font-weight:600;color:var(--olive);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
 
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
@@ -789,8 +790,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <div class="shots-head" data-reveal>
       <p class="eyebrow">What you get back</p>
       <h2 class="h2" id="shots-h">Your panel, <em>read for you.</em></h2>
-      <!-- HERO_COPY_V1: "Sana reads it with you." became "Sana walks you through it." (Aditi, 2026-10-26) -->
-      <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana walks you through it.</p>
+      <!-- HERO_COPY_V1: "Sana reads it with you." became "Sana, your AI companion, walks you through it." This is her
+           first mention on the page now that the hero no longer introduces her, so the descriptor sits here (Aditi, 2026-10-26) -->
+      <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana, your AI companion, walks you through it.</p>
     </div>
     <div class="shots-row1" data-reveal>
       <div class="shots-browser">
@@ -820,9 +822,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
     <div class="sana-panel">
       <div data-reveal>
         <div class="sana-avatar" aria-hidden="true"></div>
-        <!-- HERO_COPY_V1: "your AI companion" added where Sana is first named in this section, since the hero
-             no longer introduces her (Aditi, 2026-10-26) -->
-        <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana, your AI companion, answers from your data.</em></h2>
+        <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana answers from your data.</em></h2>
       </div>
       <div data-reveal>
         <!-- TODO(HOMEPAGE_MOTION_V1): the Sana reply copy below needs reviewer sign-off before launch. -->

@@ -53,7 +53,7 @@ ok(/class="shots-bar" aria-hidden="true"/.test(sec), "LS-2 the decorative browse
 const visible = sec.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const alts = imgs.map(t => (t.match(/alt="([^"]*)"/) || [])[1] || "").join(" ");
 const copy = visible + " " + alts;
-ok(copy.includes("Every result explained in plain words, and tracked from one panel to the next. Sana walks you through it."), "LS-3 the lead is the approved line");
+ok(copy.includes("Every result explained in plain words, and tracked from one panel to the next. Sana, your AI companion, walks you through it."), "LS-3 the lead is the approved line");
 ok(copy.includes("Sample report with illustrative data."), "LS-3 the caption is on the page");
 ok(!/:/.test(copy), "LS-3 no colon in the new copy");
 ok(!/—|&mdash;/.test(copy), "LS-3 no em dash in the new copy");
