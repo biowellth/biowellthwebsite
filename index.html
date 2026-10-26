@@ -447,6 +447,49 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    .wl-hero-a rules, which nothing else on the site used. The science page is still one click away from
    the nav's How it works and About links. */
 
+/* WAITLIST_STEP2_V1. The optional step 2 that replaces step 1 in the same place after a successful
+   signup (backend waitlist-signup /profile, migration 0077; plan docs/waitlist-step2-plan.md section 5).
+   Chips are single-select radios. Selected is ink with cream text and a cream tick, so the state is
+   never carried by colour alone. NO CORAL on a chip in any state: coral stays on the error text only
+   (.wl-msg), and test-waitlist-inline.mjs asserts it from computed style. Labels are Instrument Sans,
+   the live site font (founder ruling 4, 2026-10-26, no Inter). */
+.wl-step2[hidden],.wl-s2-go[hidden]{display:none!important}
+.wl-step2{container-type:inline-size;width:100%;margin:16px auto 0;text-align:left;border:0;scroll-margin-top:96px}
+/* The hero has no card of its own, so there step 2 brings one: the site's .glass (added by the script),
+   which is also what gives the hero error message its contrast over the orb. */
+.wl-hero .wl-step2{max-width:460px;margin-top:0;padding:22px 22px 18px}
+.wl-s2-h{font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
+.wl-s2-h:focus{outline:none}
+.wl-s2-h:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
+.wl-s2-lede{font-size:15px;line-height:1.55;color:var(--ink-muted);margin-top:6px}
+.wl-q{border:0;margin:18px 0 0;padding:0;min-width:0}
+.wl-q legend{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink);padding:0;margin-bottom:8px}
+.wl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.wl-chip{position:relative;display:block;cursor:pointer}
+.wl-chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.wl-chip span{display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:100px;font-family:var(--sans);font-size:14.5px;font-weight:500;line-height:1.3;color:var(--ink);background:rgba(255,255,255,.6);border:1px solid rgba(71,55,43,.18);transition:background .15s ease,border-color .15s ease,color .15s ease}
+.wl-chip:hover span{border-color:rgba(71,55,43,.35)}
+.wl-chip input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.wl-chip input:checked + span::before{content:"";flex:0 0 auto;width:12px;height:12px;background:no-repeat center/12px 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F8F2EC' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
+.wl-chip input:focus-visible + span{outline:2px solid var(--olive);outline-offset:2px}
+.wl-s2-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:20px}
+.wl-s2-actions .btn{width:100%}
+.wl-s2-actions .btn[aria-disabled="true"]{opacity:.55;cursor:default;transform:none;box-shadow:none}
+.wl-s2-actions .btn[disabled]{cursor:progress;opacity:.75;transform:none;box-shadow:none}
+.wl-s2-skip{font:inherit;font-size:14px;font-weight:500;color:var(--ink-muted);background:none;border:0;min-height:44px;padding:0 12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(71,55,43,.35)}
+.wl-s2-skip:hover{color:var(--ink)}
+.wl-s2-skip:focus-visible{outline:2px solid var(--olive);outline-offset:2px;border-radius:8px}
+.wl-step2 .wl-msg{margin-top:12px}
+/* The thank-you is two sentences, so the done pill relaxes to a rounded card when it carries one. */
+.wl-done.is-thanks{border-radius:22px}
+@container (max-width:400px){
+  /* The persona and need labels run up to 47 characters, so on a phone they go one per line. */
+  .wl-q-long .wl-chip{flex:1 1 100%}
+  .wl-q-yn .wl-chip{flex:1 1 0}
+  .wl-q-yn .wl-chip span{justify-content:center}
+}
+@media(max-width:480px){.wl-hero .wl-step2{padding:20px 18px 16px}}
+
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
 .foot-inner{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:baseline;justify-content:space-between}
@@ -1559,6 +1602,57 @@ function orbEngine(scope,inWorker){
 }
 });
 </script>
+<!-- WAITLIST_STEP2_V1. One template for the optional step 2, cloned into each of the three .wl-block
+     instances by the script below, so the instances cannot drift. Each clone is its own <form>, which
+     scopes the radio groups to that instance. Copy is the founder's (ruling 6, 2026-10-26). The stored
+     codes are the CHECKs in backend migration 0077 and validate.ts. -->
+<template id="wl-step2-tpl">
+  <form class="wl-step2" novalidate hidden>
+    <h3 class="wl-s2-h" tabindex="-1">You're on the list.</h3>
+    <p class="wl-s2-lede">Early access opens in small groups. Answer a few quick taps and we'll move you up.</p>
+    <fieldset class="wl-q wl-q-long">
+      <legend>Which sounds most like you?</legend>
+      <div class="wl-chips">
+        <label class="wl-chip"><input type="radio" name="persona" value="results_normal_feel_off"><span>My results say normal, but something feels off</span></label>
+        <label class="wl-chip"><input type="radio" name="persona" value="stay_ahead"><span>I feel fine and want to stay ahead</span></label>
+        <label class="wl-chip"><input type="radio" name="persona" value="curious"><span>Just curious what my body is doing</span></label>
+        <label class="wl-chip"><input type="radio" name="persona" value="prefer_not_say"><span>Prefer not to say</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="wl-q wl-q-long">
+      <legend>What would help most right now?</legend>
+      <div class="wl-chips">
+        <label class="wl-chip"><input type="radio" name="need" value="read_existing"><span>Read the tests I already have</span></label>
+        <label class="wl-chip"><input type="radio" name="need" value="home_panel_tracked"><span>An at-home panel, tracked over time</span></label>
+        <label class="wl-chip"><input type="radio" name="need" value="fullest_specialist"><span>The fullest picture, with a specialist</span></label>
+        <label class="wl-chip"><input type="radio" name="need" value="not_sure"><span>Not sure yet</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="wl-q">
+      <legend>How did you hear about us?</legend>
+      <div class="wl-chips">
+        <label class="wl-chip"><input type="radio" name="heard" value="instagram"><span>Instagram</span></label>
+        <label class="wl-chip"><input type="radio" name="heard" value="friend_family"><span>Friend or family</span></label>
+        <label class="wl-chip"><input type="radio" name="heard" value="search"><span>Search</span></label>
+        <label class="wl-chip"><input type="radio" name="heard" value="podcast_article"><span>Podcast or article</span></label>
+        <label class="wl-chip"><input type="radio" name="heard" value="linkedin"><span>LinkedIn</span></label>
+        <label class="wl-chip"><input type="radio" name="heard" value="other"><span>Other</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="wl-q wl-q-yn">
+      <legend>Open to a 15-minute chat with the founder?</legend>
+      <div class="wl-chips">
+        <label class="wl-chip"><input type="radio" name="chat" value="yes"><span>Yes</span></label>
+        <label class="wl-chip"><input type="radio" name="chat" value="no"><span>No</span></label>
+      </div>
+    </fieldset>
+    <p class="wl-msg" role="status" aria-live="polite"></p>
+    <div class="wl-s2-actions">
+      <button class="btn btn-ink wl-s2-go" type="submit" aria-disabled="true">Move me up</button>
+      <button class="wl-s2-skip" type="button">Skip for now</button>
+    </div>
+  </form>
+</template>
 <script>
 /* WAITLIST_INLINE_V1. Binds every .wl-block on the page (hero, final CTA, early-access page) to
    the backend's waitlist-signup function. Copy follows the house rules, no colons, no em dashes.
@@ -1577,8 +1671,18 @@ function orbEngine(scope,inWorker){
     limited: "Too many tries from this connection. Please wait a little and try again.",
     done: "You're on the list. Check your inbox.",
     // The row was saved but the welcome email did not send, so "Check your inbox" would be false.
-    doneNoMail: "You're on the list. We'll email you when early access opens."
+    doneNoMail: "You're on the list. We'll email you when early access opens.",
+    // WAITLIST_STEP2_V1. Founder's copy, ruling 6, 2026-10-26. The thank-you is followed by the
+    // done or doneNoMail line above, so the inbox claim stays exactly as true as it is today.
+    thanks: "Thank you, you've moved up.",
+    moveUp: "Move me up",
+    saving: "Saving…",
+    pickOne: "Pick any one answer to move up.",
+    s2Failed: "We couldn't save your answers. You're still on the list."
   };
+  // WAITLIST_STEP2_V1. The step-2 token the server returns. Anything else means no step 2.
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  var S2_KEYS = ["persona","need","heard","chat"];
   var UTM_KEYS = ["utm_source","utm_medium","utm_campaign","utm_content"];
   var EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
@@ -1605,6 +1709,118 @@ function orbEngine(scope,inWorker){
     var msg = form.querySelector(".wl-msg");
     var hp = form.querySelector('[name="company"]');
     var done = block.querySelector(".wl-done");
+
+    /* WAITLIST_STEP2_V1. After a successful signup the same place swaps to the optional step 2
+       (template #wl-step2-tpl). The step-2 token lives only in this closure: never in a URL,
+       storage, the DOM or a log, and it is dropped once step 2 ends either way. The server gives a
+       decoy token to a duplicate or a bot, and /profile answers {ok:true} to both, so nothing on
+       this page can tell whether an address was already listed. Priority is decided by the server
+       for any answer in any group; the page sends no priority flag. */
+    var s2 = null, s2Token = null, s2Fin = "done", s2Busy = false, s2Fails = 0, s2Last = {};
+    var tpl = document.getElementById("wl-step2-tpl");
+    if(tpl && tpl.content && tpl.content.firstElementChild){
+      s2 = tpl.content.firstElementChild.cloneNode(true);
+      // The hero has no card, so step 2 brings the site's glass card with it there.
+      if(block.closest(".wl-hero")) s2.classList.add("glass");
+      block.insertBefore(s2, done);
+    }
+    var s2Go = s2 && s2.querySelector(".wl-s2-go");
+    var s2Msg = s2 && s2.querySelector(".wl-msg");
+    if(s2){
+      s2Msg.id = input.id.replace("wl-email", "wl-s2-msg");
+      s2Go.setAttribute("aria-describedby", s2Msg.id);
+    }
+
+    function s2Answers(){
+      var out = {}, n = 0;
+      S2_KEYS.forEach(function(k){
+        var c = s2.querySelector('input[name="' + k + '"]:checked');
+        if(c){ out[k] = k === "chat" ? c.value === "yes" : c.value; n++; }
+      });
+      return n ? out : null;
+    }
+    function s2Sync(){
+      var any = !!s2Answers();
+      s2Go.setAttribute("aria-disabled", any ? "false" : "true");
+      if(any && s2Msg.textContent === COPY.pickOne) s2Msg.textContent = "";
+    }
+    function showStep2(tok, fin){
+      s2Token = tok; s2Fin = fin;
+      setState("idle");
+      form.hidden = true;
+      s2.hidden = false;
+      var top = s2.getBoundingClientRect().top;
+      if(top < 0 || top > window.innerHeight - 120){
+        var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+        try{ s2.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" }); }catch(_){ s2.scrollIntoView(); }
+      }
+      s2.querySelector(".wl-s2-h").focus({ preventScroll: true });
+    }
+    // Thank-you or skipped. Skipped shows today's done text exactly.
+    function finishStep2(thanks){
+      s2Token = null;
+      s2.hidden = true;
+      setState(s2Fin);
+      if(thanks){
+        var t = done.querySelector(".wl-done-text");
+        t.textContent = COPY.thanks + " " + t.textContent;
+        done.classList.add("is-thanks");
+      }
+    }
+    function s2Failed(){
+      s2Busy = false; s2Fails++;
+      s2.setAttribute("aria-busy", "false");
+      s2Go.disabled = false;
+      s2Go.textContent = COPY.moveUp;
+      s2Msg.textContent = COPY.s2Failed;
+      // One retry. After a second failure the button goes, since it has not been working, and Skip
+      // stays. The person is on the list either way.
+      if(s2Fails >= 2) s2Go.hidden = true;
+    }
+    if(s2){
+      // A tap on the chip that is already selected clears it, so "optional" stays true after a mis-tap.
+      s2.addEventListener("click", function(e){
+        var i = e.target;
+        if(!i || i.tagName !== "INPUT" || i.type !== "radio") return;
+        if(s2Last[i.name] === i.value){ i.checked = false; s2Last[i.name] = null; }
+        else s2Last[i.name] = i.value;
+        s2Sync();
+      });
+      s2.querySelector(".wl-s2-skip").addEventListener("click", function(){
+        if(!s2Busy) finishStep2(false);
+      });
+      s2.addEventListener("submit", function(e){
+        e.preventDefault();
+        if(s2Busy || !s2Token) return;
+        var a = s2Answers();
+        if(!a){ s2Msg.textContent = COPY.pickOne; return; }
+        a.p = s2Token;
+        s2Busy = true;
+        s2.setAttribute("aria-busy", "true");
+        s2Go.disabled = true;
+        s2Go.textContent = COPY.saving;
+        s2Msg.textContent = "";
+        var ctl = window.AbortController ? new AbortController() : null;
+        var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, 15000);
+        fetch(ENDPOINT + "/profile", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(a),
+          signal: ctl ? ctl.signal : undefined
+        }).then(function(r){
+          clearTimeout(timer);
+          s2Busy = false;
+          if(r.status === 200) finishStep2(true);
+          // A 400 cannot come from this page's own chips. If one does, saving again will not help,
+          // so it ends as skipped rather than claiming a move.
+          else if(r.status === 400) finishStep2(false);
+          else s2Failed();
+        }).catch(function(){
+          clearTimeout(timer);
+          s2Failed();
+        });
+      });
+    }
 
     function setState(s, text){
       form.classList.toggle("is-invalid", s === "invalid");
@@ -1647,7 +1863,13 @@ function orbEngine(scope,inWorker){
       }).then(function(r){
         return r.json().catch(function(){ return {}; }).then(function(j){
           clearTimeout(timer);
-          if(r.status === 200) setState(j && j.notice === "listed" ? "done-nomail" : "done");
+          if(r.status === 200){
+            var fin = j && j.notice === "listed" ? "done-nomail" : "done";
+            // WAITLIST_STEP2_V1. No usable token (an older function, or no template) means today's
+            // done state, unchanged.
+            if(s2 && j && typeof j.step2 === "string" && UUID_RE.test(j.step2)) showStep2(j.step2, fin);
+            else setState(fin);
+          }
           else if(r.status === 429) setState("limited", COPY.limited);
           else if(r.status === 400) setState("invalid", COPY.invalid);
           else setState("failed", COPY.failed);
