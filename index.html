@@ -61,6 +61,7 @@
 </script>
 
 <!-- JSON-LD: FAQPage -->
+<!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): the ferritin answer said "Functional medicine commonly targets 70-100 ng/mL". JSON cannot carry a comment, so this one sits outside the block. Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -95,7 +96,7 @@
       "name":"Is ferritin of 28 normal?",
       "acceptedAnswer":{
         "@type":"Answer",
-        "text":"Standard lab ranges typically list the female ferritin reference range as roughly 10-150 ng/mL. However, Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when hemoglobin is normal. Functional medicine commonly targets 70-100 ng/mL for women with heavy periods or high activity levels. A ferritin of 28 is inside the clinical range but functionally low. Iron deficiency is particularly prevalent among South Asian women."
+        "text":"Standard lab ranges typically list the female ferritin reference range as roughly 10-150 ng/mL. However, Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when hemoglobin is normal. Functional medicine commonly aims well above the bottom of that range for women with heavy periods or high activity levels. A ferritin of 28 is inside the clinical range but functionally low. Iron deficiency is particularly prevalent among South Asian women."
       }
     },
     {
@@ -690,14 +691,18 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
              or more between the 22 marker and the axis at 390, where the chart is drawn at about 0.53px per
              unit, so 16px is about 30 units below the end marker's bottom edge at 284.2. -->
         <svg viewBox="0 0 560 365" role="img" aria-labelledby="drift-svg-t">
-          <title id="drift-svg-t">Ferritin across three panels. 74 in January 2024, 48 in March 2025, 22 in February 2026. Every value was reported as normal, while the line drifted down out of the feel-your-best range of 70 to 100.</title>
+          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): the title ended "feel-your-best range of 70 to 100." Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
+          <title id="drift-svg-t">Ferritin across three panels. 74 in January 2024, 48 in March 2025, 22 in February 2026. Every value was reported as normal, while the line drifted down out of the feel-your-best range.</title>
           <defs>
             <radialGradient id="mini-pearl" cx="35%" cy="30%" r="75%">
               <stop offset="0" stop-color="#FFFFFF"/><stop offset=".3" stop-color="#E3E7D3"/><stop offset=".68" stop-color="#B5C08E"/><stop offset="1" stop-color="#8C9A5B"/>
             </radialGradient>
           </defs>
           <rect x="40" y="88" width="500" height="72" rx="10" fill="#8C9A5B" fill-opacity=".2"/>
-          <text x="54" y="110" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#4A5530">Feel-your-best range 70 to 100</text>
+          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): label was "Feel-your-best range 70 to 100". The band rect is
+               unchanged. Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off
+               (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
+          <text x="54" y="110" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#4A5530">Feel-your-best range</text>
           <line x1="40" y1="315" x2="540" y2="315" stroke="#47372B" stroke-opacity=".14"/>
           <path id="drift-line" d="M100,150.4 L290,212.8 L480,275.2" fill="none" stroke="#59663A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <g class="pt on" data-at="0">

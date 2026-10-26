@@ -366,7 +366,8 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
           <!-- ABOUT_COPY_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
           <p>We read your results against narrower ranges, set where women tend to feel their best, not just okay. They come from expert consensus rather than randomized trials, but they show what a clinical range lets pass.</p>
           <!-- ABOUT_COPY_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-          <p>Ferritin is a useful example. Most lab reports list the female reference range as roughly 10 to 150 ng/mL. Many practitioners aim for 70 to 100 ng/mL for women with heavy periods or high activity levels. Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when hemoglobin is still normal. A ferritin of 28 ng/mL sits inside the clinical range but is low for a woman to feel her best.</p>
+          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): was "Many practitioners aim for 70 to 100 ng/mL for women with heavy periods or high activity levels." Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
+          <p>Ferritin is a useful example. Most lab reports list the female reference range as roughly 10 to 150 ng/mL. Many practitioners aim well above the bottom of that range for women with heavy periods or high activity levels. Cleveland Clinic notes ferritin under 30 ng/mL is linked to iron deficiency symptoms even when hemoglobin is still normal. A ferritin of 28 ng/mL sits inside the clinical range but is low for a woman to feel her best.</p>
         </div>
       </div>
       <div class="mock-visual">
@@ -374,7 +375,8 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
           <div class="mock-label">Ferritin (iron stores)</div>
           <div class="mock-bar"><div class="mock-bar-fill fill-coral" style="width:28%"></div></div>
           <!-- ABOUT_COPY_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-          <div class="mock-note low">28 ng/mL · Inside clinical range (10 to 150). Low for feeling your best, which starts around 70 to 100. (Cleveland Clinic; IFM)</div>
+          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): was "Low for feeling your best, which starts around 70 to 100." Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
+          <div class="mock-note low">28 ng/mL · Inside clinical range (10 to 150). Low for feeling your best. (Cleveland Clinic; IFM)</div>
         </div>
         <div>
           <div class="mock-label">TSH (thyroid)</div>
@@ -435,10 +437,11 @@ nav#sitenav{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 var(--g
                their points, as before, and the dashed continuation keeps the same slope. (The first version
                of this pass used the band's own scale, which left 74's dot 0.9 units over the band edge and
                22 only 2 to 4px inside the low zone.) -->
-          <svg viewBox="0 0 460 300" role="img" aria-label="Ferritin trending down across three panels, from 74 in January 2024 to 48 in March 2025 to 22 in February 2026. Every value stays inside the clinical range, but the line drifts down out of the feel-your-best range of 70 to 100 and heads toward the low zone." style="width:100%;height:auto;display:block">
+          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): the aria-label said "the feel-your-best range of 70 to 100" and the band label said "Feel-your-best range 70 to 100". The band rect is unchanged. Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
+          <svg viewBox="0 0 460 300" role="img" aria-label="Ferritin trending down across three panels, from 74 in January 2024 to 48 in March 2025 to 22 in February 2026. Every value stays inside the clinical range, but the line drifts down out of the feel-your-best range and heads toward the low zone." style="width:100%;height:auto;display:block">
             <!-- functional target band -->
             <rect x="64" y="103" width="366" height="38" fill="#E3E7D3"/>
-            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#59663A">Feel-your-best range 70 to 100</text>
+            <text x="68" y="99" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#59663A">Feel-your-best range</text>
             <!-- functionally low zone -->
             <rect x="64" y="192" width="366" height="38" fill="#FAF0ED"/>
             <text x="68" y="206" font-family="'Instrument Sans',sans-serif" font-size="10" fill="#9C5E47">Low for feeling your best</text>
