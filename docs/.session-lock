@@ -1,4 +1,0 @@
-session: home-cleanup-115358
-taken: 2026-10-26T11:53:58Z
-scope: HOME_CLEANUP_V1 index.html: remove the marker ticker section and the "See what changed" block in What you get back; tests and CSS that reference them. Ferritin chart label held for approval.
-repos: biowellth-website
