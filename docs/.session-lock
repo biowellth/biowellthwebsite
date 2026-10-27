@@ -1,5 +1,0 @@
-session: waitlist-step2-launch-081829
-taken: 2026-10-27T08:18:29Z
-scope: WAITLIST_STEP2_V1 launch (founder decision 2026-10-27, counsel review moved to before the wider launch). Website: privacy.html v1.5, push. Supabase: founder sets WAITLIST_STEP2_ENABLED=true; live smoke test and test-row deletes. Backend: counsel request status line. Pushes approved in session.
-repos: biowellth-website, biowellth-backend-supa
-scope-extended: 2026-10-27, same session: remove internal HTML comments from every served page (archive to docs/html-comment-archive-2026-10-27.md), add scripts/test-no-internal-comments.mjs, push. The launch task's two test rows are still pending removal by the founder via the email links.
