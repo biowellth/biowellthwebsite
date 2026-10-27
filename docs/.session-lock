@@ -1,4 +1,5 @@
-session: waitlist-step2-modal-060131
-taken: 2026-10-27T06:01:31Z
+session: waitlist-step2-modal-070040
+taken: 2026-10-27T07:00:40Z
 scope: WAITLIST_STEP2_V1 amendment 2026-10-27: step 2 moves from an in-card swap to one shared modal in index.html; scripts/test-waitlist-inline.mjs; docs/waitlist-step2-plan.md build record. Local commits only, nothing pushed.
 repos: biowellth-website
+supersedes: waitlist-step2-modal-060131, taken 2026-10-27T06:01:31Z. Superseded at 49 minutes old, under the 90 minute stale rule, on explicit founder approval in session. Reason: no Claude process for it was running (ps showed only this session), its last write to index.html was 06:10Z, and it made no commit after the lock. Its uncommitted index.html work (modal CSS only, +56/-20, no JS, no tests) is preserved in git stash as "waitlist-step2-modal-060131 uncommitted modal CSS"; this session starts from 544a5a7's index.html. Nothing of its committed work is touched.
