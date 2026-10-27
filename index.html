@@ -465,14 +465,17 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .wl-m-veil[hidden],.wl-m[hidden],.wl-m-pearl[hidden],.wl-m-step[hidden],.wl-s2-go[hidden]{display:none!important}
 .wl-m-veil{position:fixed;inset:0;z-index:1000;background:rgba(247,239,233,.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 html.wl-m-open #orb-canvas{z-index:1001}
-.wl-m-pearl{position:fixed;left:50%;top:50%;width:min(80vh,92vw);aspect-ratio:1;margin:calc(min(80vh,92vw) / -2) 0 0 calc(min(80vh,92vw) / -2);z-index:1001;background:url(/pearl.png) center/contain no-repeat;pointer-events:none}
+/* 2026-10-27 founder ruling: the orb behind the modal is a large centred glow framing the card on all
+   sides, 1.6x its #join size. For the pearl that is 1.6x the final CTA's min(80vh,92vw). */
+.wl-m-pearl{position:fixed;left:50%;top:50%;width:min(128vh,147.2vw);aspect-ratio:1;margin:calc(min(128vh,147.2vw) / -2) 0 0 calc(min(128vh,147.2vw) / -2);z-index:1001;background:url(/pearl.png) center/contain no-repeat;pointer-events:none}
 .wl-m{position:fixed;inset:0;z-index:1002;display:flex;align-items:center;justify-content:center;padding:24px}
-.wl-m-card{position:relative;width:100%;max-width:600px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain;padding:34px 36px 26px;border-radius:28px;background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.85);box-shadow:var(--shadow);text-align:left}
+.wl-m-card{position:relative;width:100%;max-width:600px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain;padding:34px 36px 0;border-radius:28px;background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.85);box-shadow:var(--shadow);text-align:left}
 /* No backdrop-filter: a near-solid cream veil, so no page content reads through it, and a card that
    does not lean on blur for its contrast. */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .wl-m-veil{background:rgba(247,239,233,.92)}
   .wl-m-card{background:rgba(255,255,255,.9)}
+  .wl-s2-actions::before{background:rgba(255,255,255,.9)}
 }
 html.wl-m-open,html.wl-m-open body{overflow:hidden}
 .wl-m-x{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
@@ -497,15 +500,22 @@ html.wl-m-open,html.wl-m-open body{overflow:hidden}
 .wl-chip input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--cream)}
 .wl-chip input:checked + span::before{content:"";flex:0 0 auto;width:12px;height:12px;background:no-repeat center/12px 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F8F2EC' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
 .wl-chip input:focus-visible + span{outline:2px solid var(--olive);outline-offset:2px}
-.wl-s2-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px}
+/* 2026-10-27: Move me up and Skip are a sticky footer inside the scrolling card, so the button is in
+   view without scrolling. The card's bottom padding moves onto the footer (and the result state) so
+   the footer sits flush on the card's bottom edge. Its ::before is the card's own frosted material,
+   faded in over 28px at the top so the chips scroll softly under it. The step-2 message sits in the
+   footer too, so a failed save is never scrolled out of sight. */
+.wl-s2-actions{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px;padding:14px 0 26px}
+.wl-s2-actions::before{content:"";position:absolute;z-index:-1;left:-36px;right:-36px;top:-28px;bottom:0;background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);-webkit-mask-image:linear-gradient(transparent,#000 28px);mask-image:linear-gradient(transparent,#000 28px);pointer-events:none}
+.wl-s2-actions .wl-msg{margin:0 0 6px}
 .wl-s2-actions .btn,.wl-m-close{width:100%}
 .wl-s2-actions .btn[aria-disabled="true"]{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .wl-s2-actions .btn[disabled]{cursor:progress;opacity:.75;transform:none;box-shadow:none}
 .wl-s2-skip{font:inherit;font-size:14px;font-weight:500;color:var(--ink-muted);background:none;border:0;min-height:44px;padding:0 12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(71,55,43,.35)}
 .wl-s2-skip:hover{color:var(--ink)}
 .wl-s2-skip:focus-visible{outline:2px solid var(--olive);outline-offset:2px;border-radius:8px}
-.wl-step2 .wl-msg{margin-top:12px}
 .wl-m-close{margin-top:24px}
+.wl-m-res{padding-bottom:26px}
 /* After a thank-you the done pill under the form carries two sentences, so it relaxes to a rounded
    card. (Before the 2026-10-27 amendment the thank-you appeared only there.) */
 .wl-done.is-thanks{border-radius:22px}
@@ -520,18 +530,23 @@ html.wl-m-open,html.wl-m-open body{overflow:hidden}
 @keyframes wlmFade{from{opacity:0}}
 @keyframes wlmRise{from{opacity:0;transform:translateY(14px) scale(.985)}}
 @keyframes wlmDrift{50%{transform:translateY(-14px) scale(1.02)}}
+/* The pearl grows from its section size (1/1.6) into the large glow. It animates the scale property,
+   so it composes with the drift on transform. */
+@keyframes wlmGrow{from{scale:.625}}
 .wl-m-veil{animation:wlmFade .22s ease backwards}
 .wl-m-card{animation:wlmRise .28s cubic-bezier(.2,.7,.2,1) backwards}
-.wl-m-pearl{animation:wlmDrift 9s ease-in-out infinite}
+.wl-m-pearl{animation:wlmGrow .6s cubic-bezier(.65,0,.35,1) backwards,wlmDrift 9s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.wl-m-veil,.wl-m-card,.wl-m-pearl{animation:none}}
 html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:none}
 /* Phones: the card fills the viewport with a 12px inset and scrolls inside itself. */
 @media(max-width:600px){
   .wl-m{padding:12px}
-  .wl-m-card{max-width:none;height:100%;max-height:none;padding:26px 20px 20px;display:flex;flex-direction:column}
+  .wl-m-card{max-width:none;height:100%;max-height:none;padding:26px 20px 0;display:flex;flex-direction:column}
+  .wl-s2-actions{padding-bottom:20px}
+  .wl-s2-actions::before{left:-20px;right:-20px}
   .wl-m-card>.wl-m-step{flex:0 0 auto}
   /* The thanks and skipped states are three lines, so in a full-height card they sit in the middle. */
-  .wl-m-res{margin:auto 0}
+  .wl-m-res{margin:auto 0;padding-bottom:20px}
 }
 
 /* FOOTER */
@@ -1448,7 +1463,8 @@ function wire(){
   if(window.ResizeObserver) new ResizeObserver(later).observe(document.body);
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(measure);
   measure();
-  window.__orb={measure:measure,force:function(f){ if(send) send({type:'force',f:f}); }};
+  // WAITLIST_STEP2_V1, 2026-10-27: force takes an optional duration in ms (see the engine's 'force').
+  window.__orb={measure:measure,force:function(f,d){ if(send) send({type:'force',f:f,d:d}); }};
 }
 
 /* The engine. Self-contained on purpose: it is serialised with toString() into the worker, so
@@ -1456,7 +1472,7 @@ function wire(){
    run, force. Message out: fail. */
 function orbEngine(scope,inWorker){
   var THREE,renderer,scene,camera,orb,glow,group,uniforms,VIS_H;
-  var keys=[],vw=1,vh=1,scrollPos=0,ptr={x:0,y:0},hueT=0,hue=0,forced=null;
+  var keys=[],vw=1,vh=1,scrollPos=0,ptr={x:0,y:0},hueT=0,hue=0,forced=null,tw=null;
   var cur=null,running=false,ready=false,raf=0,last=0,t0=0,minFrame=0,fine=false;
   var rafFn=scope.requestAnimationFrame?scope.requestAnimationFrame.bind(scope):function(f){ return setTimeout(function(){ f(performance.now()); },16); };
   var cafFn=scope.cancelAnimationFrame?scope.cancelAnimationFrame.bind(scope):clearTimeout;
@@ -1603,8 +1619,19 @@ function orbEngine(scope,inWorker){
     var time=(now-t0)/1000;
     var tg=target(scrollPos);
     if(!cur) cur={x:tg.x,y:tg.y,s:tg.s};
-    var k=1-Math.exp(-dt*3.2);
-    cur.x+=(tg.x-cur.x)*k; cur.y+=(tg.y-cur.y)*k; cur.s+=(tg.s-cur.s)*k;
+    if(tw&&!tw.from) tw.from={x:cur.x,y:cur.y,s:cur.s,at:now};
+    if(tw&&tw.dur>0){
+      // WAITLIST_STEP2_V1, 2026-10-27. A timed move into or out of a forced target (the step-2
+      // modal's large centred orb), eased in and out, ending exactly on the target so a release
+      // lands on the section keyframe the page had before. The usual chase resumes after it.
+      var p=Math.min(1,Math.max(0,(now-tw.from.at)/tw.dur)), e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+      cur.x=tw.from.x+(tg.x-tw.from.x)*e; cur.y=tw.from.y+(tg.y-tw.from.y)*e; cur.s=tw.from.s+(tg.s-tw.from.s)*e;
+      if(p>=1) tw=null;
+    }else{
+      if(tw){ cur.x=tg.x; cur.y=tg.y; cur.s=tg.s; tw=null; }
+      var k=1-Math.exp(-dt*3.2);
+      cur.x+=(tg.x-cur.x)*k; cur.y+=(tg.y-cur.y)*k; cur.s+=(tg.s-cur.s)*k;
+    }
     hue+=(hueT-hue)*(1-Math.exp(-dt*2));
     // Rise from below on arrival.
     var rise=forced?1:Math.min(1,time/2.6); rise=1-Math.pow(1-rise,3);
@@ -1638,7 +1665,8 @@ function orbEngine(scope,inWorker){
         case 'scroll': scrollPos=m.y; break;
         case 'ptr': ptr.x=m.x; ptr.y=m.y; break;
         case 'hue': hueT=m.v; break;
-        case 'force': forced=m.f; break;
+        // m.d, if given, is a timed move in ms (0 snaps). Without it the usual chase applies.
+        case 'force': forced=m.f; tw=typeof m.d==='number'?{dur:m.d,from:null}:null; break;
         case 'run': setRun(!!m.v); break;
       }
     }catch(e){ fail(); }
@@ -1696,8 +1724,8 @@ function orbEngine(scope,inWorker){
           <label class="wl-chip"><input type="radio" name="chat" value="no"><span>No</span></label>
         </div>
       </fieldset>
-      <p class="wl-msg" id="wl-s2-msg" role="status" aria-live="polite"></p>
       <div class="wl-s2-actions">
+        <p class="wl-msg" id="wl-s2-msg" role="status" aria-live="polite"></p>
         <button class="btn btn-ink wl-s2-go" type="submit" aria-disabled="true" aria-describedby="wl-s2-msg">Move me up</button>
         <button class="wl-s2-skip" type="button">Skip for now</button>
       </div>
@@ -1779,7 +1807,14 @@ function orbEngine(scope,inWorker){
     var veil = document.querySelector(".wl-m-veil"), pearl = document.querySelector(".wl-m-pearl");
     var card = m.querySelector(".wl-m-card"), s2 = m.querySelector(".wl-step2"), res = m.querySelector(".wl-m-res");
     var go = s2.querySelector(".wl-s2-go"), msg = s2.querySelector(".wl-msg");
-    var token = null, fin = "done", pill = null, busy = false, fails = 0, last = {}, run = 0, inerted = [];
+    var token = null, fin = "done", pill = null, busy = false, fails = 0, last = {}, run = 0, inerted = [], orbBig = false;
+    function still(){ return root.classList.contains("reduce") || !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
+    // The #join keyframe, read the way measure() reads it, scaled 1.6x and centred.
+    function bigOrb(){
+      var j = document.getElementById("join"), mob = window.matchMedia && matchMedia("(max-width:767px)").matches;
+      var a = ((j && ((mob && j.getAttribute("data-orb-m")) || j.getAttribute("data-orb"))) || "0,0,0.86").split(",").map(parseFloat);
+      return { x: 0, y: 0, s: a[2] * 1.6 };
+    }
 
     function answers(){
       var out = {}, n = 0;
@@ -1820,7 +1855,11 @@ function orbEngine(scope,inWorker){
         return el !== m && el !== veil && el !== pearl && !/^(SCRIPT|TEMPLATE|STYLE)$/.test(el.tagName) && !el.inert;
       });
       inerted.forEach(function(el){ el.inert = true; });
-      pearl.hidden = liveOrb();
+      orbBig = liveOrb();
+      pearl.hidden = orbBig;
+      // 2026-10-27 founder ruling: the live orb moves to the centre at 1.6x its #join size (desktop or
+      // phone keyframe, as measure() would pick), eased over 600ms, none under reduced motion.
+      if(orbBig && window.__orb && window.__orb.force) window.__orb.force(bigOrb(), still() ? 0 : 600);
       root.classList.add("wl-m-open");
       // Lenis (HOMEPAGE_MOTION_V1) scrolls the page from JS on wheel, which overflow:hidden alone does
       // not stop. Stopped, it swallows the wheel over the backdrop; the card is data-lenis-prevent,
@@ -1837,6 +1876,9 @@ function orbEngine(scope,inWorker){
       token = null;
       m.hidden = true; veil.hidden = true; pearl.hidden = true;
       root.classList.remove("wl-m-open");
+      // Released, the engine eases back onto exactly the section keyframe it left.
+      if(orbBig && window.__orb && window.__orb.force) window.__orb.force(null, still() ? 0 : 600);
+      orbBig = false;
       if(window.__lenis) try{ window.__lenis.start(); }catch(_){}
       inerted.forEach(function(el){ el.inert = false; });
       inerted = [];

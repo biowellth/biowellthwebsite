@@ -10,7 +10,8 @@
 // 390, including that no chip is ever coral and that the step-2 token never leaves the closure.
 // Amended 2026-10-27: step 2 is ONE shared modal, not an in-card swap. WS-1 to WS-10 cover that it
 // opens only after the 200, that X, Esc and a backdrop click are Skip with no /profile request, the
-// focus trap, the scroll lock, and one modal whichever of the three forms submitted.
+// focus trap, the scroll lock, and one modal whichever of the three forms submitted. WS-18 (the
+// large centred orb behind the modal) and WS-19 (the sticky Move me up footer) followed the same day.
 //
 // Also guards the removal of the third-party form: no "typeform" anywhere in index.html or
 // dashboard.html, and no iframe on the page.
@@ -90,8 +91,8 @@ const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: t
 await send("Page.enable", {}, sessionId);
 await send("Emulation.setFocusEmulationEnabled", { enabled: true }, sessionId);
 const ev = async (expr) => (await send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true }, sessionId)).result?.value;
-async function open(path, width = 1280) {
-  await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 }, sessionId);
+async function open(path, width = 1280, height = 900) {
+  await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 500 }, sessionId);
   await send("Page.navigate", { url: "http://127.0.0.1:" + PORT + "/" + path }, sessionId);
   await sleep(1800);
 }
@@ -485,6 +486,67 @@ const fb = JSON.parse(await ev(`(() => {
 })()`));
 ok(fb.length === 1 && /\.wl-m-veil\s*\{\s*background:\s*rgba\(247, 239, 233, 0\.92\)/.test(fb[0]),
   "WS-16b without backdrop-filter the veil falls back to solid cream at 0.92 (" + (fb[0] || "").replace(/\s+/g, " ") + ")");
+
+// WS-18. The orb behind the modal (founder ruling 2026-10-27): centred, at 1.6x its #join size, and
+// back to exactly its section box on close. Headless runs the pearl path, so that is measured on
+// screen. The live canvas path is checked at its wiring: a recorder stands in for window.__orb.
+const pearlBox = (sel) => `(() => { const el = document.querySelector('${sel}');
+  // The drift animation moves the pearl by up to 14px and 2%. Hold it at its rest frame to measure.
+  el.getAnimations().forEach(a => { if (a.animationName === 'wlmDrift') { a.pause(); a.currentTime = 0; } });
+  const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height, innerWidth, innerHeight]; })()`;
+for (const width of [1440, 390]) {
+  await open("index.html", width);
+  // The same scroll signup() will use, so the pre-open and post-close boxes are read from one position.
+  await ev(`document.querySelector('#wl-email-join').closest('.wl-block').scrollIntoView({ block: 'center', behavior: 'instant' })`);
+  const pre = await ev(pearlBox("#join .pearl-static"));
+  await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+  await sleep(400);
+  const big = await ev(pearlBox(".wl-m-pearl"));
+  const cx = big[0] + big[2] / 2, cy = big[1] + big[3] / 2;
+  ok(Math.abs(cx - big[4] / 2) <= 3 && Math.abs(cy - big[5] / 2) <= 3 && big[2] >= 1.5 * pre[2] && big[3] >= 1.5 * pre[3],
+    `WS-18 join at ${width}: with the modal open the orb is centred (${Math.round(cx)},${Math.round(cy)} in ${big[4]}x${big[5]}) and ${(big[2] / pre[2]).toFixed(2)}x its pre-open size (${Math.round(pre[2])} to ${Math.round(big[2])}px)`);
+  await step2("join", [], "esc");
+  const post = await ev(pearlBox("#join .pearl-static"));
+  const gone = await ev(`document.querySelector('.wl-m-pearl').hidden`);
+  ok(gone && post.every((v, i) => Math.abs(v - pre[i]) <= 0.5), `WS-18b join at ${width}: after close the orb is back in its pre-open box ` + JSON.stringify([pre, post].map(b => b.slice(0, 4).map(Math.round))));
+}
+for (const [width, s, reduce] of [[1440, 0.86, false], [390, 1.05, false], [1440, 0.86, true]]) {
+  if (reduce) await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+  await open("index.html", width);
+  await ev(`(() => { const r = document.documentElement; r.classList.remove('orb-static'); r.classList.add('orb-live');
+    window.__orb = { log: [], measure() {}, force(f, d) { this.log.push([f, d]); } }; })()`);
+  await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+  const o = JSON.parse(await ev(`JSON.stringify({ log: window.__orb.log, pearl: !document.querySelector('.wl-m-pearl').hidden, z: getComputedStyle(document.getElementById('orb-canvas')).zIndex })`));
+  await step2("join", [], "x");
+  const after = JSON.parse(await ev(`JSON.stringify(window.__orb.log)`));
+  const d = reduce ? 0 : 600, f = o.log[0] && o.log[0][0];
+  ok(o.log.length === 1 && f && f.x === 0 && f.y === 0 && Math.abs(f.s - s * 1.6) < 1e-9 && o.log[0][1] === d && !o.pearl && o.z === "1001",
+    `WS-18c live orb at ${width}${reduce ? ", reduced motion" : ""}: forced to the centre at 1.6x the #join keyframe (${f && f.s.toFixed(3)}), over ${d}ms, above the veil, no pearl`);
+  ok(after.length === 2 && after[1][0] === null && after[1][1] === d,
+    `WS-18d live orb at ${width}${reduce ? ", reduced motion" : ""}: released on close over ${d}ms, so the engine returns to the section keyframe`);
+  if (reduce) await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+}
+
+// WS-19. Move me up and Skip are a sticky footer: in view without scrolling, and nothing is ever stuck
+// under them. The content must actually overflow the card for the first half to mean anything.
+for (const [width, height] of [[1440, 800], [390, 844]]) {
+  await open("index.html", width, height);
+  await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+  const f = JSON.parse(await ev(`(async () => {
+    const card = document.querySelector('.wl-m-card'), go = card.querySelector('.wl-s2-go'), skip = card.querySelector('.wl-s2-skip'), foot = card.querySelector('.wl-s2-actions');
+    const box = e => { const r = e.getBoundingClientRect(); return { t: r.top, b: r.bottom }; };
+    const c0 = box(card), g0 = box(go), s0 = box(skip), st = card.scrollTop, overflow = card.scrollHeight - card.clientHeight, pos = getComputedStyle(foot).position;
+    card.scrollTop = card.scrollHeight; await new Promise(r => setTimeout(r, 100));
+    const chips = [...card.querySelectorAll('.wl-chip span')], lastChip = box(chips[chips.length - 1]), f1 = box(foot), g1 = box(go), c1 = box(card);
+    const msgInFoot = foot.contains(card.querySelector('#wl-s2-msg'));
+    return JSON.stringify({ c0, g0, s0, st, overflow, pos, lastChip, f1, g1, c1, msgInFoot });
+  })()`));
+  ok(f.overflow > 40 && f.pos === "sticky", `WS-19 at ${width}x${height}: control, the step-2 content overflows the card by ${Math.round(f.overflow)}px, and the footer is sticky`);
+  ok(f.st === 0 && f.g0.t >= f.c0.t && f.g0.b <= f.c0.b && f.s0.b <= f.c0.b + 0.5,
+    `WS-19b at ${width}x${height}: Move me up and Skip are inside the visible card without scrolling (button ${Math.round(f.g0.t)} to ${Math.round(f.g0.b)}, card to ${Math.round(f.c0.b)})`);
+  ok(f.lastChip.b <= f.f1.t + 1 && f.g1.b <= f.c1.b && f.msgInFoot,
+    `WS-19c at ${width}x${height}: scrolled to the end, the last chip clears the footer, and the message lives in the footer`);
+}
 
 // WS-17. The token never leaves the closure, and no chip is ever coral or off the site font.
 await open("index.html?utm_source=ig", 1440);
