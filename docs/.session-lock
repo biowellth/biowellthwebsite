@@ -2,3 +2,4 @@ session: waitlist-step2-counsel-074656
 taken: 2026-10-27T07:46:56Z
 scope: WAITLIST_STEP2_V1 counsel package: drop the superseded 060131 stash; docs/waitlist-step2-deploy-runbook.md. Docs only, no code, nothing pushed or deployed.
 repos: biowellth-website, biowellth-backend-supa
+scope-extended: 2026-10-27, same session, founder approval for push and deploy given in session: WAITLIST_STEP2_V1 dark ship. Backend: WAITLIST_STEP2_ENABLED kill switch (default off) in waitlist-signup, apply migration 0077 live, deploy waitlist-signup only, push main. Website: push main, docs/waitlist-step2-deploy-runbook.md and docs/waitlist-step2-launch-day.md. Privacy v1.5 NOT published, WAITLIST_STEP2_ENABLED NOT set.
