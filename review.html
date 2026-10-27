@@ -3,19 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<!-- REVIEW_GATE_V1 (supa docs/review-gate-phase2-spec.md, decision 2). Unlinked, never indexed.
-     Every read and every write goes through the review-action edge function; this page makes no
-     table read of its own. review-action checks reviewers membership before reading anything. -->
 <meta name="robots" content="noindex,nofollow"/>
-<!-- REVIEW_NO_STORE_V1. GitHub Pages cannot send response headers, so the page asks browsers not to cache
-     it. The data itself comes from review-action, whose every response carries Cache-Control: no-store. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
 <title>Review</title>
-<!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" href="/favicon.ico?v=olive1"/>
-<!-- LEFTOVERS_PALETTE_V1: Fraunces replaces Plus Jakarta Sans, the same link login.html and index.html use, plus JetBrains Mono. -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -111,7 +104,6 @@ details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:
     <div class="msg err" id="login-msg"></div>
   </div>
 
-  <!-- REVIEWER_MFA_V1: review-action refuses any session without a verified TOTP second factor (aal2). -->
   <div class="card hidden" id="view-mfa" style="max-width:460px">
     <h2 id="mfa-title">Set up a second step</h2>
     <p class="muted" id="mfa-intro"></p>
@@ -140,7 +132,6 @@ details summary{cursor:pointer;color:var(--brown-mid);font-size:13px;margin-top:
   <div class="hidden" id="view-detail">
     <div class="actions" style="margin:0 0 12px"><button class="btn alt" id="back" type="button">Back to the queue</button></div>
     <div class="card" style="margin-bottom:14px"><div id="detail-head"></div></div>
-    <!-- REVIEWER_CONTEXT_V1: what Call B was told about her, from the snapshot stored in the run that built it. -->
     <div class="card" style="margin-bottom:14px" id="context-card">
       <h2>What the report was based on</h2>
       <p class="muted" id="context-source"></p>

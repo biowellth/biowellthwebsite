@@ -5,10 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>BioWellth · Early access</title>
-<!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" href="/favicon.ico?v=olive1"/>
-<!-- LOGIN_PALETTE_V1: index.html's font link, Fraunces plus Instrument Sans. Plus Jakarta Sans (only .brand-name and h1)
-     and JetBrains Mono (used by nothing) are no longer loaded. -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -78,7 +75,6 @@ form{margin:0}
 <body>
 <div class="wrap">
   <div class="brand">
-    <!-- LOGIN_BRAND_MARK_V1: the BioWellth mark replaces the teal "B" placeholder. Decorative; "BioWellth" beside it stays the accessible name. -->
     <svg class="brand-mark" viewBox="0 0 100 100" fill-rule="evenodd" aria-hidden="true" focusable="false"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
 -8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
 -130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
@@ -150,13 +146,9 @@ form{margin:0}
   <div class="card">
     <div class="eyebrow">Early access</div>
 
-    <!-- CREATE ACCOUNT -->
     <div id="signup-view" class="hidden">
       <h1>Create your account</h1>
       <p class="sub">Use the email address you were invited with. Early access is by invitation.</p>
-      <!-- LOGIN_DEFAULT_V1. A real form, with a name on every control. Without one the
-           browser has no field grouping to reason about and falls back to position, which
-           is how a saved email ended up in Your name. -->
       <form id="signup-form">
       <label for="su-name">Your name</label>
       <input id="su-name" name="name" type="text" autocomplete="name" placeholder="Priya Sharma"/>
@@ -166,9 +158,6 @@ form{margin:0}
       <input id="su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
       <label for="su-pass2">Confirm your password</label>
       <input id="su-pass2" name="password_confirm" type="password" autocomplete="new-password" placeholder="Type it again"/>
-      <!-- AGE_AFFIRM_V1 — unticked by default, never pre-checked. The button below is
-           disabled until this is ticked; the handler re-checks it so the gate does not
-           live only in a DOM property. -->
       <label class="consent-row" id="su-age-row">
         <input type="checkbox" id="su-age" name="agree18"/>
         <span><b>I am 18 or older.</b>BioWellth is for adults 18 and older.</span>
@@ -178,7 +167,6 @@ form{margin:0}
       <div class="toggle">Already have an account? <a id="to-login">Sign in</a></div>
     </div>
 
-    <!-- SIGN IN -->
     <div id="login-view">
       <h1>Welcome back</h1>
       <p class="sub">Sign in to see your results.</p>
@@ -192,11 +180,6 @@ form{margin:0}
       <div class="toggle">First time here? <a id="to-signup">Create your account</a></div>
     </div>
 
-    <!-- CHECK YOUR EMAIL. LOGIN_FLOW_V2. Confirmations are on, so a successful signUp
-         returns NO session and the account is inert until the link is opened. Swapping
-         straight to the sign in form told the user to do the one thing that cannot work
-         yet. The address is written with textContent, never innerHTML, because it is
-         attacker-supplied text arriving from a form field. -->
     <div id="check-email-view" class="hidden">
       <h1>Check your email</h1>
       <p class="sub">We sent a confirmation link to <b id="ce-address"></b>. Open it to activate your account, then come back here to sign in.</p>

@@ -47,9 +47,11 @@ console.log("DAILY_CARD_SUBTITLE_V1");
 ok(SRC.includes('<div class="dc-status">' + NEW + '</div>'),
    "the render writes the new subtitle into .dc-status");
 eq((SRC.match(new RegExp(OLD, "g")) || []).length, 0, "the old string appears nowhere in the app block");
-// CONTROL: the matcher would have found it. Same string, same run, against the shipped file.
-eq((HTML.match(/invitations third/g) || []).length, 1,
-   "CONTROL: the card-order comment still says 'invitations third', so the search can fire");
+// CONTROL: the matcher would have found it. Same matcher, same run, against the shipped source with the
+// old string put back once. (HTML_COMMENT_CLEANUP_V1, 2026-10-27: this used to count "invitations
+// third" in a card-order comment, and every <!-- --> comment left the served pages that day.)
+eq(((SRC + OLD).match(new RegExp(OLD, "g")) || []).length, 1,
+   "CONTROL: with the old string put back once, the same search finds it once");
 
 // ── 2. dcUpdateProgress swaps correctly, exercised for real ──────────────────
 function runProgress({ done, total }) {

@@ -1,15 +1,10 @@
 <!DOCTYPE html>
-<!-- PRIVACY_TRUTH_V1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>BioWellth: Your tests came back normal. You're still exhausted.</title>
-<!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-<!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-<!-- WAITLIST_INDIA_REMOVE_V1: the closing sentence naming the waitlist region was removed at Aditi's call. -->
 <meta name="description" content="A home blood panel built for South Asian women's biology, read for where you feel your best and tracked over time."/>
-<!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" type="image/png" href="/favicon-96x96.png?v=olive1" sizes="96x96"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=olive1"/>
 <link rel="shortcut icon" href="/favicon.ico?v=olive1"/>
@@ -17,7 +12,6 @@
 <link rel="manifest" href="/site.webmanifest"/>
 <link rel="canonical" href="https://biowellth.ai/"/>
 <meta property="og:title" content="BioWellth: Your tests came back normal. You're still exhausted."/>
-<!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
 <meta property="og:description" content="Your body was right all along. Health interpretation built for South Asian women's biology."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://biowellth.ai/"/>
@@ -25,14 +19,11 @@
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
 <meta name="twitter:title" content="BioWellth: Health interpretation for South Asian women"/>
 <meta name="twitter:description" content="Reference ranges weren't built for your biology. We're building a panel and a reading that are."/>
 <meta name="twitter:image" content="https://biowellth.ai/og_final.png"/>
 <meta name="robots" content="index, follow"/>
 
-<!-- JSON-LD: Organization -->
-<!-- FOUNDER_NAME_REMOVE_V1: the Organization block no longer carries the "founder" Person or the "sameAs" key, whose only entry was the personal LinkedIn. -->
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -49,7 +40,6 @@
 }
 </script>
 
-<!-- JSON-LD: WebSite -->
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -60,8 +50,6 @@
 }
 </script>
 
-<!-- JSON-LD: FAQPage -->
-<!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): the ferritin answer said "Functional medicine commonly targets 70-100 ng/mL". JSON cannot carry a comment, so this one sits outside the block. Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -112,14 +100,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<!-- HOMEPAGE_MOTION_V1: the brand serif stays Fraunces, which this repo already loads, rather
-     than the Instrument Serif the brief named as a default. Plus Jakarta Sans and JetBrains Mono
-     are dropped from this page only; the app and legal pages still load them. -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-<!-- HOMEPAGE_MOTION_V1: decide the motion and orb mode before first paint, so no state flashes.
-     motion      the GSAP choreography may hide intro states. Removed again if GSAP fails to load.
-     orb-live    WebGL is available, the canvas orb runs.
-     orb-static  reduced motion or no WebGL, the committed pearl.png stands in. -->
 <script>
 (function(){
   var r=document.documentElement, reduce=false, gl=false;
@@ -627,10 +608,8 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
 <body data-page="home">
 <canvas id="orb-canvas" aria-hidden="true"></canvas>
 
-<!-- NAV. HOMEPAGE_MOTION_V1: frosted pill, new brand mark (olive dot + brown serif wordmark). -->
 <nav id="sitenav" aria-label="Main">
   <div class="nav-inner">
-    <!-- BRAND_MARK_HEADER_V1: the BioWellth mark, the same paths as dashboard.html's #bw-mark symbol (the brown mark, not the olive-disc favicon). Decorative; the wordmark text stays the accessible name. -->
     <a class="brand" href="/" onclick="if(window.showPage){event.preventDefault();showPage('home');}"><svg class="brand-mark" viewBox="0 0 100 100" fill-rule="evenodd" aria-hidden="true" focusable="false"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
 -8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
 -130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
@@ -699,34 +678,22 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
     <div class="nav-right">
       <a href="/science#how" class="nav-link">How it works</a>
       <a href="#sana" class="nav-link">Sana</a>
-      <!-- ABOUT_LABEL_V1: visible label only, href /science unchanged -->
       <a href="/science" class="nav-link">About</a>
-      <!-- WAITLIST_INLINE_V1: scrolls to the final CTA form (#join). route() and goToSection()
-           handle it from any page, exactly as the #sana link above does. -->
       <a href="#join" class="btn btn-ink nav-cta">Join the waitlist</a>
     </div>
   </div>
 </nav>
 
-<!-- HOME. HOMEPAGE_MOTION_V1. Every section is transparent so the fixed orb travels behind it.
-     data-orb is "x,y,size": x and y as fractions of the viewport from its centre, size as a
-     fraction of the viewport's shorter side. data-orb-m is the same under 768px. -->
 <div id="page-home" class="page active">
 <main>
 
 <section class="hero" data-orb="0,-0.4,0.8" data-orb-m="0,-0.36,0.95" aria-labelledby="hero-h">
   <div class="pearl-static" aria-hidden="true"></div>
   <div class="wrap hero-copy">
-    <!-- HERO_PREVENTIVE_EYEBROW_V1: was "Built for South Asian women", changed at Aditi's call. -->
     <p class="eyebrow" data-intro>Preventive health for South Asian women</p>
     <h1 class="display" id="hero-h">Your tests came back normal. <em class="l2" data-intro>You're still exhausted.</em></h1>
-    <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-    <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-    <!-- HERO_COPY_V1: lede rewritten and the upload line removed from the hero at Aditi's call (2026-10-26).
-         "feel&nbsp;your&nbsp;best." is joined so "best." does not sit alone on a line at 375px. -->
     <p class="lede" data-intro>A home blood test for the markers your checkup skips, read for where you feel&nbsp;your&nbsp;best.</p>
     <div class="hero-ctas" data-intro>
-      <!-- WAITLIST_INLINE_V1: form instance 1. Replaces the button that opened the early-access page. -->
       <div class="wl-hero">
       <div class="wl-block" hidden>
         <form class="wl-form" data-wl="inline-v1" novalidate>
@@ -741,7 +708,6 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
         <p class="wl-done" tabindex="-1" role="status" hidden><span class="wl-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="wl-done-text"></span></p>
       </div>
       </div>
-      <!-- HERO_LINE_REMOVE_V1: the offer line and "How we read a panel" link that sat here were removed (Aditi, 2026-10-26) -->
     </div>
   </div>
   <div class="wrap hero-foot">
@@ -759,31 +725,12 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
         </div>
       </div>
     </div>
-    <!-- HERO_CARD_ROWS_V1 (2026-10-26, Aditi): was "Illustrative example. Not medical advice." -->
     <p class="hero-caption">Illustrative example. What a panel skips varies by person. Not medical advice.</p>
     <div class="hcard-wrap">
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <!-- HOME_DRAW_COPY_V1 (2026-10-26, Aditi): the card now frames one home draw as your usual checkup plus 4 areas
-           it skips. No verified draw count exists yet, so no total is shown. Replace with the lab partner's count when
-           the panel is final. "your&nbsp;usual&nbsp;checkup" is joined so "checkup" does not sit alone on a line.
-           Superseded 2026-10-26 by HERO_CARD_ROWS_V1: the eyebrow is "Your panel skipped these", the numeral is "4"
-           and the caption is "categories." over "We test them." The 4 is an illustrative example, not a universal
-           count: what a panel skips varies by person, which the hero caption under the cards now says. The 01 card
-           carries the 170+ draw count (PANEL_COUNT_V1). -->
       <div class="hcard hcard-b glass" role="group" aria-label="Illustrative example. Your panel skipped these 4 categories: thyroid, iron stores, inflammation, and stress and cycle hormones. We test them.">
         <p class="eyebrow">Your panel skipped these</p>
         <div class="hc-big"><span class="hc-num">4</span><span class="hc-cap">categories.<br><strong>We test them.</strong></span></div>
         <ul class="chips">
-          <!-- HERO_COPY_V1: Free T3 and Free T4 become Full thyroid, hsCRP becomes Inflammation, and Adrenal
-               hormones covers AM cortisol and DHEA-S. Progesterone keeps its name. Still six markers, so the 6
-               above holds. HERO_CARD_CAPTION_V1 (2026-10-26): the caption next to the 6 now reads "markers our
-               panel adds, across four areas", so it explains why six markers show as four chips.
-               Corrected 2026-10-26 by HERO_CARD_AREAS_V1: the card now counts areas, not markers. The numeral is 4,
-               the caption is "areas our panel adds", and the aria-label says 4 areas. The four chips still cover
-               the same six markers (Free T3, Free T4, hsCRP, AM cortisol, DHEA-S, Progesterone).
-               Corrected 2026-10-26 by HERO_CARD_CHIPS_V1: the chips are now four areas covering the seven markers
-               science.html says the panel adds. Thyroid is Free T3 and Free T4, Iron stores is ferritin,
-               Inflammation is hsCRP, and Stress and cycle hormones is AM cortisol, DHEA-S and progesterone. -->
           <li>Thyroid</li><li>Iron stores</li><li>Inflammation</li><li>Stress and cycle hormones</li>
         </ul>
       </div>
@@ -791,22 +738,12 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
   </div>
 </section>
 
-<!-- HOME_CLEANUP_V1: the marker ticker that sat here was removed (Aditi, 2026-10-26). -->
 
-<!-- Drift. The chart is olive: it is BioWellth's read of the trend. -->
 <section class="drift" id="drift" data-orb="-0.3,0.02,0.46" data-orb-m="-0.3,-0.25,0.62" aria-labelledby="drift-h">
   <div class="drift-sticky">
     <div class="wrap drift-grid">
       <figure class="chart-card glass" data-reveal>
-        <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
-        <!-- FERRITIN_NUMBERS_V1: data 85/60/42 -> 74/48/22 on the existing scale, y = 88 + (100 - value) * 2.4. 22 lands at y 275.2, above the 280 axis, so no rescale. The middle data-at is 0.5 because both segments are now the same length. Band and its label unchanged. -->
-        <!-- FERRITIN_NUMBERS_V1: breathing room for the 22 point. The scale, band, points and labels are
-             unchanged. The axis moves 280 -> 315, the dates 304 -> 339, the status labels 322 -> 357 and
-             the viewBox height 330 -> 365, so +35 units. That is the smallest whole shift that leaves 16px
-             or more between the 22 marker and the axis at 390, where the chart is drawn at about 0.53px per
-             unit, so 16px is about 30 units below the end marker's bottom edge at 284.2. -->
         <svg viewBox="0 0 560 365" role="img" aria-labelledby="drift-svg-t">
-          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): the title ended "feel-your-best range of 70 to 100." Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
           <title id="drift-svg-t">Ferritin across three panels. 74 in January 2024, 48 in March 2025, 22 in February 2026. Every value was reported as normal, while the line drifted down out of the feel-your-best range.</title>
           <defs>
             <radialGradient id="mini-pearl" cx="35%" cy="30%" r="75%">
@@ -814,17 +751,11 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
             </radialGradient>
           </defs>
           <rect x="40" y="88" width="500" height="72" rx="10" fill="#8C9A5B" fill-opacity=".2"/>
-          <!-- FERRITIN_RANGE_V1 (2026-10-26, Aditi): label was "Feel-your-best range 70 to 100". The band rect is
-               unchanged. Ferritin target is 60 to 100 in the library, pending FM-advisor sign-off
-               (advisor-packet-2026-09-02.md); no range numbers in marketing until approved. -->
           <text x="54" y="110" font-family="'Instrument Sans',sans-serif" font-size="13" font-weight="500" fill="#4A5530">Feel-your-best range</text>
           <line x1="40" y1="315" x2="540" y2="315" stroke="#47372B" stroke-opacity=".14"/>
           <path id="drift-line" d="M100,150.4 L290,212.8 L480,275.2" fill="none" stroke="#59663A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           <g class="pt on" data-at="0">
             <circle cx="100" cy="150.4" r="7" fill="#59663A" stroke="#fff" stroke-width="2.5"/>
-            <!-- FERRITIN_NUMBERS_V1: the 74 label moved from under the point (x 100, y 172.4, middle) to its left
-                 (x 84, y 157, end), because under the point it touched the line. Measured clearance from the line
-                 is 12.8px at 1440 and 7.4px at 390, and from the dot 6.8px and 3.8px. -->
             <text x="84" y="157" text-anchor="end" font-family="Fraunces,Georgia,serif" font-size="18" fill="#47372B">74</text>
             <text x="100" y="339" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="13" fill="#6B5545">Jan 2024</text>
             <text x="100" y="357" text-anchor="middle" font-family="'Instrument Sans',sans-serif" font-size="12.5" font-weight="500" fill="#59663A">in range</text>
@@ -848,27 +779,19 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
       <div class="drift-copy" data-reveal>
         <p class="eyebrow">Ferritin · last 3 panels</p>
         <h2 class="h2" id="drift-h">Every report said normal. <em style="display:block">The trend didn't.</em></h2>
-        <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
         <p class="lede">In range on every report. Falling across all three. Retest with us and we read every panel together, so you see which way you're moving.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Three stacking cards. Sticky on desktop, a plain stack under 768px. -->
 <section class="stack" id="read" data-orb="0.33,0.04,0.42" data-orb-m="0.34,0.3,0.55" aria-label="The panel, your cycle, your biology">
   <div class="wrap stack-cards">
     <article class="stack-card glass">
       <p class="eyebrow">01 · The panel</p>
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <!-- PANEL_COUNT_V1 (2026-10-26, Aditi): was "One draw" with "Your usual checkup markers, plus the ones it skips,
-           drawn at home." (HOME_DRAW_COPY_V1). "21 categories" stays retired.
-           170+ confirmed by Aditi 2026-10-26 for the planned home draw. Lab partner panel list pending; add it as the
-           source when final, and update this number if the final panel differs. -->
       <div><div class="stack-big">170+</div><p class="stack-sub">markers, drawn at home</p></div>
     </article>
     <article class="stack-card glass">
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
       <p class="eyebrow">02 · Timed to your cycle</p>
       <div>
         <p class="stack-line">Drawn on the right day of your cycle.</p>
@@ -884,15 +807,11 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
   </div>
 </section>
 
-<!-- LANDING_PRODUCT_SHOTS_V1: "What you get back". Real dashboard.html screens rendered from a synthetic
-     panel by scripts/capture-landing-shots.mjs. No real person's data. data-orb is the midpoint of #read and #sana. -->
 <section class="shots" id="get-back" data-orb="0.38,-0.13,0.38" data-orb-m="0.38,-0.04,0.52" aria-labelledby="shots-h">
   <div class="wrap">
     <div class="shots-head" data-reveal>
       <p class="eyebrow">What you get back</p>
       <h2 class="h2" id="shots-h">Your panel, <em>read for you.</em></h2>
-      <!-- HERO_COPY_V1: "Sana reads it with you." became "Sana, your AI companion, walks you through it." This is her
-           first mention on the page now that the hero no longer introduces her, so the descriptor sits here (Aditi, 2026-10-26) -->
       <p class="shots-lead">Every result explained in plain words, and tracked from one panel to the next. Sana, your AI companion, walks you through it.</p>
     </div>
     <div class="shots-row1" data-reveal>
@@ -904,13 +823,10 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
         <img src="assets/landing/shot-03-mobile.webp" width="242" height="540" loading="lazy" decoding="async" alt="The same sample dashboard on a phone, with the greeting to Priya, the Steady label and the vitality score of 74.">
       </div>
     </div>
-    <!-- HOME_CLEANUP_V1: the "See what changed, not just what is." row (trends shot, heading, paragraph) was removed
-         (Aditi, 2026-10-26). The caption below stays because it also labels the dashboard mockup above as sample data. -->
     <p class="chat-caption">Sample report with illustrative data.</p>
   </div>
 </section>
 
-<!-- Sana. Olive section. -->
 <section class="sana" id="sana" data-orb="0.42,-0.3,0.34" data-orb-m="0.42,-0.38,0.5" aria-labelledby="sana-h">
   <div class="wrap">
     <div class="sana-panel">
@@ -919,13 +835,10 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
         <h2 class="h2" id="sana-h">Ask why. <em style="display:block">Sana answers from your data.</em></h2>
       </div>
       <div data-reveal>
-        <!-- TODO(HOMEPAGE_MOTION_V1): the Sana reply copy below needs reviewer sign-off before launch. -->
         <div class="chat-card glass" role="group" aria-label="Illustrative conversation with Sana">
           <div class="chat-head"><span class="mini" aria-hidden="true"></span><span class="eyebrow">Sana</span></div>
           <p class="bubble b-user">Why am I so tired lately?</p>
           <div class="typing" aria-hidden="true"><span></span><span></span><span></span></div>
-          <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-          <!-- FERRITIN_NUMBERS_V1: 85 to 42 -> 74 to 22 -->
           <p class="bubble b-sana">Your ferritin went from 74 to 22 across three panels. Each one was "in range", but that slide often tracks with low energy. Ferritin and hsCRP are worth raising with your doctor.</p>
         </div>
         <p class="chat-caption">Illustrative conversation.</p>
@@ -934,32 +847,21 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
   </div>
 </section>
 
-<!-- Founder. The full story is on /science#founder. -->
 <section class="founder" data-orb="-0.4,-0.26,0.28" data-orb-m="-0.4,-0.34,0.4" aria-label="From the founder">
   <div class="wrap">
     <blockquote data-reveal>
-      <!-- FERRITIN_NUMBERS_V1: founder quote -->
       <p>My mother was tired for three years. Every checkup said normal. Nobody ran ferritin. When someone finally did, the report read it as normal too.</p>
-      <!-- FOUNDER_NAME_REMOVE_V1 -->
       <footer>Founder · <a href="/science#founder">Read the full story</a></footer>
     </blockquote>
   </div>
 </section>
 
-<!-- Final CTA. The orb comes back centred and large. -->
 <section class="final" id="join" data-orb="0,0.02,0.86" data-orb-m="0,0.04,1.05" aria-labelledby="final-h">
   <div class="pearl-static" aria-hidden="true"></div>
   <div class="wrap final-inner">
     <h2 class="display" id="final-h" data-reveal>Join the waitlist.</h2>
     <div class="final-panel glass" data-reveal>
-      <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-      <!-- WAITLIST_INDIA_REMOVE_V1: the opening sentence naming the waitlist region was removed at Aditi's call. -->
       <p class="lede">Early access opens in small groups.</p>
-      <!-- HOMEPAGE_MOTION_V1 said this repo had no email-capture endpoint, so an email field here
-           would collect an address and then drop it, and the pill kept one button instead.
-           SUPERSEDED by WAITLIST_INLINE_V1, which added that endpoint (backend waitlist-signup).
-           Form instance 2. The signup notice under it is counsel's wording and replaces "Your data
-           is yours. Never sold." -->
       <div class="wl-block" hidden>
         <form class="wl-form" data-wl="inline-v1" novalidate>
           <div class="wl-pill">
@@ -978,9 +880,8 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
 </section>
 
 </main>
-</div><!-- /page-home -->
+</div>
 
-<!-- EARLY ACCESS -->
 <div id="page-early-access" class="page">
   <div class="ea-body">
     <section class="ea-hero">
@@ -990,10 +891,6 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
       <h2>Join the waitlist.</h2>
       <p>Be one of the first women to use BioWellth.</p>
     </section>
-    <!-- WAITLIST_INLINE_V1: form instance 3. It replaces the third-party embedded form, its popup
-         and the script that passed campaign tags into it. The tag rule lives on in the
-         WAITLIST_INLINE_V1 script at the end of body. The former provider's responses are kept
-         there and are not touched by this site (privacy policy v1.4, section 3). -->
     <div class="final-panel glass ea-inline">
       <p class="lede">Early access opens in small groups.</p>
       <div class="wl-block" hidden>
@@ -1013,9 +910,7 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
     <div class="ea-perks">
       <div class="perk">
         <div class="perk-dot"></div>
-        <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
         <h4>The full panel, drawn at home</h4>
-        <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
         <p>The markers a standard checkup skips, drawn at home and read for where you feel your best, with interpretation built for South Asian women, then tracked across every panel.</p>
       </div>
       <div class="perk">
@@ -1034,20 +929,16 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
       <p>Your health data is yours. We do not sell your data or share it for advertising. We use service providers who process it on our behalf, under contract, only to run the service. Your reports are encrypted in transit, access is scoped to your account, and you can delete everything at any time. We're building a health tool, not a data business.</p>
     </div>
   </div>
-</div><!-- /page-early-access -->
+</div>
 
-<!-- FOOTER. HOMEPAGE_MOTION_V1: light, one line of disclaimer, the legal links and support. -->
 <footer class="site-foot">
   <div class="wrap foot-inner">
-    <!-- LANDING_COPY_V1: copy only, home-draw story (2026-10-16) -->
-    <!-- RANGES_WORDING_V1: copy only, home-draw story and feel-your-best wording (2026-10-16) -->
     <p class="foot-disc">BioWellth is not a medical provider. Our blood work interpretation is built for South Asian women's biology. We don't diagnose, treat, or replace your doctor. We help you bring clearer questions to your doctor.</p>
     <nav class="foot-links" aria-label="Legal and support">
       <a href="/privacy">Privacy Policy</a>
       <a href="/terms">Terms &amp; Conditions</a>
       <a href="mailto:support@mybiowellth.com">support@mybiowellth.com</a>
     </nav>
-    <!-- FOUNDER_NAME_REMOVE_V1: the founder name and LinkedIn link were removed from the footer. -->
     <p class="foot-copy">© 2026 BioWellth. All rights reserved.</p>
   </div>
 </footer>
@@ -1196,10 +1087,6 @@ window.addEventListener('scroll',function(){
 route();
 </script>
 
-<!-- HOMEPAGE_MOTION_V1. GSAP + ScrollTrigger from cdnjs, Lenis from jsDelivr, all deferred.
-     Three.js is NOT a tag here: the motion script injects it only when the orb will actually
-     run (motion allowed and WebGL present), so reduced-motion and no-WebGL visitors never
-     download it. If GSAP fails, the onerror drops .motion so every state renders final. -->
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" onerror="document.documentElement.classList.remove('motion')"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
@@ -1674,11 +1561,6 @@ function orbEngine(scope,inWorker){
 }
 });
 </script>
-<!-- WAITLIST_STEP2_V1, amended 2026-10-27. ONE modal for the optional step 2, whichever of the three
-     forms submitted (it used to be a template cloned into each card). The veil, the pearl stand-in and
-     the dialog are siblings so the live orb canvas can sit between the veil and the card (see the CSS).
-     Copy is the founder's (ruling 6, 2026-10-26, and the 2026-10-27 amendment). The stored codes are the
-     CHECKs in backend migration 0077 and validate.ts. -->
 <div class="wl-m-veil" hidden></div>
 <div class="wl-m-pearl" aria-hidden="true" hidden></div>
 <div class="wl-m" id="wl-modal" role="dialog" aria-modal="true" aria-labelledby="wl-m-h" hidden>
@@ -2043,39 +1925,6 @@ function orbEngine(scope,inWorker){
 })();
 </script>
 
-<!-- ERROR_MONITORING_V1 — Sentry browser SDK, ERRORS ONLY.
-     Added 2026-09-20. There was no client-side error capture of any kind before this:
-     measured against the served bytes, sentry/posthog/gtag/googletagmanager/mixpanel/
-     amplitude/logrocket/datadog/bugsnag were all 0, and so were window.onerror and
-     unhandledrejection.
-
-     THE BUNDLE IS THE ERRORS-ONLY ONE, AND THAT IS A STRUCTURAL GUARANTEE rather than a
-     configuration one. bundle.min.js is 90,620 bytes; bundle.replay.min.js is 216,753 and
-     bundle.tracing.min.js is 147,894. The recorder and the tracing code are not in this
-     file, and the bundle says so itself — it carries the string "You are using
-     replayIntegration() even though this bundle does not include replay". The
-     replaysSessionSampleRate and replaysOnErrorSampleRate zeros below are therefore a
-     second layer over a bundle that physically cannot record a session.
-
-     PINNED WITH SRI, NO LOADER. A loader script is itself mutable, so pinning its version
-     pins nothing. The integrity hash was computed from the fetched bytes and confirmed
-     identical across two independent fetches.
-
-     NO SOURCEMAPS AND NO BUILD STEP, deliberately. This file is served unminified as
-     authored (65 bytes per line average, 641 indented lines), so stack frames already
-     carry real line numbers.
-
-     POSITION: END OF BODY, AND IT DIFFERS FROM dashboard.html ON PURPOSE. This page is
-     public, its scripts are small, and nothing here reads health data, so the cost of
-     loading last — parse-time errors in earlier inline script are missed — is worth
-     paying to keep a third-party script behind the page's own. The dashboard makes the
-     opposite trade and loads Sentry in <head>, because that page is almost entirely ONE
-     inline application script and loading last would miss exactly the code most worth
-     watching.
-
-     THE "BYTE-IDENTICAL CONFIG" CLAIM IS ABOUT THE INIT BLOCK, NOT THE PLACEMENT. The
-     (function(){...})() below is byte-identical to the dashboard's and is verified by md5
-     on every change; where the tag sits in the document is a per-page decision. -->
 <script src="https://browser.sentry-cdn.com/10.74.0/bundle.min.js"
         integrity="sha384-ekhFYbUiD5vrs1pT5Kty50wAgPsq9eoEDo+hUVl7VahsXkikMcPAq0W0HCoTjGTY"
         crossorigin="anonymous"></script>

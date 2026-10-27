@@ -3,22 +3,6 @@
 <title>Get early access · BioWellth</title>
 <meta name="robots" content="noindex"/>
 <link rel="canonical" href="https://biowellth.ai/early-access/"/>
-<!-- WAITLIST_REDIRECT_V1. One vanity path for every channel. GitHub Pages has no
-     edge rules we control (the Fastly in its response headers is GitHub's, not
-     ours), so the source is inferred here instead of at the edge. Precedence:
-       1. an inbound utm_source wins and nothing is added
-       2. Instagram in-app browser (User-Agent)   -> ig / social / link_in_bio
-       3. fbclid in the query                      -> meta / social / link_in_bio
-       4. Referer on substack, linkedin, youtube   -> that domain / referral
-       5. otherwise                                -> direct / web / waitlist
-     The inbound query string is kept byte for byte and new keys are appended
-     after it, never re-serialised, so fbclid and unknown params survive exactly.
-     A key already present is never overwritten.
-     WAITLIST_REDIRECT_V2: the target is /?query#early-access, not /early-access/.
-     /early-access/ is itself a stub that replaces to /?query#early-access, so
-     going there first cost a third load. index.html's route() sees the page hash
-     and replaceStates to /early-access?query with no further load, so the bar
-     still ends on the clean path. Two loads instead of three. -->
 <script>
 (function(){
   var PATH = "/", HASH = "#early-access";

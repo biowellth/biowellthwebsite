@@ -364,6 +364,12 @@ else {
     // test quietly stops asserting anything.
     const surfaces = [["dashboard", "dashHtml"], ["health report", "reportHtml"],
                       ["reveal deck", "deckHtml"]];
+    // HTML_COMMENT_CLEANUP_V1 (2026-10-27): every <!-- --> comment left the served pages, so the
+    // serialized markup of a build from before that date carries comment nodes the current build does
+    // not. A comment is not rendered content, so comment nodes are removed from BOTH sides before
+    // anything below is compared. Every rendered byte is still compared.
+    const noComments = (h) => String(h || "").replace(/<!--[\s\S]*?-->/g, "");
+    for (const [, key] of surfaces) { if (B[key]) B[key] = noComments(B[key]); if (CTL[key]) CTL[key] = noComments(CTL[key]); }
     // REVIEW_GATE_COPY_V3 (2026-09-26) changed ONE sentence on purpose: the Vitality ring caveat now credits
     // "our health team" instead of "our medical team" (pinned exactly by test-review-pending.mjs P-7). That
     // sentence is mapped back before the byte comparison, and ONLY that sentence: it must occur exactly once in
@@ -400,11 +406,13 @@ else {
     {
       const SRC = readFileSync(new URL("../dashboard.html", import.meta.url), "utf8");
       const blk = (startTxt, endTxt) => { const i = SRC.lastIndexOf("\n", SRC.indexOf(startTxt)) + 1; const j = SRC.indexOf(endTxt, i) + endTxt.length + 1; return SRC.slice(i, j); };
-      const CC_BLOCKS = [blk("<!-- CYCLE_CARD_V1 phone host.", 'id="cycle-card-main"></div>'),
-                         blk("<!-- CYCLE_CARD_V1 desktop host", 'id="cycle-card-rail"></div>')];
+      // HTML_COMMENT_CLEANUP_V1 (2026-10-27): the comment above each host left the page, so each block
+      // is now the host line alone, read from its own markup.
+      const CC_BLOCKS = [blk('<div class="cy-host cy-host-main', 'id="cycle-card-main"></div>'),
+                         blk('<div class="cy-host cy-host-rail', 'id="cycle-card-rail"></div>')];
       const EXPECT_CC = { dashHtml: 1, reportHtml: 0, deckHtml: 0 };
       for (const blockText of CC_BLOCKS) {
-        ok(blockText.length > 80 && blockText.length < 600, "EP-27 CC CONTROL: the cycle card block was read from the page  (" + blockText.length + " chars)");
+        ok(blockText.length > 40 && blockText.length < 600, "EP-27 CC CONTROL: the cycle card block was read from the page  (" + blockText.length + " chars)");
         for (const [label, key] of surfaces) {
           const n = (CTL[key] || "").split(blockText).length - 1;
           ok(n === EXPECT_CC[key], "EP-27." + label + " CC CONTROL: the deliberate cycle card host occurs " + EXPECT_CC[key] + " time(s) here  (" + n + ")");
@@ -418,10 +426,12 @@ else {
     // exactly once on the dashboard surface and nowhere else, so every other byte is still compared.
     {
       const SRC = readFileSync(new URL("../dashboard.html", import.meta.url), "utf8");
-      const START = "<!-- PRIORITY_HEADING_V1 --", END = '<div class="section-label acc-coral">What needs attention</div>';
+      // HTML_COMMENT_CLEANUP_V1 (2026-10-27): the comment above the label left the page, so the block
+      // is now the label line alone.
+      const START = '<div class="section-label acc-coral">What needs attention</div>', END = START;
       const i = SRC.lastIndexOf("\n", SRC.indexOf(START)) + 1, j = SRC.indexOf(END, i) + END.length + 1;
       const PH_NEW = SRC.slice(i, j), PH_OLD = '      <div class="section-label acc-coral">What needs a closer look</div>\n';
-      ok(PH_NEW.length > 200 && PH_NEW.length < 1200 && PH_NEW.endsWith(END + "\n"), "EP-27 PH CONTROL: the heading block was read from the page  (" + PH_NEW.length + " chars)");
+      ok(PH_NEW === PH_OLD.replace("What needs a closer look", "What needs attention"), "EP-27 PH CONTROL: the heading block was read from the page  (" + PH_NEW.length + " chars)");
       const EXPECT_PH = { dashHtml: 1, reportHtml: 0, deckHtml: 0 };
       for (const [label, key] of surfaces) {
         const n = (CTL[key] || "").split(PH_NEW).length - 1;

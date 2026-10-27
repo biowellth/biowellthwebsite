@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>BioWellth · Sana</title>
-<!-- SANA_V1 companion + home surface identity -->
 
-<!-- FAVICON_OLIVE_V1: ?v=olive1 makes browsers fetch the new olive icon instead of the cached brown one. -->
 <link rel="icon" href="/favicon.ico?v=olive1"/>
-<!-- DASHBOARD_V2_DESIGN: Fraunces added for the dashboard's headings, numbers and Sana's read. The other three families stay, because the other views still set them. -->
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -2444,51 +2441,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 }
 </style>
 
-<!-- ERROR_MONITORING_V1 — Sentry browser SDK, ERRORS ONLY.
-     Added 2026-09-20. There was no client-side error capture of any kind before this:
-     measured against the served bytes, sentry/posthog/gtag/googletagmanager/mixpanel/
-     amplitude/logrocket/datadog/bugsnag were all 0, and so were window.onerror and
-     unhandledrejection.
-
-     POSITION: IN <head>, BEFORE THE MAIN INLINE APPLICATION SCRIPT, AND THIS IS THE ONE
-     PLACE THIS PAGE DELIBERATELY DIFFERS FROM index.html. That script begins at the
-     <script> after the supabase-js tag in the body and runs for roughly nine thousand
-     lines — it is very nearly the whole application. Loading Sentry at the end of body,
-     as the landing page does, would mean any error thrown while that script is parsed or
-     during its first run happens BEFORE the handlers exist and is never captured. The
-     code most worth watching would have been the code least watched.
-     index.html keeps its end-of-body position: it is public, its scripts are small, and
-     nothing there reads health data, so there the ordering trade goes the other way.
-
-     THE "BYTE-IDENTICAL CONFIG" CLAIM IS ABOUT THE INIT BLOCK, NOT THE PLACEMENT. The
-     (function(){...})() below is byte-identical to index.html's and is verified by md5 on
-     every change; where the tag sits in the document is a per-page decision.
-
-     THIS PAGE IS THE SENSITIVE ONE. It reads reports, results, markers and profiles for a
-     signed-in woman, which is why the scrubbing exists at all and why the landing page
-     carries the same config rather than the other way round.
-
-     tracesSampleRate IS 0 HERE TOO. An earlier draft had 0.1 on this page; it was amended
-     to 0. Performance transactions carry URLs and timings for the very endpoints the
-     breadcrumb rule suppresses, so sampling them would reopen the hole from the other
-     side.
-
-     THE BUNDLE IS THE ERRORS-ONLY ONE, AND THAT IS A STRUCTURAL GUARANTEE rather than a
-     configuration one. bundle.min.js is 90,620 bytes; bundle.replay.min.js is 216,753 and
-     bundle.tracing.min.js is 147,894. The recorder and the tracing code are not in this
-     file, and the bundle says so itself — it carries the string "You are using
-     replayIntegration() even though this bundle does not include replay". The
-     replaysSessionSampleRate and replaysOnErrorSampleRate zeros below are therefore a
-     second layer over a bundle that physically cannot record a session. On a page that
-     renders a woman's blood panel, that distinction is the whole point.
-
-     PINNED WITH SRI, NO LOADER. A loader script is itself mutable, so pinning its version
-     pins nothing. The integrity hash was computed from the fetched bytes and confirmed
-     identical across two independent fetches.
-
-     NO SOURCEMAPS AND NO BUILD STEP, deliberately. This file is served unminified as
-     authored (82 bytes per line average, 7,936 indented lines), so stack frames already
-     carry real line numbers. -->
 <script src="https://browser.sentry-cdn.com/10.74.0/bundle.min.js"
         integrity="sha384-ekhFYbUiD5vrs1pT5Kty50wAgPsq9eoEDo+hUVl7VahsXkikMcPAq0W0HCoTjGTY"
         crossorigin="anonymous"></script>
@@ -2715,7 +2667,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 </script>
 </head>
 <body>
-<!-- Brand mark sprite, lifted verbatim from index.html (#bw-mark) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="bw-mark" viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><g transform="scale(0.142450)"><g transform="translate(0.000000,702.000000) scale(0.100000,-0.100000)"><path d="M3290 6595 c-8 -2 -62 -8 -120 -15 -215 -23 -517 -91 -648 -146 -18
 -8 -41 -14 -50 -14 -10 0 -22 -4 -27 -8 -6 -4 -37 -18 -70 -31 -104 -40 -295
 -130 -360 -171 -22 -13 -56 -33 -75 -43 -250 -137 -579 -419 -805 -688 -63
@@ -2786,50 +2737,14 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     <div class="brand"><svg class="brand-mark" aria-label="BioWellth"><use href="#bw-mark"/></svg><div class="brand-name">BioWellth</div></div>
     <div class="topbar-right">
       <select class="report-picker hidden" id="report-picker" title="Switch between your panels"></select>
-      <!-- TITLE CASE, ruled 2026-09-16. The three top bar labels are nav items and read
-           as one row, so they are cased alike. Deliberately NOT refactored into a
-           constant tonight: that is larger than the ruling and would ride along
-           unreviewed. The chip and the companion card button keep SENTENCE case,
-           because their label is a sentence and not a nav label.
-           The label itself is not quoted here on purpose. The suite counts every
-           occurrence of that string outside SANA_COPY as an inline literal, and it is
-           right to: a string sitting in the markup is in the markup whether or not a
-           comment wraps it. Quoting it here turned that assertion red, which is the
-           check doing its job. -->
       <button class="btn-ghost hidden" id="btn-new">New Upload</button>
-      <!-- CAMERA_READING_NAV_V1. Ships HIDDEN and EMPTY, and both matter.
-           HIDDEN because openFaceScan returns false and does nothing visible when
-           sana consent has not been granted. A bar button that silently does
-           nothing is a dead control, and this file's own standard is that a
-           control which will not work is not rendered. renderScanEntry reveals it
-           on the same consent gate that reveals the companion button, so the two
-           surfaces cannot disagree about whether the reading is available.
-           EMPTY because the label comes from SANA_COPY at render time, like every
-           other string in this feature, so the no-colon and no-em-dash rule stays
-           checkable in one place. -->
       <button class="btn-ghost hidden" id="btn-scan" type="button"></button>
-      <!-- ASK_SANA_NAV_V1. Ships HIDDEN and EMPTY for the same two reasons btn-scan does.
-           HIDDEN because the control must not point at a chat that is not there: askSana
-           scrolls to #sana-mount and focuses its input, and with SANA_CHAT_ENABLED off or the
-           mount absent there is no input to focus. sanaMountChat reveals it at the moment it has
-           actually built the input, so the bar cannot offer a conversation the page is not
-           hosting.
-           EMPTY because the label comes from SANA_COPY at render time, like every other string
-           in this feature, so the no-colon and no-em-dash rule stays checkable in one place.
-           NOT gated on consent, deliberately. sanaSend already asks for consent in the thread
-           when it is missing, so a woman who has not consented is taken to the place that asks
-           her rather than shown nothing. Hiding it would withhold the request, not the feature. -->
       <button class="btn-ghost hidden" id="btn-sana" type="button"></button>
       <button class="btn-ghost" id="btn-account">Account</button>
     </div>
   </div>
 </div>
 
-<!-- Account overlay (settings). Reuses the .del-modal backdrop idiom (fixed overlay, explicit-button
-     close, no backdrop/Escape). Houses the relocated Sign out (#logout) and the typed-confirm delete
-     flow. The delete WIRING is unchanged — same #del-input / #del-confirm / delete-account invoke /
-     failure copy; only the markup moved here from the standalone modal, and the trigger is now the
-     inline "Delete my account" reveal (#del-open) instead of a separate modal. Static text only. -->
 <div class="del-modal hidden" id="account-modal" role="dialog" aria-modal="true" aria-labelledby="acct-h">
   <div class="acct-card">
     <button class="acct-close" id="acct-close" type="button" aria-label="Close">&times;</button>
@@ -2845,10 +2760,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       <p class="acct-privacy">Your reports and results are yours. We use them only to build your health picture, and we keep them while your account is active.</p>
     </div>
     <div id="report-vault"></div>
-    <!-- CONSENT_WITHDRAWAL_V3. Built dark. renderConsentControls returns without rendering
-         unless SANA_CHAT_ENABLED is on, so with the flag off this stays an empty div and the
-         Account panel looks exactly as it does today. privacy.html's "or through your account
-         settings" clause is removed until this ships un-darked, see PRIVACY_TRUTH_V2 there. -->
     <div class="acct-row" id="acct-consent"></div>
     <button type="button" id="onb2-resume" class="hidden"></button>
     <div class="acct-row" id="acct-onb"></div>
@@ -2873,7 +2784,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 
   <div id="view-upload" class="hidden">
     <div class="upload-card">
-      <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): pre-file page has NO questions, no standalone LMP -->
       <div id="up-prefile">
         <div class="eyebrow">Functional health intelligence for South Asian women</div>
         <h1>Upload your blood work. <em>See what your report didn't say.</em></h1>
@@ -2903,18 +2813,13 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
         </div>
       </div>
 
-      <!-- DRAW_CONTEXT_SUBMIT_V1 (Brief B): consolidated "About this draw", shown after file pick -->
       <div id="up-postfile" class="hidden">
         <div class="file-row uploading" id="up-filerow"><svg class="fdoc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="fname" id="up-fname">your file</span><span class="fok" id="up-fstate"><span class="fspin"></span>Uploading</span></div>
         <div id="up-ferr" class="up-ferr hidden"></div>
         <div class="bc-lead">A few quick things about this draw</div>
         <div class="bc-sublead">We have started reading your file. Answer these while we do.</div>
         <div class="bc-card">
-          <!-- ABOUT_YOU_DRAW_V1. The one way into About-you from this card, shown only while
-               about_you_status is null or 'skipped'. It opens the same pop-up; answers saved
-               there are on her profile before "Start my reading" releases the reading. -->
           <button type="button" class="bc-about hidden" id="ad-about">Tell us about you (2 minutes)</button>
-          <!-- CYCLE_CAPTURE_V1 (relocated into the DRAW_CONTEXT_SUBMIT_V1 consolidated block) -->
           <div class="cyc-block" style="border-top:none;padding-top:0;margin-top:0">
             <div class="cyc-h" id="cyc-heading">Your cycle</div>
             
@@ -2926,11 +2831,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
               </div>
             </div>
           </div>
-          <!-- CYCLE_DAY_ORDER_V1. Lifted out of #cyc-lens and placed AFTER #cyc-questions,
-               because in the first-time state both are on screen at once and the cycle day
-               control used to render ABOVE the question that reveals it. It carries `hidden`
-               in the markup now: as a child of the lens it inherited the lens's hidden state,
-               and outside it that no longer happens, so the initial state has to be explicit. -->
           <div id="cyc-cdgroup" class="hidden">
             <button type="button" class="cyc-alt" id="cyc-alt">I know my cycle day instead</button>
             <div class="cyc-cd hidden" id="cyc-cd-wrap">
@@ -2944,9 +2844,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
             <div class="bc-q"><div class="bc-q-t">Were you under unusual stress in the two weeks before this test?</div><div class="bc-opts" data-key="acute_stress_within_2_weeks"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
             <div class="bc-q" style="margin-bottom:2px"><div class="bc-q-t">Did you do hard exercise in the three days before this test?</div><div class="bc-opts" data-key="hard_training_within_72_hours"><button class="bc-opt" type="button" data-val="yes">Yes</button><button class="bc-opt" type="button" data-val="no">No</button><button class="bc-opt" type="button" data-val="unsure">Not sure</button></div></div>
           </div>
-          <!-- ABOUT_YOU_DRAW_V1. The supplement chips and the "Anything else you take regularly?" box
-               that stood here are gone. Supplements and medicines are properties of HER, asked once
-               in About-you; this card keeps only what describes THIS test. -->
           <div class="ad-submit">
             <div class="bc-err-card hidden" id="ad-error"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg><div class="bc-err-t">We could not save your answers. Tap to try again.</div></div>
             <button class="bc-start" type="button" id="ad-start">Start my reading</button>
@@ -2959,15 +2856,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     </div>
   </div>
 
-  <!-- SANA_NO_PANEL_V1. A third view beside upload and dashboard, so a signed in
-       user with zero completed panels can reach Sana. It is deliberately NOT inside
-       view-upload, because that view sits behind the consent and date of birth gates
-       and Sana must not become entangled with them. It carries its own upload
-       affordance, so reaching Sana never removes the path to uploading a panel.
-       Mounted through sanaMountChat with its own container ids. The single global
-       SANA_MOUNTED flag keeps this and the dashboard mount mutually exclusive,
-       because sanaSend resolves sana-input, sana-thread and sana-send by id and a
-       second live mount is the duplicate-id defect recorded at SANA_TURN_IDENTITY_V1. -->
   <div id="view-companion" class="hidden">
     <div class="companion" id="companion-nopanel">
       <div class="comp-head">
@@ -2980,7 +2868,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       <div class="comp-read">You can talk to Sana now. Sana does not have a panel from you yet, so it cannot read your markers. Sana can still answer questions about how testing works, what a marker means and what to ask for.</div>
       <div id="sana-mount-nopanel"></div>
       <div id="sana-consent-nopanel" class="sana-consent"></div>
-      <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
     </div>
     <div class="upload-card">
@@ -2997,15 +2884,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     <div id="proc-ask"></div>
   </div>
 
-  <!-- REVIEW_GATE_V1 (supa docs/review-gate-phase2-spec.md, decision 5). Shown ONLY for a report whose
-       status is awaiting_review. Copy is exact; do not reword it.
-       REVIEW_GATE_COPY_V2 (2026-09-25, founder copy): the body is REPLACED, superseding the spec's
-       "Our team checks every report before you see it during early access. You'll have it within 24
-       hours, and we'll email you the moment it's ready." It now says what the check is for (accuracy)
-       and who does it. The confidentiality sentence is deliberately withheld until the reviewer
-       agreement is signed; its wording is held in docs/review-confidentiality-line.md, not here.
-       REVIEW_GATE_COPY_V3 (2026-09-26, counsel-approved): adds "Your reviewer may see your report and the
-       health information used to prepare it." between the two V2 sentences. Exact; do not reword it. -->
   <div id="view-pending" class="hidden">
     <h1>Your report is being prepared</h1>
     <p>During early access, every report is reviewed for accuracy by our health team before it's released to you. Your reviewer may see your report and the health information used to prepare it. You'll have it within 24 hours, and we'll email you as soon as it's ready.</p>
@@ -3042,8 +2920,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     <div class="reveal-head">
       <div class="reveal-head-left">
         <div class="score-ring" id="score-ring">
-          <!-- DASHBOARD_V2_DESIGN: the CSS pearl orb. Decorative only, so aria-hidden; the ring's
-               arc (::after) still draws the score from --p, and the number sits above the orb. -->
           <div class="v2-orb" aria-hidden="true"></div>
           <div class="score-num" id="score-num">&ndash;</div>
           <div class="score-cap">Vitality</div>
@@ -3051,46 +2927,18 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
         <button class="score-info-btn hidden" id="score-info-btn" type="button" aria-expanded="false">What's this?</button>
       </div>
       <div class="reveal-head-text">
-        <!-- DASHBOARD_V2_DESIGN: the weekday eyebrow and the time-of-day greeting. Both are filled
-             by v2PaintHero, never by a renderer, and both are empty until it runs, so a page where
-             it never runs shows the hero exactly as before. The name is shown ONLY when the profile
-             carries one; the cycle part ONLY when the cycle card resolved a phase. -->
         <div class="v2-eyebrow" id="v2-eyebrow"></div>
         <div class="v2-greet" id="v2-greet"></div>
         <div class="band" id="band">Your results</div>
-        <!-- RETIRED IN THE HERO 2026-09-23, at the founder's ruling. This carried the
-             "Based on N of the 7 systems ..." sentence; that sentence now opens the
-             "What's this?" popover, beside the paragraph explaining the score it qualifies.
-
-             THE ELEMENT AND ITS ID STAY so every reader and test still resolves, and
-             renderDashboard clears and hides it on each render rather than trusting that
-             nothing writes to it. It is empty and hidden on every path; there is no payload
-             that fills it. -->
         <div class="coverage-line hidden" id="coverage-line"></div>
         <div class="headline" id="headline"></div>
         <div class="hero-trend hidden" id="hero-trend"></div>
-        <!-- DASHBOARD_V2_DESIGN: two shortcuts, no new behaviour. "See what changed" scrolls to
-             #prios-wrap and is hidden by CSS whenever that section is hidden, so it never points at
-             nothing. The second button forwards to #btn-report, the existing Save my full report
-             action, so there is still one implementation of it. -->
         <div class="v2-hero-btns">
           <button class="v2-btn v2-btn-ink" id="v2-see-changed" type="button">See what changed</button>
           <button class="v2-btn v2-btn-glass" id="v2-save-report" type="button">Save my full report</button>
         </div>
       </div>
-      <!-- THE FOUR-COUNT ROW MOVED OUT AND CAME BACK, both on 2026-09-23. f4fa2a4 put it at
-           the top of #theme-wrap on the reasoning that the hero should carry one thing to read;
-           seen on the page, the counts belong with the score they summarise, so it is here
-           again. Recorded rather than quietly reverted, because the next person to think the
-           hero is crowded should know this was tried and what it looked like.
-
-           IT SURVIVES THE ROUND TRIP UNCHANGED, and that is not luck. renderDashboard fills it
-           by id ($("hero-stats")), never by position, and its colours are split between a light
-           base rule and a .reveal-head-scoped dark one (:1154-1159), so the same element reads
-           correctly in either place. -->
         <div class="hero-stats" id="hero-stats"></div>
-      <!-- HERO_TRAJ_V1 host. Empty and hidden in markup; renderHeroTrajectory fills it
-           after the stats render, and hides it again when there is nothing to draw. -->
       <div class="hero-traj hidden" id="hero-traj"></div>
       <div class="score-info-pop hidden" id="score-info-pop"></div>
     </div>
@@ -3100,66 +2948,27 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
         <span class="comp-avatar">S</span>
         <div class="comp-titlewrap">
           <span class="comp-title">Sana</span>
-          <!-- SANA_DESCRIPTOR_V1 -->
           <span class="comp-status">Your AI companion, reading from your panel</span>
         </div>
         <span class="comp-badge">Arriving soon</span>
-        <!-- SANA_ONLINE_REMOVE_V1: the DASHBOARD_V2_DESIGN "Online" pill was removed here at the founder's request on 2026-10-15. -->
       </div>
       <div class="comp-read" id="comp-read"></div>
       <div class="comp-chips" id="comp-chips"></div>
       <div class="comp-response" id="comp-answer" aria-live="polite"></div>
-      <!-- SANA_CHAT_V1 — built dark. Both nodes are created by JS only when
-           SANA_CHAT_ENABLED is true, so with the flag off they do not exist in
-           the DOM at all rather than being hidden. See sanaMountChat. -->
       <div id="sana-mount"></div>
       <div id="sana-consent" class="sana-consent"></div>
-      <!-- AI_DISCLOSURE_V1 -->
       <p class="comp-ai-note">Sana is AI and can make mistakes. This is educational, not medical advice. Check with your clinician before acting on it.</p>
-      <!-- FACE_SCAN_ENTRY_V1. Hidden until sanaConsentGranted resolves true; see
-           renderScanEntry. Every string is set from SANA_COPY, so the no-colon
-           and no-em-dash rule stays checkable in one place.
-
-           THE INTRO SITS ABOVE THE BUTTON IN MARKUP, and that is the point. A
-           browser camera prompt arriving with no preceding sentence is the
-           failure this block exists to avoid, and document order is the only
-           thing a handler, a race or a style cannot reorder later. It is not a
-           class, not an insertBefore, not a flex order.
-
-           It sits BELOW the AI disclosure so that note stays attached to the
-           chat it describes. A camera reading is not Sana talking.
-
-           Dashboard card only. view-companion has its own -nopanel mounts and a
-           second copy here would duplicate the ids. -->
       <div class="scan-entry hidden" id="scan-entry">
         <p class="scan-intro" id="scan-intro"></p>
         <button class="btn-ghost" id="scan-go" type="button"></button>
       </div>
     </div>
 
-    <!-- CARD_ORDER_V1 2026-09-06: score card first, Sana second, invitations third.
-         Order here is the ONLY thing that sets it -- no JS moves these three nodes
-         (zero insertBefore/appendChild/prepend on any of them) and no CSS order/flex
-         trick is involved. Move the markup, not a style. -->
-    <!-- CYCLE_CARD_V1 phone host. Shown only at 960px and below, AFTER Sana (founder ruling
-         2026-10-12), so CARD_ORDER_V1's score, Sana order is kept. One render fills this and
-         #cycle-card-rail; the media query shows exactly one of them. -->
     <div class="cy-host cy-host-main hidden" id="cycle-card-main"></div>
     <div class="daily-card hidden" id="daily-card"></div>
 
     <div id="prios-wrap" class="hidden">
-      <!-- PRIORITY_HEADING_V1 -- was "What needs a closer look". It must not reuse the hero chip's
-           "closer look" wording, because the two count different things. The chip "Worth a closer
-           look" counts flag-tier markers (systems[].markers[].status through sysStatus). This list is
-           payload.priorities, which Call B can build from watch-tier markers and which
-           PRIORITY_BAND_RECONCILE_V1 keeps, so a real panel could show "0 Worth a closer look" right
-           above priority cards. "What needs attention" is the name the walkthrough's ruled copy
-           (wtItems) already gives this section, so the page and the walkthrough now agree. -->
       <div class="section-label acc-coral">What needs attention</div>
-      <!-- CONFOUNDER_NOTE_V1 — Call B's panel-level caveat. Sits between the section label and
-           the cards because it governs how to read them: it is the sentence that says which
-           systems could not be scored and why. Reuses .report-note, the page's existing
-           panel-level note box, rather than introducing a component. -->
       <div id="confounder-note" class="report-note hidden"></div>
       <div id="prios"></div>
     </div>
@@ -3173,11 +2982,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       <div id="clarify"></div>
     </div>
 
-    <!-- DASHBOARD_V2_DESIGN: #escalated-wrap MOVED here from directly under #prios-wrap, so it can
-         sit beside #quiet-wrap as the v2 pair (one glass card, one olive block). Moved, not edited:
-         same id, same label, same renderer. #ddc and #clarify keep their place under the
-         priorities, which is where their prompts belong. The wrapper is layout only; it carries no
-         id and nothing reads it. -->
     <div class="v2-pair">
     <div id="escalated-wrap" class="hidden">
       <div class="section-label acc-teal">Worth keeping an eye on</div>
@@ -3185,15 +2989,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     </div>
     <div id="quiet-wrap" class="hidden">
       <div class="section-label acc-teal">What's already strong</div>
-      <!-- DENSITY_COLLAPSE_V3, 2026-09-23. THE INTRO IS BACK WHERE IT STARTED, loose and visible
-           under the label, and V2 moved it inside the first card's disclosure for one day. The
-           round trip is recorded rather than erased because the reasoning that moved it still
-           reads well and is still wrong for this one line: a section whose every card is shut
-           needs one sentence on the page saying why the section is there, and a reader who never
-           opens a card would otherwise meet a label and three headlines with nothing joining
-           them. The CLOSING line did not come back; it stays in the first card's disclosure,
-           because it is a reflection on what was just read and has no job above it.
-           NEITHER SENTENCE WAS EDITED at any point: the strings moved, they did not change. -->
       <p class="quiet-intro" id="quiet-intro"></p>
       <div id="quiet"></div>
     </div>
@@ -3202,10 +2997,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     <div id="foundations-wrap" class="hidden">
       <div class="section-label acc-teal">Where to focus your habits</div>
       <div class="found-panel">
-        <!-- DENSITY_COLLAPSE_V2, 2026-09-23. #found-lead sat ABOVE the levers and #found-closing
-             BELOW them. Both now sit under the row behind one "Why these" disclosure, closed by
-             default. THE IDS AND CLASSES ARE UNCHANGED, which is what keeps renderFoundations
-             writing to them with no edit, and NEITHER PARAGRAPH WAS TOUCHED. -->
         <div id="found-levers" class="found-levers"></div>
         <div class="found-why" id="found-why">
           <button class="found-why-toggle" type="button" aria-expanded="false">
@@ -3225,12 +3016,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       </div>
 
       <div class="dash-rail">
-    <!-- CYCLE_CARD_V1 desktop host, top of the side rail. Hidden at 960px and below, where the rail
-         stacks after the whole main column and #cycle-card-main shows instead. -->
     <div class="cy-host cy-host-rail hidden" id="cycle-card-rail"></div>
-    <!-- DASHBOARD_V2_DESIGN: #rail-systems MOVED above #longi-wrap, so the status pills come
-         first in the lower band. Same id, same renderer. The cycle host stays first in the rail, as
-         CYCLE_CARD_V1's placement test requires, and is now never displayed (see .cy-host-rail). -->
     <div id="rail-systems" class="rail-card hidden"></div>
 
     <div id="longi-wrap" class="hidden">
@@ -3263,9 +3049,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
     </div>
 
 
-    <!-- #theme-wrap LIVED HERE and moved into the #view-themes overlay on 2026-09-23, reached
-         from the "By theme" row of the Browse everything card. The block itself is unchanged --
-         same id, same heading, same six cards, same renderer -- only its home moved. -->
 
     <div class="disclaimer">
       <strong>This is educational, not a diagnosis.</strong> We read your results against functional health ranges, not just the usual cutoffs for illness. We do not diagnose, treat, or prescribe. Always talk to a licensed doctor before acting on your results.
@@ -3326,15 +3109,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
       </div>
     </div>
 
-    <!-- THEME PAGE OVERLAY. Same shape as #view-gaps and #view-systems: fixed, own scroll, a
-         sticky head carrying only Back. NO TITLE IN THE HEAD, deliberately -- #theme-wrap carries
-         its own "Everything else, by theme" label and repeating it would be a second heading for
-         one page, which is a change to the copy rather than a change of address.
-
-         Z-INDEX 140, BELOW the markers view at 150, and that is load-bearing rather than
-         arbitrary. A theme panel's "See all N markers" routes to openMarkersView (:10379), so a
-         themes page sitting ABOVE the markers view would open it underneath itself and look like
-         a dead tap. Every other overlay is above 150 because none of them hands off downward. -->
     <div id="view-themes" class="themes-view hidden">
       <div class="themes-head">
         <div class="themes-head-inner">
@@ -3371,9 +3145,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 
 </div>
 
-<!-- REPORT GENERATOR v1a — full-screen overlay, direct body child so @media print can
-     isolate it (body>* hidden, this shown). Content assembled render-only from
-     window.__rdPayload by openReport(). -->
 <div id="report-view" class="report-view hidden" role="dialog" aria-label="Your health report" aria-modal="true">
   <div class="report-bar">
     <button class="report-bar-btn" id="report-back" type="button">Back</button>
@@ -3386,11 +3157,6 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
   <div class="report-print-footer">This report supports conversations with your healthcare provider and is not medical advice. It is not a diagnosis.</div>
 </div>
 
-<!-- DOCTOR SUMMARY v1 -- a SECOND document beside the health report, one to two pages, built to be
-     carried into an appointment. Reuses the .report-view chrome (Back / Save as PDF) and the print
-     isolation that already hides body>* for whichever .report-view is open, so the existing report
-     is untouched. The document itself carries its own class, .doctor-doc, and its own print block.
-     Content is assembled render-only from window.__rdPayload by openDoctor(). -->
 <div id="doctor-view" class="report-view hidden" role="dialog" aria-label="Summary for your doctor" aria-modal="true">
 <div class="report-bar">
 <button class="report-bar-btn" id="doctor-back" type="button">Back</button>
@@ -15585,13 +15351,8 @@ async function stampSeen(reportId){
   showView('dashboard');
 }
 </script>
-<!-- AGE_AFFIRM_V1 — grandfathered accounts only. Fires when profiles.age_affirmed_at is null
-     AND user_metadata carries no affirmation, i.e. accounts created before this shipped. BLOCKING:
-     no skip, no backdrop close, no Escape. Two states in one card, swapped by JS: the affirm state
-     and the under-18 exit. -->
 <div class="onb-modal" id="age-modal" aria-hidden="true">
   <div class="onb-card">
-    <!-- state 1: affirm -->
     <div id="age-affirm-state">
       <div class="onb-h">One quick confirmation before we continue</div>
       <p class="onb-sub">We added this after you joined, so we are asking once.</p>
@@ -15602,7 +15363,6 @@ async function stampSeen(reportId){
       <button class="onb-save" id="age-confirm" disabled>Confirm</button>
       <button class="age-under" id="age-under18" type="button">I am under 18</button>
     </div>
-    <!-- state 2: under-18 exit. Sign out is the neutral default; deletion is offered, never pushed. -->
     <div id="age-exit-state" class="hidden">
       <div class="onb-h">Thank you for telling us.</div>
       <p class="onb-sub">BioWellth is for adults 18 and older, so we are not able to keep going. We will sign you out now.</p>
@@ -15613,8 +15373,6 @@ async function stampSeen(reportId){
   </div>
 </div>
 
-<!-- TESTER_GATE_V1 — dark behind TESTER_GATE_ENABLED. Blocking: no backdrop close,
-     no Escape, no skip. Hidden until testerGate() decides it is needed. -->
 <div class="tg-modal hidden" id="tester-gate" aria-hidden="true">
   <div class="tg-card">
     <h1 class="tg-h">Before you start</h1>
@@ -15670,23 +15428,14 @@ async function stampSeen(reportId){
   </div>
 </div>
 
-<!-- ONBOARDING_V2 — dark behind ONBOARDING_ENABLED. One question at a time,
-     Skip on every screen. Skip writes nothing at all. -->
 <div class="onb2-modal" id="onb2-modal" aria-hidden="true">
   <div class="onb2-stage" id="onb2-stage">
     <div class="onb2-viewport" id="onb2-viewport">
       <div class="onb2-track" id="onb2-track">
         <div class="onb2-seeds" id="onb2-seeds"></div>
-        <!-- ORB. World-space: a child of the track, absolutely positioned, so the
-             pan carries it. Its `left` is a track coordinate (i*step + half), which
-             is what makes the spec's leap() maths work. Seated at top:-84px above
-             the cards. The mark is the site's own #bw-mark symbol at 56px, teal via
-             currentColor -- the one sanctioned deviation from the spec file, whose
-             own mark is a placeholder. -->
         <div class="onb2-orb" id="onb2-orb" aria-hidden="true">
           <span class="arcY"><svg aria-hidden="true"><use href="#bw-mark"/></svg></span>
         </div>
-        <!-- cards are appended here, one per applicable screen, plus a done card -->
       </div>
     </div>
   </div>
