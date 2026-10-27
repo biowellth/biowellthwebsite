@@ -1,0 +1,4 @@
+session: waitlist-step2-modal-060131
+taken: 2026-10-27T06:01:31Z
+scope: WAITLIST_STEP2_V1 amendment 2026-10-27: step 2 moves from an in-card swap to one shared modal in index.html; scripts/test-waitlist-inline.mjs; docs/waitlist-step2-plan.md build record. Local commits only, nothing pushed.
+repos: biowellth-website
