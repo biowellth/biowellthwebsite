@@ -447,21 +447,46 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    .wl-hero-a rules, which nothing else on the site used. The science page is still one click away from
    the nav's How it works and About links. */
 
-/* WAITLIST_STEP2_V1. The optional step 2 that replaces step 1 in the same place after a successful
-   signup (backend waitlist-signup /profile, migration 0077; plan docs/waitlist-step2-plan.md section 5).
-   Chips are single-select radios. Selected is ink with cream text and a cream tick, so the state is
-   never carried by colour alone. NO CORAL on a chip in any state: coral stays on the error text only
-   (.wl-msg), and test-waitlist-inline.mjs asserts it from computed style. Labels are Instrument Sans,
-   the live site font (founder ruling 4, 2026-10-26, no Inter). */
-.wl-step2[hidden],.wl-s2-go[hidden]{display:none!important}
-.wl-step2{container-type:inline-size;width:100%;margin:16px auto 0;text-align:left;border:0;scroll-margin-top:96px}
-/* The hero has no card of its own, so there step 2 brings one: the site's .glass (added by the script),
-   which is also what gives the hero error message its contrast over the orb. */
-.wl-hero .wl-step2{max-width:460px;margin-top:0;padding:22px 22px 18px}
-.wl-s2-h{font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
-.wl-s2-h:focus{outline:none}
-.wl-s2-h:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
-.wl-s2-lede{font-size:15px;line-height:1.55;color:var(--ink-muted);margin-top:6px}
+/* WAITLIST_STEP2_V1. The optional step 2 after a successful signup (backend waitlist-signup /profile,
+   migration 0077; plan docs/waitlist-step2-plan.md).
+   AMENDED 2026-10-27 by founder ruling, which overrides plan sections 4 and 5: step 2 no longer
+   swaps the card. The three step-1 forms behave exactly as before (done pill and all), and after
+   the 200, never before, ONE shared modal opens over the page, whichever form submitted.
+   Layers, bottom to top: the page (its highest layer is the nav, at 100), the veil (1000), the orb
+   (1001), the dialog (1002). They are siblings rather than one wrapper on purpose: a fixed wrapper
+   is a stacking context, and the page's own #orb-canvas could not then sit between the veil and the
+   card. While the modal is open the live canvas is lifted to 1001, so it is the same orb, still
+   animated. Where there is no live canvas (orb-static, which reduced motion also selects, or the
+   early-access page, which hides it) the committed pearl.png stands in, the hero's own static orb.
+   Chips: selected is ink with cream text and a cream tick, so the state is never carried by colour
+   alone. NO CORAL on a chip in any state (test-waitlist-inline.mjs asserts it from computed style).
+   The one coral in the modal is the italic "sooner?", in --coral-deep, the site's own heading
+   italic (.display em). Labels are Instrument Sans, the live site font (founder ruling 4, no Inter). */
+.wl-m-veil[hidden],.wl-m[hidden],.wl-m-pearl[hidden],.wl-m-step[hidden],.wl-s2-go[hidden]{display:none!important}
+.wl-m-veil{position:fixed;inset:0;z-index:1000;background:rgba(247,239,233,.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+html.wl-m-open #orb-canvas{z-index:1001}
+.wl-m-pearl{position:fixed;left:50%;top:50%;width:min(80vh,92vw);aspect-ratio:1;margin:calc(min(80vh,92vw) / -2) 0 0 calc(min(80vh,92vw) / -2);z-index:1001;background:url(/pearl.png) center/contain no-repeat;pointer-events:none}
+.wl-m{position:fixed;inset:0;z-index:1002;display:flex;align-items:center;justify-content:center;padding:24px}
+.wl-m-card{position:relative;width:100%;max-width:600px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain;padding:34px 36px 26px;border-radius:28px;background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.85);box-shadow:var(--shadow);text-align:left}
+/* No backdrop-filter: a near-solid cream veil, so no page content reads through it, and a card that
+   does not lean on blur for its contrast. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .wl-m-veil{background:rgba(247,239,233,.92)}
+  .wl-m-card{background:rgba(255,255,255,.9)}
+}
+html.wl-m-open,html.wl-m-open body{overflow:hidden}
+.wl-m-x{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.wl-m-x:hover{background:rgba(71,55,43,.07)}
+.wl-m-x:focus-visible{outline:2px solid var(--olive);outline-offset:2px}
+.wl-m .eyebrow{display:block;margin:0 48px 10px 0}
+.wl-m-h,.wl-m-rh{font-family:var(--serif);font-weight:500;line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-right:40px}
+.wl-m-h{font-size:clamp(30px,4.2vw,38px)}
+.wl-m-rh{font-size:clamp(26px,3.6vw,32px)}
+.wl-m-h em{font-style:italic;color:var(--coral-deep)}
+.wl-m-h:focus,.wl-m-rh:focus{outline:none}
+.wl-m-h:focus-visible,.wl-m-rh:focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:6px}
+.wl-s2-lede,.wl-m-rp{font-size:15.5px;line-height:1.55;color:var(--ink-muted);margin-top:10px}
+.wl-step2{container-type:inline-size;width:100%;margin:0;text-align:left}
 .wl-q{border:0;margin:18px 0 0;padding:0;min-width:0}
 .wl-q legend{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink);padding:0;margin-bottom:8px}
 .wl-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -472,15 +497,17 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .wl-chip input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--cream)}
 .wl-chip input:checked + span::before{content:"";flex:0 0 auto;width:12px;height:12px;background:no-repeat center/12px 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F8F2EC' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
 .wl-chip input:focus-visible + span{outline:2px solid var(--olive);outline-offset:2px}
-.wl-s2-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:20px}
-.wl-s2-actions .btn{width:100%}
+.wl-s2-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px}
+.wl-s2-actions .btn,.wl-m-close{width:100%}
 .wl-s2-actions .btn[aria-disabled="true"]{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .wl-s2-actions .btn[disabled]{cursor:progress;opacity:.75;transform:none;box-shadow:none}
 .wl-s2-skip{font:inherit;font-size:14px;font-weight:500;color:var(--ink-muted);background:none;border:0;min-height:44px;padding:0 12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(71,55,43,.35)}
 .wl-s2-skip:hover{color:var(--ink)}
 .wl-s2-skip:focus-visible{outline:2px solid var(--olive);outline-offset:2px;border-radius:8px}
 .wl-step2 .wl-msg{margin-top:12px}
-/* The thank-you is two sentences, so the done pill relaxes to a rounded card when it carries one. */
+.wl-m-close{margin-top:24px}
+/* After a thank-you the done pill under the form carries two sentences, so it relaxes to a rounded
+   card. (Before the 2026-10-27 amendment the thank-you appeared only there.) */
 .wl-done.is-thanks{border-radius:22px}
 @container (max-width:400px){
   /* The persona and need labels run up to 47 characters, so on a phone they go one per line. */
@@ -488,7 +515,24 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
   .wl-q-yn .wl-chip{flex:1 1 0}
   .wl-q-yn .wl-chip span{justify-content:center}
 }
-@media(max-width:480px){.wl-hero .wl-step2{padding:20px 18px 16px}}
+/* Motion. The card rises and the veil fades in on open; the pearl stand-in drifts gently so the orb
+   still reads as alive where the canvas cannot run. Reduced motion: none of it, the orb is static. */
+@keyframes wlmFade{from{opacity:0}}
+@keyframes wlmRise{from{opacity:0;transform:translateY(14px) scale(.985)}}
+@keyframes wlmDrift{50%{transform:translateY(-14px) scale(1.02)}}
+.wl-m-veil{animation:wlmFade .22s ease backwards}
+.wl-m-card{animation:wlmRise .28s cubic-bezier(.2,.7,.2,1) backwards}
+.wl-m-pearl{animation:wlmDrift 9s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.wl-m-veil,.wl-m-card,.wl-m-pearl{animation:none}}
+html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:none}
+/* Phones: the card fills the viewport with a 12px inset and scrolls inside itself. */
+@media(max-width:600px){
+  .wl-m{padding:12px}
+  .wl-m-card{max-width:none;height:100%;max-height:none;padding:26px 20px 20px;display:flex;flex-direction:column}
+  .wl-m-card>.wl-m-step{flex:0 0 auto}
+  /* The thanks and skipped states are three lines, so in a full-height card they sit in the middle. */
+  .wl-m-res{margin:auto 0}
+}
 
 /* FOOTER */
 .site-foot{position:relative;z-index:1;padding:36px 0 40px;border-top:1px solid rgba(71,55,43,.1);background:rgba(248,242,236,.85)}
@@ -1602,57 +1646,69 @@ function orbEngine(scope,inWorker){
 }
 });
 </script>
-<!-- WAITLIST_STEP2_V1. One template for the optional step 2, cloned into each of the three .wl-block
-     instances by the script below, so the instances cannot drift. Each clone is its own <form>, which
-     scopes the radio groups to that instance. Copy is the founder's (ruling 6, 2026-10-26). The stored
-     codes are the CHECKs in backend migration 0077 and validate.ts. -->
-<template id="wl-step2-tpl">
-  <form class="wl-step2" novalidate hidden>
-    <h3 class="wl-s2-h" tabindex="-1">You're on the list.</h3>
-    <p class="wl-s2-lede">Early access opens in small groups. Answer a few quick taps and we'll move you up.</p>
-    <fieldset class="wl-q wl-q-long">
-      <legend>Which sounds most like you?</legend>
-      <div class="wl-chips">
-        <label class="wl-chip"><input type="radio" name="persona" value="results_normal_feel_off"><span>My results say normal, but something feels off</span></label>
-        <label class="wl-chip"><input type="radio" name="persona" value="stay_ahead"><span>I feel fine and want to stay ahead</span></label>
-        <label class="wl-chip"><input type="radio" name="persona" value="curious"><span>Just curious what my body is doing</span></label>
-        <label class="wl-chip"><input type="radio" name="persona" value="prefer_not_say"><span>Prefer not to say</span></label>
+<!-- WAITLIST_STEP2_V1, amended 2026-10-27. ONE modal for the optional step 2, whichever of the three
+     forms submitted (it used to be a template cloned into each card). The veil, the pearl stand-in and
+     the dialog are siblings so the live orb canvas can sit between the veil and the card (see the CSS).
+     Copy is the founder's (ruling 6, 2026-10-26, and the 2026-10-27 amendment). The stored codes are the
+     CHECKs in backend migration 0077 and validate.ts. -->
+<div class="wl-m-veil" hidden></div>
+<div class="wl-m-pearl" aria-hidden="true" hidden></div>
+<div class="wl-m" id="wl-modal" role="dialog" aria-modal="true" aria-labelledby="wl-m-h" hidden>
+  <div class="wl-m-card" data-lenis-prevent>
+    <button class="wl-m-x" type="button" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <form class="wl-step2 wl-m-step" novalidate>
+      <p class="eyebrow">You're on the list</p>
+      <h2 class="wl-m-h" id="wl-m-h" tabindex="-1">Want in <em>sooner?</em></h2>
+      <p class="wl-s2-lede">Early access opens in small groups. Answer a few quick taps and we'll move you up.</p>
+      <fieldset class="wl-q wl-q-long">
+        <legend>Which sounds most like you?</legend>
+        <div class="wl-chips">
+          <label class="wl-chip"><input type="radio" name="persona" value="results_normal_feel_off"><span>My results say normal, but something feels off</span></label>
+          <label class="wl-chip"><input type="radio" name="persona" value="stay_ahead"><span>I feel fine and want to stay ahead</span></label>
+          <label class="wl-chip"><input type="radio" name="persona" value="curious"><span>Just curious what my body is doing</span></label>
+          <label class="wl-chip"><input type="radio" name="persona" value="prefer_not_say"><span>Prefer not to say</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="wl-q wl-q-long">
+        <legend>What would help most right now?</legend>
+        <div class="wl-chips">
+          <label class="wl-chip"><input type="radio" name="need" value="read_existing"><span>Read the tests I already have</span></label>
+          <label class="wl-chip"><input type="radio" name="need" value="home_panel_tracked"><span>An at-home panel, tracked over time</span></label>
+          <label class="wl-chip"><input type="radio" name="need" value="fullest_specialist"><span>The fullest picture, with a specialist</span></label>
+          <label class="wl-chip"><input type="radio" name="need" value="not_sure"><span>Not sure yet</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="wl-q">
+        <legend>How did you hear about us?</legend>
+        <div class="wl-chips">
+          <label class="wl-chip"><input type="radio" name="heard" value="instagram"><span>Instagram</span></label>
+          <label class="wl-chip"><input type="radio" name="heard" value="friend_family"><span>Friend or family</span></label>
+          <label class="wl-chip"><input type="radio" name="heard" value="search"><span>Search</span></label>
+          <label class="wl-chip"><input type="radio" name="heard" value="podcast_article"><span>Podcast or article</span></label>
+          <label class="wl-chip"><input type="radio" name="heard" value="linkedin"><span>LinkedIn</span></label>
+          <label class="wl-chip"><input type="radio" name="heard" value="other"><span>Other</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="wl-q wl-q-yn">
+        <legend>Open to a 15-minute chat with the founder?</legend>
+        <div class="wl-chips">
+          <label class="wl-chip"><input type="radio" name="chat" value="yes"><span>Yes</span></label>
+          <label class="wl-chip"><input type="radio" name="chat" value="no"><span>No</span></label>
+        </div>
+      </fieldset>
+      <p class="wl-msg" id="wl-s2-msg" role="status" aria-live="polite"></p>
+      <div class="wl-s2-actions">
+        <button class="btn btn-ink wl-s2-go" type="submit" aria-disabled="true" aria-describedby="wl-s2-msg">Move me up</button>
+        <button class="wl-s2-skip" type="button">Skip for now</button>
       </div>
-    </fieldset>
-    <fieldset class="wl-q wl-q-long">
-      <legend>What would help most right now?</legend>
-      <div class="wl-chips">
-        <label class="wl-chip"><input type="radio" name="need" value="read_existing"><span>Read the tests I already have</span></label>
-        <label class="wl-chip"><input type="radio" name="need" value="home_panel_tracked"><span>An at-home panel, tracked over time</span></label>
-        <label class="wl-chip"><input type="radio" name="need" value="fullest_specialist"><span>The fullest picture, with a specialist</span></label>
-        <label class="wl-chip"><input type="radio" name="need" value="not_sure"><span>Not sure yet</span></label>
-      </div>
-    </fieldset>
-    <fieldset class="wl-q">
-      <legend>How did you hear about us?</legend>
-      <div class="wl-chips">
-        <label class="wl-chip"><input type="radio" name="heard" value="instagram"><span>Instagram</span></label>
-        <label class="wl-chip"><input type="radio" name="heard" value="friend_family"><span>Friend or family</span></label>
-        <label class="wl-chip"><input type="radio" name="heard" value="search"><span>Search</span></label>
-        <label class="wl-chip"><input type="radio" name="heard" value="podcast_article"><span>Podcast or article</span></label>
-        <label class="wl-chip"><input type="radio" name="heard" value="linkedin"><span>LinkedIn</span></label>
-        <label class="wl-chip"><input type="radio" name="heard" value="other"><span>Other</span></label>
-      </div>
-    </fieldset>
-    <fieldset class="wl-q wl-q-yn">
-      <legend>Open to a 15-minute chat with the founder?</legend>
-      <div class="wl-chips">
-        <label class="wl-chip"><input type="radio" name="chat" value="yes"><span>Yes</span></label>
-        <label class="wl-chip"><input type="radio" name="chat" value="no"><span>No</span></label>
-      </div>
-    </fieldset>
-    <p class="wl-msg" role="status" aria-live="polite"></p>
-    <div class="wl-s2-actions">
-      <button class="btn btn-ink wl-s2-go" type="submit" aria-disabled="true">Move me up</button>
-      <button class="wl-s2-skip" type="button">Skip for now</button>
+    </form>
+    <div class="wl-m-res wl-m-step" hidden>
+      <h2 class="wl-m-rh" tabindex="-1"></h2>
+      <p class="wl-m-rp"></p>
+      <button class="btn btn-ink wl-m-close" type="button">Close</button>
     </div>
-  </form>
-</template>
+  </div>
+</div>
 <script>
 /* WAITLIST_INLINE_V1. Binds every .wl-block on the page (hero, final CTA, early-access page) to
    the backend's waitlist-signup function. Copy follows the house rules, no colons, no em dashes.
@@ -1670,6 +1726,9 @@ function orbEngine(scope,inWorker){
     failed: "Something went wrong, so you're not on the list yet. Please try again in a moment.",
     limited: "Too many tries from this connection. Please wait a little and try again.",
     done: "You're on the list. Check your inbox.",
+    // WAITLIST_STEP2_V1, 2026-10-27. The skipped state in the modal shows the done line split in two,
+    // this as its heading and the rest below, so it says exactly what the pill says.
+    listed: "You're on the list.",
     // The row was saved but the welcome email did not send, so "Check your inbox" would be false.
     doneNoMail: "You're on the list. We'll email you when early access opens.",
     // WAITLIST_STEP2_V1. Founder's copy, ruling 6, 2026-10-26. The thank-you is followed by the
@@ -1702,36 +1761,27 @@ function orbEngine(scope,inWorker){
     return out;
   }
 
-  function bind(block){
-    var form = block.querySelector(".wl-form");
-    var input = form.querySelector(".wl-input");
-    var btn = form.querySelector("button");
-    var msg = form.querySelector(".wl-msg");
-    var hp = form.querySelector('[name="company"]');
-    var done = block.querySelector(".wl-done");
+  /* WAITLIST_STEP2_V1, amended 2026-10-27. The one shared step-2 modal (#wl-modal). bind() opens it
+     after a 200 that carries a token, once the submitting form already shows its done pill, so the
+     signup is saved and on screen whatever happens in here.
+     The step-2 token lives only in this closure: never in a URL, storage, the DOM or a log, and it
+     is dropped once step 2 ends either way. The server gives a decoy token to a duplicate or a bot,
+     and /profile answers {ok:true} to both, so nothing on this page can tell whether an address was
+     already listed. Priority is decided by the server for any answer in any group; the page sends no
+     priority flag.
+     Close (the X), Esc and a click on the backdrop all behave as Skip: nothing is sent. Focus is
+     trapped in the card, the rest of the page is inert and does not scroll, and on close focus goes
+     back to the done pill of the form that submitted. */
+  var M = (function(){
+    var m = document.getElementById("wl-modal");
+    if(!m) return null;
+    var root = document.documentElement;
+    var veil = document.querySelector(".wl-m-veil"), pearl = document.querySelector(".wl-m-pearl");
+    var card = m.querySelector(".wl-m-card"), s2 = m.querySelector(".wl-step2"), res = m.querySelector(".wl-m-res");
+    var go = s2.querySelector(".wl-s2-go"), msg = s2.querySelector(".wl-msg");
+    var token = null, fin = "done", pill = null, busy = false, fails = 0, last = {}, run = 0, inerted = [];
 
-    /* WAITLIST_STEP2_V1. After a successful signup the same place swaps to the optional step 2
-       (template #wl-step2-tpl). The step-2 token lives only in this closure: never in a URL,
-       storage, the DOM or a log, and it is dropped once step 2 ends either way. The server gives a
-       decoy token to a duplicate or a bot, and /profile answers {ok:true} to both, so nothing on
-       this page can tell whether an address was already listed. Priority is decided by the server
-       for any answer in any group; the page sends no priority flag. */
-    var s2 = null, s2Token = null, s2Fin = "done", s2Busy = false, s2Fails = 0, s2Last = {};
-    var tpl = document.getElementById("wl-step2-tpl");
-    if(tpl && tpl.content && tpl.content.firstElementChild){
-      s2 = tpl.content.firstElementChild.cloneNode(true);
-      // The hero has no card, so step 2 brings the site's glass card with it there.
-      if(block.closest(".wl-hero")) s2.classList.add("glass");
-      block.insertBefore(s2, done);
-    }
-    var s2Go = s2 && s2.querySelector(".wl-s2-go");
-    var s2Msg = s2 && s2.querySelector(".wl-msg");
-    if(s2){
-      s2Msg.id = input.id.replace("wl-email", "wl-s2-msg");
-      s2Go.setAttribute("aria-describedby", s2Msg.id);
-    }
-
-    function s2Answers(){
+    function answers(){
       var out = {}, n = 0;
       S2_KEYS.forEach(function(k){
         var c = s2.querySelector('input[name="' + k + '"]:checked');
@@ -1739,88 +1789,149 @@ function orbEngine(scope,inWorker){
       });
       return n ? out : null;
     }
-    function s2Sync(){
-      var any = !!s2Answers();
-      s2Go.setAttribute("aria-disabled", any ? "false" : "true");
-      if(any && s2Msg.textContent === COPY.pickOne) s2Msg.textContent = "";
+    function sync(){
+      var any = !!answers();
+      go.setAttribute("aria-disabled", any ? "false" : "true");
+      if(any && msg.textContent === COPY.pickOne) msg.textContent = "";
     }
-    function showStep2(tok, fin){
-      s2Token = tok; s2Fin = fin;
-      setState("idle");
-      form.hidden = true;
-      s2.hidden = false;
-      var top = s2.getBoundingClientRect().top;
-      if(top < 0 || top > window.innerHeight - 120){
-        var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-        try{ s2.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" }); }catch(_){ s2.scrollIntoView(); }
+    // The live canvas is the orb only on the home page with WebGL running. Anywhere else the pearl
+    // stands in (see the CSS).
+    function liveOrb(){
+      var c = document.getElementById("orb-canvas");
+      return !!c && root.classList.contains("orb-live") && getComputedStyle(c).display !== "none";
+    }
+    function focusables(){
+      return [].slice.call(card.querySelectorAll("button, input, [tabindex]")).filter(function(el){
+        return !el.disabled && el.tabIndex >= 0 && el.offsetParent !== null
+          // Native radios take one tab stop per group: the checked one, else the first.
+          && !(el.type === "radio" && (el.form.querySelector('input[name="' + el.name + '"]:checked') || el.form.querySelector('input[name="' + el.name + '"]')) !== el);
+      });
+    }
+
+    function open(tok, f, donePill){
+      run++; token = tok; fin = f; pill = donePill; busy = false; fails = 0; last = {};
+      s2.reset();
+      s2.removeAttribute("aria-busy");
+      go.disabled = false; go.hidden = false; go.textContent = COPY.moveUp; go.setAttribute("aria-disabled", "true");
+      msg.textContent = "";
+      s2.hidden = false; res.hidden = true;
+      // Everything else on the page goes inert while the modal is up. Only what this sets is undone.
+      inerted = [].slice.call(document.body.children).filter(function(el){
+        return el !== m && el !== veil && el !== pearl && !/^(SCRIPT|TEMPLATE|STYLE)$/.test(el.tagName) && !el.inert;
+      });
+      inerted.forEach(function(el){ el.inert = true; });
+      pearl.hidden = liveOrb();
+      root.classList.add("wl-m-open");
+      // Lenis (HOMEPAGE_MOTION_V1) scrolls the page from JS on wheel, which overflow:hidden alone does
+      // not stop. Stopped, it swallows the wheel over the backdrop; the card is data-lenis-prevent,
+      // so it still scrolls natively inside itself.
+      if(window.__lenis) try{ window.__lenis.stop(); }catch(_){}
+      veil.hidden = false; m.hidden = false;
+      card.scrollTop = 0;
+      s2.querySelector(".wl-m-h").focus({ preventScroll: true });
+    }
+    function close(){
+      if(m.hidden) return;
+      // Closing mid-save abandons nothing the person can see: the save still lands, and the pill
+      // below says so if it does.
+      token = null;
+      m.hidden = true; veil.hidden = true; pearl.hidden = true;
+      root.classList.remove("wl-m-open");
+      if(window.__lenis) try{ window.__lenis.start(); }catch(_){}
+      inerted.forEach(function(el){ el.inert = false; });
+      inerted = [];
+      if(pill) pill.focus({ preventScroll: true });
+    }
+    // Thank-you or skipped, inside the modal, with a Close. Skipped says exactly what the pill says.
+    function result(thanks){
+      token = null;
+      var line = fin === "done" ? COPY.done : COPY.doneNoMail;
+      if(thanks && pill){
+        pill.querySelector(".wl-done-text").textContent = COPY.thanks + " " + line;
+        pill.classList.add("is-thanks");
       }
-      s2.querySelector(".wl-s2-h").focus({ preventScroll: true });
+      res.querySelector(".wl-m-rh").textContent = thanks ? COPY.thanks : COPY.listed;
+      res.querySelector(".wl-m-rp").textContent = thanks ? line : line.slice(COPY.listed.length + 1);
+      s2.hidden = true; res.hidden = false;
+      res.querySelector(".wl-m-rh").focus({ preventScroll: true });
     }
-    // Thank-you or skipped. Skipped shows today's done text exactly.
-    function finishStep2(thanks){
-      s2Token = null;
-      s2.hidden = true;
-      setState(s2Fin);
-      if(thanks){
-        var t = done.querySelector(".wl-done-text");
-        t.textContent = COPY.thanks + " " + t.textContent;
-        done.classList.add("is-thanks");
-      }
-    }
-    function s2Failed(){
-      s2Busy = false; s2Fails++;
+    function failed(){
+      busy = false; fails++;
       s2.setAttribute("aria-busy", "false");
-      s2Go.disabled = false;
-      s2Go.textContent = COPY.moveUp;
-      s2Msg.textContent = COPY.s2Failed;
+      go.disabled = false;
+      go.textContent = COPY.moveUp;
+      msg.textContent = COPY.s2Failed;
       // One retry. After a second failure the button goes, since it has not been working, and Skip
       // stays. The person is on the list either way.
-      if(s2Fails >= 2) s2Go.hidden = true;
+      if(fails >= 2) go.hidden = true;
     }
-    if(s2){
-      // A tap on the chip that is already selected clears it, so "optional" stays true after a mis-tap.
-      s2.addEventListener("click", function(e){
-        var i = e.target;
-        if(!i || i.tagName !== "INPUT" || i.type !== "radio") return;
-        if(s2Last[i.name] === i.value){ i.checked = false; s2Last[i.name] = null; }
-        else s2Last[i.name] = i.value;
-        s2Sync();
+
+    // A tap on the chip that is already selected clears it, so "optional" stays true after a mis-tap.
+    s2.addEventListener("click", function(e){
+      var i = e.target;
+      if(!i || i.tagName !== "INPUT" || i.type !== "radio") return;
+      if(last[i.name] === i.value){ i.checked = false; last[i.name] = null; }
+      else last[i.name] = i.value;
+      sync();
+    });
+    s2.querySelector(".wl-s2-skip").addEventListener("click", function(){ if(!busy) result(false); });
+    m.querySelector(".wl-m-x").addEventListener("click", close);
+    m.querySelector(".wl-m-close").addEventListener("click", close);
+    // The dialog's own box is the backdrop around the card.
+    m.addEventListener("click", function(e){ if(e.target === m) close(); });
+    document.addEventListener("keydown", function(e){
+      if(m.hidden) return;
+      if(e.key === "Escape" || e.key === "Esc"){ e.preventDefault(); close(); return; }
+      if(e.key !== "Tab") return;
+      var f = focusables();
+      if(!f.length){ e.preventDefault(); return; }
+      var first = f[0], lastEl = f[f.length - 1], a = document.activeElement;
+      if(e.shiftKey && (a === first || !card.contains(a) || a.tabIndex < 0)){ e.preventDefault(); lastEl.focus(); }
+      else if(!e.shiftKey && (a === lastEl || !card.contains(a))){ e.preventDefault(); first.focus(); }
+    });
+    s2.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(busy || !token) return;
+      var a = answers();
+      if(!a){ msg.textContent = COPY.pickOne; return; }
+      a.p = token;
+      busy = true;
+      var mine = run;
+      s2.setAttribute("aria-busy", "true");
+      go.disabled = true;
+      go.textContent = COPY.saving;
+      msg.textContent = "";
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, 15000);
+      fetch(ENDPOINT + "/profile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(a),
+        signal: ctl ? ctl.signal : undefined
+      }).then(function(r){
+        clearTimeout(timer);
+        if(mine !== run) return;
+        busy = false;
+        if(r.status === 200) result(true);
+        // A 400 cannot come from this page's own chips. If one does, saving again will not help,
+        // so it ends as skipped rather than claiming a move.
+        else if(r.status === 400) result(false);
+        else failed();
+      }).catch(function(){
+        clearTimeout(timer);
+        if(mine === run) failed();
       });
-      s2.querySelector(".wl-s2-skip").addEventListener("click", function(){
-        if(!s2Busy) finishStep2(false);
-      });
-      s2.addEventListener("submit", function(e){
-        e.preventDefault();
-        if(s2Busy || !s2Token) return;
-        var a = s2Answers();
-        if(!a){ s2Msg.textContent = COPY.pickOne; return; }
-        a.p = s2Token;
-        s2Busy = true;
-        s2.setAttribute("aria-busy", "true");
-        s2Go.disabled = true;
-        s2Go.textContent = COPY.saving;
-        s2Msg.textContent = "";
-        var ctl = window.AbortController ? new AbortController() : null;
-        var timer = setTimeout(function(){ if(ctl) ctl.abort(); }, 15000);
-        fetch(ENDPOINT + "/profile", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(a),
-          signal: ctl ? ctl.signal : undefined
-        }).then(function(r){
-          clearTimeout(timer);
-          s2Busy = false;
-          if(r.status === 200) finishStep2(true);
-          // A 400 cannot come from this page's own chips. If one does, saving again will not help,
-          // so it ends as skipped rather than claiming a move.
-          else if(r.status === 400) finishStep2(false);
-          else s2Failed();
-        }).catch(function(){
-          clearTimeout(timer);
-          s2Failed();
-        });
-      });
-    }
+    });
+    return { open: open };
+  })();
+
+  function bind(block){
+    var form = block.querySelector(".wl-form");
+    var input = form.querySelector(".wl-input");
+    var btn = form.querySelector("button");
+    var msg = form.querySelector(".wl-msg");
+    var hp = form.querySelector('[name="company"]');
+    var done = block.querySelector(".wl-done");
 
     function setState(s, text){
       form.classList.toggle("is-invalid", s === "invalid");
@@ -1865,10 +1976,11 @@ function orbEngine(scope,inWorker){
           clearTimeout(timer);
           if(r.status === 200){
             var fin = j && j.notice === "listed" ? "done-nomail" : "done";
-            // WAITLIST_STEP2_V1. No usable token (an older function, or no template) means today's
-            // done state, unchanged.
-            if(s2 && j && typeof j.step2 === "string" && UUID_RE.test(j.step2)) showStep2(j.step2, fin);
-            else setState(fin);
+            // WAITLIST_STEP2_V1. Today's done state first, unchanged, so the signup shows as saved
+            // whatever happens next. Then, with a usable token, the shared modal opens over it. No
+            // token (an older function) means no modal.
+            setState(fin);
+            if(M && j && typeof j.step2 === "string" && UUID_RE.test(j.step2)) M.open(j.step2, fin, done);
           }
           else if(r.status === 429) setState("limited", COPY.limited);
           else if(r.status === 400) setState("invalid", COPY.invalid);

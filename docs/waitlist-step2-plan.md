@@ -1,5 +1,51 @@
 # WAITLIST_STEP2_V1 plan
 
+## Amendment build record, 2026-10-27
+
+**Founder ruling 2026-10-27 overrides section 4 (UI states) and section 5 (card placement).** Built
+and committed locally. Nothing is pushed or deployed.
+
+- **Step 1 is unchanged on all three forms.** On a 200 the submitting form shows its done pill
+  exactly as before. Then, only if the response carries a usable `step2` token, ONE shared modal
+  opens: `#wl-modal`, `role="dialog" aria-modal="true"`, one instance in `index.html`, whichever form
+  submitted. It never opens before the 200, so the email is saved even if it is closed at once.
+- **The template is gone.** `<template id="wl-step2-tpl">` and the per-card clones are replaced by
+  the static modal markup, and the step-2 logic moved out of `bind()` into one shared controller
+  (`M` in the WAITLIST_INLINE_V1 script). The token still lives only in that closure.
+- **Layers, bottom to top:** the page, the veil (`.wl-m-veil`, z 1000, cream
+  `rgba(247,239,233,.45)` with a 16px backdrop blur), the orb (z 1001), the dialog (z 1002). The orb
+  is the page's own `#orb-canvas`, lifted to 1001 while the modal is open, so it stays live and
+  animated. Where the canvas is not running (orb-static, which reduced motion also selects, or the
+  early-access page, which hides it), the committed `pearl.png` stands in as `.wl-m-pearl` with a
+  slow drift, static under reduced motion. Siblings rather than a wrapper, because a fixed wrapper
+  is a stacking context and the canvas could not sit between veil and card.
+- **Card:** white 58% with a 24px backdrop blur, white hairline, `--shadow`, radius 28px, max-width
+  600px, centred. At 600px and below it fills the viewport with a 12px inset and scrolls internally.
+  There, the short thanks and skipped states are centred vertically.
+- **Content:** olive "You're on the list" eyebrow (`.eyebrow`, uppercase by CSS), Fraunces "Want in
+  sooner?" with "sooner?" italic in `--coral-deep` (the site's `.display em`), the priority line
+  (the existing lede), the four chip groups, "Move me up", "Skip for now". Thanks shows "Thank you,
+  you've moved up." with the inbox or no-mail line. Skipped shows "You're on the list." with the rest
+  of the done line, so it says exactly what the pill says. Both have a Close button. After a thanks
+  the done pill under the form also carries the thank-you.
+- **Close X, Esc and a click on the backdrop** close at once and behave as Skip. No `/profile` call.
+  **Focus** is trapped in the card (Tab and Shift+Tab wrap, and the rest of the page is `inert`).
+  On close, focus returns to the submitting form's done pill. **Scroll lock:** `html.wl-m-open`
+  sets `overflow:hidden` on html and body, and Lenis is stopped while the modal is open. Without
+  that, Lenis would keep scrolling the page from JS on wheel. The card is `data-lenis-prevent` so it
+  still scrolls natively.
+- **Fallback:** without `backdrop-filter` the veil is solid cream at 0.92 and the card white at 0.9.
+  **Reduced motion:** no open animation, and the orb is the static pearl.
+- **Tests:** `test-waitlist-inline.mjs` WS-1 to WS-17, at 1440 and 390, for all three forms. Keys and
+  the backdrop click are real CDP input events. 172 of 172. Palette 179 of 179, brand-mark-header,
+  landing-shots and login-palette green.
+- **Not covered by the headless run:** the live WebGL orb. Headless has no GPU and the three.js CDN is
+  refused, so every run takes the pearl path. Real Lenis is not covered either: the CDN is refused,
+  and a recorder stands in for `stop()` and `start()`. Check both on a real browser before the push.
+- **Superseded lock.** Session `waitlist-step2-modal-060131` had started this amendment and left
+  uncommitted modal CSS. Its process was gone and the founder approved the takeover. Its work is in
+  `git stash` under its own name and was not used. This build started from `544a5a7`.
+
 ## Build record, 2026-10-26
 
 **Built, and committed locally in both repos. Nothing is pushed or deployed, and migration 0077 is not
