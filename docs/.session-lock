@@ -1,0 +1,4 @@
+session: code-comments-orb-102157
+taken: 2026-10-27T10:21:57Z
+scope: (A) WAITLIST_STEP2_V1 live orb forced scale 1.6x -> 1.2x in index.html, WS-18 expectations. (B) CODE_COMMENT_CLEANUP_V1: internal-record CSS/JS comments removed from served pages, archived to docs/code-comment-archive-2026-10-27.md, test-no-internal-comments.mjs extended, tests re-anchored where needed. Pushes approved in session.
+repos: biowellth-website
