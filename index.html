@@ -447,7 +447,9 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .wl-m-veil{position:fixed;inset:0;z-index:1000;background:rgba(247,239,233,.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 html.wl-m-open #orb-canvas{z-index:1001}
 /* 2026-10-27 founder ruling: the orb behind the modal is a large centred glow framing the card on all
-   sides, 1.6x its #join size. For the pearl that is 1.6x the final CTA's min(80vh,92vw). */
+   sides. The pearl is 1.6x the final CTA's min(80vh,92vw), because pearl.png has transparent padding
+   round the orb. The live orb has none, so it is forced to 1.2x its #join size instead (bigOrb below;
+   corrected 2026-10-27 from 1.6x, which rendered about 1,240px across in a 900px window). */
 .wl-m-pearl{position:fixed;left:50%;top:50%;width:min(128vh,147.2vw);aspect-ratio:1;margin:calc(min(128vh,147.2vw) / -2) 0 0 calc(min(128vh,147.2vw) / -2);z-index:1001;background:url(/pearl.png) center/contain no-repeat;pointer-events:none}
 .wl-m{position:fixed;inset:0;z-index:1002;display:flex;align-items:center;justify-content:center;padding:24px}
 .wl-m-card{position:relative;width:100%;max-width:600px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);overflow-y:auto;overscroll-behavior:contain;padding:34px 36px 0;border-radius:28px;background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.85);box-shadow:var(--shadow);text-align:left}
@@ -1691,11 +1693,12 @@ function orbEngine(scope,inWorker){
     var go = s2.querySelector(".wl-s2-go"), msg = s2.querySelector(".wl-msg");
     var token = null, fin = "done", pill = null, busy = false, fails = 0, last = {}, run = 0, inerted = [], orbBig = false;
     function still(){ return root.classList.contains("reduce") || !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
-    // The #join keyframe, read the way measure() reads it, scaled 1.6x and centred.
+    // The #join keyframe, read the way measure() reads it, scaled 1.2x and centred. (Was 1.6x, the
+    // pearl's factor; corrected 2026-10-27, since the live orb has no transparent padding.)
     function bigOrb(){
       var j = document.getElementById("join"), mob = window.matchMedia && matchMedia("(max-width:767px)").matches;
       var a = ((j && ((mob && j.getAttribute("data-orb-m")) || j.getAttribute("data-orb"))) || "0,0,0.86").split(",").map(parseFloat);
-      return { x: 0, y: 0, s: a[2] * 1.6 };
+      return { x: 0, y: 0, s: a[2] * 1.2 };
     }
 
     function answers(){
@@ -1739,7 +1742,7 @@ function orbEngine(scope,inWorker){
       inerted.forEach(function(el){ el.inert = true; });
       orbBig = liveOrb();
       pearl.hidden = orbBig;
-      // 2026-10-27 founder ruling: the live orb moves to the centre at 1.6x its #join size (desktop or
+      // 2026-10-27 founder ruling: the live orb moves to the centre at 1.2x its #join size (desktop or
       // phone keyframe, as measure() would pick), eased over 600ms, none under reduced motion.
       if(orbBig && window.__orb && window.__orb.force) window.__orb.force(bigOrb(), still() ? 0 : 600);
       root.classList.add("wl-m-open");

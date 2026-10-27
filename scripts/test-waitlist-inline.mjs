@@ -487,7 +487,8 @@ const fb = JSON.parse(await ev(`(() => {
 ok(fb.length === 1 && /\.wl-m-veil\s*\{\s*background:\s*rgba\(247, 239, 233, 0\.92\)/.test(fb[0]),
   "WS-16b without backdrop-filter the veil falls back to solid cream at 0.92 (" + (fb[0] || "").replace(/\s+/g, " ") + ")");
 
-// WS-18. The orb behind the modal (founder ruling 2026-10-27): centred, at 1.6x its #join size, and
+// WS-18. The orb behind the modal (founder ruling 2026-10-27): centred, and for the pearl 1.6x its #join
+// size (the live orb is 1.2x, WS-18c, since pearl.png has transparent padding and the canvas does not),
 // back to exactly its section box on close. Headless runs the pearl path, so that is measured on
 // screen. The live canvas path is checked at its wiring: a recorder stands in for window.__orb.
 const pearlBox = (sel) => `(() => { const el = document.querySelector('${sel}');
@@ -520,8 +521,8 @@ for (const [width, s, reduce] of [[1440, 0.86, false], [390, 1.05, false], [1440
   await step2("join", [], "x");
   const after = JSON.parse(await ev(`JSON.stringify(window.__orb.log)`));
   const d = reduce ? 0 : 600, f = o.log[0] && o.log[0][0];
-  ok(o.log.length === 1 && f && f.x === 0 && f.y === 0 && Math.abs(f.s - s * 1.6) < 1e-9 && o.log[0][1] === d && !o.pearl && o.z === "1001",
-    `WS-18c live orb at ${width}${reduce ? ", reduced motion" : ""}: forced to the centre at 1.6x the #join keyframe (${f && f.s.toFixed(3)}), over ${d}ms, above the veil, no pearl`);
+  ok(o.log.length === 1 && f && f.x === 0 && f.y === 0 && Math.abs(f.s - s * 1.2) < 1e-9 && o.log[0][1] === d && !o.pearl && o.z === "1001",
+    `WS-18c live orb at ${width}${reduce ? ", reduced motion" : ""}: forced to the centre at 1.2x the #join keyframe (${f && f.s.toFixed(3)}), over ${d}ms, above the veil, no pearl`);
   ok(after.length === 2 && after[1][0] === null && after[1][1] === d,
     `WS-18d live orb at ${width}${reduce ? ", reduced motion" : ""}: released on close over ${d}ms, so the engine returns to the section keyframe`);
   if (reduce) await send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
