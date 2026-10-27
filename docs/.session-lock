@@ -1,0 +1,4 @@
+session: city-to-popup-104211
+taken: 2026-10-27T10:42:11Z
+scope: WAITLIST_STEP2_V1 city question moves from the welcome email to the step-2 popup (founder ruling 2026-10-27). Backend: migration 0078 (priority counts region_tag), /profile accepts region, welcome email without the city block, tests, deploy waitlist-signup. Website: city as the first popup question, tests. Counsel request update. Pushes and deploy approved in session.
+repos: biowellth-backend-supa, biowellth-website
