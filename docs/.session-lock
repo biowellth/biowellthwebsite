@@ -1,0 +1,4 @@
+session: waitlist-step2-counsel-074656
+taken: 2026-10-27T07:46:56Z
+scope: WAITLIST_STEP2_V1 counsel package: drop the superseded 060131 stash; docs/waitlist-step2-deploy-runbook.md. Docs only, no code, nothing pushed or deployed.
+repos: biowellth-website, biowellth-backend-supa
