@@ -1,0 +1,4 @@
+session: waitlist-step2-launch-081829
+taken: 2026-10-27T08:18:29Z
+scope: WAITLIST_STEP2_V1 launch (founder decision 2026-10-27, counsel review moved to before the wider launch). Website: privacy.html v1.5, push. Supabase: founder sets WAITLIST_STEP2_ENABLED=true; live smoke test and test-row deletes. Backend: counsel request status line. Pushes approved in session.
+repos: biowellth-website, biowellth-backend-supa
