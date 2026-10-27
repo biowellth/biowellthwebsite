@@ -251,8 +251,11 @@ const COPY_S2 = {
   eyebrow: "YOU'RE ON THE LIST", h: "Want in sooner?", em: "sooner?",
   lede: "Early access opens in small groups. Answer a few quick taps and we'll move you up.",
   go: "Move me up", skip: "Skip for now",
-  legends: ["Which sounds most like you?", "What would help most right now?", "How did you hear about us?", "Open to a 15-minute chat with the founder?"],
-  chips: [["My results say normal, but something feels off", "I feel fine and want to stay ahead", "Just curious what my body is doing", "Prefer not to say"],
+  // WAITLIST_STEP2_V1, 2026-10-27: the city question moved here from the welcome email, as the first group,
+  // with /tag's labels and order.
+  legends: ["Where do you live?", "Which sounds most like you?", "What would help most right now?", "How did you hear about us?", "Open to a 15-minute chat with the founder?"],
+  chips: [["Bangalore", "Mumbai", "Delhi NCR", "Chennai", "Hyderabad", "Pune", "Kolkata", "Elsewhere in India", "US", "UK", "Elsewhere outside India"],
+    ["My results say normal, but something feels off", "I feel fine and want to stay ahead", "Just curious what my body is doing", "Prefer not to say"],
     ["Read the tests I already have", "An at-home panel, tracked over time", "The fullest picture, with a specialist", "Not sure yet"],
     ["Instagram", "Friend or family", "Search", "Podcast or article", "LinkedIn", "Other"], ["Yes", "No"]],
 };
@@ -549,6 +552,32 @@ for (const [width, height] of [[1440, 800], [390, 844]]) {
     `WS-19c at ${width}x${height}: scrolled to the end, the last chip clears the footer, and the message lives in the footer`);
 }
 
+// WS-20. The city question (2026-10-27): first, sent as region only when chosen, counts on its own,
+// and closing still sends nothing.
+await open("index.html", 1440);
+await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+const firstQ = await ev(`document.querySelector('#wl-modal .wl-q legend').textContent`);
+const codes = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('#wl-modal input[name="region"]')].map(i => i.value))`));
+ok(firstQ === "Where do you live?" && codes.join() === "bangalore,mumbai,delhi_ncr,chennai,hyderabad,pune,kolkata,india_other,us,uk,outside_other",
+  "WS-20 the city question comes first, with the 11 codes /tag accepts, in its order");
+w = await step2("join", ["region=pune"], "go");
+ok(w.goDisabled === "false" && w.calls.length === 1 && JSON.stringify(w.calls[0].body) === JSON.stringify({ region: "pune", p: S2TOK }) && w.rh === "Thank you, you've moved up.",
+  "WS-20b a city alone is an answer: only region and the token are sent, and it ends in thanks " + JSON.stringify(w.calls[0] && w.calls[0].body));
+await open("index.html", 1440);
+await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+w = await step2("join", ["persona=curious"], "go");
+ok(w.calls.length === 1 && !("region" in w.calls[0].body), "WS-20c with no city chosen, no region is sent");
+await open("index.html", 1440);
+await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+w = await step2("join", ["region=uk", "region=uk"], null);
+ok(w.checked.length === 0 && w.goDisabled === "true", "WS-20d a second tap on the chosen city clears it, like every other chip");
+for (const route of ["esc", "x", "backdrop"]) {
+  await open("index.html", 1440);
+  await signup("join", { ok: true, notice: "inbox", step2: S2TOK });
+  w = await step2("join", ["region=mumbai"], route);
+  ok(w.calls.length === 0 && !w.open, `WS-20e a city chosen, then ${route}: nothing is sent`);
+}
+
 // WS-17. The token never leaves the closure, and no chip is ever coral or off the site font.
 await open("index.html?utm_source=ig", 1440);
 await signup("hero", { ok: true, notice: "inbox", step2: S2TOK });
@@ -585,7 +614,7 @@ const col = JSON.parse(await ev(`(async () => {
     chosenBg: chosen.backgroundColor, chosenFg: chosen.color, tick: /F8F2EC/i.test(decodeURIComponent(tick)), fonts: [...new Set(fonts)] });
 })()`));
 ok(col.n >= 5 && col.control > 0, `WS-17b control, the coral detector reads ${col.n} --coral tokens and catches the page's coral chips`);
-ok(col.nOn === 4 && col.offHits.length === 0 && col.onHits.length === 0, "WS-17c no coral on any chip, unselected or selected " + JSON.stringify([col.offHits, col.onHits]));
+ok(col.nOn === 5 && col.offHits.length === 0 && col.onHits.length === 0, "WS-17c no coral on any chip, unselected or selected " + JSON.stringify([col.offHits, col.onHits]));
 ok(col.chosenBg === "rgb(71, 55, 43)" && col.chosenFg === "rgb(248, 242, 236)" && col.tick, `WS-17d a chosen chip is ink with cream text and a cream tick (${col.chosenBg}, ${col.chosenFg})`);
 ok(col.fonts.length === 1 && /^"?Instrument Sans"?,/.test(col.fonts[0]) && !/Inter\b/.test(col.fonts[0]), "WS-17e step-2 labels are Instrument Sans, no Inter " + JSON.stringify(col.fonts));
 const s2src = index.slice(index.indexOf('<div class="wl-m" id="wl-modal"'), index.indexOf("<script>", index.indexOf('<div class="wl-m" id="wl-modal"')));

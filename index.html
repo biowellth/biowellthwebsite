@@ -1568,6 +1568,22 @@ function orbEngine(scope,inWorker){
       <p class="eyebrow">You're on the list</p>
       <h2 class="wl-m-h" id="wl-m-h" tabindex="-1">Want in <em>sooner?</em></h2>
       <p class="wl-s2-lede">Early access opens in small groups. Answer a few quick taps and we'll move you up.</p>
+      <fieldset class="wl-q">
+        <legend>Where do you live?</legend>
+        <div class="wl-chips">
+          <label class="wl-chip"><input type="radio" name="region" value="bangalore"><span>Bangalore</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="mumbai"><span>Mumbai</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="delhi_ncr"><span>Delhi NCR</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="chennai"><span>Chennai</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="hyderabad"><span>Hyderabad</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="pune"><span>Pune</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="kolkata"><span>Kolkata</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="india_other"><span>Elsewhere in India</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="us"><span>US</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="uk"><span>UK</span></label>
+          <label class="wl-chip"><input type="radio" name="region" value="outside_other"><span>Elsewhere outside India</span></label>
+        </div>
+      </fieldset>
       <fieldset class="wl-q wl-q-long">
         <legend>Which sounds most like you?</legend>
         <div class="wl-chips">
@@ -1649,7 +1665,9 @@ function orbEngine(scope,inWorker){
   };
   // WAITLIST_STEP2_V1. The step-2 token the server returns. Anything else means no step 2.
   var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-  var S2_KEYS = ["persona","need","heard","chat"];
+  // WAITLIST_STEP2_V1, 2026-10-27: the city question moved here from the welcome email. Sent as region,
+  // the same 11 codes /tag takes, stored in region_tag.
+  var S2_KEYS = ["region","persona","need","heard","chat"];
   var UTM_KEYS = ["utm_source","utm_medium","utm_campaign","utm_content"];
   var EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
