@@ -135,7 +135,7 @@
   /* OLIVE_PALETTE_V1: small coral-deep links only. --coral-deep measured 3.86:1 on glass over
      --coral-dark and 4.50:1 on the beige glow, so small link text uses this darker step. */
   --coral-deep-text:#8E5340;
-  /* OLIVE_PALETTE_V1: the approved accent is olive, replacing the earlier accent 1:1 by role.
+  /* OLIVE_PALETTE_V1: the accent is olive, replacing the earlier accent 1:1 by role.
      --olive is text and marks, --sage is fills, --sage-soft and --sage-pale are tints. */
   --olive:#59663A;
   --olive-dark:#4A5530;
@@ -218,7 +218,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 .hero-foot{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,330px) 1fr minmax(0,330px);align-items:end;gap:24px;margin-top:28px}
 .hero-caption{grid-column:2;text-align:center;font-size:12.5px;color:var(--ink-muted);align-self:end;padding-bottom:6px;max-width:228px;margin-inline:auto}
-/* HERO_CARD_ROWS_V1 (2026-10-26, Aditi): max-width 228px is the middle column's live width at 1440. The longer caption
+/* HERO_CARD_ROWS_V1: max-width 228px is the middle column's live width at 1440. The longer caption
    ("What a panel skips varies by person.") would otherwise widen that column and push both cards outward; capped, it
    wraps instead and the cards keep their positions. Lifted at 1100px and below, where the caption spans the row. */
 .hcard-wrap{transform:translate3d(calc(var(--px,0)*-12px),calc(var(--py,0)*-8px),0);will-change:transform}
@@ -236,7 +236,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 /* Dims to ink-muted rather than by opacity, so the struck line still clears 4.5:1. */
 .hc-lab.dim .hc-what{color:var(--ink-muted)}
 .hc-bw .hc-who,.hc-bw .hc-what{color:var(--olive)}
-/* HERO_CARD_ROWS_V1 (2026-10-26, Aditi): the numeral layout stays. The caption now runs on two lines, the second
+/* HERO_CARD_ROWS_V1: the numeral layout stays. The caption now runs on two lines, the second
    ("We test them.") in semibold, a weight the page already loads (Instrument Sans 600). */
 .hc-big{display:flex;align-items:baseline;gap:12px;margin:6px 0 12px}
 .hc-num{font-family:var(--serif);font-size:56px;line-height:.9;color:var(--ink)}
@@ -245,7 +245,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{font-size:12.5px;font-weight:500;padding:5px 11px;border-radius:100px;background:var(--coral-soft);color:var(--ink);white-space:nowrap}
 
-/* HOME_CLEANUP_V1 (2026-10-26, Aditi): the marker ticker after the hero was removed, and its rules with it. */
 
 /* DRIFT */
 .drift{position:relative;height:230vh}
@@ -263,7 +262,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 /* STACK */
 .stack{position:relative;padding:12vh 0 18vh}
 .stack-cards{position:relative}
-/* STACK_CARDS_MOCKUP_V1: matched to the approved mockup. The live build had drifted to cards as wide
+/* STACK_CARDS_MOCKUP_V1: matched to the mockup. The live build had drifted to cards as wide
    as .wrap (1052px at 1440) at a fixed height of min(58vh,480px), with space-between pushing the
    content to the bottom-left of a mostly empty card. Now a centred 980px column, each card
    content-driven with a 300px floor, 52px padding, 32px radius and 40px between cards. The cards
@@ -297,7 +296,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 
 /* LANDING_PRODUCT_SHOTS_V1: "What you get back". No glow of its own: the travelling orb and the body
    glow are the page's existing treatment, so this section adds no new decoration. The browser frame
-   is 960px at 1440 and scales down with the column; the image keeps the approved 960x600 ratio. */
+   is 960px at 1440 and scales down with the column; the image keeps the 960x600 ratio. */
 .shots{position:relative;padding:6vh 0 4vh}
 .shots-head .eyebrow{margin-bottom:18px}
 .shots-lead{margin-top:20px;font-size:19px;line-height:1.6;color:var(--ink-muted);max-width:600px}
@@ -310,8 +309,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .shots-browser img{display:block;width:100%;height:auto;aspect-ratio:958/600;object-fit:cover;object-position:top}
 .shots-phone{position:absolute;right:0;top:70px;width:262px;height:560px;padding:10px;border-radius:40px;background:#47372B;box-shadow:0 40px 80px -32px rgba(71,55,43,.45)}
 .shots-phone img{display:block;width:100%;height:100%;border-radius:30px;object-fit:cover;object-position:top}
-/* HOME_CLEANUP_V1 (2026-10-26, Aditi): the second row ("See what changed, not just what is." with the trends shot)
-   was removed, and the .shots-row2, .shots-trends and .shots-copy rules with it. */
 .shots .chat-caption{margin-top:28px}
 @media(max-width:767px){
   .shots{padding:6vh 0}
@@ -343,7 +340,6 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 @keyframes dot{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-4px);opacity:1}}
 .chat-caption{font-size:12.5px;color:var(--ink-muted);margin-top:12px}
 
-/* FOUNDER */
 .founder{padding:16vh 0}
 .founder blockquote{max-width:860px;margin:0 auto;text-align:center}
 .founder blockquote p{font-family:var(--serif);font-style:italic;font-size:clamp(1.7rem,3.4vw,2.9rem);line-height:1.2;letter-spacing:-.01em;color:var(--ink)}
@@ -372,7 +368,7 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
 .wl-block[hidden],.wl-done[hidden],.wl-form[hidden]{display:none!important}
 .wl-block{width:100%}
 .wl-form{container-type:inline-size;width:100%;margin:16px auto 0;text-align:left}
-/* The pill stands out at rest (founder, 2026-10-24): an olive border at about 35% and a soft sage
+/* The pill stands out at rest: an olive border at about 35% and a soft sage
    glow, a 4px halo plus a wider blur. color-mix() keeps it on the existing --olive and --sage, no
    new colour. A browser without color-mix() ignores those two lines and keeps the plain
    --glass-edge border. Focus stays stronger than rest: a solid olive border and ring, a brighter
@@ -418,20 +414,20 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    pearl, in the mock, the error measured 2.20:1 and the link 2.05:1 at 375px, under 4.5:1. A chip at
    the --glass the site already tunes for small text over the orb clears it (5.04:1 or better,
    re-measured live, plan section 5c). The hero used to carry the signup notice on a chip too; it
-   was REMOVED from the hero by the founder on 2026-10-24 and stays under the final CTA and
-   early-access forms (plan, end-of-build counsel list). The link keeps its 20px gap, now below the
+   was REMOVED from the hero and stays under the final CTA and
+   early-access forms. The link keeps its 20px gap, now below the
    form: the 12px row gap plus its own 8px margin. Corrected 2026-10-26 by HERO_LINE_REMOVE_V1: the link
    and its line were removed from the hero, so only the error message still uses this chip here. */
 .wl-hero .wl-msg{background:var(--glass);border:1px solid var(--glass-edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:6px 14px;border-radius:16px;max-width:460px}
 /* HERO_LINE_REMOVE_V1: the line under the hero form ("Early access opens in small groups. How we read
-   a panel", HERO_COPY_V1) was removed at Aditi's call on 2026-10-26, and with it the .wl-hero-link and
+   a panel", HERO_COPY_V1) was removed, and with it the .wl-hero-link and
    .wl-hero-a rules, which nothing else on the site used. The science page is still one click away from
    the nav's How it works and About links. */
 
 /* WAITLIST_STEP2_V1. The optional step 2 after a successful signup (backend waitlist-signup /profile,
    migration 0077; plan docs/waitlist-step2-plan.md).
-   AMENDED 2026-10-27 by founder ruling, which overrides plan sections 4 and 5: step 2 no longer
-   swaps the card. The three step-1 forms behave exactly as before (done pill and all), and after
+   Step 2 no longer swaps the card.
+   The three step-1 forms behave exactly as before (done pill and all), and after
    the 200, never before, ONE shared modal opens over the page, whichever form submitted.
    Layers, bottom to top: the page (its highest layer is the nav, at 100), the veil (1000), the orb
    (1001), the dialog (1002). They are siblings rather than one wrapper on purpose: a fixed wrapper
@@ -442,11 +438,11 @@ nav#sitenav.scrolled .nav-inner{background:rgba(251,250,249,.78)}
    Chips: selected is ink with cream text and a cream tick, so the state is never carried by colour
    alone. NO CORAL on a chip in any state (test-waitlist-inline.mjs asserts it from computed style).
    The one coral in the modal is the italic "sooner?", in --coral-deep, the site's own heading
-   italic (.display em). Labels are Instrument Sans, the live site font (founder ruling 4, no Inter). */
+   italic (.display em). Labels are Instrument Sans, the live site font (no Inter). */
 .wl-m-veil[hidden],.wl-m[hidden],.wl-m-pearl[hidden],.wl-m-step[hidden],.wl-s2-go[hidden]{display:none!important}
 .wl-m-veil{position:fixed;inset:0;z-index:1000;background:rgba(247,239,233,.45);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 html.wl-m-open #orb-canvas{z-index:1001}
-/* 2026-10-27 founder ruling: the orb behind the modal is a large centred glow framing the card on all
+/* The orb behind the modal is a large centred glow framing the card on all
    sides. The pearl is 1.6x the final CTA's min(80vh,92vw), because pearl.png has transparent padding
    round the orb. The live orb has none, so it is forced to 1.2x its #join size instead (bigOrb below;
    corrected 2026-10-27 from 1.6x, which rendered about 1,240px across in a 900px window). */
@@ -567,7 +563,7 @@ html.reduce .wl-m-veil,html.reduce .wl-m-card,html.reduce .wl-m-pearl{animation:
 .motion .hcard{opacity:0}
 .motion .hc-lab .strike{--s:0%}
 /* HERO_CARD_ROWS_V1: was .motion .hc-bw. Scoped to the ferritin card, which is the only card the 2.85s read reveal is
-   for. Kept on Aditi's call after a row-layout draft of the home-draw card, where an unscoped rule hid its chips. */
+   for. Kept after a row-layout draft of the home-draw card, where an unscoped rule hid its chips. */
 .motion .hcard-a .hc-bw{opacity:0}
 .motion .hcard-b .chips li{opacity:0}
 .motion .chat-card .b-user,.motion .chat-card .b-sana{opacity:0}
@@ -1034,7 +1030,7 @@ function route(){
     // /early-access#how entry behind the /#how one and make back look dead.
     // Gated on the section existing so an unknown hash falls through untouched.
     // HOMEPAGE_MOTION_V1: these sections moved to /science. Old shared links (/#gaps from
-    // the previous nav, /#founder) land on the moved section there instead of the hero.
+    // the previous nav, `/#founder`) land on the moved section there instead of the hero.
     if(!document.getElementById(h)&&SCIENCE_IDS.indexOf(h)!==-1){
       location.replace('/science'+location.search+location.hash);
       return;
@@ -1643,7 +1639,7 @@ function orbEngine(scope,inWorker){
     listed: "You're on the list.",
     // The row was saved but the welcome email did not send, so "Check your inbox" would be false.
     doneNoMail: "You're on the list. We'll email you when early access opens.",
-    // WAITLIST_STEP2_V1. Founder's copy, ruling 6, 2026-10-26. The thank-you is followed by the
+    // WAITLIST_STEP2_V1. The thank-you is followed by the
     // done or doneNoMail line above, so the inbox claim stays exactly as true as it is today.
     thanks: "Thank you, you've moved up.",
     moveUp: "Move me up",
@@ -1742,7 +1738,7 @@ function orbEngine(scope,inWorker){
       inerted.forEach(function(el){ el.inert = true; });
       orbBig = liveOrb();
       pearl.hidden = orbBig;
-      // 2026-10-27 founder ruling: the live orb moves to the centre at 1.2x its #join size (desktop or
+      // The live orb moves to the centre at 1.2x its #join size (desktop or
       // phone keyframe, as measure() would pick), eased over 600ms, none under reduced motion.
       if(orbBig && window.__orb && window.__orb.force) window.__orb.force(bigOrb(), still() ? 0 : 600);
       root.classList.add("wl-m-open");

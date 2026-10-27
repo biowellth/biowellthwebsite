@@ -24,7 +24,7 @@
   /* MARKER_BAND_V3 band palette, ratified. Six values that exist nowhere else in this
      file; the dot reuses --brown and its ring reuses --white, which already hold them. */
   --band-track:#EFE9E1;
-  /* DASHBOARD_V2_DESIGN, 2026-10-13: the green pair CHANGED at the founder's direction, from
+  /* DASHBOARD_V2_DESIGN, 2026-10-13: the green pair CHANGED, from
      #9CCFB8 / #0A6B51 (teal) to sage #C9D1A9 / olive-dark #4A5530, so "Looks good" reads in the
      olive palette everywhere the band draws. The amber and coral pairs are unchanged. The
      palette assertion in scripts/test-band-nav-centring.mjs moved with these two values. */
@@ -45,7 +45,7 @@
   --ink:#47372B; --ink-hover:#2F241C;
   --olive:#59663A; --olive-dark:#4A5530; --sage:#8C9A5B; --sage-mid:#B5C08E; --sage-soft:#E3E7D3; --sage-pale:#F2F4EA;
   --coral-deep:#9C5E47; --coral-deep-text:#8E5340;
-  /* The approved mockup's glass card, and the dashboard's soft shadow (DASHBOARD_V2_DESIGN --v2-shadow).
+  /* The mockup's glass card, and the dashboard's soft shadow (DASHBOARD_V2_DESIGN --v2-shadow).
      .86 rather than the dashboard's .7: these cards sit on plain cream with no colour field behind. */
   --onb-glass:rgba(251,250,249,.86); --onb-edge:rgba(255,255,255,.9);
   --onb-shadow:0 22px 50px -30px rgba(156,94,71,.35),0 1px 2px rgba(71,55,43,.04);
@@ -108,7 +108,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .del-confirm{font-family:inherit;font-size:13.5px;font-weight:700;color:#fff;background:var(--coral-dark);border:none;border-radius:100px;padding:10px 20px;cursor:pointer}
 .del-confirm:disabled{opacity:.45;cursor:not-allowed}
 .btn-ghost:hover{background:var(--cream);color:var(--brown)}
-/* Account overlay (settings) — reuses .del-modal backdrop; card + delete zone per approved mock */
+/* Account overlay (settings) — reuses .del-modal backdrop; card + delete zone per mock */
 .acct-card{position:relative;display:flex;flex-direction:column;max-height:80vh;overflow-y:auto;background:var(--white);border:1px solid var(--brown-light);border-radius:20px;padding:30px 32px;max-width:520px;width:100%;box-shadow:0 30px 80px -20px rgba(71,55,43,.4)}
 .acct-h,.acct-row,.acct-dz{flex:none}
 .acct-close{position:absolute;top:16px;right:18px;font-size:24px;line-height:1;color:var(--brown-mid);background:none;border:none;cursor:pointer;padding:2px 6px}
@@ -140,8 +140,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
    history and can exceed the viewport. Formula: min(72, innerHeight - railHeight - 16). A short
    rail pins under the topbar at 72. A tall rail gets a negative offset, so it sticks above the
    viewport top and its bottom edge lands 16px above the viewport bottom. That keeps the Generate
-   report CTA reachable. NO max-height and NO overflow on the rail, ever. Both were removed in
-   687e236 because they hid the CTA behind an invisible fold. Measured 2026-08-04: the rail is
+   report CTA reachable. NO max-height and NO overflow on the rail, ever. Both were removed
+   because they hid the CTA behind an invisible fold. Measured 2026-08-04: the rail is
    886px baseline and 956px first-panel, against roughly 812px of viewport at a 900px window.
    Below 960px the rail is position:static and the inline top is ignored. When the main column is
    shorter than the rail (a sparse panel) there is no slack, so nothing pins. That is correct, not
@@ -271,7 +271,7 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .cyc-opts.row .cyc-opt{flex:1 1 auto;justify-content:center}
 .cyc-opt{font-family:inherit;font-size:13.5px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 13px;cursor:pointer;text-align:left}
 /* ONBOARDING_PALETTE_V1: a full-width option row, so the selected state is sage-pale with an olive
-   border and olive-dark text (7.18:1), as in the approved mockup. Was teal-soft and teal. */
+   border and olive-dark text (7.18:1), as in the mockup. Was teal-soft and teal. */
 .cyc-opt:hover{border-color:var(--sage-mid)}
 .cyc-opt.sel{border-color:var(--olive);background:var(--sage-pale);color:var(--olive-dark);font-weight:600}
 .cyc-num,.cyc-date{font-family:inherit;font-size:16px;color:var(--brown);background:var(--white);border:1px solid var(--brown-light);border-radius:11px;padding:10px 12px;margin-bottom:4px}
@@ -700,7 +700,7 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .mk-sw-amber{background:var(--band-amber)}
 .mk-sw-coral{background:var(--band-coral)}
 /* SANA_CHAT_V1 — the live companion. Reuses the comp-* palette; no new colours. */
-/* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the approved spec.
+/* SANA_THREAD_V1 — geometry from mocks/sana-thread.html, the spec.
    The thread scrolls inside the card so a long conversation cannot push the
    input off screen; the row sits below it and stays put. */
 .sana-row{display:flex;gap:8px;margin-top:14px;align-items:flex-end}
@@ -842,7 +842,7 @@ body:has(#view-upload:not(.hidden)),body:has(#view-processing:not(.hidden)),body
 .longi-improving{font-size:12px;color:var(--olive);font-style:italic;margin-left:2px;flex:none}
 .mk-note{font-size:12px;color:var(--brown-mid);font-style:italic;padding:2px 0 6px 18px;line-height:1.4}
 /* Name owns the space between spark and value; truncates (never wraps) — min 90px legible before the
-   ellipsis, matching the rail preview card (004bc8c). A trends row has a value + tag on the line, so
+   ellipsis, matching the rail preview card. A trends row has a value + tag on the line, so
    unlike .fp-name (first-panel rows wrap) it must truncate. */
 .longi-name{font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:14px;color:var(--brown);flex:1;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Value pushes to the right edge (margin-left:auto, like .longi-pmove). Name's flex:1 absorbs the free
@@ -1014,7 +1014,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
    deck only takes over the viewport while active; .eyebrow scoped under
    #view-reveal to avoid clashing with the upload-card pill above. */
 /* REVEAL_PALETTE_V1, 2026-10-14: the walkthrough moves off teal and Plus Jakarta onto the coral, olive, ink and
-   Fraunces system (approved mockup: the "Reading Reveal Redesign" artifact). Every rule stays scoped to
+   Fraunces system (mockup: the "Reading Reveal Redesign" artifact). Every rule stays scoped to
    #view-reveal, which sits OUTSIDE #view-dashboard, so DASHBOARD_V2_DESIGN's teal re-pointing never reached it
    and these values are what renders. The --rv-* names are local to the view, not :root tokens. */
 #view-reveal{--rv-cream:#F8F2EC;--rv-muted:#6B5545;--rv-glass:rgba(251,250,249,.86);--rv-edge:rgba(255,255,255,.9);
@@ -1065,7 +1065,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 #view-reveal .card:not(.card--hero):not([data-beat-kind="ring"])>*{position:relative;z-index:1}
 #view-reveal .card:not(.card--hero):not([data-beat-kind="ring"])::before{content:"";position:absolute;top:34%;left:50%;width:min(640px,90%);height:min(520px,70%);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(212,169,74,.14) 0%,rgba(212,147,88,.08) 40%,rgba(212,124,101,0) 70%);filter:blur(10px);z-index:0;pointer-events:none}
 /* REVEAL_CENTRING_V1 — the max-height:760px override is REMOVED, not retargeted, and the history
-   is the reason. It was introduced with the original deck in 96ff71b (2026-06-03). Later, b9b1808
+   is the reason. It was introduced with the original deck (2026-06-03). Later, a commit
    (2026-08-16) replaced justify-content:center with `safe center` to stop an overflowing step
    pushing its first paragraph above the scroll origin, and its commit body says of this rule, in
    as many words: "max-height:760px override left in place as belt-and-suspenders". So it was
@@ -1076,7 +1076,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
    so on a 646px-tall window every beat top-aligned, including a two-line one with half the screen
    empty beneath it. That is the reported symptom and `safe center` never produces it.
 
-   RETARGETING IT TO PLAIN `center` WOULD REGRESS b9b1808 exactly where it matters most. A short
+   RETARGETING IT TO PLAIN `center` WOULD REGRESS that commit exactly where it matters most. A short
    viewport is where a step is most likely to overflow, and plain center on an overflowing flex
    column is the unreachable-top bug that commit exists to fix. Removal is the only option that
    keeps both behaviours.
@@ -1174,7 +1174,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
 #view-reveal .lever-row .cn{font-size:13.5px;line-height:1.5;color:var(--brown-mid);margin-top:3px}
 #view-reveal .closing{margin-top:20px;font-size:14.5px;line-height:1.55;color:var(--brown);font-style:italic;border-top:1px solid var(--brown-light);padding-top:15px}
 #view-reveal .priolist{margin-top:20px;display:flex;flex-direction:column;gap:10px}
-/* PRIORITIES_COLLAPSE_V1 — reveal priority cards take the approved mock's treatment: white card,
+/* PRIORITIES_COLLAPSE_V1 — reveal priority cards take the mock's treatment: white card,
    left tone stripe, small rank chip, full priority text (no 2-line clamp). Stripe tone stays
    engine-derived through toneFor (TONEFOR_V2); model `severity` is still never read. t-neutral
    takes the quiet brown stripe, NOT the mock's illustrative teal — t-neutral also covers the
@@ -1254,7 +1254,7 @@ button.theme-card.active .theme-chev{transform:rotate(90deg);opacity:.8}
      start offset, which is an empty circle rather than a still one. */
   .prio-art path{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
 }
-/* Report vault ("Your reports") — approved mock tokens */
+/* Report vault ("Your reports") — mock tokens */
 /* Report vault now lives INSIDE #account-modal (between the privacy row and the delete zone). It is a
    flex child of .acct-card; the .rv-list is the ONLY internal scroll so the head + delete zone stay put. */
 #report-vault{flex:none;display:flex;flex-direction:column;border-top:1px solid var(--brown-light);margin-top:24px;padding-top:16px}
@@ -1451,7 +1451,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 .dc-move{margin-top:12px;padding:12px 4px 2px;border-top:1px dashed var(--brown-light)}
 .dc-move-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-dark);opacity:.75;margin-bottom:4px}
 .dc-move-line{font-size:14px;font-weight:500;color:var(--brown)}
-/* CYCLE_CARD_V1. Built from mocks/cycle-card.html, with the 2026-10-12 rulings: the module's four
+/* CYCLE_CARD_V1. Built from mocks/cycle-card.html: the module's four
    phase labels only (no ovulation state), the module's own lines, site amber. Two hosts, one
    render: the rail host above 960px, the main-column host (after Sana) at 960px and below.
    SUPERSEDED BY DASHBOARD_V2_DESIGN, 2026-10-13. The v2 dashboard is ONE column at every width, so
@@ -1771,8 +1771,8 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
    primary so the flow reads as the same product as the upload card and the age
    modal. No new palette.
 
-   MOTION ported verbatim from docs/onboarding-motion-approved-v6.html
-   (founder-approved 2026-09-03, md5 efa88aed...). Durations, easings, offsets
+   MOTION ported verbatim from `docs/onboarding-motion-approved-v6.html`.
+   Durations, easings, offsets
    and the 56px gap are the spec's numbers, not retuned. The one sanctioned
    deviation is the orb mark, which uses the site's #bw-mark symbol. */
 /* Scrim is DEEPENED CREAM, not a grey wash. rgba(71,55,43,.42) was brown at low
@@ -1830,7 +1830,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
 /* ONBOARDING_PALETTE_V1: Fraunces (was Plus Jakarta 20px/700). */
 .onb2-q-h{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:22px;color:var(--brown);letter-spacing:-.015em;line-height:1.3;margin-bottom:14px}
 .onb2-sub{font-size:13.5px;font-weight:600;color:var(--brown);margin:16px 0 8px}
-/* ONBOARDING_PALETTE_V1: the approved mockup sets the note on a sage-pale wash, olive-dark text 7.18:1. */
+/* ONBOARDING_PALETTE_V1: the mockup sets the note on a sage-pale wash, olive-dark text 7.18:1. */
 .onb2-note{font-size:13px;color:var(--olive-dark);background:var(--sage-pale);border-radius:12px;padding:9px 12px;margin-top:10px;line-height:1.55}
 .onb2-opts{display:flex;flex-direction:column;gap:8px}
 .onb2-opts.row{flex-direction:row;flex-wrap:wrap}
@@ -1922,7 +1922,7 @@ button.rv-status.fail:hover{background:rgba(212,124,101,.22)}
   align-items:center;justify-content:center;font-size:11.5px;color:var(--brown-mid)}
 .tg-sha{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-mid);opacity:.75;letter-spacing:.02em}
 /* ─────────────────────────────────────────────────────────────────────────────────────────────
-   DASHBOARD_V2_DESIGN, 2026-10-13. The approved "Sana-centred" v2 dashboard, in the marketing
+   DASHBOARD_V2_DESIGN, 2026-10-13. The "Sana-centred" v2 dashboard, in the marketing
    site's olive and coral palette.
 
    WHAT THIS BLOCK IS. Presentation only. Every rule is scoped to #view-dashboard, or to the top
@@ -2003,7 +2003,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
   background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--v2-shadow);
   -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1)}
 
-/* Section labels: the ruled copy is unchanged, only its dress. */
+/* Section labels: the copy is unchanged, only its dress. */
 #view-dashboard .section-label{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.16em;color:var(--olive);margin:44px 0 14px}
 #view-dashboard .section-label::before{width:22px;height:1.5px;background:var(--olive)}
 #view-dashboard .section-label.acc-coral{color:var(--coral-ink)}
@@ -2101,7 +2101,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 #view-dashboard .comp-title{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
 #view-dashboard .comp-status{font-size:13px;color:var(--ink-muted)}
 #view-dashboard .comp-badge{color:var(--ink-muted);background:rgba(255,255,255,.6);border-color:var(--glass-edge)}
-/* SANA_ONLINE_REMOVE_V1: the .comp-online and .comp-online-dot rules went with the Online pill, removed at the founder's request on 2026-10-15. */
+/* SANA_ONLINE_REMOVE_V1: the .comp-online and .comp-online-dot rules went with the Online pill. */
 #view-dashboard .comp-read p{font-family:var(--serif);font-weight:300;font-size:clamp(21px,2.2vw,28px);line-height:1.4;letter-spacing:-.01em;color:var(--ink);margin:0 0 12px}
 #view-dashboard .comp-read p:last-child{margin-bottom:0}
 #view-dashboard .comp-chips{gap:8px;margin-top:20px}
@@ -2341,7 +2341,7 @@ body:has(#view-dashboard:not(.hidden)) #btn-sana:hover{background:#4A5530;color:
 
 /* ── LIST_VIEWS_PALETTE_V1, 2026-10-14 ───────────────────────────────────────────────────────────
    The all-markers, trends, gaps, themes and systems pages and the system modal, onto the coral,
-   olive, ink and Fraunces system (approved mockup: the "Markers and Trends Redesign" artifact).
+   olive, ink and Fraunces system (mockup: the "Markers and Trends Redesign" artifact).
 
    WHY EVERY RULE HERE NAMES ONE OF THE SIX CONTAINERS. All six live INSIDE #view-dashboard, so
    DASHBOARD_V2_DESIGN already reaches them: it re-points --teal to olive and sets
@@ -3681,8 +3681,8 @@ function showAgeModal(){
 
 
 // ── TESTER_GATE_V1 ─────────────────────────────────────────────────────────────────────
-// The external tester agreement gate. Counsel's condition is that no external tester
-// receives access until they have agreed to the approved text and the acceptance is
+// The external tester agreement gate. No external tester
+// receives access until they have agreed to the text and the acceptance is
 // recorded, so this is a LAUNCH CONDITION and not a product flow.
 //
 // INDEPENDENT OF ONBOARDING_ENABLED, deliberately, exactly like DOB_GATE_V1. Onboarding
@@ -3694,14 +3694,14 @@ function showAgeModal(){
 // mismatch with 409 rather than recording something the tester was not shown, so a drift
 // here fails loudly at the point of acceptance instead of silently storing the wrong sha.
 // ON as of 2026-09-07. Safe to flip now, and the reason is that there is nobody to
-// surprise: there are NO external users. Every account on the project is a founder test
-// account, `p27` (`1e6eb2cc`) is the proof fixture, and migrations 0048 and 0049 are
+// surprise: there are NO external users. Every account on the project is a test
+// account, `p27` is the proof fixture, and migrations 0048 and 0049 are
 // applied and read back, so the acceptance table exists with exactly one grant on it.
 // Flipping this before the table existed would have put every sign in behind a gate that
 // could not be passed, which is why it shipped false and waited.
 const TESTER_GATE_ENABLED = true;
 // AGREEMENT_V12. The version a NEW participant is shown, and the versions an EXISTING
-// acceptance may stand against. Counsel ruled 2026-09-07 that v1.2 does not replace v1.1
+// acceptance may stand against. v1.2 does not replace v1.1
 // for anyone who already accepted it, so a v1.1 row passes this gate and its holder is
 // never asked again. Both lists must match the server registry in
 // supabase/functions/process-report-worker/tester-agreements.ts.
@@ -3919,7 +3919,7 @@ async function testerGate(){
 // the rail sticks above the viewport top and its BOTTOM edge lands
 // 16px above the viewport bottom. That is what keeps the Generate
 // report CTA reachable. Never add max-height or overflow to the rail.
-// That was removed in 687e236 and it hid the CTA behind an invisible
+// That was removed and it hid the CTA behind an invisible
 // fold. See the .dash-grid comment.
 function syncRailOffset(){
   const rail = document.querySelector(".dash-rail");
@@ -4068,7 +4068,7 @@ $("btn-nopanel-upload").onclick = ()=>{ showView("upload"); };
 // that window builds the deck twice. The flag is released in a finally so a failed build cannot
 // wedge the button shut.
 // A THROW MUST NOT SILENTLY DO NOTHING: an async onclick that rejects yields an unhandled
-// rejection and the button reads as dead. Ruled: a throw is NOT consented, the deck still builds,
+// rejection and the button reads as dead. A throw is NOT consented, the deck still builds,
 // item 6 is omitted, and showView('reveal') still runs. She clicks replay, she gets her deck.
 // Today's sanaConsentGranted catches internally and cannot reject, so this catch guards a future
 // change to it rather than a live path; the suite proves it with an injected rejecting stub.
@@ -4101,7 +4101,7 @@ const dz = $("dropzone"), fileInput = $("file");
 // is already consented. handleFile also records consent as its first step, so this is the UX
 // half of a server-enforced gate, not the gate itself.
 // ── DOB_GATE_V1 ────────────────────────────────────────────────────────────────────────────
-// The pre-upload date of birth prompt. Counsel's launch condition 5 is that the under-18
+// The pre-upload date of birth prompt. The under-18
 // upload refusal stays enabled as designed; this is the CLIENT half of it. The server half is
 // migration 0044's two RESTRICTIVE policies, which refuse the insert outright. Neither is
 // sufficient alone: this one is a courtesy that explains the refusal, that one is the control.
@@ -4223,9 +4223,9 @@ function applyConsentUI(){
 // as today, so the label's rendered text equals the server's string exactly.
 //
 // Declared HERE, above the checkbox binding that runs at load, because a const read before its
-// declaration line throws. The server still refuses a v2 grant until counsel approves it
-// (approved:false), so flipping only this flag would make every tick fail, not stamp.
-// SWITCHED ON 2026-09-24, controls.md flip step 3, after counsel's reply C approved core v2 and the
+// declaration line throws. The server still refuses a v2 grant
+// (`approved:false`), so flipping only this flag would make every tick fail, not stamp.
+// SWITCHED ON 2026-09-24, controls.md flip step 3, after the
 // server began accepting it (consent-accept v9, verified live). The paragraph above describes the
 // dark build and is kept as its record.
 const CORE_CONSENT_V2_ENABLED = true;
@@ -4799,8 +4799,8 @@ function isConsentRefusal(err){
  * APPEND-ONLY row to consent_events carrying notice_sha256 of the exact text she agreed to, and
  * THEN mirrors profiles.consent_accepted_at for core, which is what the four-layer upload gate
  * reads. Without consent_type the call takes the legacy path, which updates that mutable column
- * and records nothing else. The version is unchanged: core v1 is the approved notice and its text
- * is byte-identical to the checkbox above, so no wording moves and nothing goes to counsel.
+ * and records nothing else. The version is unchanged: core v1 is the notice and its text
+ * is byte-identical to the checkbox above, so no wording moves.
  *
  * A repeat grant of the same version is a no-op server side (stampPlanV3 -> noop_same_version,
  * no insert, no re-stamp), but both callers still guard on CONSENTED so it is not relied on.
@@ -4966,7 +4966,7 @@ async function handleFile(file){
 
 // ── PROCESSING_COPY_V1 ──────────────────────────────────────────────────────────────────────
 // Honest processing copy. Three states, all byte-matching the re-signed artifact
-// docs/biowellth-between-calls-copy-SIGNED.md (founder-signed, 2026-08-18):
+// docs/biowellth-between-calls-copy-SIGNED.md:
 //   IN-3  normal interim, under the threshold
 //   IN-4  long-running continuation, past it. This ALSO covers a queue retry: a retry is NOT
 //         front-end distinguishable, because failPhase writes reports.status='error' only when
@@ -5015,11 +5015,11 @@ const PC_LONG_MS = 9 * 60 * 1000;
 const PC_OVERDUE_MS = 25 * 60 * 1000;
 const PC_IN3 = "We are working through your full reading now. This part usually takes a few minutes.";
 const PC_IN4 = "Still working on it. Larger panels take longer, sometimes ten minutes or more. You can close this page and your reading will be here when you come back.";
-// FAIL-2 / FAIL-5, byte-exact from the artifact (re-signed by the founder 2026-08-19). FAIL-5 is the
+// FAIL-2 / FAIL-5, byte-exact from the artifact. FAIL-5 is the
 // SECOND-failure state: the one retry is spent, so no control is offered that would be refused.
 const PC_FAIL2 = "Your report is saved and nothing is lost. Something went wrong while we were reading it. You can try again, or tell us and we will look at it with you.";
 const PC_FAIL5 = "We tried again and it still did not finish. Your report is saved and nothing is lost. Tell us and we will look at it with you.";
-// FAIL6_V1 — FAIL-6, byte-exact from the artifact (signed by the founder 2026-08-19). UNRETRYABLE: the
+// FAIL6_V1 — FAIL-6, byte-exact from the artifact. UNRETRYABLE: the
 // report failed before or during transcription, so there is nothing to re-read and RETRY_MODE_V1 can
 // never rescue it. Distinct from FAIL-2 (retry available) and FAIL-5 (retry spent) because BOTH of
 // those strings are false here — FAIL-2 promises a retry the backend refuses, FAIL-5 claims we tried
@@ -5250,7 +5250,7 @@ function pcRenderFailure(reportId, mode){
 
 // STALE_TAB_POLL_V1 — the report this poll is watching, or null when nothing is in flight.
 // Needed because a backgrounded tab does not lose its interval, it gets THROTTLED (browsers clamp
-// background timers to roughly once a minute). The founder's 2026-08-19 walk finished at 22:58 and the tab
+// background timers to roughly once a minute). The 2026-08-19 walk finished at 22:58 and the tab
 // still showed "processing" minutes later: the backend was healthy the whole time and the payload was
 // readable to her, the tab just had not ticked. So the fix is not a faster interval, it is an
 // immediate tick the moment the tab is looked at again.
@@ -5387,7 +5387,7 @@ function pcSlowPollForPending(reportId){
 // screen within one tick, exactly as it replaced the processing view. It slows to once a minute only
 // when the worker has actually written awaiting_review. The failure and retry screens are untouched.
 window.__pcGate = null;
-// REVIEW_GATE_COPY_V2 (2026-09-25, founder copy). PFU_SAVED_B was "Our team checks every report
+// REVIEW_GATE_COPY_V2 (2026-09-25). PFU_SAVED_B was "Our team checks every report
 // before you see it during early access.", the pending view's first sentence verbatim. It is now its
 // own shorter line and no longer a substring of the pending body; both still make the same promise.
 const PFU_SAVED_H = "Saved. Your report is being prepared.";
@@ -5491,7 +5491,7 @@ function renderInterim(tj, elapsedMs){
   // "Reading your report" screen, 2026-07-15). IN-3 (SIGNED docs/biowellth-between-calls-copy-SIGNED.md)
   // is the calm reassurance; no ask here. Top matter -> #interim-list, marker list -> #interim-markers.
   // PROCESSING_COPY_V1: IN-3 / IN-4 are chosen by ELAPSED, see pcInterimSub. Both byte-match the
-  // re-signed artifact (docs/biowellth-between-calls-copy-SIGNED.md, founder-signed 2026-08-18).
+  // re-signed artifact (docs/biowellth-between-calls-copy-SIGNED.md).
   let topHtml =
     '<h1 class="interim-head">We found <b>' + totalMarkers + '</b> markers across your body\'s systems.</h1>' +
     '<p class="interim-sub">' + esc(pcInterimSub(elapsedMs)) + '</p>' +
@@ -6050,7 +6050,7 @@ function gapSysName(s){ return GAP_SYSTEM_NAME[s] || s; }
 // enqueue-rescore edge fn, then polls results.rescored_at and re-renders the sharpened read.
 // The engine already did the scoring; this is FE-only.
 const CLARIFY_COL = { vitamin_b12: "supp_b12", vitamin_b9_folate: "supp_folate" };
-// Companion-register copy (no colons, no em dashes; warm, plain, hedged). The founder may tune.
+// Companion-register copy (no colons, no em dashes; warm, plain, hedged).
 const CLARIFY_COPY = {
   vitamin_b12:       { lead: "Your B12 is sitting higher than the usual range.",   ask: "Do you take a B12 supplement?", why: "It changes what this number means for you." },
   vitamin_b9_folate: { lead: "Your folate is sitting higher than the usual range.", ask: "Do you take a folate or folic-acid supplement?", why: "It changes what this number means for you." },
@@ -6071,7 +6071,7 @@ const CLARIFY_ACK = {
 };
 // Folate redirect (Finding #2 step 3): the "folate" word in a B12 ack becomes a tappable link
 // that opens the vitamins system modal and reveals the folate row. Constant span injected AFTER
-// esc() so the rest of the copy stays escaped (Approach B — the founder's strings stay verbatim).
+// esc() so the rest of the copy stays escaped (Approach B — the strings stay verbatim).
 const FOLATE_LINK = '<span class="folate-link" data-goto="vitamin_b9_folate" role="link" tabindex="0">folate</span>';
 function payloadHasFolate(){
   const p = window.__rdPayload;
@@ -6133,14 +6133,14 @@ function confounderAnswered(confounder_id){
 }
 // Coverage line under the band (2026-07-13). Plain words, no ring change. COPY: completeness, not
 // score. Derives "N of your 7 areas" from the pills. Defensive: a LEGACY payload (pre-v51, no
-// deferred_reasons + pills lack refusal_reason) renders NOTHING rather than a wrong count — Lakshmi's
-// stored payload is stale and hits this. Trailing clause branches on THREE states (retest conversion,
-// ratified 2026-07-13): (1) fasting_unknown + chip never answered (key ABSENT) -> "... is waiting on
+// deferred_reasons + pills lack refusal_reason) renders NOTHING rather than a wrong count.
+// Trailing clause branches on THREE states (retest conversion):
+// (1) fasting_unknown + chip never answered (key ABSENT) -> "... is waiting on
 // one answer" (the chip is showing). (2) fasting_unknown + key PRESENT (answered "Not sure", null, no
 // rescore so the reason persists) -> the retest line. (3) not_fasting (answered "No", rescore
 // re-emitted the reason) -> the retest line too. The retest line names what becomes READABLE, never a
 // score (standing product rule). Held-area naming is unchanged; only the trailing clause differs.
-// Sparse-reveal (SIGNED 2026-07-13, docs/biowellth-sparse-reveal-copy-SIGNED.md). Engine-suppressed
+// Sparse-reveal (docs/biowellth-sparse-reveal-copy-SIGNED.md). Engine-suppressed
 // too-thin panel. Gate on the ENGINE verdict (display.show_composite===false AND mode==="pills_only")
 // — the SAME condition the backend gates on (worker v61), NEVER composite==null (pregnancy also nulls
 // it) or prose. Legacy pre-v51 payloads lack this display shape so they never enter this branch.
@@ -6212,7 +6212,7 @@ function deferralSentences(p){
   deferred.forEach(function(sysId){
     const code = reasons[sysId];
     const why = (code && REPORT_DEFER_REASON[code]) ? REPORT_DEFER_REASON[code] : "";
-    if(!why) return;                       // no ruled reason -> say nothing rather than guess
+    if(!why) return;                       // no reason -> say nothing rather than guess
     if(!byReason[why]){ byReason[why] = []; order.push(why); }
     byReason[why].push(sysId);
   });
@@ -6227,7 +6227,7 @@ function deferralSentences(p){
 }
 function renderClarify(reportId){
   const wrap = $("clarify-wrap"), host = $("clarify");
-  // ASKER #3, CONDITIONAL 2026-09-02. The onboarding flow's diet screen asks the
+  // ASKER #3, CONDITIONAL. The onboarding flow's diet screen asks the
   // same B12 and folate question and writes the same two columns. This chip
   // survives only for a profile that has neither answer, so a user who answered
   // in onboarding is never asked twice. Both null is the only state where this
@@ -6304,7 +6304,7 @@ function renderClarify(reportId){
 // enqueue-rescore answers review_gate:true when the rescore of this RELEASED report will be HELD for
 // review (the worker stages it and leaves results untouched). Polling for a change that will not come
 // would end in a silent 20-second timeout, so instead she is told the update is being prepared, beside
-// her answer, and keeps seeing the approved reading. Without the flag (the gate off, or the read
+// her answer, and keeps seeing the released reading. Without the flag (the gate off, or the read
 // failed) this is exactly the poll-and-re-render both taps ran before.
 const RESCORE_PREPARING = "Thank you. Your updated reading is being prepared, and you'll see it here once it's ready.";
 async function rescoreAfterAnswer(reportId, ackHost){
@@ -6520,8 +6520,8 @@ function closeSystemsView(){ const v=$("view-systems"); if(v) v.classList.add("h
 // ══════════════════════════════════════════════════════════════════════════
 // TWO SHAPES LIVE IN THIS TABLE AS OF 2026-09-23, and every reader has to handle both.
 // The two fasting entries are CLAUSE FRAGMENTS, lowercase and unpunctuated, written to sit
-// after the word "because". cycle_day_unknown is now a WHOLE SENTENCE, founder-approved
-// verbatim, because it is the one a woman reads in three different places and it had to say
+// after the word "because". cycle_day_unknown is now a WHOLE SENTENCE,
+// because it is the one a woman reads in three different places and it had to say
 // the same thing in all of them.
 //
 // A reader tells them apart by the value itself (initial capital plus a final period), which
@@ -6580,7 +6580,7 @@ const REPORT_NOT_SCORED_STATUS = new Set([
 
 // Row-level "no scored band, show the unscored placeholder and the honest note". A SUBSET of
 // REPORT_NOT_SCORED_STATUS: the others each have their own row treatment already (unknown_unit
-// has its own ruled copy, no_value shows nothing, supplement_high and life_stage_reference are
+// has its own copy, no_value shows nothing, supplement_high and life_stage_reference are
 // real readings with their own calm labels). Declared once because markerRowHTML and
 // markerDetailHTML both ask this question and a row that says "result not scored" must not
 // expand into a trend chart.
@@ -6594,7 +6594,7 @@ const NOT_SCORED_ROW_STATUS = new Set(["not_scored","needs_review"]);
 //   to a woman as a healthy result.
 // An exclusion test fails OPEN: the set of things it lets through is everything the author did
 // not think of, which grows every time the engine gains a status. An allowlist fails CLOSED: a
-// status nobody has ruled on is treated as unread, which is the honest answer to "we do not know
+// status not on the list is treated as unread, which is the honest answer to "we do not know
 // what this is". The cost is that adding a genuinely healthy status needs an edit here, and that
 // edit is exactly the deliberate decision that was missing both times.
 // KEEP THESE IN SYNC WITH THE ENGINE. Its live vocabulary on 2026-09-21 is nine values:
@@ -7112,7 +7112,7 @@ function closeReport(){
 // ══════════════════════════════════════════════════════════════════════════
 
 // VERBATIM COPY of BANNED_PREVALENCE_PHRASES in the worker's prevalence-guard.ts
-// (PREVALENCE_GUARD_V1, ruled 2026-09-21). Copied rather than paraphrased so both
+// (PREVALENCE_GUARD_V1). Copied rather than paraphrased so both
 // sides drop the same words; the worker guards what Call D generates, this guards
 // what Call B already wrote into a payload stored before that guard existed.
 // Matched case-insensitively on WORD BOUNDARIES, which is what keeps "uncommon"
@@ -7130,7 +7130,7 @@ const DOCTOR_BANNED_PREVALENCE = [
 // while "border", "disorder" and "overdose" do not. A question that tells a clinician what
 // to order, prescribe or diagnose is the one thing this page must never do.
 //
-// WIDENED 2026-09-23 from five stems to nine, after the founder read a printed PDF. The
+// WIDENED 2026-09-23 from five stems to nine. The
 // first five caught a point that said "order" and let through one that said "request the
 // same panel again", which is the same instruction in politer words.
 //
@@ -7178,7 +7178,7 @@ const DOCTOR_STEM_MATCHERS = DOCTOR_BANNED_STEMS.map(function(stem){
   return { phrase: stem, re: new RegExp("\\b" + doctorEscapeForRegex(stem), "i") };
 });
 // "work up" and "work-up" are the SAME WORD as "workup" and a model writes all three. The
-// ruled list stays at nine; this folds the spacings onto the listed one before matching.
+// list stays at nine; this folds the spacings onto the listed one before matching.
 function doctorFoldWords(text){ return String(text).replace(/\bwork[\s-]+up\b/gi, "workup"); }
 
 // ── THE MARKER VOCABULARY, and the one thing ranges-slim CANNOT do ──────────────────────
@@ -7395,8 +7395,8 @@ function doctorStatusWord(mk, sysId){
 // (a range for a toxic marker invites reading a ceiling as a target), and the same
 // answer a marker missing from ranges-slim gets, so no number can appear either way.
 // UNIT SPELLING, and why this fold is deliberately narrow. The value column prints the unit
-// as the LAB printed it and the range column prints the LIBRARY's, and on 2026-09-23 the
-// founder found a row reading "\u00b5mol/L" in one column and "umol/L" in the other. That is one
+// as the LAB printed it and the range column prints the LIBRARY's, and on 2026-09-23 a row
+// read "\u00b5mol/L" in one column and "umol/L" in the other. That is one
 // unit spelled two ways and it reads as a discrepancy a clinician has to resolve.
 //
 // So the range column adopts the VALUE column's spelling, but ONLY when the two strings are
@@ -7479,9 +7479,6 @@ function doctorFasting(p){
   return "not recorded";
 }
 
-// doctorFirstSentence lived here and is GONE 2026-09-23 with the note row it fed. It had one
-// caller and no other, so it goes out in the same commit rather than being left behind as a
-// helper someone later wires back in without the decision that removed it.
 
 // ── Section 1, head ────────────────────────────────────────────────────────────
 function doctorHead(p){
@@ -7546,8 +7543,8 @@ function doctorFindings(p){
         '<td>' + (prev ? esc(prev) : "-") + '</td>' +
       '</tr>';
     });
-    // NO NOTE ROW. A one-sentence why_this_matters under each finding was removed 2026-09-23
-    // after the founder read the printed PDF. The table states the value, the range, the
+    // NO NOTE ROW. A one-sentence why_this_matters under each finding was removed 2026-09-23.
+    // The table states the value, the range, the
     // status and the previous reading; a sentence of model prose under it restated what the
     // row already said and pushed the sheet longer. The table alone carries the finding, and
     // her own words in the two editable sections carry everything the table cannot.
@@ -7556,7 +7553,7 @@ function doctorFindings(p){
 }
 
 // ── Section 3b, safety checks for a clinician ──────────────────────────────────
-// DOCTOR_SAFETY_CHECKS_V1, founder ruling 2026-09-28: the doctor summary is the home for
+// DOCTOR_SAFETY_CHECKS_V1: the doctor summary is the home for
 // safety-check results, and Sana shows them only on request. So this page must list every one
 // that is out of range, whether or not it became a ranked priority.
 //
@@ -7763,8 +7760,7 @@ function doctorContext(){
 }
 
 // ── Section 6, the reading conditions ──────────────────────────────────────────
-// WAS "Not read on this panel", WITH ONE LINE PER DEFERRED SYSTEM. Both were wrong and the
-// founder caught them on the printed PDF.
+// WAS "Not read on this panel", WITH ONE LINE PER DEFERRED SYSTEM. Both were wrong.
 //
 // A DEFERRAL IS A SCORING EXCLUSION, NOT AN UNREAD MARKER. The engine defers a system from
 // the composite when it cannot score it fairly; the markers themselves were measured and
@@ -7872,7 +7868,7 @@ const VERDICT_BAND = {
   needs_attention:    "A few of your markers <strong>need attention</strong>",
 };
 // Hero-summary band clause, keyed on vitality.band.key. Authored (NOT reusing VERDICT_BAND, whose key
-// drift is a separate open ruling). No entry for suppressed — that branch owns its own screen.
+// drift is separate). No entry for suppressed — that branch owns its own screen.
 const BAND_CLAUSE = {
   running_strong:     "You are running strong",
   steady:             "You are holding steady",
@@ -8461,11 +8457,11 @@ function toneFor(pr){
 // Renders as the first element on the Sana home surface, above the report reveal.
 // Reuses the existing `sb` client and `USER` session — never a second client. An
 // empty action_pool renders NO card at all (no placeholder, no error state). Phase
-// flavor lines are gated by the LOCKED Option-A rule (founder-ratified): they render
+// flavor lines are gated by the LOCKED Option-A rule: they render
 // ONLY for a 'regular' cycler with a usable recent LMP and in-range cycle length +
 // period duration; any other case is base text only, zero phase language. The BE
 // phaseKeyFor stub is deliberately NOT mirrored (it has no menstrual phase and is
-// non-final) — this FE display mapping diverges on purpose, queued for advisor eyes.
+// non-final) — this FE display mapping diverges on purpose.
 // ────────────────────────────────────────────────────────────────────────────
 const DC_TOTAL = 3;
 let __dcState = null;   // { reportId, todayYMD, three:[{action, phase}], done:Set<action_id> }
@@ -8493,12 +8489,12 @@ function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^
 // Option-A mapping) is SUPERSEDED by the shared module js/cycle-movement.js, byte-identical to
 // supa supabase/functions/_shared/cycle-movement.js and backend-branches
 // src/services/cycle-movement.js, so the daily card and Sana can never disagree about where she
-// is. Rulings: supa docs/cycle-movement-orient-2026-10-12.md section 7, approved 2026-10-12.
+// is.
 //
 // What the module keeps from Option A: the same four flavor keys, the same boundaries for days
 // 1..L (pinned against the old function in scripts/test-cycle-movement.mjs), regular cyclers only,
 // L 21-35, P 2-8, and no 28-day guess for a missing cycle length.
-// What it changes, each by ruling:
+// What it changes:
 //   - the period date is the LATER of profiles.last_period_start_date and the report's
 //     lmp_date_before_draw (R6, the read-both step of the 0058 work), where Option A read the
 //     report's date only;
@@ -8513,7 +8509,7 @@ function dcHash(str){ let h = 2166136261>>>0; for(let i=0;i<str.length;i++){ h ^
 // the first 8 hex of its sha256, so a changed module is a changed URL (the Fastly cache key) and
 // scripts/test-cycle-movement.mjs fails if the two drift. A failed load leaves every row unphased
 // and the movement row absent: the card itself never depends on it.
-const CM_SRC = '/js/cycle-movement.js?v=dae3ded6';   // REGULAR_CYCLER_V1 + IRREGULAR_DAYS_SINCE_V1: was v=14d709cb (DAYS_SINCE_V2), v=23dfc9e2 (V1), v=6aec9b31 before that; moves with the module bytes
+const CM_SRC = '/js/cycle-movement.js?v=dae3ded6';   // REGULAR_CYCLER_V1 + IRREGULAR_DAYS_SINCE_V1: moves with the module bytes
 let __cmModule = null;
 function dcLoadCycleMovement(){
   if(!__cmModule) __cmModule = import(CM_SRC).catch(e => { __cmModule = null; console.error('[daily_card] cycle module load failed (unphased):', e); return null; });
@@ -8531,7 +8527,7 @@ function dcLoadPhaseNoteGuard(){
   if(!__pngModule) __pngModule = import(PNG_SRC).catch(e => { __pngModule = null; console.error('[daily_card] phase-note guard load failed (no notes shown):', e); return null; });
   return __pngModule;
 }
-// FOOD_GUARD_V1 — never red meat, ruled 2026-10-20. The SAME file supa runs at write time
+// FOOD_GUARD_V1 — never red meat. The SAME file supa runs at write time
 // (js/food-guard.js, byte-identical to supa _shared/food-guard.js, pinned by scripts/test-food-guard.mjs;
 // the query is its sha256 prefix, the cache key). Applied to the whole pool before scheduling, with the
 // write-time rules: a banned base_text drops the action, a banned phase note drops only that note. No diet
@@ -8652,7 +8648,7 @@ function dcProse(s){ return dcEsc(String(s==null?'':s).replace(/ \u2014 /g, ", "
 // recognise it on her own lab report. GAP_MARKER_NAME is the ONLY id->display-name source on
 // this page; ranges-slim.json holds range bounds under both its keys and no names at all.
 //
-// RULED 2026-09-21: the parenthetical is used ONLY when it holds TWO OR MORE CONSECUTIVE
+// The parenthetical is used ONLY when it holds TWO OR MORE CONSECUTIVE
 // CAPITALS **and** is SHORTER than the text before it. Otherwise the text before it is used.
 // No parenthetical -> the whole name. If the chosen part is empty use the other; if both are,
 // no label.
@@ -8731,7 +8727,7 @@ async function dcToggle(el){
 
 // CYCLE_MOVEMENT_V1 — the movement row. Its text is the module's own authored copy, never model
 // prose, and it is not one of the three tickable actions.
-// ONE JOB PER CARD, founder ruling 2026-10-12: the movement line lives HERE and nowhere else; the
+// ONE JOB PER CARD: the movement line lives HERE and nowhere else; the
 // estimate note and the clinician line (line 10) live on the cycle card and never here.
 //   phase          -> "Movement for today" and today's movement line.
 //   every other status -> nothing, and the reason is never shown.
@@ -8748,7 +8744,7 @@ function dcMoveHTML(mv){
     + '</div>';
 }
 
-// OVULATORY_SHOWS_FOLLICULAR_V1, founder ruling 2026-10-12: nothing she sees names ovulation, so
+// OVULATORY_SHOWS_FOLLICULAR_V1: nothing she sees names ovulation, so
 // when the internal flavor key is ovulatory the card shows Call D's FOLLICULAR note in its place.
 // Display only: the key itself, the module and Call D are unchanged. No follicular note, no note;
 // the ovulatory note is never a fallback.
@@ -8845,11 +8841,11 @@ async function dcRenderDailyCard(p, reportId, late){
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// CYCLE_CARD_V1 — her cycle day, phase and today's movement line. Built from mocks/cycle-card.html
-// with the founder's 2026-10-12 rulings. EVERYTHING SHOWN COMES FROM THE SHARED MODULE through
+// CYCLE_CARD_V1 — her cycle day, phase and today's movement line. Built from mocks/cycle-card.html.
+// EVERYTHING SHOWN COMES FROM THE SHARED MODULE through
 // cmResolveFor, the same read the daily card uses: this card computes no phase, no day and no date.
 //   phase                  -> Day N of ~L, the module's phaseLabel (Menstrual, Follicular, Early
-//                             luteal, Late luteal; no ovulation state, ruled), next period "estimated",
+//                             luteal, Late luteal; no ovulation state), next period "estimated",
 //                             the estimate note, Log period. NO movement line: ONE JOB PER CARD
 //                             (2026-10-12), the daily card's movement row is its only home.
 //   log_period/lmp_unknown -> the module's STATUS_LINES.log_period and Log period.
@@ -8864,7 +8860,7 @@ async function dcRenderDailyCard(p, reportId, late){
 //                             since logging alone does not unlock movement ideas there.
 //   out_of_range_inputs,   -> "Day N since your last period" and Log period. The clinician line shows
 //   log_period/overdue        only when N > 35 (CY_LONG_DAYS). out_of_range_inputs with no date gets
-//                             the same logPlain card (2026-10-18 rulings).
+//                             the same logPlain card.
 //   no_phase/irregular     -> IRREGULAR_DAYS_SINCE_V1 (2026-10-18). Irregular, PCOS and perimenopause:
 //                             with a date, "Day N since your last period" and Log period. NEVER a phase,
 //                             a day of ~L or an estimate, and never the reason. With no date, NOTHING: the
@@ -8891,7 +8887,7 @@ const CY_COPY = {
   invalidDate: 'That date is later than today. Choose the day your last period started.',
   retry: 'That did not save. Try again in a moment.',
   // CYCLE_CARD_DAYCOUNT_V1
-  logPlain: 'Log the day your last period started.',   // PROPOSED 2026-10-18; the two no-date cases only, lmp_unknown keeps the module's line
+  logPlain: 'Log the day your last period started.',   // The two no-date cases only, lmp_unknown keeps the module's line
   since: 'since your last period',
   long: 'A cycle this long is worth looking into with a clinician.',
   lenLink: 'Add your usual cycle length',
@@ -9123,11 +9119,10 @@ window.addEventListener('focus', dcResumeLate);
 // the reveal deck's see-all toggle can get away with the simpler form and this one cannot.
 //
 // No colon and no em dash, per the copy tone rule.
-// CHANGED 2026-09-23 from { "See more details", "Hide details" }, on the founder's explicit
-// instruction, as part of moving the expander to the right of the headline. The long pair did
+// CHANGED 2026-09-23 from { "See more details", "Hide details" },
+// as part of moving the expander to the right of the headline. The long pair did
 // not fit a right-hand column beside a 20px headline without crowding it.
 //
-// IT WAS A RATIFIED PAIR AND THIS IS RECORDED RATHER THAN QUIETLY REPLACED.
 // scripts/test-density-collapse.mjs asserted it under the name "the ratified pair"; that
 // assertion is updated in the same commit, so the pin still exists and still names what it is.
 // Reversing this is one edit here and one there.
@@ -9295,7 +9290,7 @@ async function renderDashboard(p, reportId){
     }
     $("headline").classList.add(headlineTier(headlineText));
   }
-  // THE HERO COVERAGE LINE IS RETIRED, 2026-09-23, at the founder's ruling. Its sentence now
+  // THE HERO COVERAGE LINE IS RETIRED, 2026-09-23. Its sentence now
   // opens the "What's this?" popover, where it sits beside the paragraph explaining the score it
   // qualifies. #coverage-line stays in the markup with its id so readers and tests resolve; it is
   // cleared and hidden here on EVERY render rather than merely left alone, so the guarantee is a
@@ -9390,7 +9385,7 @@ async function renderDashboard(p, reportId){
       stat(watch, "Worth watching",      ST_COLOR['s-watch']) +
       stat(good,  "Looks good",          'var(--teal-mid)') +
       // "Gaps to test" is the only one of the four with no colour of its own to carry, so it
-      // takes the hero's cream at 55%. It was var(--brown-mid) for the length of f4fa2a4, while
+      // takes the hero's cream at 55%. It was var(--brown-mid) while
       // the row sat on the cream page under #theme-wrap; the row is back on the dark card, so
       // this is back with it. The other three are mid-tone (ST_COLOR coral/amber, teal-mid) and
       // read on both surfaces, which is why this was the only value that ever had to move.
@@ -9466,8 +9461,7 @@ async function renderDashboard(p, reportId){
   //
   // THIS IS ALSO WHY THE CHIP AT THE CARD FACE SHOWS A BARE NAME. Its label is
   // [markerName(pm), pm.value] filtered for empties, so the value silently drops out. That is a
-  // pre-existing defect, it is NOT fixed here, and fixing it is a visible copy change that wants
-  // its own ruling rather than riding along inside a band commit.
+  // pre-existing defect, it is NOT fixed here, and fixing it is a visible copy change.
   const chipValByMarker = {};
   for(const s of (Array.isArray(p.systems) ? p.systems : []))
     for(const m of (Array.isArray(s.markers) ? s.markers : [])) if(m && m.marker_id){
@@ -9763,7 +9757,7 @@ function renderCompanionChips(p, score){
   // SANA_LIVE_COPY_V1, 2026-10-13. CLOSING used to read "This is a small preview. Sana, your full
   // companion who can answer anything about your panel, is arriving soon." That was true while the
   // chips were the only Sana a woman could reach and the chat was built dark. It is FALSE now: the
-  // server founder allowlist was reverted and deployed 2026-10-09, consent v3.1 is approved, and
+  // server allowlist was reverted and deployed 2026-10-09, and
   // SANA_CHAT_ENABLED is true, so every chip answer was telling her Sana was still on the way while
   // the chat sat right under it. The line now points her at that chat instead.
   //
@@ -9961,16 +9955,15 @@ const ONB2_COPY = {
 const ONB2_SCREENS = [
   { id:"preg", key:"preg",  q:ONB2_COPY.s1, kind:"one",
     opts:[["Yes",true],["No",false]] },
-  // LIFE_STAGE_OPTIONS_V1 (copy approved 2026-10-18). Stored values unchanged. The old
+  // LIFE_STAGE_OPTIONS_V1 (2026-10-18). Stored values unchanged. The old
   // perimenopause label led with "My periods have become unpredictable", which a woman
   // with PCOS or any irregular cycle could fairly pick, so the option now names the
   // transition itself and the cycle change rides in the helper line beside the symptoms.
   // An optional third element is a helper line rendered under the label (onb2CardHtml).
-  // LIFE_STAGE_DECLARED_V1 (founder rulings 2026-10-18, superseding the labels above them):
+  // LIFE_STAGE_DECLARED_V1 (2026-10-18, superseding the labels above them):
   // perimenopause is now stored ONLY when a clinician has told her so, never inferred from
-  // changing periods, so the option names the clinician and carries no helper line. The
-  // premenopause label is the approved copy, restored 2026-10-19 (it read My periods are
-  // predictable for one day, which was never approved). Unpredictable periods are a CYCLE
+  // changing periods, so the option names the clinician and carries no helper line.
+  // Unpredictable periods are a CYCLE
   // answer: on the cycle question the "Irregular" option is relabelled "Irregular or unpredictable"
   // (value irregular). Stored values unchanged; no new value, no new column. (No apostrophes in
   // comments inside ONB2_SCREENS: test-about-you extractConst reads them as string quotes.)
@@ -10085,7 +10078,7 @@ function onb2Prefill(s){
 }
 
 /**
- * menstrual_status is DERIVED, never asked. Ruling 2026-09-02.
+ * menstrual_status is DERIVED, never asked.
  *
  * The engine reads it and PREFERS it: resolveMenopause switches on it before it
  * looks at life_stage and deliberately never reads cycle_status, and the Call C
@@ -10442,7 +10435,7 @@ function onb2CardHtml(sc, idx){
   return h;
 }
 
-/* ── motion, ported verbatim from the approved spec ───────────────────────────
+/* ── motion, ported verbatim from the spec ───────────────────────────────────
    step / placeOrb / pan / leap are the spec's functions with its numbers intact:
    gap 56, leap 820ms cubic-bezier(.45,.05,.55,.95) on `left` with fill forwards,
    arcY translateY 0 -> -64px @ .5 -> 0 at 820ms linear, land + ack at 830ms, and
@@ -11095,12 +11088,12 @@ const SANA_COPY = {
   runtime:     "Something went wrong answering that. Please try again.",
   offline:     "We could not reach Sana just now. Please check your connection and try again.",
 
-  // FACE_SCAN_ENTRY_V1 copy. Founder approved 2026-09-14 and used VERBATIM; do
+  // FACE_SCAN_ENTRY_V1 copy. Used VERBATIM; do
   // not reword. No colon, no em dash, American spelling. No range or assessment
-  // language belongs here. The results screen already carries the approved
+  // language belongs here. The results screen already carries the
   // disclaimer, and saying it twice in different words is how two versions of
   // one promise start to drift.
-  // ONE CONSTANT, TWO VARIANTS. R1, 2026-09-16. Was two sibling keys, scanLabel and
+  // ONE CONSTANT, TWO VARIANTS. Was two sibling keys, scanLabel and
   // scanNavLabel, which is two lines to change and two places to forget. They are
   // now one object so a future rename is a single edit at a single key.
   //
@@ -11114,9 +11107,8 @@ const SANA_COPY = {
     action: "Start a face scan",   // the suggestion chip and the dashboard button
     nav:    "Face Scan",           // the top bar, TITLE case beside New Upload and Account
   },
-  // ONE LINE, NOT TWO, as of 2026-09-16. scanDetail is GONE and scanIntro stays
-  // verbatim. The distinction that killed the second line, recorded so a future
-  // session does not reintroduce a metric list:
+  // ONE LINE, NOT TWO. scanDetail is GONE and scanIntro stays
+  // verbatim. The distinction that killed the second line:
   //
   //   scanIntro says what the scan DOES. That is stable.
   //   scanDetail said what she GETS. That is not, and it went stale.
@@ -11131,12 +11123,12 @@ const SANA_COPY = {
   // list behind a tap goes stale exactly as fast as a list in the open.
   scanIntro:   "This uses your camera for about a minute to read your pulse and breathing. It opens in a new tab.",
 
-  // SANA_CONSENT_V3 — counsel's data-flow language, adapted to the copy rules
+  // SANA_CONSENT_V3 — data-flow language, adapted to the copy rules
   // (no em dashes, no colons in body copy, short plain sentences).
   //
   // BOTH GATES STAY FALSE. Pasting the text is not approving it:
-  // SANA_CONSENT_TEXT_APPROVED is still false here, and every v3 notice in the
-  // server's consent-versions.ts still carries approved:false, so the stamp
+  // `SANA_CONSENT_TEXT_APPROVED` is still false here, and every v3 notice in the
+  // server's consent-versions.ts still carries `approved:false`, so the stamp
   // endpoint refuses a grant. The text is in place so the switch-on review reads
   // the real notice instead of a placeholder.
   //
@@ -11146,7 +11138,7 @@ const SANA_COPY = {
   // Flipping SANA_CHAT_ENABLED before they arm would make this sentence a false
   // promise, which is worse than no sentence at all.
   consentTitle:   "Before you chat with Sana",
-  // COUNSEL-APPROVED v3.1, verbatim. sha256 9a01eab1091ff0b1add8c5b625f1a73d3d9dfe81b60358bfa9e7c1f0376aec0d.
+  // v3.1, verbatim. sha256 `9a01eab1091ff0b1add8c5b625f1a73d3d9dfe81b60358bfa9e7c1f0376aec0d`.
   // THIS STRING IS THE CONSENT RECORD. consent-accept derives notice_sha256 from ITS OWN copy of
   // this text, so any drift here means consent_events certifies wording the user never read.
   // scripts/test-consent-gate.mjs hashes the rendered card and fails on a single character.
@@ -11168,12 +11160,12 @@ const SANA_COPY = {
   wdFailed:       "We could not record that just now. Please try again in a moment.",
 };
 
-// SANA_CONSENT_TEXT_APPROVED — the CLIENT half of a two-layer gate.
+// `SANA_CONSENT_TEXT_APPROVED` — the CLIENT half of a two-layer gate.
 //
 // The server half is `approved: false` on every v3 notice in
 // supabase/functions/process-report-worker/consent-versions.ts, which makes the
 // stamp endpoint refuse a grant outright. This constant makes the client refuse
-// to ASK. Both must flip, in the commit that pastes the counsel-approved text.
+// to ASK. Both must flip, in the commit that pastes the text.
 //
 // It is a SEPARATE constant from SANA_CHAT_ENABLED on purpose. That flag guards
 // whether the chat is visible; this one guards whether a legal artifact can be
@@ -11186,11 +11178,11 @@ const SANA_CONSENT_VERSION = "v3.1";
 // card shows consentBody (v3.1) and v3.1 is what is sent, exactly as before.
 //
 // SANA_CONSENT_V4_TEXT is the server's sana v4 notice VERBATIM (supa consent-versions.ts, sha256
-// 98e8c45ca85d7ef334675584464cfb02fd0b25babeb0cba26486f2087e39d640). When the flag is on it is the
+// `98e8c45ca85d7ef334675584464cfb02fd0b25babeb0cba26486f2087e39d640`). When the flag is on it is the
 // card body, v4 is the version sent, and sanaConsentGranted reads the VERSION as well as the
 // action, so a woman whose latest Sana grant is v3.1 is asked again before she chats. The server
-// refuses a v4 grant until counsel approves it (approved:false).
-// SWITCHED ON 2026-09-24, controls.md flip step 3, after counsel's reply C approved Sana v4 and
+// refuses a v4 grant (`approved:false`).
+// SWITCHED ON, controls.md flip step 3, after
 // consent-accept v9 began accepting it. The paragraph above describes the dark build.
 const SANA_CONSENT_V4_ENABLED = true;
 const SANA_CONSENT_V4_TEXT = "I understand and agree that when I use Sana, my questions and relevant BioWellth information, including my results and the health details I have shared (conditions, symptoms, medicines, supplements, hormonal contraception or hormone therapy, cycle and period details, and any notes I add), are processed by Microsoft Azure AI Foundry to generate her responses. Sana keeps a short AI-generated profile of what you have told her so she can remember between conversations. Deleting your Sana history removes it.";
@@ -11289,7 +11281,7 @@ async function sanaEnsureLinked(token){
 }
 
 // SANA_RENDER_V1 — lifted verbatim from mocks/sana-thread.html, which is the
-// approved spec. The live render was '<p>' + esc(answer) + '</p>', a single
+// spec. The live render was '<p>' + esc(answer) + '</p>', a single
 // escaped paragraph, so every asterisk and hyphen the model emitted appeared
 // literally on screen.
 //
@@ -11434,7 +11426,7 @@ async function sanaConsentGranted(){
 
 // FACE_SCAN_ENTRY_V1 — the one-tap authenticated hand-off to the scan page.
 //
-// THE MECHANISM, ratified: a one-time Supabase access token in the URL FRAGMENT,
+// THE MECHANISM: a one-time Supabase access token in the URL FRAGMENT,
 // assembled at click time and handed straight to window.open. A fragment is never
 // sent to a server, so it appears in no request line and no access log. The scan
 // page reads it once in a classic head script and strips it with
@@ -11456,8 +11448,8 @@ async function sanaConsentGranted(){
 // NOT WIRED TO A CONTROL YET, deliberately. A visible entry point needs a label
 // and a line saying it uses the camera, and this repo has no scan or camera copy
 // at all. Writing that copy here would put unreviewed user-facing words on the
-// dashboard, so the mechanism ships gated and tested and the copy is a separate
-// ruling. One call site is all that remains.
+// dashboard, so the mechanism ships gated and tested.
+// One call site is all that remains.
 const SCAN_ORIGIN = "https://scan.biowellth.ai";
 
 // FACE_SCAN_ENTRY_V1 - the VISUAL gate, and the only place openFaceScan is wired.
@@ -11520,7 +11512,7 @@ async function renderScanEntry(){
 // that suite also pins for string literals and DOM sinks.
 //
 // THE SAME FLOW AS sanaSend, with its own strings only: consentPending while the notice is not
-// approved, the consent card from sanaAskConsent, and consentDeclined on a no. No new copy.
+// `approved`, the consent card from sanaAskConsent, and consentDeclined on a no. No new copy.
 //
 // THE CARD IS SCROLLED INTO VIEW. It mounts in #sana-consent, at the foot of the companion card,
 // below the chat, while the chip sits at the top of it. On a phone that is below the fold, so a
@@ -11588,7 +11580,7 @@ async function openFaceScan(){
   // iOS Safari grants a window.open only while the user activation from the tap is still
   // live, and it does not survive an await. Two sit above this line, sanaConsentGranted and
   // sanaAccessToken, so by the time we asked for a window the activation was gone and Safari
-  // refused it silently. The founder tapped the scan button on her phone and nothing
+  // refused it silently. Nothing
   // happened at all, which is the worst shape a failure can take: no window, no error, no
   // way to tell a blocked popup from a dead button.
   //
@@ -11660,11 +11652,10 @@ function sanaAskConsent(){
 }
 
 // ONE poster for every consent event this page creates, grant and withdrawal
-// alike, so there is a single place the approval gate is applied and a single
+// alike, so there is a single place the gate is applied and a single
 // request shape to keep correct.
 //
-// THE APPROVAL GATE COVERS GRANTS ONLY. Refusing to record a withdrawal because
-// the notice text is still with counsel would trap a user inside a consent she
+// THE GATE COVERS GRANTS ONLY. Refusing to record a withdrawal would trap a user inside a consent she
 // wants out of, which is the opposite of what the gate is for. The server takes
 // the same position in handleV3.
 //
@@ -11759,7 +11750,7 @@ async function sanaSend(){
   // linked and no request is made on behalf of someone who has not agreed.
   if(!(await sanaConsentGranted())){
     if(!SANA_CONSENT_TEXT_APPROVED){
-      // The notice is still with counsel. Say so plainly rather than showing a
+      // The notice is still pending. Say so plainly rather than showing a
       // placeholder or failing silently.
       const n = document.createElement("div"); n.className = "sana-turn";
       thread.appendChild(n); sanaNote(n, SANA_COPY.consentPending);
@@ -11991,11 +11982,6 @@ function askSana(){
 // Rail "Browse everything" nav card. Three rows, each OPENING its own overlay page: markers
 // (all-markers view), themes (the by-theme page), gaps ("what to test next"). Each row is gated
 // on DATA PRESENCE
-//
-// THIS SAID "systems (body map), markers, gaps" and was STALE: the systems row had already moved
-// out to its own renderRailSystems card, leaving two rows behind a comment that claimed three.
-// It is three again as of 2026-09-23, for a different reason, which is exactly why the list is
-// spelled out rather than just counted.
 // in the payload (systems.length / markerCountOf / RD_GAPS_SHOWN), not section visibility. No live
 // rows -> the card hides.
 function markerCountOf(p){
@@ -12146,7 +12132,7 @@ function BAND_DIRECTION(band){
   return (band && Object.prototype.hasOwnProperty.call(BAND_DIRECTION_MAP, band)) ? BAND_DIRECTION_MAP[band] : null;
 }
 // THEME_LINE — authored per-direction copy, GENERATED from docs/THEME_MARKER_LINE-consolidated.md
-// at b010237 by tools gen_theme_line.py. 113 markers / 170 direction entries. DO NOT hand-edit;
+// by tools gen_theme_line.py. 113 markers / 170 direction entries. DO NOT hand-edit;
 // re-run the generator against the doc. Keys are canonical marker_ids; values carry high and/or low.
 const THEME_LINE = {
   "11_deoxycortisol": { high: "This adrenal marker is running above its usual range. Adrenal markers are difficult to read one at a time and are best interpreted by a practitioner looking at the full picture." },
@@ -12397,8 +12383,8 @@ function renderThemePanel(p){
   // The model's severity/flag_status are never read on this surface.
   // P0_SAFETY_SETS_V1 — DIVERGES DELIBERATELY, reconciliation DEFERRED. This is the only safety set
   // carrying "genetic". Whether genetic findings belong under the same render-suppression rule is a
-  // clinical question that was NOT settled in the 2026-08-25 pass, so the set is left exactly as it
-  // was rather than quietly widened. Do not "tidy" this into SENSITIVE_SYSTEMS without that ruling.
+  // clinical question that was NOT settled, so the set is left exactly as it
+  // was rather than quietly widened. Do not "tidy" this into SENSITIVE_SYSTEMS.
   const THEME_SENSITIVE = new Set(["heavy_metals","autoimmune","tumor_markers","genetic"]);
   const sysByMarker = {};
   for(const s of (Array.isArray(p && p.systems) ? p.systems : []))
@@ -12412,7 +12398,7 @@ function renderThemePanel(p){
       // sensitive system, but assert it here — skip + warn rather than ever render one.
       const sysId = sysByMarker[mk.marker_id];
       if(THEME_SENSITIVE.has(sysId)){ console.warn('[theme-panel] sensitive marker reached emit site, skipped:', mk.marker_id, sysId); continue; }
-      // RULED 2026-09-21: a marker whose status is in REPORT_NOT_SCORED_STATUS is NEVER counted
+      // A marker whose status is in REPORT_NOT_SCORED_STATUS is NEVER counted
       // or shown as in range. It leaves the good group and the in-range count entirely.
       //
       // Tested BEFORE the class buckets because that is the only place it can be caught here.
@@ -12477,7 +12463,7 @@ function renderThemePanel(p){
         '<button class="tp-show" type="button" data-tp-toggle="1">show them</button></div>'+
       '<div class="tp-inrange-rows">'+names+'</div>');
   }
-  // RULED 2026-09-21: one grey line when this theme carries unscored markers, verbatim
+  // One grey line when this theme carries unscored markers, verbatim
   //   N not scored.
   // No teal, no amber, no chip, no names. We did not read these results, so the line reports
   // the count and nothing else -- it must not read as reassurance OR as a warning. .mk-note is
@@ -12583,7 +12569,7 @@ function renderThemePanel(p){
 // the track spent on concentrations that cannot exist, and it squeezed green. If ANY bound on file
 // is negative the floor does not apply, because then negative values are real for that marker.
 // MARKER_BAND_V3 TIER 2 — THE FALLBACK AXIS for a marker with no usable conventional interval.
-// RULED AT 1.0, on how the zone reads, not selected from a measurement: the separation test that
+// SET AT 1.0, on how the zone reads, not selected from a measurement: the separation test that
 // would have chosen it is vacuous at a sample of one Tier 2 marker on one report and none on the
 // other, and a criterion that cannot fail is not a criterion. One named constant, so moving it is
 // one edit and one assertion.
@@ -12701,8 +12687,8 @@ function markerBandHTML(ref, value){
       bandZoneNoteHTML(g)+
     '</div>';
 }
-// MARKER_BAND_V3 — THE ZONE NOTE, one line beneath each track in that zone's ink. Ruled copy,
-// verbatim, no colons and American spelling. "Your lab" appears nowhere and must not: these are
+// MARKER_BAND_V3 — THE ZONE NOTE, one line beneath each track in that zone's ink. Verbatim,
+// no colons and American spelling. "Your lab" appears nowhere and must not: these are
 // our library's conventional reference range, not the interval printed on her report, and the two
 // differ. The note is keyed on g.zone, which is read off the SAME dot-against-green comparison the
 // consistency rule uses, so the words under the picture cannot disagree with the picture.
@@ -12722,7 +12708,7 @@ function bandZoneNoteHTML(g){
   if(!n) return '';
   return '<div class="mk-band-note '+n[0]+'">'+n[1]+'</div>';
 }
-// THE LEGEND, ONCE PER CARD, never per row. Three items, ruled copy.
+// THE LEGEND, ONCE PER CARD, never per row. Three items.
 const BAND_LEGEND_HTML = '<div class="mk-band-legend" aria-hidden="true">'+
   '<span class="mk-lg mk-lg-green"><span class="mk-sw mk-sw-green"></span>Functional range</span>'+
   '<span class="mk-lg mk-lg-amber"><span class="mk-sw mk-sw-amber"></span>Wider reference range</span>'+
@@ -13440,7 +13426,7 @@ function markerHistory(mk){
 }
 
 // ── HERO_TRAJ_V1 ──────────────────────────────────────────────────────────────
-// OFF AS OF 2026-09-23. The hero carries a band word, a headline, a vitality ring and one
+// OFF. The hero carries a band word, a headline, a vitality ring and one
 // explainer button, and the trajectory strip was a fifth thing competing with them above
 // the fold. Turning it off is a layout decision, not a verdict on the drawing.
 //
@@ -13623,7 +13609,7 @@ function heroTrajectorySVG(m, width, panelDate){
 
   // DORMANT as of SINGLE_PANEL_HIDDEN_V1: renderHeroTrajectory hides the strip on a single panel, so
   // nothing reaches this branch today. Kept intact pending a decision on what occupies that space.
-  // ── FIRST-PANEL WELL. Approved mock, and a different drawing from the multi-panel plot
+  // ── FIRST-PANEL WELL. A different drawing from the multi-panel plot
   // rather than the same one with the lines removed. There is no y axis here because there
   // is nothing to measure against yet: one panel means every marker is 0% from itself, so a
   // height would encode nothing. Rows carry the markers, the dashed run carries the wait, and
@@ -14024,10 +14010,10 @@ const MARKER_PHRASE = {
   hba1c:                  { high: "your blood sugar is trending up" },
   // Lipid markers deliberately OMITTED (ldl / non_hdl / total cholesterol, apolipoprotein_b,
   // apolipoprotein_a1, triglycerides). Framing high cholesterol as downstream of inflammation is a
-  // causal cluster claim, advisor-gated; stating it as a bare hero finding reads as a verdict we have
+  // causal cluster claim; stating it as a bare hero finding reads as a verdict we have
   // not earned. A lipid-driven priority falls through the no-match path (absence from this table IS
   // the exclusion) and the next eligible priority takes the slot. The priority card below still
-  // carries it in full. Revisit when the cluster rules are signed.
+  // carries it in full.
   progesterone:           { low:  "your progesterone is running low" },
   testosterone_total:     { high: "your testosterone is running high" },
   testosterone_free:      { high: "your testosterone is running high", low: "your free testosterone is running low" },
@@ -14557,7 +14543,7 @@ function markerRowHTML(mk, sysLabel, range){
     : (val ? '<span class="mv">'+esc(val)+'</span>' : '');
   const spark = (qd || unscored) ? miniSparkSVG([], color) : miniSparkSVG(markerHistory(mk), color);
   const dot  = '<span class="mdot '+cls+'"></span>';
-  // RULED COPY 2026-09-21. "Not scored." is the label; the sentence that follows is the
+  // "Not scored." is the label; the sentence that follows is the
   // explanation. It says NOTHING about whether her result is good or bad, because we did not
   // read it -- so it stays in .mk-note (grey, --brown-mid) and must never take an amber or
   // coral class. The previous wording explained our reference table; this one explains what
@@ -14953,7 +14939,7 @@ function buildDeck(p, reportId, faceScanConsented){
   }
 
   // Beat 2: The number (ring, band, visibility) — or, on a suppressed panel, the sparse-reveal hero
-  // (SIGNED) in its place. The suppressed branch drops the ring and the "This is one score for your
+  // in its place. The suppressed branch drops the ring and the "This is one score for your
   // whole body" line, which would assert a score that is not there.
   if(isSuppressed(v)){
     beats.push(
@@ -15171,7 +15157,7 @@ function buildDeck(p, reportId, faceScanConsented){
   // already is after eight beats. stampSeen still fires on this beat from Next, from Skip and
   // from ArrowRight/Space, none of which ever depended on the button.
   if(!p.longitudinal || !p.longitudinal.baseline_panel_date){
-    // Ruled copy, verbatim. Double-quoted so the apostrophe in item 2 is never escaped -- an
+    // Verbatim. Double-quoted so the apostrophe in item 2 is never escaped -- an
     // escaped quote inside a single-quoted string has unbalanced a brace counter in this
     // codebase before, and the suite's extractor is proven against this exact string.
     const wtItems = [
